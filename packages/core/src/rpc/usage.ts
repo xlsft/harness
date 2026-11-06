@@ -4,6 +4,7 @@
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { UsageBucket, UsageService, type UsageRange } from "../gen/harness/llm/v1/usage_pb.ts";
+import { need } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import { usageByUser, usageReport, type UsageRangeInput, type UsageReport, type UsageTotals } from "../services/usage.ts";
 import { isLocalModelId, recordLocalUsage } from "../services/local-models.ts";
@@ -89,7 +90,7 @@ export function registerUsageService(router: ConnectRouter): void {
 
     getUsage: guard(async (req, ctx: HandlerContext) => {
       const { user } = await requirePrincipal(ctx);
-      if (user.role !== "admin") throw new ApiError("permission", "Admin role required");
+      need(user, "usage.read");
       const range = rangeFromProto(req.range);
       const userId = req.userId || undefined;
       // One clock for both queries, so a defaulted `to` is the same instant in the report and the user table.

@@ -5,7 +5,7 @@
 
 import { objectUrl, type ObjectRef } from '~/lib/session/objects'
 
-export type AccountRole = 'admin' | 'user'
+export type AccountRole = 'admin' | 'user' | 'auditor' | 'billing'
 
 export interface AccountProfile {
   id: string
@@ -19,7 +19,7 @@ export interface AccountProfile {
   imageObject?: ObjectRef
   role: AccountRole
   // 'ldap': signs in through the directory; the name and password are managed there.
-  source: 'local' | 'ldap'
+  source: 'local' | 'ldap' | 'sso' | 'scim'
   // RFC 3339; '' when unknown or never.
   createdAt: string
   lastSignInAt: string

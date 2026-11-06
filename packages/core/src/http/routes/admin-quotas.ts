@@ -3,15 +3,15 @@ import { ensureDb, getDb, schema } from "../../db/index.ts";
 import { ApiError } from "../../lib/errors.ts";
 import { toPublicUser } from "../../services/devices.ts";
 import { getQuotaConfig, patchQuotaConfig, setQuotaConfig, spendStatus } from "../../services/quotas.ts";
-import { api, readJson, requireAdmin } from "../util.ts";
+import { api, readJson, requireCapability } from "../util.ts";
 
 /**
  * GET   /api/admin/quotas[?user_id=]  config (+ current spend and effective limits of a user)
- * PUT   /api/admin/quotas             replace {users: {<id>: {daily_usd, monthly_usd}}, roles: {...}, session_usd}
- * PATCH /api/admin/quotas             merge; a null entry removes a user's / role's limits
+ * PUT   /api/admin/quotas             replace {users: {<id>: {daily_usd, monthly_usd}}, roles: {...}, groups: {...}, session_usd}
+ * PATCH /api/admin/quotas             merge; a null entry removes a user's / group's / role's limits
  */
 export default api(async (event) => {
-  await requireAdmin(event);
+  await requireCapability(event, event.req.method === "GET" ? "quotas.read" : "quotas.write");
   switch (event.req.method) {
     case "GET": {
       const quotas = await getQuotaConfig();

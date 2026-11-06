@@ -86,6 +86,18 @@ message AdminUser {
   string last_seen_at = 11;
   // The calling admin.
   bool is_self = 12;
+  // Whether the user has a confirmed authenticator (mfa.proto).
+  bool mfa_enabled = 13;
+  // Names of the groups the user belongs to (directory.proto).
+  repeated string groups = 14;
+}
+
+// One rule of a group to role mapping: members of `group` get `role`. Rules are checked in order and the first match
+// wins; somebody who matches none gets ROLE_USER. Used by LDAP (group DNs), SSO (group names from the identity
+// provider's token or assertion) and SCIM (group display names).
+message GroupRoleMapping {
+  string group = 1;
+  User.Role role = 2;
 }
 
 message ListUsersRequest {
@@ -243,6 +255,9 @@ message LdapConfig {
   repeated string break_glass_logins = 19;
   // Per operation; 0: default (5000).
   int32 timeout_ms = 20;
+  // Group DN to role rules, re-checked at every sign-in. admin_group_dn, when set, is checked first. With neither set,
+  // roles are managed in Users. The last active admin is never demoted.
+  repeated GroupRoleMapping role_mappings = 21;
 }
 
 message GetLdapConfigRequest {}
@@ -289,6 +304,8 @@ message TestLdapUserResponse {
   bool admin = 9;
   // The local account the user maps to, if one exists.
   string user_id = 10;
+  // The role admin_group_dn and role_mappings give them.
+  User.Role role = 11;
 }
 
 message PermissionModePolicy {

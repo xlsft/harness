@@ -1,8 +1,8 @@
 import { listUsage } from "../../services/usage.ts";
-import { api, requireAdmin } from "../util.ts";
+import { api, requireCapability } from "../util.ts";
 
 export default api(async (event) => {
-  await requireAdmin(event);
+  await requireCapability(event, "usage.read");
   const q = event.url.searchParams;
   return listUsage({ userId: q.get("user_id") ?? undefined, limit: Number(q.get("limit") ?? 100) });
 });

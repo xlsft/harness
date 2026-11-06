@@ -136,10 +136,10 @@ describe("elicitation through the proxy", () => {
 describe("list changes and what the upstream says about itself", () => {
   it("passes list_changed on to a running call", async () => {
     const s = await server();
-    // Notifications travel on their own stream, so under load one can land after the call it raced has ended; a later call
-    // picks it up. Every kind has to arrive within a few calls.
+    // Notifications travel on their own stream, which the client opens in the background and which can land after the call it
+    // raced has ended; a later call picks them up. Under a full test run that can take a while.
     const kinds = new Set<ListChanged_Kind>();
-    for (let i = 0; i < 20 && kinds.size < 3; i++) {
+    for (const deadline = Date.now() + 30_000; Date.now() < deadline && kinds.size < 3; ) {
       const evs = await runCall(A, s.id, "announce", {}, async () => {});
       for (const e of evs) if (e.event.case === "listChanged") kinds.add(e.event.value.kind);
       if (kinds.size < 3) await new Promise((r) => setTimeout(r, 100));

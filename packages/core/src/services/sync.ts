@@ -15,6 +15,7 @@
  */
 import { createHash } from "node:crypto";
 import { and, asc, eq, gt, inArray, isNotNull, lt, lte, max, or, sql } from "drizzle-orm";
+import { record } from "../audit/log.ts";
 import { ensureDb, getDb, schema, type Db } from "../db/index.ts";
 import { Scope } from "../gen/harness/common/v1/scope_pb.ts";
 import { DocumentKind } from "../gen/harness/sync/v1/sync_pb.ts";
@@ -576,6 +577,9 @@ export async function deleteDocument(p: Principal, id: string, baseVersion?: num
       return { tombstone: row };
     });
     if (published) publish(published);
+    if (published?.kind === DocumentKind.POLICY) {
+      await record({ action: "policy.document_delete", actor: { id: p.user.id, label: p.user.email }, target: { type: "policy", id: published.id, label: published.key } });
+    }
     return r;
   });
 }

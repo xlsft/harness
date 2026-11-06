@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package harness.auth.v1;
+
+import "harness/auth/v1/admin.proto";
+
+// SsoService configures sign-in through OIDC and SAML identity providers. Admins; auditors can read. Secrets are write-only
+// and stored encrypted with a key derived from HARNESS_SECRET. Enabled providers appear on the sign-in page (/device),
+// the one the desktop app and the CLI open for their device flow, so every client gets them without further setup.
+service SsoService {
+  rpc ListSsoProviders(ListSsoProvidersRequest) returns (ListSsoProvidersResponse);
+  // Creates (empty id) or updates a provider.
+  rpc SaveSsoProvider(SaveSsoProviderRequest) returns (SaveSsoProviderResponse);
+  rpc DeleteSsoProvider(DeleteSsoProviderRequest) returns (DeleteSsoProviderResponse);
+  // Checks the given config before it is saved (an empty client secret keeps the stored one). Also returns a one-time link
+  // to try a real sign-in that shows what the provider sent and creates no session.
+  rpc TestSsoProvider(TestSsoProviderRequest) returns (TestSsoProviderResponse);
+  rpc GetSsoSettings(GetSsoSettingsRequest) returns (GetSsoSettingsResponse);
+  rpc SetSsoSettings(SetSsoSettingsRequest) returns (SetSsoSettingsResponse);
+}
+
+enum SsoProtocol {
+  SSO_PROTOCOL_UNSPECIFIED = 0;
+  SSO_PROTOCOL_OIDC = 1;
+  SSO_PROTOCOL_SAML = 2;
+}
+
+message SsoProvider {
+  // Lowercase letters, digits and dashes; part of the callback URLs. Generated on create when empty.
+  string id = 1;
+  // Shown on the sign-in button.
+  string name = 2;
+  SsoProtocol protocol = 3;
+  bool enabled = 4;
+
+  // OIDC: the issuer (its discovery document is read from there), the client, and extra scopes besides "openid email profile".
+  string issuer = 5;
+  string client_id = 6;
+  // Write-only: set to change; empty keeps the stored one.
+  string client_secret = 7;
+  bool client_secret_set = 8;
+  bool clear_client_secret = 9;
+  repeated string scopes = 10;
+
+  // SAML: what the identity provider says about itself. The certificate is its public signing certificate (PEM).
+  string idp_entity_id = 11;
+  string idp_sso_url = 12;
+  string idp_certificate = 13;
+
+  // Claim (OIDC) or attribute (SAML) names; empty: the protocol's usual ones.
+  string email_attribute = 14;
+  string name_attribute = 15;
+  string username_attribute = 16;
+  string groups_attribute = 17;
+
+  // Create the account at the first sign-in (otherwise an admin or SCIM provisions it first).
+  bool auto_create_users = 18;
+  // Only addresses in these domains may sign in (empty: any).
+  repeated string allowed_domains = 19;
+  // Only members of one of these groups may sign in (empty: anyone).
+  repeated string allowed_groups = 20;
+  // Group to role rules, re-checked at every sign-in. Empty: roles are managed in Users.
+  repeated GroupRoleMapping role_mappings = 21;
+
+  // Read only: what to register at the identity provider.
+  string redirect_uri = 22;
+  string saml_acs_url = 23;
+  string saml_entity_id = 24;
+  string saml_metadata_url = 25;
+}
+
+message ListSsoProvidersRequest {}
+
+message ListSsoProvidersResponse {
+  repeated SsoProvider providers = 1;
+}
+
+message SaveSsoProviderRequest {
+  SsoProvider provider = 1;
+}
+
+message SaveSsoProviderResponse {
+  SsoProvider provider = 1;
+}
+
+message DeleteSsoProviderRequest {
+  string id = 1;
+}
+
+message DeleteSsoProviderResponse {}
+
+message TestSsoProviderRequest {
+  SsoProvider provider = 1;
+}
+
+message SsoCheck {
+  string name = 1;
+  bool ok = 2;
+  string message = 3;
+}
+
+message TestSsoProviderResponse {
+  bool ok = 1;
+  repeated SsoCheck checks = 2;
+  // Only for a saved provider; valid for ten minutes and one use.
+  string sign_in_test_url = 3;
+}
+
+message SsoSettings {
+  // Local passwords and LDAP are refused except for break_glass_logins. Needs an enabled provider.
+  bool require_sso = 1;
+  // Usernames or emails that keep local sign-in.
+  repeated string break_glass_logins = 2;
+}
+
+message GetSsoSettingsRequest {}
+
+message GetSsoSettingsResponse {
+  SsoSettings settings = 1;
+}
+
+message SetSsoSettingsRequest {
+  SsoSettings settings = 1;
+}
+
+message SetSsoSettingsResponse {
+  SsoSettings settings = 1;
+}

@@ -7,6 +7,7 @@ import { FilterParser } from "ldapts";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { decryptSecret, deriveKey, encryptSecret } from "../lib/crypto.ts";
 import { ApiError } from "../lib/errors.ts";
+import { cleanMappings, type RoleMapping } from "./roles.ts";
 
 const KEY = "ldap";
 const SECRET_AAD = "setting:ldap:bind_password";
@@ -28,6 +29,8 @@ export interface LdapSettings {
   name_attribute: string;
   allowed_group_dn: string;
   admin_group_dn: string;
+  /** Group DN to role rules, first match wins, re-checked at every sign-in. */
+  role_mappings: RoleMapping[];
   auto_create_users: boolean;
   local_login: LocalLogin;
   break_glass_logins: string[];
@@ -71,6 +74,7 @@ export function defaultLdapSettings(): LdapSettings {
     name_attribute: "cn",
     allowed_group_dn: "",
     admin_group_dn: "",
+    role_mappings: [],
     auto_create_users: true,
     local_login: "fallback",
     break_glass_logins: [],
@@ -149,6 +153,7 @@ function normalize(s: LdapSettings): LdapSettings {
     name_attribute: str(s.name_attribute) || d.name_attribute,
     allowed_group_dn: str(s.allowed_group_dn),
     admin_group_dn: str(s.admin_group_dn),
+    role_mappings: cleanMappings(s.role_mappings),
     auto_create_users: s.auto_create_users ?? d.auto_create_users,
     local_login: s.local_login === "break_glass" ? "break_glass" : "fallback",
     break_glass_logins: [...new Set((Array.isArray(s.break_glass_logins) ? s.break_glass_logins : []).map((l) => str(l).toLowerCase()).filter(Boolean))],

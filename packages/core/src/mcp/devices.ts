@@ -11,7 +11,7 @@ import type { Principal } from "../services/devices.ts";
 import { audit } from "./audit.ts";
 import { secretRefs, substitute, substituteMap } from "./config.ts";
 import type { ToolData } from "./proxy.ts";
-import { getServerRow, isStdio, loadSecrets, rowConfig, visibleRows } from "./registry.ts";
+import { assertMcpAllowed, getServerRow, isStdio, loadSecrets, rowConfig, visibleRows } from "./registry.ts";
 
 export const LAUNCH_TTL_MS = 60_000;
 const MAX_STATUSES = 500;
@@ -143,6 +143,7 @@ export async function issueStdioLaunch(p: Principal, serverId: string, hash: str
   const deviceId = requireDevice(p);
   if (!hash) throw new ApiError("invalid_request", "config_hash is required");
   const row = await getServerRow(p.user, serverId);
+  await assertMcpAllowed(p.user, row.name);
   if (!isStdio(row)) throw new ApiError("invalid_request", "IssueStdioLaunch applies to stdio servers only");
   if (!row.enabled) throw new ApiError("failed_precondition", `MCP server ${row.name} is disabled`);
   if (row.configHash !== hash) {

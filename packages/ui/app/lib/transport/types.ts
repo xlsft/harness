@@ -22,6 +22,7 @@ import type { Effort } from '~/gen/harness/llm/v1/content_pb'
 import type { SubagentTranscriptItem } from '~/gen/harness/agent/v1/subagents_pb'
 import type { ProvidersApi } from '~/lib/providers/types'
 import type { UsersApi } from '~/lib/users/types'
+import type { EnterpriseApi } from '~/lib/enterprise/types'
 import type { AccountApi } from '~/lib/account/types'
 import type { UsageApi } from '~/lib/usage/types'
 import type { TerminalsApi } from '~/lib/terminal/types'
@@ -104,7 +105,27 @@ export interface NewSessionOptions {
 }
 
 // Per-user preferences the client honours for every session (stored in the user's synced settings).
+// What the organization's managed policy imposes, as the client merged it. Read only.
+export interface ManagedPolicyView {
+  active: boolean
+  allowRules: string[]
+  askRules: string[]
+  denyRules: string[]
+  managedRulesOnly: boolean
+  sandboxRequired: boolean
+  sandboxOutsideRefused: boolean
+  disabledModes: string[]
+  restrictProviders: boolean
+  allowedProviders: string[]
+  personalProvidersDisabled: boolean
+  restrictMcpServers: boolean
+  allowedMcpServers: string[]
+  localModelsDisabled: boolean
+}
+
 export interface UserPreferences {
+  // Set by the client from the policy documents; nothing here changes it.
+  managedPolicy?: ManagedPolicyView
   // Compact sessions idle for 30 minutes whose context is above half the window, in the background.
   compactIdleSessions: boolean
   // How many times per hour a watched pull request may wake a session (1 to 240; the client validates).
@@ -308,6 +329,7 @@ export interface SessionTransport {
 
   // User administration and LDAP for admins (harness.auth.v1.AdminService, forwarded to the server by the client).
   users(): UsersApi
+  enterprise(): EnterpriseApi
 
   // The signed-in user's own profile, avatar, password and devices (harness.auth.v1.DeviceAuthService account
   // methods, forwarded to the server by the client).

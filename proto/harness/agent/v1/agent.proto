@@ -11,6 +11,7 @@ import "harness/agent/v1/hooks.proto";
 import "harness/agent/v1/import.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
+import "harness/agent/v1/managed_policy.proto";
 import "harness/agent/v1/mcp.proto";
 import "harness/agent/v1/pr.proto";
 import "harness/agent/v1/preview.proto";
@@ -1531,6 +1532,9 @@ message UserPreferences {
   bool schedules_enabled = 18;
   // How many turns `/goal` may take when it names no cap (settings key goalMaxTurns), 1 to 200. Default 20.
   int32 goal_max_turns = 19;
+  // What the organization's managed policy imposes on this user; read only (managed_policy.proto). Nothing in
+  // UpdateUserPreferencesRequest can change it.
+  ManagedPolicyView managed_policy = 16;
 }
 
 // One switch of the Customize screen.

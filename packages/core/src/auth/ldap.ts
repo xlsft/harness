@@ -5,6 +5,7 @@
  */
 import { Client, InvalidCredentialsError, NoSuchObjectError, type Entry } from "ldapts";
 import type { LdapRuntimeConfig } from "./ldap-config.ts";
+import { roleFromGroups, type Role } from "./roles.ts";
 
 /** A directory user mapped to account fields. */
 export interface DirectoryUser {
@@ -18,6 +19,8 @@ export interface DirectoryUser {
   allowed: boolean;
   /** Member of admin_group_dn (false when none is set). */
   admin: boolean;
+  /** The role role_mappings give (first match); "user" when none matches or there are none. */
+  mapped_role: Role;
 }
 
 export type AuthResult =
@@ -135,10 +138,17 @@ async function searchUser(client: Client, cfg: LdapRuntimeConfig, login: string)
     name: attr(e, cfg.name_attribute)[0] ?? username,
     groups: attr(e, "memberOf"),
   };
+  // Directories without memberOf: the mapped groups are looked at one by one, so groups below is complete for them too.
+  const groups = [...base.groups];
+  for (const m of cfg.role_mappings) {
+    if (!groups.some((g) => sameDn(g, m.group)) && (await inGroup(client, m.group, base))) groups.push(m.group);
+  }
   return {
     ...base,
+    groups,
     allowed: cfg.allowed_group_dn ? await inGroup(client, cfg.allowed_group_dn, base) : true,
     admin: cfg.admin_group_dn ? await inGroup(client, cfg.admin_group_dn, base) : false,
+    mapped_role: roleFromGroups(cfg.role_mappings, groups, sameDn),
   };
 }
 

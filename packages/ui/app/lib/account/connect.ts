@@ -13,8 +13,8 @@ export function profileView(u: User | undefined): AccountProfile {
     name: u?.name ?? '',
     image: u?.image ?? '',
     imageObject: u?.imageObject ? { sha256: u.imageObject.sha256, size: Number(u.imageObject.size), mediaType: u.imageObject.mediaType } : undefined,
-    role: u?.role === User_Role.ADMIN ? 'admin' : 'user',
-    source: u?.source === UserSource.LDAP ? 'ldap' : 'local',
+    role: u?.role === User_Role.ADMIN ? 'admin' : u?.role === User_Role.AUDITOR ? 'auditor' : u?.role === User_Role.BILLING ? 'billing' : 'user',
+    source: u?.source === UserSource.LDAP ? 'ldap' : u?.source === UserSource.SSO ? 'sso' : u?.source === UserSource.SCIM ? 'scim' : 'local',
     createdAt: u?.createdAt ?? '',
     lastSignInAt: u?.lastSignInAt ?? ''
   }

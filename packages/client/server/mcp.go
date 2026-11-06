@@ -33,7 +33,7 @@ func (s *Server) mcpInventory() *mcp.Inventory {
 	mcpInventoryMu.Lock()
 	defer mcpInventoryMu.Unlock()
 	if s.MCPInventory == nil {
-		s.MCPInventory = &mcp.Inventory{Client: s.MCPClient}
+		s.MCPInventory = &mcp.Inventory{Client: s.MCPClient, PolicyAllows: func(name string) bool { return s.Base.ModePolicy.Managed().McpServerAllowed(name) }}
 	}
 	inv := s.MCPInventory
 	if inv.Local == nil {

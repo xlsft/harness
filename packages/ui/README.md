@@ -19,7 +19,7 @@ Transport, from runtime config:
 
 | Variable | Default | |
 |---|---|---|
-| `NUXT_PUBLIC_TRANSPORT` | `mock` | `mock` replays scripted `harness.agent.v1` events; `connect` talks to a client |
+| `NUXT_PUBLIC_TRANSPORT` | `mock` | `mock` replays scripted `harness.agent.v1` events; `connect` talks to a client; `web` is the build the server image serves: the user connects a client from the page, and what needs none talks to the server with the session cookie (`components/WebConsole.vue`, [deploy/README.md](../../deploy/README.md#web-ui)) |
 | `NUXT_PUBLIC_AGENT_URL` | — | AgentService base URL for `connect` |
 | `NUXT_PUBLIC_AGENT_TOKEN` | — | Bearer token of the client; an `?agentToken=` query parameter overrides it for the tab |
 

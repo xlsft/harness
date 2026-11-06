@@ -145,6 +145,10 @@ message User {
     ROLE_UNSPECIFIED = 0;
     ROLE_USER = 1;
     ROLE_ADMIN = 2;
+    // Reads everything an admin can read (users, audit log, usage, quotas, policy, sign-in settings) and changes nothing.
+    ROLE_AUDITOR = 3;
+    // Reads usage and sets spend quotas; no other administration.
+    ROLE_BILLING = 4;
   }
   string id = 1;
   string email = 2;
@@ -170,6 +174,10 @@ enum UserSource {
   USER_SOURCE_LOCAL = 1;
   // Signs in through LDAP; no local password.
   USER_SOURCE_LDAP = 2;
+  // Signs in through an OIDC or SAML identity provider; no local password.
+  USER_SOURCE_SSO = 3;
+  // Created by a SCIM provisioning client; no local password until they sign in through SSO or get one.
+  USER_SOURCE_SCIM = 4;
 }
 
 message Device {
