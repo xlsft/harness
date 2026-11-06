@@ -80,6 +80,7 @@ if (desktop) {
     <HLoader v-else-if="phase === 'checking'" />
     <template v-else>
       <NuxtPage />
+      <SshHostBar />
       <SettingsModal />
       <SearchModal />
     </template>

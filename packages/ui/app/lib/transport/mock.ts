@@ -13,6 +13,7 @@
 // - sessions on ACP agents (engine 'acp:<id>', ~/lib/acp/mock.ts) stream a reply with an Edit tool call behind a
 //   permission request; a claude-acp session waits for a sign-in first, codex reports subscription limits.
 
+import { MockSshApi } from '~/lib/ssh'
 import { SlashCommandResult_Action } from '~/gen/harness/agent/v1/slash_commands_pb'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 import { mockSlashCatalog } from './mockSlash'
@@ -401,6 +402,11 @@ export class MockTransport implements SessionTransport {
   private terminalsApi = new MockTerminalsApi({ sessionCwd: id => this.sessions.get(id)?.info.cwd })
   terminals() {
     return this.terminalsApi
+  }
+
+  private sshApi = new MockSshApi()
+  ssh() {
+    return this.sshApi
   }
 
   private browserApi = new MockBrowserApi()

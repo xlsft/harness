@@ -21,6 +21,7 @@ const SECTIONS = [
   { key: 'search', label: 'Search', icon: 'search', group: 'ai' },
   { key: 'speech', label: 'Speech', icon: 'mic', group: 'ai' },
   { key: 'computer', label: 'Computer use', icon: 'monitor', group: 'ai' },
+  { key: 'ssh', label: 'SSH hosts', icon: 'terminal', group: 'ai' },
   { key: 'users', label: 'Users', icon: 'shield', group: 'server' },
   { key: 'ldap', label: 'LDAP', icon: 'link', group: 'server' },
   { key: 'about', label: 'About', icon: 'info', group: 'product' }
@@ -49,7 +50,8 @@ const KEYWORDS: Record<Section, string> = {
   mcp: 'mcp model context protocol servers tools resources prompts oauth sign in stdio http sse websocket approval audit log project .mcp.json',
   search: 'web search providers searxng brave tavily exa kagi perplexity',
   speech: 'voice dictation microphone read aloud stt tts parakeet whisper piper elevenlabs openai deepgram minimax',
-  computer: 'computer use desktop apps control screen recording accessibility permissions click type',
+  computer: 'computer use desktop apps control screen recording accessibility permissions click type your chrome real browser sites',
+  ssh: 'ssh hosts remote machine server tunnel known hosts key',
   account: 'sign out server user',
   users: 'admin users roles passwords',
   ldap: 'ldap directory active directory sign in bind',
@@ -184,6 +186,7 @@ const notifications = computed({
       <SettingsSearch v-else-if="section === 'search'" />
       <SettingsSpeech v-else-if="section === 'speech'" />
       <SettingsComputerUse v-else-if="section === 'computer'" />
+      <SettingsSshHosts v-else-if="section === 'ssh'" />
 
       <SettingsUsers v-else-if="section === 'users'" />
 

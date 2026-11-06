@@ -2,6 +2,7 @@
 // The base URL comes from runtime config (NUXT_PUBLIC_AGENT_URL): `harness-client serve --listen 127.0.0.1:<port>`
 // serves it. Every call carries `Authorization: Bearer <token>` when a token is given (see token.ts).
 
+import { ConnectSshApi } from '~/lib/ssh'
 import { ResolveSessionProposalRequest_Action } from '~/gen/harness/agent/v1/session_links_pb'
 import type { ComputerUseStatus } from '~/gen/harness/agent/v1/computer_use_pb'
 import { permissionVM, profileMessage, profileVM, tierName } from '~/lib/session/computer'
@@ -102,6 +103,12 @@ export class ConnectTransport implements SessionTransport {
     this.acpApi = new ConnectAcpApi(transport)
     this.mcpApi = new ConnectMcpApi(transport)
     this.browserApi = new ConnectBrowserApi(transport, baseUrl)
+    this.sshApi = new ConnectSshApi(transport)
+  }
+
+  private sshApi: ConnectSshApi
+  ssh() {
+    return this.sshApi
   }
 
   private browserApi: ConnectBrowserApi

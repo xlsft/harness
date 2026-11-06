@@ -1,6 +1,7 @@
 // SessionTransport: everything the UI needs from a harness client (harness.agent.v1.AgentService).
 // Two implementations: MockTransport (scripted events, the default) and ConnectTransport (connect-web).
 
+import type { SshApi } from '~/lib/ssh'
 import type { OutgoingAttachment } from '~/lib/session/attachments'
 import type { ObjectTicket } from '~/lib/session/objects'
 import type { ComputerPermissionVM, ComputerProfileVM, ComputerTierName, EffortName, QuestionReply } from '~/lib/session/types'
@@ -378,4 +379,6 @@ export interface SessionTransport {
   // download, and the live view (BrowserConnection: screencast frames, tab state, agent actions; navigation and
   // input go back over it). See ~/lib/browser.
   browser(): BrowserApi
+  // Saved SSH hosts and connections (device-local; the local client's, whichever client this window talks to).
+  ssh(): SshApi
 }

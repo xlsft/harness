@@ -18,7 +18,8 @@ import type { EffortName, PermissionModeName, QuestionAnswerVM, SessionState } f
 import { liveOutbox, type OutboxEntry } from '~/lib/session/delivery'
 import { descendants } from '~/lib/session/tree'
 import { setObjectTicketSource } from '~/lib/session/objects'
-import { browserAgentToken, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
+import { browserAgentToken, ConnectTransport, createTransport, type ModelInfo, type SessionTransport } from '~/lib/transport'
+import { readActiveHost, writeActiveHost, type ActiveSshHost, type SshApi } from '~/lib/ssh'
 import type { DeviceSettings, SessionPatch } from '~/lib/transport/types'
 import { allowedModes, nextMode } from '~/utils/composer'
 
@@ -119,6 +120,10 @@ export function newUuid() {
 export const useSessionStore = defineStore('sessions', {
   state: () => ({
     transport: null as SessionTransport | null,
+    // SSH hosts always go through the local client; this window may be running on one of them (lib/ssh).
+    sshApi: null as SshApi | null,
+    sshHost: null as ActiveSshHost | null,
+    sshLost: false,
     ready: false,
     error: '',
     // The client stopped answering (network error, process gone); the desktop app reconnects on this.
@@ -182,11 +187,24 @@ export const useSessionStore = defineStore('sessions', {
     async init(transport?: SessionTransport) {
       if (this.ready) return
       const config = useRuntimeConfig()
-      this.transport = markRaw(transport ?? createTransport(
+      const local = transport ?? createTransport(
         String(config.public.transport),
         String(config.public.agentUrl),
         browserAgentToken(String(config.public.agentToken ?? ''))
-      ))
+      )
+      this.transport = markRaw(local)
+      this.sshApi = markRaw(local.ssh())
+      // This window was on an SSH host: the tunnel is the local client's, so it outlives a reload.
+      if (import.meta.client) {
+        const active = readActiveHost()
+        const live = active && (await this.sshApi.connections().catch(() => [])).find(c => c.hostId === active.hostId)
+        if (active && live) {
+          this.transport = markRaw(new ConnectTransport(live.url, live.token))
+          this.sshHost = active
+        } else if (active) {
+          writeActiveHost(null)
+        }
+      }
       const tickets = this.transport
       setObjectTicketSource(() => tickets.createObjectTicket(), shallowRef(null))
       try {
@@ -209,6 +227,39 @@ export const useSessionStore = defineStore('sessions', {
         }
       } catch (err) {
         this.error = err instanceof Error ? err.message : String(err)
+      }
+    },
+
+    // Moves this window onto a connected SSH host. It reloads, so nothing of this computer's sessions stays behind in it.
+    enterSshHost(host: ActiveSshHost) {
+      writeActiveHost(host)
+      window.location.reload()
+    },
+
+    // Back to this computer. The client on the host goes away with the connection; its sessions stay on its disk.
+    async leaveSshHost() {
+      const host = this.sshHost
+      writeActiveHost(null)
+      if (host) await this.sshApi?.disconnect(host.hostId).catch(() => {})
+      window.location.reload()
+    },
+
+    async checkSshConnection() {
+      const host = this.sshHost
+      if (!host || !this.sshApi) return
+      try {
+        this.sshLost = !(await this.sshApi.connections()).some(c => c.hostId === host.hostId)
+      } catch { /* the local client is what is gone; the rest of the app says so */ }
+    },
+
+    async reconnectSshHost() {
+      const host = this.sshHost
+      if (!host || !this.sshApi) return
+      try {
+        await this.sshApi.connect(host.hostId, window.location.origin, () => {})
+        window.location.reload()
+      } catch (e) {
+        this.error = e instanceof Error ? e.message : String(e)
       }
     },
 
