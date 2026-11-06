@@ -1293,15 +1293,27 @@ func (s *Session) update(n sdk.SessionNotification) {
 	}
 }
 
+// permissionToolWait bounds how long a permission request waits for the tool_call it may have overtaken.
+const permissionToolWait = 500 * time.Millisecond
+
 // requestPermission handles session/request_permission: it becomes a harness PermissionRequest.
 func (s *Session) requestPermission(ctx context.Context, p sdk.RequestPermissionRequest) (sdk.RequestPermissionResponse, error) {
 	cancelled := sdk.RequestPermissionResponse{Outcome: sdk.NewRequestPermissionOutcomeCancelled()}
+	tc := p.ToolCall
 	s.mu.Lock()
+	// Requests are dispatched apart from notifications, so this can overtake the tool_call that names the tool.
+	// Without a kind or title here, give it a moment, or the prompt would ask about a nameless "Tool".
+	if tc.Kind == nil && tc.Title == nil {
+		for deadline := time.Now().Add(permissionToolWait); s.tools[string(tc.ToolCallId)] == nil && time.Now().Before(deadline); {
+			s.unlock()
+			time.Sleep(5 * time.Millisecond)
+			s.mu.Lock()
+		}
+	}
 	if s.cancelled || s.closed || !s.busy {
 		s.mu.Unlock()
 		return cancelled, nil
 	}
-	tc := p.ToolCall
 	t := s.toolLocked(string(tc.ToolCallId))
 	t.mergeUpdate(tc.Title, tc.Kind, tc.Status, tc.RawInput, tc.RawOutput, tc.Locations, tc.Content)
 	s.startToolLocked(t)

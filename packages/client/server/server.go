@@ -113,6 +113,8 @@ type Server struct {
 	Environments *environment.Store
 	// WebURL is the base URL of a web UI that opens sessions (InitializeResponse.web_url); empty when none.
 	WebURL string
+	// ServerVersion reads the version of the signed-in server (InitializeResponse.server_version); nil: unknown.
+	ServerVersion func(context.Context) string
 
 	// states is the last known user state of sessions, by id (stateMu; never held while taking ls.mu).
 	stateMu sync.Mutex
@@ -266,6 +268,9 @@ func (s *Server) serveHandler(ctx context.Context, ln net.Listener, h http.Handl
 
 func (s *Server) Initialize(ctx context.Context, req *connect.Request[agentv1.InitializeRequest]) (*connect.Response[agentv1.InitializeResponse], error) {
 	resp := &agentv1.InitializeResponse{ClientVersion: config.Version, UserEmail: s.UserEmail, WebUrl: s.WebURL}
+	if s.ServerVersion != nil {
+		resp.ServerVersion = s.ServerVersion(ctx)
+	}
 	policy := s.Base.ModePolicy
 	for _, m := range permissions.ModeCycle() {
 		if policy.Allowed(m) {

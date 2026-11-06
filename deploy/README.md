@@ -26,8 +26,11 @@ docker run -d --name harness -p 3000:3000 -v harness-data:/data \
   -e HARNESS_ADMIN_EMAIL=you@example.com -e HARNESS_ADMIN_PASSWORD='a long password' \
   -e HARNESS_SECRET="$(openssl rand -base64 48)" \
   --stop-timeout 20 \
-  harness/server
+  ghcr.io/xlsft/harness:latest
 ```
+
+Images are published to `ghcr.io/xlsft/harness` for `linux/amd64` and `linux/arm64`, tagged `X.Y.Z`, `X.Y` and `latest` (a
+pre-release gets only its own `X.Y.Z-rc.N`), and signed; [how to verify them](../docs/release.md#verifying-a-release).
 
 - `HARNESS_ADMIN_EMAIL` / `HARNESS_ADMIN_PASSWORD` create the first admin on startup (username: `HARNESS_ADMIN_USERNAME`, or the email's local part). They are optional: on a server with no accounts, the first person to sign in (from the app or the CLI) creates the admin account on the sign-in page (name, username, email, password). After that, sign-up is closed and an admin adds people, unless `HARNESS_ALLOW_SIGNUP=true`. People sign in with their email or their username (3-30 letters, digits, `_` or `.`; case-insensitive).
 - Set `HARNESS_SECRET` (32+ characters) explicitly and keep it: it derives the auth secret and
@@ -42,7 +45,7 @@ docker run -d --name harness -p 3000:3000 -v harness-data:/data \
 Build it yourself from the repo root:
 
 ```bash
-docker build -f deploy/Dockerfile -t harness/server .
+docker build -f deploy/Dockerfile -t ghcr.io/xlsft/harness .
 ```
 
 Health: `GET /api/health` (also the image's `HEALTHCHECK`).
@@ -59,6 +62,7 @@ Defaults baked into the image:
 | `DATABASE_URL` | `postgres://harness@/harness?host=/run/postgresql` | internal Postgres over its unix socket |
 | `HARNESS_SEARXNG_URL` | `http://127.0.0.1:8888` | internal SearXNG |
 | `HARNESS_PROMPTS_DIR` | `/app/prompts` | prompt files shipped in the image |
+| `HARNESS_VERSION` | the release's version | set by the image build; `/api/health` reports it |
 | `PGHOST` | `/run/postgresql` | so `psql` / `pg_dump` in `docker exec` find the socket |
 | `HARNESS_S3_ENDPOINT` | `http://127.0.0.1:3900` | internal object store; see "Object store" |
 | `HARNESS_S3_CREDENTIALS_FILE` | `/data/objects/s3-credentials` | its keys, generated at first start |
@@ -261,12 +265,14 @@ or with `sqlite3 .backup` from a host tool.
 ## Upgrading
 
 ```bash
-docker pull harness/server:<new>
+docker pull ghcr.io/xlsft/harness:<new>
 docker stop harness && docker rm harness
-docker run -d --name harness ... harness/server:<new>     # same volume, same env
+docker run -d --name harness ... ghcr.io/xlsft/harness:<new>     # same volume, same env
 ```
 
-core applies its database migrations on startup. Take a `pg_dump` first.
+core applies its database migrations on startup. Take a `pg_dump` first. The server doesn't update itself: **Settings →
+About** in the app shows the running version, whether a newer one exists, and (for admins) these commands. Clients one
+version behind keep working: core refuses a client only below `HARNESS_MIN_CLIENT_VERSION`, which is unset unless you set it.
 
 Postgres major versions: the image pins Postgres 17. If a future image moves to a new major, the
 container refuses to start against an older cluster (the log says so) instead of touching it.
@@ -293,8 +299,8 @@ Upgrade by dump and restore: `pg_dump` with the old image, start the new image o
   wheels only; s6-overlay tarballs are checksum-verified.
 - Pinned versions are build args: `NODE_VERSION`, `PNPM_VERSION`, `SEARXNG_COMMIT` (SearXNG has no
   release tags), `S6_OVERLAY_VERSION` and `GARAGE_VERSION` with their checksums, `PG_MAJOR`.
-- CI (`.github/workflows/image.yml`) builds `linux/amd64` and `linux/arm64`; it pushes to
-  `ghcr.io/<owner>/harness-server` only for `v*` tags.
+- CI (`.github/workflows/image.yml`) builds `linux/amd64` and `linux/arm64`, and starts the amd64 image once
+  (`scripts/e2e/image-smoke.sh`). Only a release ([docs/release.md](../docs/release.md)) pushes it.
 
 ## Size and follow-ups
 

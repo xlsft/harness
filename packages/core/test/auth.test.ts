@@ -150,6 +150,24 @@ describe("auth guards", () => {
     }
   });
 
+  it("does not lock out any client unless a minimum is configured", async () => {
+    // A release sets no HARNESS_MIN_CLIENT_VERSION (docs/release.md), so a client one version behind keeps working.
+    delete process.env.HARNESS_MIN_CLIENT_VERSION;
+    for (const ua of ["harness-client/0.0.1 (darwin; arm64)", "harness-client/0.0.0-dev (darwin; arm64)", "harness-client/0.2.0-rc.1 (darwin; arm64)"]) {
+      const res = await fetch(`${ts.url}/harness.auth.v1.DeviceAuthService/StartDeviceAuth`, {
+        method: "POST",
+        headers: { "content-type": "application/json", "user-agent": ua },
+        body: "{}",
+      });
+      expect(res.status).toBe(200);
+    }
+  });
+
+  it("reports its version in the health check", async () => {
+    const res = await fetch(`${ts.url}/api/health`);
+    expect((await res.json()).version).toBe(process.env.HARNESS_VERSION || "0.0.0-dev");
+  });
+
   it("protects the admin API by role", async () => {
     const admin = await deviceLogin(ts);
     expect((await adminApi(ts.url, "hat_bogus", "GET", "/api/admin/providers")).status).toBe(401);

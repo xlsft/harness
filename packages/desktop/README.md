@@ -10,8 +10,11 @@ for new sessions, Show in Finder and Open in default app for changed files.
 ```bash
 pnpm install                 # once
 pnpm dev                     # builds the sidecar, then runs the app against the UI dev server (:3210)
-pnpm build                   # release bundle (.app / .dmg, .msi, .deb / .AppImage)
+pnpm build                   # a bundle (.app / .dmg, .msi, .deb / .AppImage), unsigned and without updater artifacts
 ```
+
+Releases are built by the release workflow through `scripts/build-release.sh`, signed if signing is set up, and update
+themselves through Tauri's updater: [docs/release.md](../../docs/release.md).
 
 `pnpm dev` reuses a UI dev server already running on :3210, otherwise it starts one. `HARNESS_HOME` is
 passed through to the sidecar, so `HARNESS_HOME=/tmp/fresh pnpm dev` starts signed out.

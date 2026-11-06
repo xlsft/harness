@@ -1,14 +1,26 @@
 name: client
 
 on:
+  workflow_dispatch:
+  workflow_call:
   push:
+    branches: [main]
     paths: ['packages/client/**', '.github/workflows/client.yml']
   pull_request:
     paths: ['packages/client/**', '.github/workflows/client.yml']
 
+permissions:
+  contents: read
+
+# A new push cancels older checks of its branch; a release's are never cancelled.
+concurrency:
+  group: client-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 jobs:
   ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     defaults:
       run:
@@ -16,10 +28,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: packages/client/go.mod
           cache-dependency-path: packages/client/go.sum
@@ -30,9 +42,11 @@ jobs:
       - name: Test
         run: go test -race ./...
 
+  # Keeps every platform compiling. Only macOS goes out in a release, through .goreleaser.yaml.
   build:
     needs: ci
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     strategy:
       fail-fast: false
@@ -52,10 +66,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: packages/client/go.mod
           cache-dependency-path: packages/client/go.sum
@@ -65,8 +79,9 @@ jobs:
 
       - name: Upload artifact
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ env.BIN }}
           path: packages/client/dist/${{ env.BIN }}
           if-no-files-found: error
+          retention-days: 7

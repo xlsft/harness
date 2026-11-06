@@ -410,6 +410,9 @@ message InitializeResponse {
   // session query parameter). Empty when none is configured (HARNESS_WEB_URL on the client); the harness
   // server does not serve the UI yet.
   string web_url = 8;
+  // Version of the server this client is signed in to (its /api/health); empty when it can't be read, or a server older
+  // than the first release. "0.0.0-dev" for a server not built by the release workflow.
+  string server_version = 9;
 }
 
 // A model from the server's catalog, with what frontends need to offer it.

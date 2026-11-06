@@ -1224,7 +1224,10 @@ type InitializeResponse struct {
 	// Base URL of a web UI that opens this user's sessions: "<web_url>/?session=<id>" opens a session (the UI's
 	// session query parameter). Empty when none is configured (HARNESS_WEB_URL on the client); the harness
 	// server does not serve the UI yet.
-	WebUrl        string `protobuf:"bytes,8,opt,name=web_url,json=webUrl,proto3" json:"web_url,omitempty"`
+	WebUrl string `protobuf:"bytes,8,opt,name=web_url,json=webUrl,proto3" json:"web_url,omitempty"`
+	// Version of the server this client is signed in to (its /api/health); empty when it can't be read, or a server older
+	// than the first release. "0.0.0-dev" for a server not built by the release workflow.
+	ServerVersion string `protobuf:"bytes,9,opt,name=server_version,json=serverVersion,proto3" json:"server_version,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1311,6 +1314,13 @@ func (x *InitializeResponse) GetDisabledPermissionModes() []PermissionMode {
 func (x *InitializeResponse) GetWebUrl() string {
 	if x != nil {
 		return x.WebUrl
+	}
+	return ""
+}
+
+func (x *InitializeResponse) GetServerVersion() string {
+	if x != nil {
+		return x.ServerVersion
 	}
 	return ""
 }
@@ -10524,7 +10534,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"expires_at\x18\x03 \x01(\tR\texpiresAt\"Z\n" +
 	"\x11InitializeRequest\x12\x1a\n" +
 	"\bfrontend\x18\x01 \x01(\tR\bfrontend\x12)\n" +
-	"\x10frontend_version\x18\x02 \x01(\tR\x0ffrontendVersion\"\x95\x03\n" +
+	"\x10frontend_version\x18\x02 \x01(\tR\x0ffrontendVersion\"\xbc\x03\n" +
 	"\x12InitializeResponse\x12%\n" +
 	"\x0eclient_version\x18\x01 \x01(\tR\rclientVersion\x12\x1d\n" +
 	"\n" +
@@ -10534,7 +10544,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x06models\x18\x05 \x03(\v2\x1b.harness.agent.v1.ModelInfoR\x06models\x12#\n" +
 	"\rdefault_model\x18\x06 \x01(\tR\fdefaultModel\x12\\\n" +
 	"\x19disabled_permission_modes\x18\a \x03(\x0e2 .harness.agent.v1.PermissionModeR\x17disabledPermissionModes\x12\x17\n" +
-	"\aweb_url\x18\b \x01(\tR\x06webUrl\"\xef\x03\n" +
+	"\aweb_url\x18\b \x01(\tR\x06webUrl\x12%\n" +
+	"\x0eserver_version\x18\t \x01(\tR\rserverVersion\"\xef\x03\n" +
 	"\tModelInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x1a\n" +

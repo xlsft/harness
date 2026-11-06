@@ -1,0 +1,45 @@
+name: workflows
+
+# A mistake in the release workflow or its scripts otherwise shows only at the next tag.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/**', '.goreleaser.yaml', 'scripts/release.sh', 'scripts/release/**', 'packages/desktop/scripts/build-release.sh', 'packages/desktop/src-tauri/tauri.conf.json']
+  pull_request:
+    paths: ['.github/workflows/**', '.goreleaser.yaml', 'scripts/release.sh', 'scripts/release/**', 'packages/desktop/scripts/build-release.sh', 'packages/desktop/src-tauri/tauri.conf.json']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: workflows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: packages/client/go.mod
+          cache: false
+      - name: actionlint
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          version: "~> v2"
+          args: check
+
+  release-scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Test the release scripts
+        run: scripts/release/test.sh

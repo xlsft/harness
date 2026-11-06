@@ -46,6 +46,7 @@ Usage:
                                         Serve AgentService to browsers (Connect over HTTP/1.1 and h2c,
                                         bearer token, CORS allowlist); combinable with --socket
   harness-client -p "<prompt>" [flags]  Run one headless turn
+  harness-client update [--check]       Replace this binary with the newest release (verified)
   harness-client version
 
 Headless flags:
@@ -80,6 +81,8 @@ func run(args []string) int {
 			return runImport(args[1:])
 		case "sync":
 			return runSync(args[1:])
+		case "update":
+			return runUpdate(ctx, args[1:])
 		case "version", "--version":
 			fmt.Println(config.UserAgent())
 			return 0
@@ -238,6 +241,7 @@ func cmdServe(ctx context.Context, args []string) int {
 	if tokens, url, user, err := bootstrap.Tokens(*serverURL); err == nil {
 		// Modes the server's policy disables: not offered, refused, and live sessions in one are switched.
 		srv.SetModePolicy(bootstrap.WatchModePolicy(ctx, url, rpc.HTTPClient(url), tokens, user, log))
+		srv.ServerVersion = func(ctx context.Context) string { return server.ReadServerVersion(ctx, rpc.HTTPClient(url), url) }
 		// Settings screens (providers, classifier) reach the server through this client.
 		srv.Core = &server.CoreProxy{URL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens}
 		// Frontends read the object store through this client, with a ticket instead of the agent token (<img>, <video>).

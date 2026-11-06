@@ -1,18 +1,28 @@
 name: proto
 
 on:
+  workflow_call:
   workflow_dispatch:
   push:
+    branches: [main]
     paths: ['proto/**', 'buf.gen.yaml', 'packages/client/gen/**', 'packages/core/src/gen/**', 'packages/ui/app/gen/**', 'packages/core/package.json', 'packages/ui/package.json', '.github/workflows/proto.yml']
   pull_request:
     paths: ['proto/**', 'buf.gen.yaml', 'packages/client/gen/**', 'packages/core/src/gen/**', 'packages/ui/app/gen/**', '.github/workflows/proto.yml']
 
+permissions:
+  contents: read
+
+concurrency:
+  group: proto-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 jobs:
   buf:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: bufbuild/buf-action@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: bufbuild/buf-action@37ac33d8960807670a6e9719080e885197b09cc6 # v1.7.0
         with:
           input: proto
           lint: true
@@ -20,27 +30,31 @@ jobs:
           breaking: ${{ github.event_name == 'pull_request' }}
           breaking_against: ${{ github.event.repository.clone_url }}#branch=main,subdir=proto
           push: false
+          # Commenting on the pull request would need a write token.
+          pr_comment: false
 
   generated:
     # Generated code is committed into each package; fail if it is stale.
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
-      - uses: bufbuild/buf-action@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: bufbuild/buf-action@37ac33d8960807670a6e9719080e885197b09cc6 # v1.7.0
         with:
           setup_only: true
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: packages/client/go.mod
+          cache-dependency-path: packages/client/go.sum
       - name: Install Go plugins
         run: |
           go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.12
           go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.21.1
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           package_json_file: packages/core/package.json
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
           cache: pnpm

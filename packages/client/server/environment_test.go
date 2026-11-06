@@ -1,6 +1,10 @@
 package server_test
 
 import (
+	"context"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -321,6 +325,34 @@ func TestEnvironmentOfRemoteSessionIsReadOnly(t *testing.T) {
 	}
 	if _, err := h.client.AddSessionDirectory(h.ctx, connect.NewRequest(&agentv1.AddSessionDirectoryRequest{SessionId: remote, Path: h.proj})); connectCode(err) != connect.CodeFailedPrecondition {
 		t.Fatalf("add directory: %v", err)
+	}
+}
+
+func TestInitializeReportsServerVersion(t *testing.T) {
+	h := startHarnessSrv(t, nil, nil, nil, func(s *server.Server) {
+		s.ServerVersion = func(context.Context) string { return "1.2.3" }
+	})
+	init, err := h.client.Initialize(h.ctx, connect.NewRequest(&agentv1.InitializeRequest{}))
+	if err != nil || init.Msg.ServerVersion != "1.2.3" {
+		t.Fatalf("%v %+v", err, init)
+	}
+}
+
+func TestReadServerVersion(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/health" {
+			fmt.Fprint(w, `{"ok":true,"version":"1.2.3"}`)
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer srv.Close()
+	if got := server.ReadServerVersion(context.Background(), srv.Client(), srv.URL); got != "1.2.3" {
+		t.Fatalf("got %q", got)
+	}
+	// A server from before the first release has no version in its health; a dead one no answer. Neither is an error.
+	if got := server.ReadServerVersion(context.Background(), srv.Client(), srv.URL+"/nope"); got != "" {
+		t.Fatalf("got %q", got)
 	}
 }
 

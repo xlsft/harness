@@ -199,6 +199,7 @@ export class MockTransport implements SessionTransport {
     const disabled = this.usersApi.disabledModes
     return create(InitializeResponseSchema, {
       clientVersion: '0.1.0-mock',
+      serverVersion: '0.1.0-mock',
       userEmail: 'xlsft@self-hosted',
       modelIds: MODELS.map(m => m.id),
       permissionModes: (['default', 'accept_edits', 'plan', 'auto'] as const).filter(m => !disabled.includes(m)).map(permissionModePb),

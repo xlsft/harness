@@ -6,7 +6,7 @@
 #   searxng   SearXNG under granian, 127.0.0.1:8888 only
 #   objects   Garage, the S3 object store, 127.0.0.1:3900 only, data in /data/objects
 #
-# Build from the repo root:  docker build -f deploy/Dockerfile -t harness/server .
+# Build from the repo root:  docker build -f deploy/Dockerfile -t ghcr.io/xlsft/harness .
 #
 # Base: Debian 13 "trixie" slim. Postgres 17 and Python 3.13 come straight from the distro (with
 # Debian security updates, no third-party apt repo), glibc matches the prebuilt wheels and native
@@ -128,7 +128,11 @@ COPY --from=core-build /src/.output /app
 COPY --from=core-build /src/prompts /app/prompts
 COPY deploy/rootfs/ /
 
+# The release workflow passes the tag's version; /api/health reports it. Set last so it costs no cached layer.
+ARG HARNESS_VERSION=0.0.0-dev
+
 ENV PATH="/usr/lib/postgresql/${PG_MAJOR}/bin:${PATH}" \
+    HARNESS_VERSION="${HARNESS_VERSION}" \
     NODE_ENV=production \
     PORT=3000 \
     HARNESS_DATA_DIR=/data/core \

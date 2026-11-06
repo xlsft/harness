@@ -30,6 +30,15 @@
       "csp": null
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "requireSignedVersion": true,
+      "endpoints": [
+        "https://github.com/xlsft/harness/releases/latest/download/latest.json"
+      ]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",
@@ -44,6 +53,7 @@
       "icons/icon.ico"
     ],
     "macOS": {
+      "entitlements": "Entitlements.plist",
       "files": {
         "Resources/Assets.car": "icons/Assets.car"
       },
