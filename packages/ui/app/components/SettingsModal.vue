@@ -29,7 +29,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Settings"
+        :aria-label="tt('Settings')"
         class="flex h-[min(680px,100%)] w-[min(920px,100%)] flex-col overflow-hidden rounded-panel border border-line-strong bg-default"
       >
         <div
@@ -40,11 +40,11 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
             data-tauri-drag-region
             class="m-0 flex-1 text-[14px] font-semibold text-strong"
           >
-            Settings
+            {{ tt('Settings') }}
           </h1>
           <HIconBtn
             icon="close"
-            label="Close"
+            :label="tt('Close')"
             kbd="esc"
             @click="modal.close()"
           />

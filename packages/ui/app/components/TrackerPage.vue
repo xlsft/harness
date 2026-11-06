@@ -89,15 +89,15 @@ function openSession(id: string) {
 
 <template>
   <section
-    aria-label="Task tracker"
+    :aria-label="tt('Task tracker')"
     class="h-full overflow-y-auto bg-default"
   >
     <div class="mx-auto flex max-w-[860px] flex-col gap-[18px] px-10 pt-[52px] pb-10 max-sm:px-4">
       <h1 class="m-0 font-display text-[26px] font-bold text-strong">
-        Task tracker
+        {{ tt('Task tracker') }}
       </h1>
       <p class="m-0 text-[12.5px] text-muted">
-        Your tasks across sessions and machines. Agents read and update them too, and nobody else can see them.
+        {{ tt('Your tasks across sessions and machines. Agents read and update them too, and nobody else can see them.') }}
       </p>
 
       <p
@@ -114,14 +114,14 @@ function openSession(id: string) {
       >
         <input
           v-model="title"
-          placeholder="A new task"
-          aria-label="New task"
+          :placeholder="tt('A new task')"
+          :aria-label="tt('New task')"
           class="min-w-[220px] flex-1 border border-line bg-transparent px-2.5 py-1.5 text-[13px] text-strong outline-none focus:border-accent"
         >
         <input
           v-model="project"
-          placeholder="Project"
-          aria-label="Project"
+          :placeholder="tt('Project')"
+          :aria-label="tt('Project')"
           class="w-[140px] border border-line bg-transparent px-2.5 py-1.5 text-[13px] text-strong outline-none focus:border-accent"
         >
         <HBtn
@@ -130,7 +130,7 @@ function openSession(id: string) {
           type="submit"
           :disabled="!title.trim()"
         >
-          Add
+          {{ tt('Add') }}
         </HBtn>
       </form>
 
@@ -142,17 +142,17 @@ function openSession(id: string) {
           />
           <input
             v-model="query"
-            placeholder="Search tasks"
-            aria-label="Search tasks"
+            :placeholder="tt('Search tasks')"
+            :aria-label="tt('Search tasks')"
             class="min-w-0 flex-1 bg-transparent text-[12.5px] text-strong outline-none placeholder:text-muted"
           >
         </label>
         <label class="flex items-center gap-1.5 text-[12px] text-toned">
           <HToggle
             v-model="showClosed"
-            label="Show closed tasks"
+            :label="tt('Show closed tasks')"
           />
-          Closed ({{ closedCount }})
+          {{ tt('Closed ({0})', [closedCount]) }}
         </label>
       </div>
 
@@ -160,7 +160,7 @@ function openSession(id: string) {
         v-if="loaded && !tasks.length"
         class="m-0 text-[12.5px] text-muted"
       >
-        {{ query ? 'Nothing matches.' : 'No tasks yet. Add one here, or ask an agent to note something for later.' }}
+        {{ query ? tt('Nothing matches.') : tt('No tasks yet. Add one here, or ask an agent to note something for later.') }}
       </p>
 
       <template
@@ -183,7 +183,7 @@ function openSession(id: string) {
               <button
                 type="button"
                 class="flex size-5 shrink-0 items-center justify-center text-muted hover:text-strong"
-                :aria-label="t.status === TrackerStatus.DONE ? `Reopen ${t.title}` : `Mark ${t.title} as done`"
+                :aria-label="t.status === TrackerStatus.DONE ? tt('Reopen {0}', [t.title]) : tt('Mark {0} as done', [t.title])"
                 @click="setStatus(t, t.status === TrackerStatus.DONE ? TrackerStatus.TODO : TrackerStatus.DONE)"
               >
                 <HIcon :name="t.status === TrackerStatus.DONE ? 'checkbox-checked' : 'checkbox'" />
@@ -201,7 +201,7 @@ function openSession(id: string) {
                 <span
                   v-if="t.priority === TrackerPriority.HIGH"
                   class="shrink-0 border border-bad px-1 text-[10px] leading-[14px] text-bad"
-                >high</span>
+                >{{ tt('high') }}</span>
                 <span
                   v-if="t.project"
                   class="shrink-0 border border-default px-1 text-[10px] leading-[14px] text-muted"
@@ -209,7 +209,7 @@ function openSession(id: string) {
                 <span
                   v-if="t.blockedBy.length"
                   class="shrink-0 text-[11px] text-muted"
-                >blocked by {{ t.blockedBy.length }}</span>
+                >{{ tt('blocked by {0}', [t.blockedBy.length]) }}</span>
               </button>
               <span class="shrink-0 text-[11.5px] text-muted">{{ timeAgo(t.updatedAt) }}</span>
             </div>
@@ -219,14 +219,14 @@ function openSession(id: string) {
             >
               <input
                 :value="t.title"
-                aria-label="Title"
+                :aria-label="tt('Title')"
                 class="border border-line bg-transparent px-2 py-1 text-[13px] text-strong outline-none focus:border-accent"
                 @change="saveField(t, { title: ($event.target as HTMLInputElement).value })"
               >
               <textarea
                 :value="t.description"
-                placeholder="Details"
-                aria-label="Details"
+                :placeholder="tt('Details')"
+                :aria-label="tt('Details')"
                 rows="4"
                 class="resize-y border border-line bg-transparent p-2 text-[12.5px] text-strong outline-none focus:border-accent"
                 @change="saveField(t, { description: ($event.target as HTMLTextAreaElement).value })"
@@ -236,20 +236,20 @@ function openSession(id: string) {
                   :model-value="String(t.status)"
                   class="w-[130px]"
                   :options="statusOptions"
-                  aria-label="Status"
+                  :aria-label="tt('Status')"
                   @update:model-value="setStatus(t, Number($event))"
                 />
                 <HSelect
                   :model-value="String(t.priority)"
                   class="w-[110px]"
                   :options="priorityOptions"
-                  aria-label="Priority"
+                  :aria-label="tt('Priority')"
                   @update:model-value="setPriority(t, Number($event))"
                 />
                 <input
                   :value="t.project"
-                  placeholder="Project"
-                  aria-label="Project of the task"
+                  :placeholder="tt('Project')"
+                  :aria-label="tt('Project of the task')"
                   class="w-[140px] border border-line bg-transparent px-2 py-1 text-[12.5px] text-strong outline-none focus:border-accent"
                   @change="saveField(t, { project: ($event.target as HTMLInputElement).value })"
                 >
@@ -259,20 +259,20 @@ function openSession(id: string) {
                   tone="danger"
                   @click="remove(t)"
                 >
-                  {{ confirming === t.id ? 'Delete for good' : 'Delete' }}
+                  {{ confirming === t.id ? tt('Delete for good') : tt('Delete') }}
                 </HBtn>
               </div>
               <p
                 v-if="t.blockedBy.length"
                 class="m-0 text-[12px] text-muted"
               >
-                Waits for: {{ t.blockedBy.map(titleOf).join(', ') }}
+                {{ tt('Waits for: {0}', [t.blockedBy.map(titleOf).join(', ')]) }}
               </p>
               <div
                 v-if="t.sessionIds.length"
                 class="flex flex-wrap items-center gap-1.5 text-[12px] text-muted"
               >
-                <span>Sessions:</span>
+                <span>{{ tt('Sessions:') }}</span>
                 <button
                   v-for="(s, i) in t.sessionIds"
                   :key="s"
@@ -284,7 +284,7 @@ function openSession(id: string) {
                 </button>
               </div>
               <p class="m-0 text-[11.5px] text-muted">
-                {{ statusLabel(t.status) }} · created {{ timeAgo(t.createdAt) }}
+                {{ tt('{0} · created {1}', [statusLabel(t.status), timeAgo(t.createdAt)]) }}
               </p>
             </div>
           </div>

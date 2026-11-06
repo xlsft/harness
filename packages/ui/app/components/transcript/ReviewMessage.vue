@@ -20,7 +20,7 @@ const ROW = {
         :size="12"
         class="text-accent"
       />
-      Review · {{ items.length }} comment{{ items.length === 1 ? '' : 's' }}
+      {{ tt('Review · {0} comment{1}', [items.length, items.length === 1 ? '' : 's']) }}
     </div>
     <div
       v-for="(c, i) in items"

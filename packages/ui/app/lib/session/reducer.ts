@@ -8,6 +8,7 @@
 //   (kept aside until the item exists when it comes first);
 // - PermissionRequest / Question / PlanProposed cards are resolved by the matching *Resolved event.
 
+import { BrowserSiteDecision } from '~/gen/harness/agent/v1/real_browser_pb'
 import { goalVM, taskNodeVM } from './teamwork'
 import { SessionProposal_State } from '~/gen/harness/agent/v1/session_links_pb'
 import { HookRun_Status } from '~/gen/harness/agent/v1/hooks_pb'
@@ -407,6 +408,7 @@ export function settleTurn(s: SessionState) {
     if (it.kind === 'assistant') it.streaming = false
     if (it.kind === 'question' && it.state === 'pending') it.state = 'cancelled'
     if (it.kind === 'computerAccess' && it.state === 'pending') it.state = 'cancelled'
+    if (it.kind === 'browserSite' && it.state === 'pending') it.state = 'cancelled'
   }
   s.turnStartedAt = 0
   s.pendingPermission = null
@@ -650,6 +652,20 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       break
     }
 
+    case 'browserSiteRequested': {
+      if (!find(s, 'browserSite', e.value.requestId)) push(s, { kind: 'browserSite', id: e.value.requestId, site: e.value.site, url: e.value.url, state: 'pending', answer: '' })
+      break
+    }
+
+    case 'browserSiteResolved': {
+      const item = find(s, 'browserSite', e.value.requestId)
+      if (item) {
+        item.state = 'resolved'
+        item.answer = e.value.decision === BrowserSiteDecision.ALLOW_ALWAYS ? 'always' : e.value.decision === BrowserSiteDecision.ALLOW_SESSION ? 'session' : 'deny'
+      }
+      break
+    }
+
     case 'computerAccessRequested': {
       if (!find(s, 'computerAccess', e.value.requestId)) push(s, accessItem(e.value))
       s.pendingComputerAccess = e.value.requestId
@@ -748,6 +764,8 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
         // A question still open when the turn ends can no longer be answered.
         if (it.kind === 'question' && it.state === 'pending') it.state = 'cancelled'
         if (it.kind === 'computerAccess' && it.state === 'pending') it.state = 'cancelled'
+        if (it.kind === 'browserSite' && it.state === 'pending') it.state = 'cancelled'
+        if (it.kind === 'browserSite' && it.state === 'pending') it.state = 'cancelled'
       }
       s.turnStartedAt = 0
       s.pendingPermission = null

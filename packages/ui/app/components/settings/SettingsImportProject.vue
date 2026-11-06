@@ -83,13 +83,13 @@ async function run() {
       name="arrow-left"
       :size="13"
     />
-    Import
+    {{ tt('Import') }}
   </button>
   <h2 class="set-h">
-    A folder's Claude Code files
+    {{ tt('A folder\'s Claude Code files') }}
   </h2>
   <p class="set-sub">
-    Brings CLAUDE.md into AGENTS.md, and what is under .claude into .harness, so that it is read. The originals stay as they are. Hooks and allow rules apply only once you trust the folder; local settings wait for that.
+    {{ tt('Brings CLAUDE.md into AGENTS.md, and what is under .claude into .harness, so that it is read. The originals stay as they are. Hooks and allow rules apply only once you trust the folder; local settings wait for that.') }}
   </p>
   <form
     class="mb-2 flex gap-2"
@@ -97,21 +97,21 @@ async function run() {
   >
     <input
       v-model="path"
-      placeholder="Folder path"
-      aria-label="Folder path"
+      :placeholder="tt('Folder path')"
+      :aria-label="tt('Folder path')"
       class="h-8 min-w-0 flex-1 border border-accented bg-default px-2.5 text-[12.5px] text-strong outline-none focus:border-accent"
     >
     <HBtn
       v-if="isDesktop()"
       @click="browse"
     >
-      Choose…
+      {{ tt('Choose…') }}
     </HBtn>
     <HBtn
       type="submit"
       :disabled="busy || !path.trim()"
     >
-      Look
+      {{ tt('Look') }}
     </HBtn>
   </form>
   <div
@@ -139,11 +139,11 @@ async function run() {
       v-if="!rows.length"
       class="set-sub"
     >
-      No Claude Code files in {{ scan.root }}.
+      {{ tt('No Claude Code files in {0}.', [scan.root]) }}
     </p>
     <template v-else>
       <p class="m-0 mb-2 truncate text-[11.5px] text-muted">
-        Into {{ scan.root }}
+        {{ tt('Into {0}', [scan.root]) }}
       </p>
       <div
         v-for="i in rows"
@@ -166,12 +166,12 @@ async function run() {
       </div>
       <div class="set-row mt-4">
         <div class="set-label">
-          <span>Replace what differs</span>
-          <span class="set-desc">An earlier import, or a file already in .harness. Off, those stay as they are.</span>
+          <span>{{ tt('Replace what differs') }}</span>
+          <span class="set-desc">{{ tt('An earlier import, or a file already in .harness. Off, those stay as they are.') }}</span>
         </div>
         <HToggle
           v-model="force"
-          label="Replace what differs"
+          :label="tt('Replace what differs')"
         />
       </div>
       <HBtn
@@ -181,7 +181,7 @@ async function run() {
         :disabled="busy || !canRun"
         @click="run"
       >
-        Import
+        {{ tt('Import') }}
       </HBtn>
     </template>
   </template>

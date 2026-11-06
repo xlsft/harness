@@ -37,7 +37,7 @@ async function run(action: () => unknown) {
     await action()
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    toast.add({ title: 'Could not update the session', description: msg.replace(/^\[\w+\]\s*/, ''), color: 'error' })
+    toast.add({ title: tt('Could not update the session'), description: msg.replace(/^\[\w+\]\s*/, ''), color: 'error' })
   }
 }
 
@@ -53,8 +53,8 @@ const exportJsonl = () => exportAs(ExportFormat.JSONL)
 
 // "Open in" targets: this window, or a new browser tab (the UI opens ?session=<id>; not in the desktop app).
 const openTargets = computed(() => [
-  { label: 'This window', run: openHere },
-  ...(desktop ? [] : [{ label: 'New tab', run: openInTab }])
+  { label: tt('This window'), run: openHere },
+  ...(desktop ? [] : [{ label: tt('New tab'), run: openInTab }])
 ])
 function openHere() {
   store.open(id.value)
@@ -119,7 +119,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
   >
     <button
       type="button"
-      :aria-label="`More for ${session.meta.title}`"
+      :aria-label="tt('More for {0}', [session.meta.title])"
       class="flex size-5 shrink-0 items-center justify-center text-muted hover:bg-hover hover:text-strong"
       :class="open ? 'flex bg-hover text-strong' : 'hidden group-hover/row:flex'"
       @click.stop.prevent
@@ -145,12 +145,12 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
             icon="external"
             sub
           >
-            Open in
+            {{ tt('Open in') }}
           </PaneMenuItem>
           <template #content>
             <div
               role="menu"
-              aria-label="Open in"
+              :aria-label="tt('Open in')"
               class="min-w-[160px] border border-accented bg-hover py-1 text-[12.5px]"
             >
               <PaneMenuItem
@@ -168,14 +168,14 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           icon="folder"
           @click="run(() => revealInFolder(session.meta.cwd))"
         >
-          Show in Finder
+          {{ tt('Show in Finder') }}
         </PaneMenuItem>
         <template v-if="!remote && !sub">
           <PaneMenuItem
             icon="copy"
             @click="run(copyPath)"
           >
-            Copy path
+            {{ tt('Copy path') }}
           </PaneMenuItem>
           <div class="my-1 h-px bg-line" />
         </template>
@@ -183,13 +183,13 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           icon="download"
           @click="run(exportMarkdown)"
         >
-          Export as Markdown
+          {{ tt('Export as Markdown') }}
         </PaneMenuItem>
         <PaneMenuItem
           icon="download"
           @click="run(exportJsonl)"
         >
-          Export as JSONL
+          {{ tt('Export as JSONL') }}
         </PaneMenuItem>
         <div class="my-1 h-px bg-line" />
         <PaneMenuItem
@@ -197,21 +197,21 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           value="P"
           @click="run(actions.p!)"
         >
-          {{ pinned ? 'Unpin' : 'Pin' }}
+          {{ pinned ? tt('Unpin') : tt('Pin') }}
         </PaneMenuItem>
         <PaneMenuItem
           icon="dot"
           value="U"
           @click="run(actions.u!)"
         >
-          {{ unread ? 'Mark as read' : 'Mark as unread' }}
+          {{ unread ? tt('Mark as read') : tt('Mark as unread') }}
         </PaneMenuItem>
         <PaneMenuItem
           icon="edit"
           value="R"
           @click="run(actions.r!)"
         >
-          Rename
+          {{ tt('Rename') }}
         </PaneMenuItem>
         <PaneMenuItem
           v-if="canFork"
@@ -219,7 +219,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           value="F"
           @click="run(actions.f!)"
         >
-          {{ remote ? 'Continue here…' : 'Fork' }}
+          {{ remote ? tt('Continue here…') : tt('Fork') }}
         </PaneMenuItem>
         <template v-if="sub">
           <div class="my-1 h-px bg-line" />
@@ -227,26 +227,26 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
             icon="arrow-up-right"
             @click="run(detach)"
           >
-            Detach to top level
+            {{ tt('Detach to top level') }}
           </PaneMenuItem>
         </template>
         <div class="my-1 h-px bg-line" />
         <PaneMenuItem
           icon="archive"
           value="A"
-          :title="children ? `Its ${children} sub-session${children === 1 ? '' : 's'} are archived too` : undefined"
+          :title="children ? tt('Its {0} sub-session{1} are archived too', [children, children === 1 ? '' : 's']) : undefined"
           @click="run(actions.a!)"
         >
-          Archive
+          {{ tt('Archive') }}
         </PaneMenuItem>
         <PaneMenuItem
           icon="trash"
           value="D"
           danger
-          :title="children ? 'Sub-sessions stay, moved to the top level' : undefined"
+          :title="children ? tt('Sub-sessions stay, moved to the top level') : undefined"
           @click="remove"
         >
-          {{ confirmDelete ? (children ? 'Delete? Sub-sessions stay' : 'Delete for good?') : 'Delete' }}
+          {{ confirmDelete ? (children ? tt('Delete? Sub-sessions stay') : tt('Delete for good?')) : tt('Delete') }}
         </PaneMenuItem>
       </div>
     </template>

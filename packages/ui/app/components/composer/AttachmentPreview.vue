@@ -10,12 +10,12 @@ const emit = defineEmits<{ close: [], save: [file: File] }>()
 const toast = useToast()
 
 const SHAPES: { tool: Extract<Tool, ShapeKind | 'step'>, label: string }[] = [
-  { tool: 'line', label: 'Line' },
-  { tool: 'arrow', label: 'Arrow' },
-  { tool: 'rect', label: 'Rectangle' },
-  { tool: 'ellipse', label: 'Ellipse' },
-  { tool: 'step', label: 'Step' },
-  { tool: 'redact', label: 'Redact' }
+  { tool: 'line', label: tt('Line') },
+  { tool: 'arrow', label: tt('Arrow') },
+  { tool: 'rect', label: tt('Rectangle') },
+  { tool: 'ellipse', label: tt('Ellipse') },
+  { tool: 'step', label: tt('Step') },
+  { tool: 'redact', label: tt('Redact') }
 ]
 
 const root = ref<HTMLElement | null>(null)
@@ -168,7 +168,7 @@ async function save() {
   const blob = await new Promise<Blob | null>(resolve => el.toBlob(resolve, savedType(attachmentMediaType(props.file)), 0.92))
   saving.value = false
   if (!blob) {
-    toast.add({ title: 'Could not save the image', description: 'It is too large for this window to draw.', color: 'error' })
+    toast.add({ title: tt('Could not save the image'), description: tt('It is too large for this window to draw.'), color: 'error' })
     return
   }
   emit('save', new File([blob], savedName(props.file.name, blob.type), { type: blob.type }))
@@ -243,7 +243,7 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
               v-if="textBox"
               ref="textInput"
               v-model="textBox.value"
-              aria-label="Text on the image"
+              :aria-label="tt('Text on the image')"
               :rows="textRows.length"
               :cols="Math.max(8, ...textRows.map(l => l.length + 1))"
               class="absolute resize-none overflow-hidden bg-transparent p-0 leading-[1.25] whitespace-pre outline-1 outline-white/60 outline-dashed"
@@ -258,13 +258,13 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
       <div
         v-if="editing"
         role="toolbar"
-        aria-label="Edit the image"
+        :aria-label="tt('Edit the image')"
         class="flex shrink-0 justify-center px-4 pb-3"
       >
         <div class="flex items-center gap-1 border border-accented bg-surface p-1">
           <HIconBtn
             icon="edit"
-            label="Pencil"
+            :label="tt('Pencil')"
             :size="30"
             :pressed="tool === 'pen'"
             @click="tool = tool === 'pen' ? null : 'pen'"
@@ -278,8 +278,8 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
           >
             <button
               type="button"
-              aria-label="Shapes"
-              title="Shapes"
+              :aria-label="tt('Shapes')"
+              :title="tt('Shapes')"
               :class="[TOOL_BTN, toolLook(isShape)]"
             >
               <AnnotateGlyph :tool="isShape ? tool as typeof lastShape : lastShape" />
@@ -287,7 +287,7 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
             <template #content>
               <div
                 role="menu"
-                aria-label="Shapes"
+                :aria-label="tt('Shapes')"
                 class="w-[160px] border border-accented bg-hover py-1 text-[12.5px]"
               >
                 <PaneMenuItem
@@ -306,8 +306,8 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
 
           <button
             type="button"
-            aria-label="Text"
-            title="Text"
+            :aria-label="tt('Text')"
+            :title="tt('Text')"
             :aria-pressed="tool === 'text'"
             :class="[TOOL_BTN, toolLook(tool === 'text')]"
             @click="tool = 'text'"
@@ -323,8 +323,8 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
           >
             <button
               type="button"
-              aria-label="Colour"
-              title="Colour"
+              :aria-label="tt('Colour')"
+              :title="tt('Colour')"
               :class="[TOOL_BTN, 'text-muted']"
             >
               <span
@@ -335,7 +335,7 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
             <template #content>
               <div
                 role="menu"
-                aria-label="Colour"
+                :aria-label="tt('Colour')"
                 class="w-[140px] border border-accented bg-hover py-1 text-[12.5px]"
               >
                 <PaneMenuItem
@@ -363,8 +363,8 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
           >
             <button
               type="button"
-              aria-label="Thickness"
-              title="Thickness"
+              :aria-label="tt('Thickness')"
+              :title="tt('Thickness')"
               :class="[TOOL_BTN, 'text-muted']"
             >
               <span
@@ -375,7 +375,7 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
             <template #content>
               <div
                 role="menu"
-                aria-label="Thickness"
+                :aria-label="tt('Thickness')"
                 class="w-[120px] border border-accented bg-hover py-1 text-[12.5px]"
               >
                 <PaneMenuItem
@@ -403,20 +403,20 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
             :disabled="!dirty || saving"
             @click="save"
           >
-            Save
+            {{ tt('Save') }}
           </HBtn>
           <HBtn
             size="md"
             @click="requestClose"
           >
-            Close
+            {{ tt('Close') }}
           </HBtn>
         </div>
       </div>
 
       <HIconBtn
         icon="close"
-        label="Close"
+        :label="tt('Close')"
         :size="30"
         class="absolute top-3 right-3"
         @click="requestClose"
@@ -424,7 +424,7 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
       <HIconBtn
         v-if="!editing"
         icon="edit"
-        label="Edit"
+        :label="tt('Edit')"
         :size="30"
         class="absolute top-[50px] right-3"
         @click="editing = true"
@@ -436,25 +436,25 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
       >
         <div
           role="alertdialog"
-          aria-label="Discard your changes?"
+          :aria-label="tt('Discard your changes?')"
           class="flex w-[320px] flex-col gap-3 border border-accented bg-surface p-4 text-[12.5px]"
         >
           <p class="m-0 text-strong">
-            Discard your changes to this image?
+            {{ tt('Discard your changes to this image?') }}
           </p>
           <div class="flex justify-end gap-2">
             <HBtn
               size="md"
               @click="asking = false"
             >
-              Keep editing
+              {{ tt('Keep editing') }}
             </HBtn>
             <HBtn
               size="md"
               tone="danger"
               @click="emit('close')"
             >
-              Discard
+              {{ tt('Discard') }}
             </HBtn>
           </div>
         </div>

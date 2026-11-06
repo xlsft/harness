@@ -67,7 +67,7 @@ async function accept() {
     <template v-if="scan">
       <div class="flex items-center gap-2">
         <span class="min-w-0 flex-1">
-          This folder has Claude Code files, which aren't read.
+          {{ tt('This folder has Claude Code files, which aren\'t read.') }}
           <button
             type="button"
             class="inline text-left underline"
@@ -80,11 +80,11 @@ async function accept() {
           :disabled="busy"
           @click="accept"
         >
-          Import
+          {{ tt('Import') }}
         </HBtn>
         <HIconBtn
           icon="close"
-          label="Dismiss"
+          :label="tt('Dismiss')"
           :disabled="busy"
           @click="dismiss"
         />
@@ -106,7 +106,7 @@ async function accept() {
         v-if="open && needsTrust"
         class="m-0 mt-2"
       >
-        This includes hooks or allow rules. They apply only once you trust this folder.
+        {{ tt('This includes hooks or allow rules. They apply only once you trust this folder.') }}
       </p>
     </template>
     <template v-else>

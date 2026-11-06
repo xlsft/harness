@@ -40,8 +40,8 @@ const label = computed(() => ({
     :class="pending ? 'border-cyan' : 'border-default'"
   >
     <div class="flex items-center gap-[9px] border-b border-default px-3 py-2 text-[12.5px]">
-      <span class="border border-cyan px-[5px] text-[11px] text-cyan">plan</span>
-      <span class="text-strong">{{ pending ? 'Ready to code?' : label }}</span>
+      <span class="border border-cyan px-[5px] text-[11px] text-cyan">{{ tt('plan') }}</span>
+      <span class="text-strong">{{ pending ? tt('Ready to code?') : label }}</span>
       <span class="flex-1" />
       <span class="truncate text-[11px] text-muted">{{ item.planFilePath }}</span>
     </div>
@@ -54,7 +54,7 @@ const label = computed(() => ({
     >
       <input
         v-model="feedback"
-        placeholder="What should change? (keeps planning)"
+        :placeholder="tt('What should change? (keeps planning)')"
         class="border border-default bg-default px-2.5 py-1.5 text-[12.5px] text-strong outline-none placeholder:text-muted focus:border-accent"
         @keydown.enter="changing && answer('keep_planning')"
       >
@@ -65,21 +65,21 @@ const label = computed(() => ({
           :disabled="changing"
           @click="answer('accept_edits')"
         >
-          Approve, {{ MODE_LABEL[back].toLowerCase() }} <span class="opacity-70">1</span>
+          {{ tt('Approve, {0}', [MODE_LABEL[back].toLowerCase()]) }} <span class="opacity-70">1</span>
         </HBtn>
         <HBtn
           size="md"
           :disabled="changing"
           @click="answer('manual')"
         >
-          Approve, ask for edits <span class="text-muted">2</span>
+          {{ tt('Approve, ask for edits') }} <span class="text-muted">2</span>
         </HBtn>
         <HBtn
           :variant="changing ? 'primary' : 'outline'"
           size="md"
           @click="answer('keep_planning')"
         >
-          {{ changing ? 'Send changes' : 'Keep planning' }}
+          {{ changing ? tt('Send changes') : tt('Keep planning') }}
         </HBtn>
       </div>
     </div>

@@ -18,7 +18,7 @@ var fallbackJSON []byte
 
 // ToolNames are the browser tools, in registration order.
 var ToolNames = []string{ToolNavigate, ToolSnapshot, ToolClick, ToolType, ToolKey, ToolScroll, ToolScreenshot, ToolEval, ToolTabs,
-	ToolConsole, ToolNetwork, ToolWait}
+	ToolConsole, ToolNetwork, ToolWait, ToolRecord}
 
 type fallbackTool struct {
 	Description string          `json:"description"`
