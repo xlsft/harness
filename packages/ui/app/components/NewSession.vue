@@ -590,7 +590,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
                 </button>
                 <template #content>
                   <NewEnvMenu
-                    :hosts="hosts"
+                    :agent-hosts="hosts"
                     :current="host"
                     @pick="pickHost"
                     @close="menu = ''"
