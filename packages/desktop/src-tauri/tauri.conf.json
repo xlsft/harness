@@ -46,6 +46,21 @@
     "macOS": {
       "files": {
         "Resources/Assets.car": "icons/Assets.car"
+      },
+      "dmg": {
+        "background": "dmg/background.tiff",
+        "windowSize": {
+          "width": 660,
+          "height": 428
+        },
+        "appPosition": {
+          "x": 160,
+          "y": 170
+        },
+        "applicationFolderPosition": {
+          "x": 460,
+          "y": 170
+        }
       }
     }
   }
