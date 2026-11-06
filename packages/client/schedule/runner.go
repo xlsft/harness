@@ -188,14 +188,14 @@ func (r *Runner) Tick(now time.Time) {
 	if limit <= 0 {
 		limit = 4
 	}
-	enabled := r.Enabled == nil || r.Enabled()
 	var fires []Fire
 	var scan []Task
-	// Nothing on record: no file to write, and no lease to hold yet.
+	// Nothing on record: no file to write, no lease to hold yet, and nothing to ask the server.
 	if st, err := r.Store.View(); err == nil && len(st.Records) == 0 {
 		r.holding.Store(true)
 		return
 	}
+	enabled := r.Enabled == nil || r.Enabled()
 	err := r.Store.Update(func(st *State) error {
 		held := st.TakeLease(r.id, now)
 		r.holding.Store(held)
