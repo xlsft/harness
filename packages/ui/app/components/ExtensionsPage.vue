@@ -3,12 +3,11 @@
 // client joins and decides (ExtensionsService); this page keeps what is being looked at, in the URL so Back and links work, and sends
 // intent. Plugins and connectors change through PluginsApi and McpApi, with their approvals.
 import { isDesktop, pickFolder } from '~/lib/desktop'
-import { ExtensionKind, type DiscoverExtensionsResponse, type DiscoverItem, type ExtensionConnector, type ExtensionMarketplace, type ExtensionPluginsVM, type ExtensionPluginVM, type ExtensionSkill, type ExtensionType, type ExtensionView, type ListExtensionConnectorsResponse, type ListExtensionSkillsResponse } from '~/lib/extensions/types'
+import { ExtensionKind, type ConnectorOption, type DiscoverExtensionsResponse, type DiscoverItem, type ExtensionConnector, type ExtensionMarketplace, type ExtensionPluginsVM, type ExtensionPluginVM, type ExtensionSkill, type ExtensionType, type ExtensionView, type ListExtensionConnectorsResponse, type ListExtensionSkillsResponse } from '~/lib/extensions/types'
 import { narrowConnectors, narrowPlugins, narrowSkills, parseType, parseView } from '~/lib/extensions/view'
 import type { FilterMenu } from '~/components/extensions/ExtensionsToolbar.vue'
 import type { AddMode } from '~/components/extensions/ExtensionsAdd.vue'
 import type { DetailTarget } from '~/components/extensions/ExtensionsDetail.vue'
-import type { ConnectorOption } from '~/lib/extensions/types'
 
 const route = useRoute()
 const router = useRouter()

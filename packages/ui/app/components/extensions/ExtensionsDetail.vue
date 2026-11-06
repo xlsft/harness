@@ -428,7 +428,9 @@ const hasActions = computed(() => {
             <dt class="text-muted">
               Version
             </dt><dd class="m-0 text-toned">
-              {{ target.row.plugin.version }}<template v-if="target.row.plugin.pinned">, pinned</template>
+              {{ target.row.plugin.version }}<template v-if="target.row.plugin.pinned">
+                , pinned
+              </template>
             </dd>
           </template>
           <template v-if="target.row.plugin.contentHash">
@@ -485,7 +487,9 @@ const hasActions = computed(() => {
           <dt class="text-muted">
             Type
           </dt><dd class="m-0 text-toned">
-            {{ target.row.remote ? 'Remote' : 'Local' }} ({{ target.row.transport }})<template v-if="target.row.badges.length"> · {{ target.row.badges.join(', ') }}</template>
+            {{ target.row.remote ? 'Remote' : 'Local' }} ({{ target.row.transport }})<template v-if="target.row.badges.length">
+              · {{ target.row.badges.join(', ') }}
+            </template>
           </dd>
           <dt class="text-muted">
             {{ target.row.remote ? 'URL' : 'Runs' }}
@@ -617,7 +621,9 @@ const hasActions = computed(() => {
             :key="r.name"
             class="m-0 text-[12px] text-muted"
           >
-            Needs {{ r.name }}<template v-if="r.description">: {{ r.description }}</template>
+            Needs {{ r.name }}<template v-if="r.description">
+              : {{ r.description }}
+            </template>
           </p>
         </section>
         <dl class="m-0 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[12px] max-sm:grid-cols-1">
@@ -631,7 +637,9 @@ const hasActions = computed(() => {
           <dt class="text-muted">
             Source
           </dt><dd class="m-0 break-all text-toned">
-            {{ target.item.sourceLabel }}<template v-if="target.item.externalId">: {{ target.item.externalId }}</template>
+            {{ target.item.sourceLabel }}<template v-if="target.item.externalId">
+              : {{ target.item.externalId }}
+            </template>
           </dd>
           <template v-if="target.item.version">
             <dt class="text-muted">

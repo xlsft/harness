@@ -95,7 +95,7 @@ const active = computed(() => props.filters.filter(f => props.filterValues[f.key
             type="button"
             aria-label="Filter"
             class="relative flex size-7 cursor-pointer items-center justify-center text-muted hover:text-strong"
-            :class="active && 'text-accent'"
+            :class="active > 0 && 'text-accent'"
           >
             <HIcon
               name="filter"
