@@ -1572,6 +1572,7 @@ export class MockTransport implements SessionTransport {
   library() {
     return this.libraryApi
   }
+
   private vcsApi = new MockVcsApi()
   vcs() {
     return this.vcsApi

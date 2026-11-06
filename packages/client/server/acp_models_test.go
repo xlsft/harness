@@ -45,8 +45,8 @@ type acpModels struct {
 func newAcpModels(t *testing.T) *acpModels {
 	t.Helper()
 	bin := fakeAgent(t)
-	home := t.TempDir()
-	dir := t.TempDir()
+	home := settledTempDir(t)
+	dir := settledTempDir(t)
 	t.Setenv("HARNESS_HOME", home)
 	t.Setenv("HARNESS_KEYRING", "0")
 	a := &acpModels{t: t, ctx: context.Background(), home: home, models: filepath.Join(dir, "models"), effort: filepath.Join(dir, "efforts"), fail: filepath.Join(dir, "fail"), log: filepath.Join(dir, "log")}
@@ -72,7 +72,7 @@ func newAcpModels(t *testing.T) *acpModels {
 		}
 	}))
 	t.Cleanup(reg.Close)
-	t.Setenv("HARNESS_TMPDIR", t.TempDir())
+	t.Setenv("HARNESS_TMPDIR", settledTempDir(t))
 	t.Setenv("HARNESS_NO_SHELL_SNAPSHOT", "1")
 	_, gw := fg.Start(t, fg.Sequence())
 	tok := auth.StaticToken("hat_test")
