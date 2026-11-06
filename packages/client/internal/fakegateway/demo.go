@@ -52,5 +52,5 @@ var DemoFiles = map[string]string{
 	"go.mod":       "module demo\n\ngo 1.22\n",
 	"calc.go":      "package demo\n\n// Add returns the sum of a and b.\nfunc Add(a, b int) int {\n\treturn a - b\n}\n",
 	"calc_test.go": "package demo\n\nimport \"testing\"\n\nfunc TestAdd(t *testing.T) {\n\tif got := Add(2, 3); got != 5 {\n\t\tt.Fatalf(\"Add(2, 3) = %d, want 5\", got)\n\t}\n}\n",
-	"CLAUDE.md":    "# Demo project\n\nRun `go test ./...` to check changes.\n",
+	"AGENTS.md":    "# Demo project\n\nRun `go test ./...` to check changes.\n",
 }

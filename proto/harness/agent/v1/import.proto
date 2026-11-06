@@ -22,6 +22,8 @@ enum ClaudeImportSection {
   CLAUDE_IMPORT_SECTION_MCP_SERVERS = 7;
   // Labels the sessions in reports. A request picks sessions by project_paths and session_ids instead.
   CLAUDE_IMPORT_SECTION_SESSIONS = 8;
+  // Saved workflows: copied to this device's ~/.harness/workflows.
+  CLAUDE_IMPORT_SECTION_WORKFLOWS = 9;
 }
 
 enum ClaudeImportStatus {
@@ -45,7 +47,8 @@ enum ClaudeImportStatus {
 // One config item, or one session in a report.
 message ClaudeImportItem {
   ClaudeImportSection section = 1;
-  // "memory", "settings", "permissions", "hooks", "skill", "agent", "command", "output-style", "mcp", "session".
+  // "memory", "rule", "settings", "permissions", "hooks", "hook-script", "skill", "agent", "command", "output-style",
+  // "workflow", "mcp", "session".
   string kind = 2;
   string name = 3;
   ClaudeImportStatus status = 4;

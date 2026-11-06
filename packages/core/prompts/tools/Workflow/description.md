@@ -1,6 +1,6 @@
 Runs a small JavaScript program in the background that drives many agents, so that big, parallel work does not fill your context. The call returns a run id at once; what the script returns comes to you as a reminder when it ends, which starts a new turn if you are idle by then. It can spend a lot. Use it only when the user clearly asked for multi-agent orchestration or for this workflow by name; for a few pieces of work, use Agent. The user is asked once per run, and shown the script's name, description and phases, so write those for them.
 
-Give the script as `script`, as `script_path`, or as `name` of a saved workflow from a `workflows/` directory in `.harness/` or `.claude/`, the project's or the user's. `args` is JSON the script reads as `args`.
+Give the script as `script`, as `script_path`, or as `name` of a saved workflow from a `workflows/` directory in `.harness/`, the project's or the user's. `args` is JSON the script reads as `args`.
 
 A script starts with a literal, read without running it, and then is the body of an async function:
 

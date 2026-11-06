@@ -780,7 +780,7 @@ return %q`, name, result)
 	if info := w.wait(w.start(map[string]any{"name": "deploy"})); info.Result != "user" {
 		t.Fatalf("%+v", info)
 	}
-	write(filepath.Join(w.cwd, ".claude", "workflows"), "deploy.js", "project", "deploy")
+	write(filepath.Join(w.cwd, ".harness", "workflows"), "deploy.js", "project", "deploy")
 	if info := w.wait(w.start(map[string]any{"name": "deploy"})); info.Result != "project" {
 		t.Fatalf("%+v", info)
 	}

@@ -358,7 +358,7 @@ func TestSkillHooksRunWhileItIsAtWork(t *testing.T) {
 	h := startPlugged(t, rec.respond, true)
 	marks := t.TempDir()
 	mark := filepath.Join(marks, "pre")
-	writeFile(t, filepath.Join(h.proj, ".claude/skills/guarded/SKILL.md"), "---\ndescription: Guarded\nhooks:\n  Stop:\n    - hooks:\n        - type: command\n          command: echo ran >> '"+mark+"'\n---\nGo.")
+	writeFile(t, filepath.Join(h.proj, ".harness/skills/guarded/SKILL.md"), "---\ndescription: Guarded\nhooks:\n  Stop:\n    - hooks:\n        - type: command\n          command: echo ran >> '"+mark+"'\n---\nGo.")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	h.send(sid, "/guarded")
 	h.until(ch, isTurnFinished)
@@ -387,7 +387,7 @@ func TestAgentDefinitionHooksSeeOnlyThatAgent(t *testing.T) {
 		return fg.Reply{Events: fg.Message("m", fg.Text("done"))}
 	}}
 	h := startPlugged(t, rec.respond, true)
-	writeFile(t, filepath.Join(h.proj, ".claude/agents/watched.md"), "---\nname: watched\ndescription: Watched\nhooks:\n  Stop:\n    - hooks:\n        - type: command\n          command: echo ran >> '"+mark+"'\n---\nWork.")
+	writeFile(t, filepath.Join(h.proj, ".harness/agents/watched.md"), "---\nname: watched\ndescription: Watched\nhooks:\n  Stop:\n    - hooks:\n        - type: command\n          command: echo ran >> '"+mark+"'\n---\nWork.")
 	sid, ch := h.create(&agentv1.CreateSessionRequest{PermissionMode: agentv1.PermissionMode_PERMISSION_MODE_BYPASS_PERMISSIONS})
 	h.send(sid, "go")
 	h.until(ch, isTurnFinished)

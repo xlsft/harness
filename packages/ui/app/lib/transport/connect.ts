@@ -39,6 +39,7 @@ import type { DiffBaseChoice } from '~/lib/files/sessionDiff'
 import { ConnectSpeechApi } from '~/lib/speech/connect'
 import { ConnectLocalModelsApi } from './localModels'
 import { ConnectClaudeImportApi } from '~/lib/import/connect'
+import { ConnectProjectImportApi } from '~/lib/import/project'
 import { ConnectLimitsApi } from '~/lib/limits/connect'
 import { ConnectAcpApi } from '~/lib/acp/connect'
 import { ConnectMcpApi } from '~/lib/mcp/connect'
@@ -503,6 +504,11 @@ export class ConnectTransport implements SessionTransport {
   private claudeImportApi?: ConnectClaudeImportApi
   claudeImport() {
     return (this.claudeImportApi ??= new ConnectClaudeImportApi(this.transport))
+  }
+
+  private projectImportApi?: ConnectProjectImportApi
+  projectImport() {
+    return (this.projectImportApi ??= new ConnectProjectImportApi(this.transport))
   }
 
   private localModelsApi?: ConnectLocalModelsApi

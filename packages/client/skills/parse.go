@@ -3,7 +3,7 @@
 // A skill is a folder holding SKILL.md (a Markdown file with YAML frontmatter) and whatever other files it needs; a
 // custom command is a single Markdown file with the same frontmatter. Both are run the same way: the user types
 // `/name args`, or the model calls the Skill tool. They follow the format other agents use, so the folders of
-// ~/.claude and .claude work unchanged.
+// other agents' folders work unchanged once imported.
 //
 // Disclosure is progressive: discovery keeps the frontmatter only, the model's listing holds names and descriptions
 // within a budget (Listing), the body is read from its source when the skill runs (Skill.LoadBody), and the other files

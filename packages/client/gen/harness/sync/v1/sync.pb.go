@@ -31,12 +31,12 @@ const (
 	// carries only the scalar/list keys that are not rules: defaultMode, additionalDirectories,
 	// disableBypassPermissionsMode; allow/ask/deny rules live in PERMISSION_RULES.
 	// At org scope: org defaults, overridable by the user (enforced settings go into POLICY).
-	// Project-scope SETTINGS are not used (project settings come from the repository's .claude/).
+	// Project-scope SETTINGS are not used (project settings come from the repository's .harness/).
 	DocumentKind_DOCUMENT_KIND_SETTINGS DocumentKind = 1
 	// key: "user". content: JSON {"allow": [...], "ask": [...], "deny": [...]} of `Tool(spec)` rules.
 	// "Don't ask again" at user level is written here.
 	DocumentKind_DOCUMENT_KIND_PERMISSION_RULES DocumentKind = 2
-	// key: "user". SCOPE_USER: analogue of ~/.claude/CLAUDE.md; SCOPE_PROJECT: auto memory for project_key.
+	// key: "user". SCOPE_USER: the user's memory for all projects; SCOPE_PROJECT: auto memory for project_key.
 	// content: markdown (for auto memory: the MEMORY.md index); `files` carries imported files (user scope)
 	// or auto-memory topic files (project scope), keyed by their relative path. Conflicts on memory are resolved last-write-wins by clients (PLAN §6);
 	// the server keeps version history.
@@ -67,7 +67,7 @@ const (
 	// edits it in the "default" policy.
 	DocumentKind_DOCUMENT_KIND_POLICY DocumentKind = 11
 	// key: rule file path relative to the rules root (e.g. "frontend/react.md"). content: rule markdown with
-	// optional `paths:` frontmatter. SCOPE_USER: analogue of ~/.claude/rules/**.
+	// optional `paths:` frontmatter. SCOPE_USER: rules for all projects.
 	DocumentKind_DOCUMENT_KIND_RULE DocumentKind = 12
 	// User scope only. key: session id. content: JSON {"notes": [{"id", "kind": "message"|"report", "fromId", "fromName",
 	// "fromTitle", "status", "text"}]}, the notes waiting for a session that is not open anywhere; the device that opens it delivers them and deletes the document.

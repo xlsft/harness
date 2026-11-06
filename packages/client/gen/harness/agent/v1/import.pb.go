@@ -37,6 +37,8 @@ const (
 	ClaudeImportSection_CLAUDE_IMPORT_SECTION_MCP_SERVERS ClaudeImportSection = 7
 	// Labels the sessions in reports. A request picks sessions by project_paths and session_ids instead.
 	ClaudeImportSection_CLAUDE_IMPORT_SECTION_SESSIONS ClaudeImportSection = 8
+	// Saved workflows: copied to this device's ~/.harness/workflows.
+	ClaudeImportSection_CLAUDE_IMPORT_SECTION_WORKFLOWS ClaudeImportSection = 9
 )
 
 // Enum value maps for ClaudeImportSection.
@@ -51,6 +53,7 @@ var (
 		6: "CLAUDE_IMPORT_SECTION_OUTPUT_STYLES",
 		7: "CLAUDE_IMPORT_SECTION_MCP_SERVERS",
 		8: "CLAUDE_IMPORT_SECTION_SESSIONS",
+		9: "CLAUDE_IMPORT_SECTION_WORKFLOWS",
 	}
 	ClaudeImportSection_value = map[string]int32{
 		"CLAUDE_IMPORT_SECTION_UNSPECIFIED":   0,
@@ -62,6 +65,7 @@ var (
 		"CLAUDE_IMPORT_SECTION_OUTPUT_STYLES": 6,
 		"CLAUDE_IMPORT_SECTION_MCP_SERVERS":   7,
 		"CLAUDE_IMPORT_SECTION_SESSIONS":      8,
+		"CLAUDE_IMPORT_SECTION_WORKFLOWS":     9,
 	}
 )
 
@@ -167,7 +171,8 @@ func (ClaudeImportStatus) EnumDescriptor() ([]byte, []int) {
 type ClaudeImportItem struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Section ClaudeImportSection    `protobuf:"varint,1,opt,name=section,proto3,enum=harness.agent.v1.ClaudeImportSection" json:"section,omitempty"`
-	// "memory", "settings", "permissions", "hooks", "skill", "agent", "command", "output-style", "mcp", "session".
+	// "memory", "rule", "settings", "permissions", "hooks", "hook-script", "skill", "agent", "command", "output-style",
+	// "workflow", "mcp", "session".
 	Kind          string             `protobuf:"bytes,2,opt,name=kind,proto3" json:"kind,omitempty"`
 	Name          string             `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
 	Status        ClaudeImportStatus `protobuf:"varint,4,opt,name=status,proto3,enum=harness.agent.v1.ClaudeImportStatus" json:"status,omitempty"`
@@ -972,7 +977,7 @@ const file_harness_agent_v1_import_proto_rawDesc = "" +
 	"\x17RunClaudeImportResponse\x12D\n" +
 	"\bprogress\x18\x01 \x01(\v2&.harness.agent.v1.ClaudeImportProgressH\x00R\bprogress\x12>\n" +
 	"\x06report\x18\x02 \x01(\v2$.harness.agent.v1.ClaudeImportReportH\x00R\x06reportB\a\n" +
-	"\x05event*\xde\x02\n" +
+	"\x05event*\x83\x03\n" +
 	"\x13ClaudeImportSection\x12%\n" +
 	"!CLAUDE_IMPORT_SECTION_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cCLAUDE_IMPORT_SECTION_MEMORY\x10\x01\x12\"\n" +
@@ -982,7 +987,8 @@ const file_harness_agent_v1_import_proto_rawDesc = "" +
 	"\x1eCLAUDE_IMPORT_SECTION_COMMANDS\x10\x05\x12'\n" +
 	"#CLAUDE_IMPORT_SECTION_OUTPUT_STYLES\x10\x06\x12%\n" +
 	"!CLAUDE_IMPORT_SECTION_MCP_SERVERS\x10\a\x12\"\n" +
-	"\x1eCLAUDE_IMPORT_SECTION_SESSIONS\x10\b*\xa0\x02\n" +
+	"\x1eCLAUDE_IMPORT_SECTION_SESSIONS\x10\b\x12#\n" +
+	"\x1fCLAUDE_IMPORT_SECTION_WORKFLOWS\x10\t*\xa0\x02\n" +
 	"\x12ClaudeImportStatus\x12$\n" +
 	" CLAUDE_IMPORT_STATUS_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18CLAUDE_IMPORT_STATUS_NEW\x10\x01\x12\x1f\n" +

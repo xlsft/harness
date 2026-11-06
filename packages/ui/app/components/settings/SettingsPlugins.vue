@@ -101,7 +101,7 @@ const installable = computed(() => (state.value?.marketplaces ?? []).flatMap(m =
       Plugins
     </h2>
     <p class="set-sub">
-      Plugins bundle skills, commands, agents, output styles, hooks and MCP servers, in the format of <code>.claude-plugin/plugin.json</code> or <code>.harness-plugin/plugin.json</code>. They stay on this device, each pinned to the content it was installed with. Nothing of one runs until you approve exactly that content here, and only in folders you trust. Hooks and MCP servers run with your rights, outside the sandbox.
+      Plugins bundle skills, commands, agents, output styles, hooks and MCP servers, as a package with a manifest at <code>.harness-plugin/plugin.json</code>; packages made for other agents, with <code>.claude-plugin/plugin.json</code>, work too. They stay on this device, each pinned to the content it was installed with. Nothing of one runs until you approve exactly that content here, and only in folders you trust. Hooks and MCP servers run with your rights, outside the sandbox.
     </p>
     <p
       v-if="error"

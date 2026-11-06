@@ -1175,7 +1175,7 @@ type projectConfig struct {
 // Only for a trusted folder. A repository can't enable what this device did not approve: this only says on or off.
 func readProjectConfig(cwd string) projectConfig {
 	out := projectConfig{enabled: map[string]bool{}, marketplaces: map[string]Source{}}
-	for _, rel := range []string{".harness/settings.local.json", ".claude/settings.local.json", ".harness/settings.json", ".claude/settings.json"} {
+	for _, rel := range []string{".harness/settings.local.json", ".harness/settings.json"} {
 		p := filepath.Join(cwd, filepath.FromSlash(rel))
 		data, err := os.ReadFile(p)
 		if err != nil {

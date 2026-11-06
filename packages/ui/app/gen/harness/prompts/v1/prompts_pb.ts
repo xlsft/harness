@@ -99,7 +99,7 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
 
   /**
    * Keyed by reminder id. Known ids (clients skip a reminder whose id is missing):
-   *   project_instructions  {{content}}            CLAUDE.md / AGENTS.md / user memory, first user message
+   *   project_instructions  {{content}}            AGENTS.md / user memory, first user message
    *   file_changed          {{path}} {{diff}}      a file the model read changed on disk
    *   empty_file            {{path}}               Read of an empty file
    *   interrupted                                  user message after an interruption
@@ -182,7 +182,7 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
 
   /**
    * Built-in output styles keyed by id (default, proactive, concise, explanatory, learning). User and
-   * project styles come from sync (DOCUMENT_KIND_OUTPUT_STYLE) and .claude/output-styles/*.md with the
+   * project styles come from sync (DOCUMENT_KIND_OUTPUT_STYLE) and .harness/output-styles/*.md with the
    * same fields in their frontmatter. "default" adds nothing.
    *
    * @generated from field: map<string, harness.prompts.v1.OutputStyle> output_styles = 8;

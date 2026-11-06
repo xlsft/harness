@@ -17,7 +17,7 @@ const KeySandbox = "sandbox"
 // Sandbox is the sandbox block, merged. Who may say what follows from what each level is:
 //
 //   - user and org documents: everything, as defaults on every machine.
-//   - .harness/settings.local.json, .claude/settings.local.json and --settings: everything. Those are the overrides of one
+//   - .harness/settings.local.json and --settings: everything. Those are the overrides of one
 //     device; a sandboxed command cannot write the local files, and the file tools ask the user first.
 //   - committed project files: only turning it on. A repository must not widen its own sandbox, or switch it off.
 //   - policy documents: enabled true requires it (Forced), and allowOutside false takes the way around it away. A policy

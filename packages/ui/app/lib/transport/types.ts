@@ -35,6 +35,7 @@ import type { DiffBaseChoice, DiffBases, SessionDiff, SessionFileDiff } from '~/
 import type { SpeechApi } from '~/lib/speech/types'
 import type { LocalModelsApi } from './localModels'
 import type { ClaudeImportApi } from '~/lib/import/claudeCode'
+import type { ProjectImportApi } from '~/lib/import/project'
 import type { LimitsApi } from '~/lib/limits/types'
 import type { AcpApi } from '~/lib/acp/types'
 import type { McpApi } from '~/lib/mcp/types'
@@ -427,6 +428,8 @@ export interface SessionTransport {
   limits(): LimitsApi
   // Bringing Claude Code's config and sessions from this machine to the user's server (~/lib/import).
   claudeImport(): ClaudeImportApi
+  // Bringing a folder's Claude Code files into its .harness and AGENTS.md (~/lib/import/project).
+  projectImport(): ProjectImportApi
   // ACP agents as session engines: the registry, installs, sign-in and agent modes (~/lib/acp). Device-local.
   acp(): AcpApi
 

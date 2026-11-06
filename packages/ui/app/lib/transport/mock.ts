@@ -68,6 +68,7 @@ import { MockSchedulesApi } from '~/lib/schedule/mock'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import { MockClaudeImportApi, type MockImportedSession } from '~/lib/import/mock'
+import { MockProjectImportApi } from '~/lib/import/project'
 import type { AddLocalProviderInput, LocalModel, LocalModelsApi, LocalProvider, LocalProviderKindName, LocalProviderPatch, LocalProvidersState, PullHandle, PullHandlers, PullProgress } from './localModels'
 import { contextUsageFromProto } from '~/lib/session/context'
 import { backgroundReasonPb, permissionModeName, permissionModePb, usageLimitVM } from '~/lib/session/reducer'
@@ -395,6 +396,11 @@ export class MockTransport implements SessionTransport {
   private claudeImportApi?: MockClaudeImportApi
   claudeImport() {
     return (this.claudeImportApi ??= new MockClaudeImportApi({ tick: this.tick * 3, onSession: s => this.addImportedSession(s) }))
+  }
+
+  private projectImportApi?: MockProjectImportApi
+  projectImport() {
+    return (this.projectImportApi ??= new MockProjectImportApi())
   }
 
   // An imported session joins the session list, as its transcript does on a real client.
@@ -1369,7 +1375,7 @@ export class MockTransport implements SessionTransport {
     const active = this.preferences.hooksEnabled ? 'active' as const : 'disabled' as const
     const reason = this.preferences.hooksEnabled ? '' : 'All hooks are turned off.'
     return [
-      { event: 'PostToolUse', matcher: 'Edit|Write', handlerType: 'command', command: 'pnpm lint --fix', timeoutSeconds: 60, async: false, source: 'project', sourcePath: '/Users/me/project/.claude/settings.json', status: active, reason, trustHash: '' },
+      { event: 'PostToolUse', matcher: 'Edit|Write', handlerType: 'command', command: 'pnpm lint --fix', timeoutSeconds: 60, async: false, source: 'project', sourcePath: '/Users/me/project/.harness/settings.json', status: active, reason, trustHash: '' },
       { event: 'Notification', matcher: '', handlerType: 'http', command: 'https://hooks.example.com/notify', timeoutSeconds: 0, async: true, source: 'user', sourcePath: '', status: this.hookTrusted ? active : 'needs_device_trust' as const, reason: this.hookTrusted ? reason : 'It came from the server and is not trusted on this machine yet.', trustHash: 'sha256:mock' },
       { event: 'PreToolUse', matcher: 'Bash', handlerType: 'prompt', command: '', timeoutSeconds: 0, async: false, source: 'local', sourcePath: '/Users/me/project/.harness/settings.local.json', status: 'unsupported' as const, reason: 'This client does not run handlers of type prompt.', trustHash: '' }
     ]

@@ -85,13 +85,12 @@ func symbolsCall(s *bootstrap.Session, path string) tools.Result {
 	return tool.Run(context.Background(), s.ToolEnv, tools.Call{Input: input})
 }
 
-// TestLSPInASession goes through the whole path: the user's setting picks the server, the tool starts it, an edit in a
+// TestLSPInASession goes through the whole path: the setting picks the server, the tool starts it, an edit in a
 // turn brings the server's error into the next model request, and moving the session stops the server.
 func TestLSPInASession(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	writeFile(t, filepath.Join(home, ".claude", "settings.json"), fakeServerSettings(t))
+	t.Setenv("HOME", t.TempDir())
 	proj, _ := filepath.EvalSymlinks(t.TempDir())
+	writeFile(t, filepath.Join(proj, ".harness", "settings.local.json"), fakeServerSettings(t))
 	file := filepath.Join(proj, "a.fake")
 	writeFile(t, file, "def a\n")
 	s, srv, log := lspSession(t, proj, true, func(n int, _ *llm.Request) fg.Reply {
@@ -159,14 +158,12 @@ func TestLSPServerChoiceOfAProject(t *testing.T) {
 	}
 }
 
-// TestLSPUserServerInAnUntrustedFolder: even the user's own server does not start over a folder they did not trust.
-func TestLSPUserServerInAnUntrustedFolder(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	writeFile(t, filepath.Join(home, ".claude", "settings.json"), fakeServerSettings(t))
+// TestLSPServerInAnUntrustedFolder: no server starts over a folder the user did not trust.
+func TestLSPServerInAnUntrustedFolder(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	proj, _ := filepath.EvalSymlinks(t.TempDir())
-	file := filepath.Join(proj, "a.fake")
-	writeFile(t, file, "def a\n")
+	file := filepath.Join(proj, "a.go")
+	writeFile(t, file, "package a\n")
 	s, _, log := lspSession(t, proj, false, func(int, *llm.Request) fg.Reply { return fg.Reply{Events: fg.Message("m", fg.Text("done"))} })
 	res := symbolsCall(s, file)
 	if !res.IsError || !strings.Contains(res.Content[0].Text, "not a trusted workspace") {
@@ -179,10 +176,9 @@ func TestLSPUserServerInAnUntrustedFolder(t *testing.T) {
 
 // TestLSPTurnedOffByTheUser hides the tool from the model.
 func TestLSPTurnedOffByTheUser(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	writeFile(t, filepath.Join(home, ".claude", "settings.json"), `{"lspEnabled": false}`)
+	t.Setenv("HOME", t.TempDir())
 	proj, _ := filepath.EvalSymlinks(t.TempDir())
+	writeFile(t, filepath.Join(proj, ".harness", "settings.local.json"), `{"lspEnabled": false}`)
 	s, _, _ := lspSession(t, proj, true, func(int, *llm.Request) fg.Reply { return fg.Reply{Events: fg.Message("m", fg.Text("done"))} })
 	tool, ok := s.Tools.Get("LSP")
 	if !ok {

@@ -51,7 +51,7 @@
 | A8 | Canonical message model | **Anthropic-like content blocks** (`text`, `thinking`+`signature`, `tool_use`, `tool_result`, `image`) — in both the client and the gateway API | Reducing rich to poor is easier. tool_use/tool_result pairs and thinking signatures are respected |
 | A9 | Auth | **Better Auth** on the server (login, password, optional OAuth and 2FA, roles). `harness login` — device-flow → device token (revocable) + short-lived access token with refresh | Ordinary client login, like `claude login` |
 | A10 | Storage | **Server:** Postgres (Drizzle, pg dialect) running inside the single harness container, data in the `/data` volume; an external `DATABASE_URL` is optional; tests use PGlite. User files in the object store (Garage, same container, §1.7). **Client:** cache in `~/.harness/` + local CC-format JSONL (offline writes, synced to the server) | One container, nothing to configure, a real Postgres under the hood. A session is not lost when the connection drops |
-| A11 | CC compatibility | Project `.claude/`, `CLAUDE.md`, `AGENTS.md`, `.mcp.json` are read from the repository. User-level `~/.claude` — a one-time **import to the server** (`harness import claude`) | The project is portable. After import, the user level lives on the server |
+| A11 | CC compatibility | Formats stay compatible, the files do not stay live: `AGENTS.md`, `.harness/` and `.mcp.json` are read from the repository. `.claude/` and `CLAUDE.md` are import sources only: a folder's go to `.harness/` and `AGENTS.md` when the user accepts the offer or runs `harness-client import --project`, and user-level `~/.claude` is a one-time **import to the server** (`harness import claude`) | The project is portable. After import, the user level lives on the server |
 | A12 | Languages and distribution | **Server** — TypeScript on Nitro v3. **Client and CLI** — Go: a single static binary for all OSes and architectures (cross-compile without CGO). The CLI imports the client as a Go package. Desktop and mobile use the client as a sidecar binary | One file is easy to install and push over SSH, fast startup, solid process/pty primitives. The charm.land toolchain gives a CC-level TUI |
 | A13 | Legal | Clean-room: compatible formats and protocols — yes, CC code and prompts verbatim — no | See feature-parity §17–18 |
 
@@ -118,7 +118,7 @@ packages/
 |---|---|
 | User settings (default model, effort, mode, output style, attribution, UI) | Cached, applied as the user-level settings |
 | User-level permission rules | Applied together with project rules. "Don't ask again" at user level is written to the server |
-| User memory (analogue of `~/.claude/CLAUDE.md`), auto memory per project | Injected into project context |
+| User memory, auto memory per project | Injected into project context |
 | Skills, agents, commands, output styles (personal + shared by admin) | Synced to cache, loaded via progressive disclosure |
 | User-level hooks | Synced, executed locally — only after confirmation on this machine (trust) |
 | **MCP servers — all configs and all authorization** (see 1.5) | Pulled onto any device. No need to carry `.mcp.json` and `~/.claude.json` around |
@@ -127,7 +127,7 @@ packages/
 | Admin policies (managed settings): deny rules, allowed models, prohibitions | Highest priority |
 
 - **Sync API:** `GET /api/sync?since=<version>` → changed documents, `PUT` of a document with `baseVersion` (conflict → 409 → the client merges or asks again). Live updates through the same channel as the relay.
-- Import of `~/.claude` (CLAUDE.md, skills, agents, commands, output styles, settings) and CC sessions: `harness import claude`.
+- Import of `~/.claude` (CLAUDE.md, rules, skills, agents, commands, output styles, settings) and CC sessions: `harness import claude`. It is the only reader of those files, with the project import.
 
 ### 1.5 MCP via the server
 Goal: connect an MCP once — it works on all devices, on the web and on SSH hosts, with no config transfer and no repeated authorization.
@@ -203,11 +203,11 @@ docker run -d --name harness -p 3000:3000 -v harness-data:/data \
   - Immediate commands (`/model`, `/effort`, `/status`, `/usage`, `/tasks`, `/rename`, `/btw`) bypass the queue.
 - **Context assembly:**
   - Prompt bundle (from the server) + tools.
-  - Project context: CLAUDE.md/AGENTS.md from the repo + user memory from the server.
+  - Project context: AGENTS.md from the repo + user memory from the server.
   - Conversation.
   - `DYNAMIC_BOUNDARY`: machine env and the git snapshot go into the first user message.
 - **Compaction:** first trimming tool outputs, then summarization via the gateway (`request-class: compaction`), anti-thrashing.
-- **Reminders** from bundle templates: CLAUDE.md, skills, agents, todo, file-changed, attribution, hooks, output style.
+- **Reminders** from bundle templates: AGENTS.md, skills, agents, todo, file-changed, attribution, hooks, output style.
 - **Offline:** without the server there is no LLM, so no new turn. History, `/resume`, viewing and code rewind work from the local cache. A drop mid-turn → gateway-client retries, then the session goes into "waiting for connection".
 
 ### 2.2 Tools (executed locally; descriptions come from the prompt bundle)
@@ -222,7 +222,7 @@ docker run -d --name harness -p 3000:3000 -v harness-data:/data \
 ### 2.3 Permissions (decided by the client; the server cannot bypass them)
 - Modes `default`, `acceptEdits`, `plan`, `dontAsk`, `bypassPermissions`. Later `auto` (classifier via the gateway).
 - `Tool(spec)` rule engine: deny → ask → allow, parsing compound Bash, stripping wrappers, gitignore globs.
-- Sources by priority: **admin policies (server)** → CLI flags → `.claude/settings.local.json` → `.claude/settings.json` → **user rules (server)**.
+- Sources by priority: **admin policies (server)** → CLI flags → `.harness/settings.local.json` → `.harness/settings.json` → **user rules (server)**.
 - Read-only allowlist, protected paths, workspace trust (project hooks and `.mcp.json` apply only after confirmation on this machine).
 - Remote control and spawn from the web do not bypass permissions. Bypass mode cannot be enabled remotely.
 
@@ -233,7 +233,7 @@ docker run -d --name harness -p 3000:3000 -v harness-data:/data \
 - AI titles via the gateway (`request-class: auxiliary`).
 
 ### 2.5 Extensibility
-- Memory, skills, agents, commands, output styles, hooks: **user level from the server**, **project level from the repository** (`.claude/`, `.harness/`, CLAUDE.md, AGENTS.md, rules with `paths`, `@import`).
+- Memory, skills, agents, commands, output styles, hooks: **user level from the server**, **project level from the repository** (`.harness/`, AGENTS.md, rules with `paths`, `@import`).
 - **Hooks:** `command` ones run locally, `http` ones from the client.
 - **MCP:** configs and authorization — from the server (section 1.5). Remote MCPs are called through the server proxy. stdio runs locally with secrets issued at launch, after local confirmation on the device. Own `ToolSearch` on top of the server schema cache.
 - **Plugins/marketplace** — M4, catalog on the server.

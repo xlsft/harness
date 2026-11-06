@@ -54,13 +54,13 @@ func (d Documents) List(kind syncv1.DocumentKind) []*syncv1.Document {
 
 // Options say where to look.
 type Options struct {
-	// Home holds ~/.claude; HarnessHome is ~/.harness. Either may be empty.
-	Home, HarnessHome string
+	// HarnessHome is ~/.harness; empty: no personal files.
+	HarnessHome string
 	// Cwd is the session's folder; empty: nothing project-level. GitRoot bounds the walk up from it (empty: Cwd only).
 	Cwd, GitRoot string
 	// AdditionalDirs are the session's other working directories.
 	AdditionalDirs []string
-	// Nested are folders below Cwd whose own .claude/skills apply because a file in them was touched.
+	// Nested are folders below Cwd whose own .harness/skills apply because a file in them was touched.
 	Nested []string
 	// Trusted lets project-level files load. They give instructions to the model and may grant it tools, so a folder
 	// the user has not trusted gets no say.
@@ -147,10 +147,6 @@ func Discover(o Options) *Catalog {
 		sc.skillsDir(filepath.Join(o.HarnessHome, "skills"), SourcePersonal)
 		sc.commandsDir(filepath.Join(o.HarnessHome, "commands"), SourcePersonal)
 	}
-	if o.Home != "" {
-		sc.skillsDir(filepath.Join(o.Home, ".claude", "skills"), SourcePersonal)
-		sc.commandsDir(filepath.Join(o.Home, ".claude", "commands"), SourcePersonal)
-	}
 	c := &Catalog{disabled: o.Disabled}
 	roots := projectDirs(o)
 	for _, d := range roots {
@@ -161,14 +157,11 @@ func Discover(o Options) *Catalog {
 			continue
 		}
 		sc.skillsDir(filepath.Join(d, ".harness", "skills"), SourceProject)
-		sc.skillsDir(filepath.Join(d, ".claude", "skills"), SourceProject)
 		sc.commandsDir(filepath.Join(d, ".harness", "commands"), SourceProject)
-		sc.commandsDir(filepath.Join(d, ".claude", "commands"), SourceProject)
 	}
 	if o.Trusted {
 		for _, d := range o.Nested {
 			sc.skillsDir(filepath.Join(d, ".harness", "skills"), SourceProject)
-			sc.skillsDir(filepath.Join(d, ".claude", "skills"), SourceProject)
 		}
 	}
 	for _, p := range o.Plugins {
@@ -361,7 +354,7 @@ func within(p, dir string) bool {
 }
 
 func hasProjectFiles(d string) bool {
-	for _, sub := range []string{".claude/skills", ".harness/skills", ".claude/commands", ".harness/commands"} {
+	for _, sub := range []string{".harness/skills", ".harness/commands"} {
 		if entries, err := os.ReadDir(filepath.Join(d, filepath.FromSlash(sub))); err == nil && len(entries) > 0 {
 			return true
 		}

@@ -6,7 +6,7 @@ Save a note when you learn something a later session could not work out from the
 - `project`: a fact about the work that is not in the repository: a deadline, a decision and its reason, who owns what. Write dates as dates, not "next week".
 - `reference`: where something lives outside the repository: a dashboard, a tracker project, a runbook.
 
-Do not save what the repository already says (structure, conventions, commands in CLAUDE.md), what only matters to this conversation, or anything secret: no passwords, keys or tokens, ever.
+Do not save what the repository already says (structure, conventions, commands in AGENTS.md), what only matters to this conversation, or anything secret: no passwords, keys or tokens, ever.
 
 Keep them true. Before adding a note, `list` and update the one on the same subject instead of writing a second. When a note turns out wrong or stale, fix or delete it. A note says what was true when it was written: check it against the code before you rely on it, and if they differ, trust the code and fix the note.
 

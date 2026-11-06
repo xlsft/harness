@@ -36,7 +36,7 @@ export type ComposerMode = 'normal' | 'shell' | 'memory'
 // chat message); memory mode and plain text are messages. Null for an empty draft.
 export type ComposerRoute = { kind: 'shell', command: string } | { kind: 'message', text: string }
 
-export function composerRoute(mode: ComposerMode, body: string, memoryTarget = 'CLAUDE.md'): ComposerRoute | null {
+export function composerRoute(mode: ComposerMode, body: string, memoryTarget = 'AGENTS.md'): ComposerRoute | null {
   const t = body.trim()
   if (!t) return null
   if (mode === 'shell') return { kind: 'shell', command: t }

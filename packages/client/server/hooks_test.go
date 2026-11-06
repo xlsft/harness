@@ -46,7 +46,7 @@ func hookSettings(t *testing.T, extra map[string]any, cfgs ...hookCfg) []byte {
 	return b
 }
 
-// startHooked starts a harness in a trusted folder whose .claude/settings.json holds settings. The hook tests get their own
+// startHooked starts a harness in a trusted folder whose .harness/settings.json holds settings. The hook tests get their own
 // home, so nothing of the developer's machine takes part.
 func startHooked(t *testing.T, respond fg.Responder, settingsFile []byte) *harness {
 	t.Helper()
@@ -58,7 +58,7 @@ func startHookedTrust(t *testing.T, respond fg.Responder, settingsFile []byte, t
 	h := startHarness(t, respond, func(o *bootstrap.Options) { o.Trusted = &trusted })
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("HARNESS_NO_HOOKS", "")
-	writeProjectFile(t, h.proj, ".claude/settings.json", settingsFile)
+	writeProjectFile(t, h.proj, ".harness/settings.json", settingsFile)
 	return h
 }
 
@@ -782,7 +782,7 @@ func TestHooksAreASnapshot(t *testing.T) {
 	mark := filepath.Join(dir, "ran")
 	h := startHooked(t, func(int, *llm.Request) fg.Reply { return fg.Reply{Events: fg.Message("m", fg.Text("ok"))} }, []byte(`{}`))
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
-	writeProjectFile(t, h.proj, ".claude/settings.json", hookSettings(t, nil, hookCfg{event: "UserPromptSubmit", command: "touch '" + mark + "'"}))
+	writeProjectFile(t, h.proj, ".harness/settings.json", hookSettings(t, nil, hookCfg{event: "UserPromptSubmit", command: "touch '" + mark + "'"}))
 	h.send(sid, "go")
 	h.until(ch, isTurnFinished)
 	if _, err := os.Stat(mark); err == nil {

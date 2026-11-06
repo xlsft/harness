@@ -20,7 +20,7 @@ func layer(t *testing.T, src settings.Source, gate settings.HookGate, cfg string
 }
 
 func project() settings.Source {
-	return settings.Source{Level: settings.LevelProject, Path: "/p/.claude/settings.json"}
+	return settings.Source{Level: settings.LevelProject, Path: "/p/.harness/settings.json"}
 }
 
 func TestMatchers(t *testing.T) {

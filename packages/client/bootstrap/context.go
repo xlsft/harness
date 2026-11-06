@@ -166,7 +166,7 @@ func projectMemory(ctx context.Context, cwd string, workingDirs []string, st *se
 		}
 	}
 	return memory.New(memory.Options{
-		Cwd: cwd, ProjectRoot: workspace.GitRoot(ctx, cwd), WorkingDirs: workingDirs, Mode: mode, NoAncestors: noFolder,
+		Cwd: cwd, ProjectRoot: workspace.GitRoot(ctx, cwd), WorkingDirs: workingDirs, Mode: mode, NoAncestors: noFolder, HarnessHome: config.Home(),
 		Docs: docs, ProjectKey: key, AutoMemoryDir: dir,
 		Approvals: &memory.FileApprovals{Path: filepath.Join(config.Home(), "import-approvals.json"), Project: key},
 	})

@@ -83,7 +83,7 @@ func TestAutoMemoryAcrossSessions(t *testing.T) {
 	}
 
 	// Off: no tool, nothing loaded. What is stored stays for when it comes back on.
-	dir := filepath.Join(proj, ".claude")
+	dir := filepath.Join(proj, ".harness")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
