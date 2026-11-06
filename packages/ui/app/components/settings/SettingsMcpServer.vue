@@ -1,0 +1,313 @@
+<script setup lang="ts">
+// One server of Settings > MCP: its state and who manages it; opened, its tools with their permission rules, prompts,
+// resources and the error if connecting failed. Approval and sign-in live here, on the row that needs them.
+import { ApprovalState, canSignIn, GetOAuthFlowResponse_State, McpServerSource, McpServerState, needsDecision, stateView, TRANSPORT_LABELS, transportName, type InspectMcpServerResponse, type McpApi, type McpRule, type McpServerEntry } from '~/lib/mcp/types'
+import { AuthState } from '~/gen/harness/mcp/v1/mcp_pb'
+import { isDesktop, openExternal } from '~/lib/desktop'
+
+const props = defineProps<{
+  entry: McpServerEntry
+  folder: string
+  api: McpApi
+  inspection?: InspectMcpServerResponse
+  inspecting: boolean
+}>()
+const emit = defineEmits<{ changed: [], edit: [], failed: [message: string] }>()
+
+const open = ref(false)
+const busy = ref(false)
+const server = computed(() => props.entry.server!)
+const state = computed(() => stateView(props.entry))
+const local = computed(() => props.entry.source === McpServerSource.DEVICE)
+const connected = computed(() => server.value.auth?.state === AuthState.CONNECTED)
+const signInAvailable = computed(() => canSignIn(props.entry))
+const toolCount = computed(() => props.inspection?.tools.length ?? 0)
+const failed = computed(() => props.inspection?.error ?? '')
+
+function message(e: unknown) {
+  return e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e)
+}
+
+async function run(fn: () => Promise<unknown>) {
+  busy.value = true
+  try {
+    await fn()
+    emit('changed')
+  } catch (e) {
+    emit('failed', message(e))
+  } finally {
+    busy.value = false
+  }
+}
+
+async function toggle(enabled: boolean) {
+  await run(() => props.api.update({ ...server.value, enabled }, { set: {}, remove: [] }, server.value.version))
+}
+
+async function remove() {
+  await run(() => props.api.remove(server.value.id))
+}
+
+async function approve(approved: boolean) {
+  await run(() => props.api.setApproval(server.value.id, props.folder, approved))
+}
+
+// OAuth: the flow runs on the server. The user signs in in a browser; this polls until the flow ends.
+const signingIn = ref(false)
+let cancelled = false
+onBeforeUnmount(() => {
+  cancelled = true
+})
+async function signIn() {
+  signingIn.value = true
+  try {
+    const flow = await props.api.startOAuth(server.value.id)
+    if (isDesktop()) await openExternal(flow.authorizationUrl)
+    else window.open(flow.authorizationUrl, '_blank', 'noopener')
+    for (;;) {
+      await new Promise(r => setTimeout(r, 2000))
+      if (cancelled) return
+      const f = await props.api.oauthFlow(flow.flowId)
+      if (f.state === GetOAuthFlowResponse_State.COMPLETED) break
+      if (f.state !== GetOAuthFlowResponse_State.PENDING) throw new Error(f.errorMessage || 'The sign-in did not finish')
+    }
+    emit('changed')
+  } catch (e) {
+    emit('failed', message(e))
+  } finally {
+    signingIn.value = false
+  }
+}
+
+async function signOut() {
+  await run(() => props.api.revokeAuth(server.value.id))
+}
+
+const RULES: { value: string, label: string }[] = [
+  { value: 'none', label: 'Default' },
+  { value: 'allow', label: 'Allow' },
+  { value: 'ask', label: 'Ask' },
+  { value: 'deny', label: 'Deny' }
+]
+async function setRule(tool: string, value: string) {
+  await run(() => props.api.setToolRule(server.value.name, tool, (value === 'none' ? '' : value) as McpRule, local.value))
+}
+</script>
+
+<template>
+  <div class="flex flex-col">
+    <div class="flex items-center gap-3 px-3 py-2.5">
+      <button
+        type="button"
+        class="flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 border-0 bg-transparent p-0 text-left"
+        :aria-expanded="open"
+        @click="open = !open"
+      >
+        <span class="flex items-center gap-2 text-[12.5px] text-strong">
+          {{ server.name }}
+          <span
+            class="text-[11px]"
+            :class="{ 'text-ok': state.tone === 'ok', 'text-bad': state.tone === 'bad', 'text-muted': state.tone === 'muted' }"
+          >{{ state.label }}</span>
+          <span
+            v-if="inspecting"
+            class="text-[11px] text-muted"
+          >connecting…</span>
+          <span
+            v-else-if="inspection?.connected"
+            class="text-[11px] text-muted"
+          >{{ toolCount }} tool{{ toolCount === 1 ? '' : 's' }}</span>
+          <span
+            v-else-if="failed"
+            class="text-[11px] text-bad"
+          >cannot connect</span>
+        </span>
+        <span class="truncate text-[11.5px] text-muted">{{ entry.managedBy }} · {{ TRANSPORT_LABELS[transportName(server.transport)] }} · {{ entry.launchSummary }}</span>
+        <span
+          v-if="entry.stateDetail"
+          class="text-[11.5px] text-muted"
+        >{{ entry.stateDetail }}</span>
+      </button>
+
+      <template v-if="needsDecision(entry)">
+        <HBtn
+          size="sm"
+          variant="primary"
+          :disabled="busy"
+          @click="approve(true)"
+        >
+          Allow
+        </HBtn>
+        <HBtn
+          v-if="entry.state !== McpServerState.DENIED"
+          size="sm"
+          :disabled="busy"
+          @click="approve(false)"
+        >
+          Deny
+        </HBtn>
+      </template>
+      <HBtn
+        v-if="signInAvailable && !connected && entry.state === McpServerState.NEEDS_AUTH"
+        size="sm"
+        variant="primary"
+        :disabled="signingIn"
+        @click="signIn"
+      >
+        {{ signingIn ? 'Waiting for sign-in…' : 'Sign in' }}
+      </HBtn>
+      <HToggle
+        v-if="entry.canEdit"
+        :model-value="server.enabled"
+        :label="`Use ${server.name}`"
+        :disabled="busy"
+        @update:model-value="toggle"
+      />
+    </div>
+
+    <div
+      v-if="open"
+      class="flex flex-col gap-3 border-t border-default px-3 py-3 text-[12px]"
+    >
+      <p
+        v-if="failed"
+        role="alert"
+        class="m-0 text-bad"
+      >
+        {{ failed }}
+      </p>
+      <p
+        v-if="inspection?.serverName"
+        class="m-0 text-muted"
+      >
+        Reports itself as {{ inspection.serverName }} {{ inspection.serverVersion }}.
+        <template v-if="inspection.instructionsChars > 0n">
+          Gives the agent {{ inspection.instructionsChars }} characters of instructions, within a size limit.
+        </template>
+      </p>
+      <p
+        v-if="server.auth?.account"
+        class="m-0 text-muted"
+      >
+        Signed in as {{ server.auth.account }}.
+      </p>
+      <p
+        v-if="server.secrets.length"
+        class="m-0 text-muted"
+      >
+        Secrets: {{ server.secrets.map(s => s.hasValue ? s.name : `${s.name} (not set)`).join(', ') }}.
+      </p>
+
+      <div
+        v-if="inspection?.tools.length"
+        class="flex flex-col"
+      >
+        <div class="mb-1 flex items-center gap-2 text-strong">
+          <span class="flex-1">Tools</span>
+          <span class="text-[11px] text-muted">Whole server</span>
+          <HSelect
+            :model-value="'none'"
+            :options="RULES"
+            :aria-label="`Rule for every tool of ${server.name}`"
+            class="w-[100px]"
+            @update:model-value="(v: string) => setRule('', v)"
+          />
+        </div>
+        <div
+          v-for="t in inspection.tools"
+          :key="t.name"
+          class="flex items-center gap-2 border-t border-default py-1.5"
+        >
+          <span class="flex min-w-0 flex-1 flex-col">
+            <span class="truncate text-strong">{{ t.title || t.name }}</span>
+            <span class="truncate text-[11.5px] text-muted">{{ t.description }}</span>
+          </span>
+          <HSelect
+            :model-value="t.rule || 'none'"
+            :options="RULES"
+            :aria-label="`Rule for ${t.name}`"
+            class="w-[100px]"
+            @update:model-value="(v: string) => setRule(t.name, v)"
+          />
+        </div>
+      </div>
+
+      <div
+        v-if="inspection?.prompts.length"
+        class="flex flex-col gap-0.5"
+      >
+        <span class="text-strong">Prompts</span>
+        <span
+          v-for="p in inspection.prompts"
+          :key="p.name"
+          class="text-muted"
+        >/mcp__{{ server.name }}__{{ p.name }}<template v-if="p.description"> · {{ p.description }}</template></span>
+      </div>
+      <div
+        v-if="inspection?.resources.length"
+        class="flex flex-col gap-0.5"
+      >
+        <span class="text-strong">Resources</span>
+        <span
+          v-for="r in inspection.resources"
+          :key="r.uri || r.uriTemplate"
+          class="truncate text-muted"
+        >{{ r.uri || r.uriTemplate }}<template v-if="r.description"> · {{ r.description }}</template></span>
+      </div>
+      <p
+        v-if="server.deniedTools.length || server.allowedTools.length"
+        class="m-0 text-muted"
+      >
+        <template v-if="server.allowedTools.length">
+          Only these tools exist: {{ server.allowedTools.join(', ') }}.
+        </template>
+        <template v-if="server.deniedTools.length">
+          Hidden by whoever manages it: {{ server.deniedTools.join(', ') }}.
+        </template>
+      </p>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <HBtn
+          v-if="entry.canEdit"
+          size="sm"
+          @click="emit('edit')"
+        >
+          Edit
+        </HBtn>
+        <HBtn
+          v-if="signInAvailable && connected"
+          size="sm"
+          :disabled="signingIn"
+          @click="signIn"
+        >
+          {{ signingIn ? 'Waiting for sign-in…' : 'Reconnect' }}
+        </HBtn>
+        <HBtn
+          v-if="signInAvailable && connected"
+          size="sm"
+          :disabled="busy"
+          @click="signOut"
+        >
+          Sign out
+        </HBtn>
+        <HBtn
+          v-if="entry.approval === ApprovalState.APPROVED && entry.source === McpServerSource.PROJECT"
+          size="sm"
+          :disabled="busy"
+          @click="approve(false)"
+        >
+          Stop allowing
+        </HBtn>
+        <HBtn
+          v-if="entry.canRemove"
+          size="sm"
+          tone="danger"
+          :disabled="busy"
+          @click="remove"
+        >
+          Remove
+        </HBtn>
+      </div>
+    </div>
+  </div>
+</template>

@@ -161,6 +161,8 @@ export interface ToolItem {
   name: string
   input: Record<string, unknown>
   summary: string
+  // What an MCP server last reported about the running call; gone when it finished.
+  progress?: { progress: number, total: number, message: string }
   status: ToolStatus
   // Text of the tool_result blocks.
   output: string
@@ -618,4 +620,6 @@ export interface SessionState {
   toolOwners: Record<string, { messageId: string, count: number }>
   // Internal: ToolTitle labels that arrived before their tool call's item, applied when it appears.
   toolTitles: Record<string, string>
+  // Grows when an MCP server's list changes, for what shows commands and mentions to read them again.
+  mcpListVersion: number
 }

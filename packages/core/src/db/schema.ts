@@ -591,6 +591,8 @@ export const mcpToolCache = pgTable(
     configHash: text("config_hash").notNull(),
     /** JSON ToolData[] */
     tools: jsonb("tools").notNull(),
+    /** What the upstream said about itself when the list was fetched: {instructions, hasPrompts, hasResources}. */
+    meta: jsonb("meta").notNull().default({}),
     fetchedAt: ts("fetched_at").notNull(),
   },
   (t) => [primaryKey({ columns: [t.serverId, t.userId] })],

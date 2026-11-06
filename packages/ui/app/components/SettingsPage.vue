@@ -17,6 +17,7 @@ const SECTIONS = [
   { key: 'import', label: 'Import', icon: 'download', group: 'app' },
   { key: 'models', label: 'Models', icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
+  { key: 'mcp', label: 'MCP', icon: 'link', group: 'ai' },
   { key: 'search', label: 'Search', icon: 'search', group: 'ai' },
   { key: 'speech', label: 'Speech', icon: 'mic', group: 'ai' },
   { key: 'computer', label: 'Computer use', icon: 'monitor', group: 'ai' },
@@ -45,6 +46,7 @@ const KEYWORDS: Record<Section, string> = {
   import: 'import bring claude code migrate memory skills agents commands output styles mcp sessions history',
   models: 'providers llm keys slots default model title effort',
   classifiers: 'classifier decision model rules',
+  mcp: 'mcp model context protocol servers tools resources prompts oauth sign in stdio http sse websocket approval audit log project .mcp.json',
   search: 'web search providers searxng brave tavily exa kagi perplexity',
   speech: 'voice dictation microphone read aloud stt tts parakeet whisper piper elevenlabs openai deepgram minimax',
   computer: 'computer use desktop apps control screen recording accessibility permissions click type',
@@ -165,6 +167,8 @@ const notifications = computed({
       </template>
 
       <SettingsImport v-else-if="section === 'import'" />
+
+      <SettingsMcp v-else-if="section === 'mcp'" />
 
       <template v-else-if="section === 'models' || section === 'classifiers'">
         <SettingsProviders

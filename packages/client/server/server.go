@@ -35,6 +35,7 @@ import (
 	"github.com/xlsft/harness/packages/client/keepawake"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/localmodels"
+	"github.com/xlsft/harness/packages/client/mcp"
 	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/preview"
@@ -70,6 +71,10 @@ type Server struct {
 	// Preferences reads and writes the user's synced settings document (GetUserPreferences, preferences.go);
 	// nil without sync.
 	Preferences PreferenceDocs
+	// MCPClient is the McpService client of the signed-in server (nil: only device-local MCP servers), used by Settings >
+	// MCP. MCPInventory overrides what it is built from (tests).
+	MCPClient    *mcp.Client
+	MCPInventory *mcp.Inventory
 	// ImportTo is the user's server for imports (import.go); nil without sync.
 	ImportTo *syncclient.Client
 	// NoPanes says the frontends cannot open panes (the terminal UI): the
@@ -485,6 +490,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	ls.syncDiffStats(ls.diff)
 	sess.Permissions.SetAsker(ls)
 	sess.Agent.SetInteractor(ls)
+	ls.watchMcp()
 	ls.driver = agent.NewDriver(s.ctx, sess.Agent, ls.onResult)
 	sess.Agent.SetWake(ls.driver.Wake)
 	if sess.Resumed && !m.GetFork() {
@@ -761,6 +767,10 @@ func (s *Server) submitMessage(ls *liveSession, req *connect.Request[agentv1.Sen
 			}
 			return connect.NewResponse(&agentv1.SendUserMessageResponse{}), nil
 		}
+	}
+	content, err := ls.expandMcpMessage(ls.ctx, content)
+	if err != nil {
+		return nil, err
 	}
 	// "/compact [instructions]" compacts instead of starting a turn.
 	if len(content) == 1 && content[0].Type == llm.BlockText {

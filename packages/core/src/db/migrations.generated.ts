@@ -194,5 +194,11 @@ export const migrations: { id: string; statements: string[] }[] = [
       "ALTER TABLE \"model\" ADD COLUMN \"pricing_updated_at\" timestamp with time zone;",
       "ALTER TABLE \"model\" ADD COLUMN \"price_change_held\" jsonb;"
     ]
+  },
+  {
+    "id": "0012_tense_jack_power",
+    "statements": [
+      "ALTER TABLE \"mcp_tool_cache\" ADD COLUMN \"meta\" jsonb DEFAULT '{}'::jsonb NOT NULL;"
+    ]
   }
 ];

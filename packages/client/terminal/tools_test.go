@@ -162,8 +162,14 @@ func TestToolListStates(t *testing.T) {
 	_, _ = term.Write([]byte("cd " + other + "; echo moved\n"))
 	readUntil(t, v, "moved\r\n")
 	waitIdle(t, term)
+	// The list shows the directory from the last poll of the shell, so the cd can take a moment to show.
 	res := r.call(ToolList, nil)
 	text := resultText(res)
+	for deadline := time.Now().Add(10 * time.Second); !strings.Contains(text, other) && time.Now().Before(deadline); {
+		time.Sleep(50 * time.Millisecond)
+		res = r.call(ToolList, nil)
+		text = resultText(res)
+	}
 	if !strings.Contains(text, `"mine"`) || strings.Contains(text, "theirs") || !strings.Contains(text, "at the shell prompt") || !strings.Contains(text, other) || !strings.Contains(text, "opened by the user") {
 		t.Fatalf("list: %s", text)
 	}

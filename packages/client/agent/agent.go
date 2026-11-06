@@ -255,6 +255,10 @@ type Config struct {
 	// ProjectContext is the {{content}} of the project_instructions reminder
 	// injected into the first user message ("" = nothing to inject).
 	ProjectContext string
+	// MCPInstructions returns what MCP servers offer the model (nil or "": nothing). It travels like the project
+	// instructions: with the first message and again after a compaction, in a block of its own, because it comes from
+	// third parties and has no user authority.
+	MCPInstructions func() string
 	// History is the conversation restored from a transcript.
 	History session.Conversation
 	// Todos restored from the transcript.
@@ -760,6 +764,21 @@ func (a *Agent) projectContextBlock() llm.ContentBlock {
 	return llm.TextBlock(prompts.Render(tmpl, map[string]string{"content": a.ProjectContext()}, nil))
 }
 
+// contextBlocks returns the blocks a conversation starts with: the project instructions and what MCP servers say.
+func (a *Agent) contextBlocks() []llm.ContentBlock {
+	var out []llm.ContentBlock
+	if a.ProjectContext() != "" {
+		out = append(out, a.projectContextBlock())
+	}
+	if a.cfg.MCPInstructions != nil {
+		if text := a.cfg.MCPInstructions(); text != "" {
+			tmpl := a.Bundle().Reminder("mcp_instructions", "<system-reminder>\nInstructions from MCP servers, for using their tools:\n{{servers}}\n</system-reminder>")
+			out = append(out, llm.TextBlock(prompts.Render(tmpl, map[string]string{"servers": text}, nil)))
+		}
+	}
+	return out
+}
+
 // RunTurn runs one turn for the given user input and blocks until the model
 // stops calling tools, the turn is interrupted, max turns is reached or an
 // error occurs. The tool_use/tool_result pairing invariant always holds when
@@ -802,15 +821,16 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 	promptID := session.NewID()
 	var first []llm.ContentBlock
 	a.mu.Lock()
-	inject := !a.contextInjected && len(a.messages) == 0 && a.cfg.ProjectContext != ""
-	if inject {
-		a.contextInjected = true
-	}
+	inject := !a.contextInjected && len(a.messages) == 0
 	a.mu.Unlock()
 	if inject {
-		block := a.projectContextBlock()
-		first = append(first, block)
-		a.record(session.Entry{Type: session.TypeUser, Message: session.UserBlocks([]llm.ContentBlock{block}), IsMeta: true, PromptID: promptID})
+		for _, block := range a.contextBlocks() {
+			a.mu.Lock()
+			a.contextInjected = true
+			a.mu.Unlock()
+			first = append(first, block)
+			a.record(session.Entry{Type: session.TypeUser, Message: session.UserBlocks([]llm.ContentBlock{block}), IsMeta: true, PromptID: promptID})
+		}
 	}
 	if len(input) > 0 {
 		uid := session.NewID()

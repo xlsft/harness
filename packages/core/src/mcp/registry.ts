@@ -96,7 +96,7 @@ export function canSee(row: ServerRow, user: PublicUser): boolean {
   return row.ownerId === user.id;
 }
 
-function canWrite(row: ServerRow, user: PublicUser): boolean {
+export function canWrite(row: ServerRow, user: PublicUser): boolean {
   return row.scope === Scope.ORG ? user.role === "admin" : row.ownerId === user.id;
 }
 

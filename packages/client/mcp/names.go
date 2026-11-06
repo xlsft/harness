@@ -7,6 +7,13 @@
 //     resolved command and secrets are fetched with IssueStdioLaunch right before spawning and kept in
 //     memory only.
 //
+// Servers can also be this device's own (LocalStore): stdio, Streamable HTTP or SSE, reached directly, kept in
+// HARNESS_HOME and never mentioned to the xlsft`s harness server. Inventory is what Settings > MCP works on.
+//
+// Besides tools a session gets the servers' instructions (within a size budget), their resources (agent tools and
+// @-mentions), their prompts (as /mcp__<server>__<prompt> commands), elicitations (through the question UI, not the
+// conversation), progress, and list_changed notifications, which change the tool set while the session runs.
+//
 // Tools are exposed to the model as mcp__<server>__<tool>. When their definitions would take too much
 // of the context window they are deferred: the model sees only their names and loads full schemas
 // with the ToolSearch tool.

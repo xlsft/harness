@@ -34,6 +34,27 @@ type Service struct {
 	// CallTool answers remote calls (server id, tool, args JSON) with a result JSON or an error.
 	Call func(req *mcpv1.CallToolRequest) (string, error)
 
+	// Elicit is sent on the stream of every remote call; the call waits for RespondToElicitation.
+	Elicit *mcpv1.ElicitationRequest
+	// Answers records RespondToElicitation; answered wakes the waiting call.
+	Answers []*mcpv1.RespondToElicitationRequest
+	// Chatter is sent on the stream of every remote call before the result.
+	Chatter []*mcpv1.CallToolResponse
+	// CatalogVersion overrides the catalog's version; Instructions and HasResources fill catalog entries, by server id.
+	CatalogVersion string
+	Instructions   map[string]string
+	HasResources   map[string]bool
+	// What the proxy RPCs answer, by server id.
+	Tools                        map[string][]*mcpv1.Tool
+	Prompts                      map[string][]*mcpv1.Prompt
+	Resources                    map[string][]*mcpv1.Resource
+	Info                         map[string]*mcpv1.GetServerInfoResponse
+	PromptResult, ResourceResult string
+	InfoError                    error
+	Deleted                      []string
+
+	answered chan struct{}
+
 	Reports  []*mcpv1.DeviceServerStatus
 	Launches []string
 	Calls    []*mcpv1.CallToolRequest
@@ -45,7 +66,9 @@ type Service struct {
 
 // NewService returns an empty service.
 func NewService() *Service {
-	return &Service{Catalog: map[string][]*mcpv1.Tool{}, CatalogUI: map[string]bool{}, Launch: map[string]*mcpv1.IssueStdioLaunchResponse{}}
+	return &Service{Catalog: map[string][]*mcpv1.Tool{}, CatalogUI: map[string]bool{}, Launch: map[string]*mcpv1.IssueStdioLaunchResponse{},
+		Instructions: map[string]string{}, HasResources: map[string]bool{}, Tools: map[string][]*mcpv1.Tool{}, Prompts: map[string][]*mcpv1.Prompt{},
+		Resources: map[string][]*mcpv1.Resource{}, Info: map[string]*mcpv1.GetServerInfoResponse{}, answered: make(chan struct{}, 8)}
 }
 
 // Start serves the service over HTTP for the test and returns its base URL.
@@ -143,9 +166,12 @@ func (s *Service) GetToolCatalog(_ context.Context, req *connect.Request[mcpv1.G
 		return nil, rpc.NewError(connect.CodeNotFound, commonv1.ErrorType_ERROR_TYPE_NOT_FOUND, "expired", 0)
 	}
 	cat := &mcpv1.ToolCatalog{Version: "cat_1"}
+	if s.CatalogVersion != "" {
+		cat.Version = s.CatalogVersion
+	}
 	for _, sv := range s.Servers {
 		cs := &mcpv1.CatalogServer{ServerId: sv.GetId(), Name: sv.GetName(), Transport: sv.GetTransport(), AlwaysLoad: sv.GetAlwaysLoad(),
-			Tools: s.Catalog[sv.GetId()], RequiresUserInteraction: s.CatalogUI[sv.GetId()]}
+			Tools: s.Catalog[sv.GetId()], RequiresUserInteraction: s.CatalogUI[sv.GetId()], Instructions: s.Instructions[sv.GetId()], HasResources: s.HasResources[sv.GetId()]}
 		cat.Servers = append(cat.Servers, cs)
 	}
 	return connect.NewResponse(&mcpv1.GetToolCatalogResponse{Catalog: cat}), nil
@@ -157,11 +183,28 @@ func (s *Service) StartOAuth(_ context.Context, req *connect.Request[mcpv1.Start
 }
 
 // CallTool implements McpServiceHandler.
-func (s *Service) CallTool(_ context.Context, req *connect.Request[mcpv1.CallToolRequest], stream *connect.ServerStream[mcpv1.CallToolResponse]) error {
+func (s *Service) CallTool(ctx context.Context, req *connect.Request[mcpv1.CallToolRequest], stream *connect.ServerStream[mcpv1.CallToolResponse]) error {
 	s.mu.Lock()
 	s.Calls = append(s.Calls, req.Msg)
 	call := s.Call
+	elicit := s.Elicit
+	chatter := s.Chatter
 	s.mu.Unlock()
+	for _, m := range chatter {
+		if err := stream.Send(m); err != nil {
+			return err
+		}
+	}
+	if elicit != nil {
+		if err := stream.Send(&mcpv1.CallToolResponse{Event: &mcpv1.CallToolResponse_Elicitation{Elicitation: elicit}}); err != nil {
+			return err
+		}
+		select {
+		case <-s.answered:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
 	if call == nil {
 		call = func(r *mcpv1.CallToolRequest) (string, error) {
 			b, _ := json.Marshal(map[string]any{"content": []any{map[string]any{"type": "text", "text": "remote " + r.GetToolName() + " " + r.GetArgumentsJson()}}})
@@ -176,6 +219,83 @@ func (s *Service) CallTool(_ context.Context, req *connect.Request[mcpv1.CallToo
 		return err
 	}
 	return stream.Send(&mcpv1.CallToolResponse{Event: &mcpv1.CallToolResponse_Result{Result: &mcpv1.CallToolResult{ResultJson: res}}})
+}
+
+// RespondToElicitation implements McpServiceHandler.
+func (s *Service) RespondToElicitation(_ context.Context, req *connect.Request[mcpv1.RespondToElicitationRequest]) (*connect.Response[mcpv1.RespondToElicitationResponse], error) {
+	s.mu.Lock()
+	s.Answers = append(s.Answers, req.Msg)
+	s.mu.Unlock()
+	s.answered <- struct{}{}
+	return connect.NewResponse(&mcpv1.RespondToElicitationResponse{}), nil
+}
+
+// GetServer implements McpServiceHandler.
+func (s *Service) GetServer(_ context.Context, req *connect.Request[mcpv1.GetServerRequest]) (*connect.Response[mcpv1.GetServerResponse], error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, sv := range s.Servers {
+		if sv.GetId() == req.Msg.GetServerId() {
+			return connect.NewResponse(&mcpv1.GetServerResponse{Server: sv}), nil
+		}
+	}
+	return nil, rpc.NewError(connect.CodeNotFound, commonv1.ErrorType_ERROR_TYPE_NOT_FOUND, "MCP server not found", 0)
+}
+
+// DeleteServer implements McpServiceHandler.
+func (s *Service) DeleteServer(_ context.Context, req *connect.Request[mcpv1.DeleteServerRequest]) (*connect.Response[mcpv1.DeleteServerResponse], error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Deleted = append(s.Deleted, req.Msg.GetServerId())
+	return connect.NewResponse(&mcpv1.DeleteServerResponse{}), nil
+}
+
+// GetServerInfo implements McpServiceHandler.
+func (s *Service) GetServerInfo(_ context.Context, req *connect.Request[mcpv1.GetServerInfoRequest]) (*connect.Response[mcpv1.GetServerInfoResponse], error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.InfoError != nil {
+		return nil, s.InfoError
+	}
+	if i := s.Info[req.Msg.GetServerId()]; i != nil {
+		return connect.NewResponse(i), nil
+	}
+	return connect.NewResponse(&mcpv1.GetServerInfoResponse{Name: "upstream", HasTools: true}), nil
+}
+
+// ListTools implements McpServiceHandler.
+func (s *Service) ListTools(_ context.Context, req *connect.Request[mcpv1.ListToolsRequest]) (*connect.Response[mcpv1.ListToolsResponse], error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return connect.NewResponse(&mcpv1.ListToolsResponse{Tools: s.Tools[req.Msg.GetServerId()]}), nil
+}
+
+// ListPrompts implements McpServiceHandler.
+func (s *Service) ListPrompts(_ context.Context, req *connect.Request[mcpv1.ListPromptsRequest]) (*connect.Response[mcpv1.ListPromptsResponse], error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return connect.NewResponse(&mcpv1.ListPromptsResponse{Prompts: s.Prompts[req.Msg.GetServerId()]}), nil
+}
+
+// ListResources implements McpServiceHandler.
+func (s *Service) ListResources(_ context.Context, req *connect.Request[mcpv1.ListResourcesRequest]) (*connect.Response[mcpv1.ListResourcesResponse], error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return connect.NewResponse(&mcpv1.ListResourcesResponse{Resources: s.Resources[req.Msg.GetServerId()]}), nil
+}
+
+// GetPrompt implements McpServiceHandler.
+func (s *Service) GetPrompt(_ context.Context, _ *connect.Request[mcpv1.GetPromptRequest]) (*connect.Response[mcpv1.GetPromptResponse], error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return connect.NewResponse(&mcpv1.GetPromptResponse{ResultJson: s.PromptResult}), nil
+}
+
+// ReadResource implements McpServiceHandler.
+func (s *Service) ReadResource(_ context.Context, _ *connect.Request[mcpv1.ReadResourceRequest]) (*connect.Response[mcpv1.ReadResourceResponse], error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return connect.NewResponse(&mcpv1.ReadResourceResponse{ResultJson: s.ResourceResult}), nil
 }
 
 // NeedsAuthError is the error core returns for a server that needs authorization.

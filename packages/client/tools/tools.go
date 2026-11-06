@@ -310,6 +310,8 @@ type PlanResponse struct {
 
 // Registry holds tools by name.
 type Registry struct {
+	// MCP servers add and remove tools while a turn runs.
+	mu    sync.RWMutex
 	order []string
 	tools map[string]Tool
 }
@@ -332,6 +334,8 @@ func Default() *Registry {
 
 // Register adds or replaces a tool.
 func (r *Registry) Register(t Tool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	if _, ok := r.tools[t.Name()]; !ok {
 		r.order = append(r.order, t.Name())
 	}
@@ -340,6 +344,8 @@ func (r *Registry) Register(t Tool) {
 
 // Remove drops a tool.
 func (r *Registry) Remove(name string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	delete(r.tools, name)
 	for i, n := range r.order {
 		if n == name {
@@ -351,12 +357,18 @@ func (r *Registry) Remove(name string) {
 
 // Get returns a tool by name.
 func (r *Registry) Get(name string) (Tool, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	t, ok := r.tools[name]
 	return t, ok
 }
 
 // Names returns tool names in registration order.
-func (r *Registry) Names() []string { return append([]string(nil), r.order...) }
+func (r *Registry) Names() []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return append([]string(nil), r.order...)
+}
 
 // FileState records which files were read, their modification time and
 // content, for the read-before-write, modified-since-read and file_changed

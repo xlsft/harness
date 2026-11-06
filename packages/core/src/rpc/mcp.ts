@@ -6,18 +6,32 @@ import {
   type AuthStatusSchema,
   type CallToolResponseSchema,
   type DeviceServerStatusSchema,
+  ListChanged_Kind,
   type ServerSchema,
   type Tool as PbTool,
   type ToolSchema,
 } from "../gen/harness/mcp/v1/mcp_pb.ts";
 import { AsyncQueue } from "../lib/async.ts";
 import { ApiError } from "../lib/errors.ts";
-import { audit } from "../mcp/audit.ts";
+import { audit, listAudit } from "../mcp/audit.ts";
 import { getToolCatalog } from "../mcp/catalog.ts";
 import { issueStdioLaunch, listDeviceStatus, reportDeviceStatus, type DeviceStatusRow } from "../mcp/devices.ts";
 import { authStatuses, getOAuthFlow, revokeAuth, startOAuth, type AuthStatusView } from "../mcp/oauth.ts";
-import { callTool, getPrompt, listPrompts, listResources, listTools, readResource, type ProgressEvent, type ToolData } from "../mcp/proxy.ts";
-import { createServer, deleteServer, getServer, listServers, updateServer, type ServerView } from "../mcp/registry.ts";
+import {
+  callTool,
+  getPrompt,
+  getServerInfo,
+  listPrompts,
+  listResources,
+  listTools,
+  readResource,
+  respondToElicitation,
+  type ElicitationEvent,
+  type ListKind,
+  type ProgressEvent,
+  type ToolData,
+} from "../mcp/proxy.ts";
+import { canWrite, createServer, deleteServer, getServer, listServers, loadSecrets, updateServer, type ServerView } from "../mcp/registry.ts";
 import type { PublicUser } from "../services/devices.ts";
 import { requirePrincipal } from "./context.ts";
 import { guard, toConnectError } from "./errors.ts";
@@ -29,7 +43,21 @@ function authToProto(a: AuthStatusView | undefined): Init<typeof AuthStatusSchem
   return { state: a.state, message: a.message, grantedScopes: a.grantedScopes, account: a.account, expiresAt: a.expiresAt };
 }
 
-function serverToProto(v: ServerView, auth?: AuthStatusView): Init<typeof ServerSchema> {
+const LIST_KINDS: Record<ListKind, ListChanged_Kind> = { tools: ListChanged_Kind.TOOLS, prompts: ListChanged_Kind.PROMPTS, resources: ListChanged_Kind.RESOURCES };
+
+/** An upstream's error may quote a URL or header it was given: its text goes to the log without the server's secrets. */
+async function scrubbed(serverId: string, message: string): Promise<string> {
+  try {
+    const secrets = await loadSecrets(serverId);
+    let out = message;
+    for (const v of secrets.values()) if (v) out = out.split(v).join("***");
+    return out;
+  } catch {
+    return "(error text withheld)";
+  }
+}
+
+function serverToProto(v: ServerView, user: PublicUser, auth?: AuthStatusView): Init<typeof ServerSchema> {
   const r = v.row;
   const c = v.config;
   return {
@@ -53,6 +81,11 @@ function serverToProto(v: ServerView, auth?: AuthStatusView): Init<typeof Server
     targetRoles: Array.isArray(r.targetRoles) ? (r.targetRoles as string[]) : [],
     projectKey: r.projectKey,
     allowPrivateNetwork: r.allowPrivateNetwork,
+    toolTimeoutMs: BigInt(c.toolTimeoutMs ?? 0),
+    allowedTools: c.allowedTools ?? [],
+    deniedTools: c.deniedTools ?? [],
+    maxOutputChars: c.maxOutputChars ?? 0,
+    canEdit: canWrite(r, user),
     version: BigInt(r.version),
     configHash: r.configHash,
     auth: authToProto(auth),
@@ -63,7 +96,7 @@ function serverToProto(v: ServerView, auth?: AuthStatusView): Init<typeof Server
 
 async function serversToProto(user: PublicUser, views: ServerView[]) {
   const auth = await authStatuses(user, views);
-  return views.map((v) => serverToProto(v, auth.get(v.row.id)));
+  return views.map((v) => serverToProto(v, user, auth.get(v.row.id)));
 }
 
 const json = (v: unknown) => (v === undefined || v === null ? "" : JSON.stringify(v));
@@ -120,7 +153,7 @@ export function registerMcpService(router: ConnectRouter): void {
     listServers: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
       const views = await listServers(p, { scopes: req.scopes, includeDisabled: req.includeDisabled, projectKey: req.projectKey });
-      return { servers: await serversToProto(p.user, views) };
+      return { servers: await serversToProto(p.user, views), canManageOrg: p.user.role === "admin" };
     }),
 
     getServer: guard(async (req, ctx: HandlerContext) => {
@@ -254,13 +287,19 @@ export function registerMcpService(router: ConnectRouter): void {
     }),
 
     async *callTool(req, ctx: HandlerContext): AsyncGenerator<Init<typeof CallToolResponseSchema>> {
-      const queue = new AsyncQueue<{ progress: ProgressEvent } | { result: { isError: boolean; resultJson: string } } | { error: unknown }>();
+      const queue = new AsyncQueue<
+        { progress: ProgressEvent } | { elicitation: ElicitationEvent } | { listChanged: ListKind } | { result: { isError: boolean; resultJson: string } } | { error: unknown }
+      >();
       let audited: Promise<unknown> = Promise.resolve();
       try {
         const p = await requirePrincipal(ctx);
         const view = await getServer(p, req.serverId);
         const started = Date.now();
-        callTool(p.user, view, req.toolName, req.argumentsJson, Number(req.timeoutMs), ctx.signal, (progress) => queue.push({ progress })).then(
+        callTool(p.user, view, req.toolName, req.argumentsJson, Number(req.timeoutMs), ctx.signal, {
+          onProgress: (progress) => queue.push({ progress }),
+          onElicit: (elicitation) => queue.push({ elicitation }),
+          onListChanged: (listChanged) => queue.push({ listChanged }),
+        }).then(
           (result) => {
             audited = audit({
               userId: p.user.id,
@@ -273,14 +312,16 @@ export function registerMcpService(router: ConnectRouter): void {
             queue.push({ result });
           },
           (error) => {
-            audited = audit({
-              userId: p.user.id,
-              deviceId: p.deviceId,
-              serverId: view.row.id,
-              action: "call_tool",
-              configHash: view.row.configHash,
-              detail: { tool: req.toolName, sessionId: req.sessionId, toolUseId: req.toolUseId, error: error instanceof Error ? error.message : String(error) },
-            });
+            audited = scrubbed(view.row.id, error instanceof Error ? error.message : String(error)).then((message) =>
+              audit({
+                userId: p.user.id,
+                deviceId: p.deviceId,
+                serverId: view.row.id,
+                action: "call_tool",
+                configHash: view.row.configHash,
+                detail: { tool: req.toolName, sessionId: req.sessionId, toolUseId: req.toolUseId, error: message, ms: Date.now() - started },
+              }),
+            );
             queue.push({ error });
           },
         );
@@ -290,6 +331,10 @@ export function registerMcpService(router: ConnectRouter): void {
           if (!ev) continue;
           if ("progress" in ev) {
             yield { event: { case: "progress", value: ev.progress } };
+          } else if ("elicitation" in ev) {
+            yield { event: { case: "elicitation", value: ev.elicitation } };
+          } else if ("listChanged" in ev) {
+            yield { event: { case: "listChanged", value: { kind: LIST_KINDS[ev.listChanged] } } };
           } else if ("result" in ev) {
             yield { event: { case: "result", value: ev.result } };
             return;
@@ -316,6 +361,23 @@ export function registerMcpService(router: ConnectRouter): void {
       return { resultJson: JSON.stringify(r) };
     }),
 
+    respondToElicitation: guard(async (req, ctx: HandlerContext) => {
+      const p = await requirePrincipal(ctx);
+      respondToElicitation(p.user, req.id, req.action, req.contentJson);
+      return {};
+    }),
+
+    getServerInfo: guard(async (req, ctx: HandlerContext) => {
+      const p = await requirePrincipal(ctx);
+      return getServerInfo(p.user, await getServer(p, req.serverId), ctx.signal);
+    }),
+
+    listAudit: guard(async (req, ctx: HandlerContext) => {
+      const p = await requirePrincipal(ctx);
+      const r = await listAudit(p, { serverId: req.serverId, userId: req.userId, action: req.action, limit: req.limit, cursor: req.cursor });
+      return { entries: r.entries.map((e) => ({ ...e, durationMs: BigInt(e.durationMs) })), nextCursor: r.nextCursor };
+    }),
+
     // --- catalog ---
     getToolCatalog: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
@@ -334,6 +396,9 @@ export function registerMcpService(router: ConnectRouter): void {
             tools: s.tools.map(toolToProto),
             toolsUpdatedAt: s.toolsUpdatedAt,
             requiresUserInteraction: s.requiresUserInteraction,
+            instructions: s.instructions,
+            hasPrompts: s.hasPrompts,
+            hasResources: s.hasResources,
           })),
         },
       };

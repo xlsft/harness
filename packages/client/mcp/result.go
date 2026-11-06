@@ -3,6 +3,7 @@ package mcp
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"unicode/utf8"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/xlsft/harness/packages/client/tools"
 )
 
-// MaxOutputChars caps the text of one MCP tool result sent to the model.
+// MaxOutputChars is the default cap of the text of one MCP tool result sent to the model.
 const MaxOutputChars = 100_000
 
 // maxImageBytes is the largest base64 image passed through (larger ones become a note).
@@ -46,13 +47,19 @@ var imageMediaTypes = map[string]bool{"image/png": true, "image/jpeg": true, "im
 // become content blocks, other content kinds a short note; structuredContent is used when there is
 // no other content. The text is capped at MaxOutputChars.
 func ResultFromJSON(raw []byte) tools.Result {
+	return resultFromJSON(raw, MaxOutputChars, "")
+}
+
+// resultFromJSON is ResultFromJSON with a limit; text past the limit is kept in a file under scratchDir (when set)
+// so the model can read it.
+func resultFromJSON(raw []byte, limit int, scratchDir string) tools.Result {
 	var cr callResult
 	if err := json.Unmarshal(raw, &cr); err != nil {
 		return tools.ErrorResult("The MCP server returned an invalid result: %v", err)
 	}
 	var blocks []llm.ContentBlock
 	var texts []string
-	budget := MaxOutputChars
+	budget := limit
 	addText := func(s string) {
 		if s == "" {
 			return
@@ -61,7 +68,11 @@ func ResultFromJSON(raw []byte) tools.Result {
 			return
 		}
 		if len(s) > budget {
-			s = truncate(s, budget) + fmt.Sprintf("\n\n[output truncated: the MCP result exceeded %d characters]", MaxOutputChars)
+			note := fmt.Sprintf("\n\n[output truncated: the MCP result exceeded %d characters]", limit)
+			if path := keepFullOutput(scratchDir, s); path != "" {
+				note = fmt.Sprintf("\n\n[output truncated: the MCP result exceeded %d characters. This item in full: %s]", limit, path)
+			}
+			s = truncate(s, budget) + note
 		}
 		budget -= len(s)
 		texts = append(texts, s)
@@ -108,6 +119,22 @@ func ResultFromJSON(raw []byte) tools.Result {
 		r.Structured = strings.Join(texts, "\n")
 	}
 	return r
+}
+
+// keepFullOutput writes an oversized result to the session's scratch directory; "" when that is not possible.
+func keepFullOutput(dir, text string) string {
+	if dir == "" {
+		return ""
+	}
+	f, err := os.CreateTemp(dir, "mcp-output-*.txt")
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+	if _, err := f.WriteString(text); err != nil {
+		return ""
+	}
+	return f.Name()
 }
 
 func truncate(s string, n int) string {

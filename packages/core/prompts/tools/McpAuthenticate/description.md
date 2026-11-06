@@ -2,4 +2,4 @@ Starts the authorization of the MCP server "{{server}}", which needs the user to
 
 - Call it only when the user's request needs this server.
 - Give the link to the user and ask them to complete the sign-in; do not try to open it yourself.
-- The authorization is stored on the harness server and applies to every device. The server's tools become available in a later session.
+- The authorization is stored on the xlsft`s harness server and applies to every device. The server's tools become available in a later session.

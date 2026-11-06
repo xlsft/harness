@@ -36,6 +36,9 @@ type ContextUsage struct {
 	// definitions of the extra tools offered to the model (ExtraTools: MCP tools that are not deferred or were
 	// loaded with ToolSearch); Messages: the conversation.
 	SystemPrompt, SystemTools, MCPTools, Messages int
+	// MCPInstructions: what MCP servers offer the model. Part of the conversation's first message, so it is taken out of
+	// Messages.
+	MCPInstructions int
 	// Threshold is the context size that triggers auto-compaction; 0 when auto-compaction is off.
 	Threshold int
 	// Estimated is set when no provider count is known.
@@ -43,7 +46,9 @@ type ContextUsage struct {
 }
 
 // Used is the size of the context: every category except the buffer and free space.
-func (u ContextUsage) Used() int { return u.SystemPrompt + u.SystemTools + u.MCPTools + u.Messages }
+func (u ContextUsage) Used() int {
+	return u.SystemPrompt + u.SystemTools + u.MCPTools + u.Messages + u.MCPInstructions
+}
 
 // Buffer is the room auto-compaction keeps free (window minus threshold).
 func (u ContextUsage) Buffer() int {
@@ -105,6 +110,10 @@ func (a *Agent) ContextUsage() ContextUsage {
 	} else {
 		u.Messages = EstimateTextTokens(messagesChars(msgs))
 		u.Estimated = true
+	}
+	if a.cfg.MCPInstructions != nil && len(msgs) > 0 {
+		u.MCPInstructions = EstimateTextTokens(len(a.cfg.MCPInstructions()))
+		u.Messages = max(0, u.Messages-u.MCPInstructions)
 	}
 	if window > 0 && !disabled {
 		u.Threshold = a.contextLimit()

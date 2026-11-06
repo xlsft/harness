@@ -962,6 +962,24 @@ export const useSessionStore = defineStore('sessions', {
       return (await this.transport?.suggestFiles(id, query, 8)) ?? []
     },
 
+    // A session's MCP prompts, as slash commands. Failing is fine: the menu then has what it has without them.
+    async mcpCommands(id: string) {
+      try {
+        return (await this.transport?.mcp().commands(id)) ?? []
+      } catch {
+        return []
+      }
+    },
+
+    // A session's MCP resources, for @-mentions.
+    async mcpResources(id: string, query: string) {
+      try {
+        return (await this.transport?.mcp().resources(id, query, 4)) ?? []
+      } catch {
+        return []
+      }
+    },
+
     // Compacts now; the Compacted event adds the card to the transcript. Concurrent requests are dropped.
     async compact(id: string, instructions = '') {
       if (!this.transport || this.compacting[id]) return

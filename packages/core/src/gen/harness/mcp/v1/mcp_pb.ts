@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/mcp/v1/mcp.proto.
  */
 export const file_harness_mcp_v1_mcp: GenFile = /*@__PURE__*/
-  fileDesc("ChhoYXJuZXNzL21jcC92MS9tY3AucHJvdG8SDmhhcm5lc3MubWNwLnYxIpoECgZTZXJ2ZXISCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRInCgVzY29wZRgDIAEoDjIYLmhhcm5lc3MuY29tbW9uLnYxLlNjb3BlEiwKCXRyYW5zcG9ydBgEIAEoDjIZLmhhcm5lc3MubWNwLnYxLlRyYW5zcG9ydBIPCgdlbmFibGVkGAUgASgIEhMKC2Fsd2F5c19sb2FkGAYgASgIEioKBXN0ZGlvGAcgASgLMhsuaGFybmVzcy5tY3AudjEuU3RkaW9Db25maWcSLAoGcmVtb3RlGAggASgLMhwuaGFybmVzcy5tY3AudjEuUmVtb3RlQ29uZmlnEisKB3NlY3JldHMYCSADKAsyGi5oYXJuZXNzLm1jcC52MS5TZWNyZXRJbmZvEjAKCW92ZXJyaWRlcxgKIAMoCzIdLmhhcm5lc3MubWNwLnYxLlN0ZGlvT3ZlcnJpZGUSFAoMdGFyZ2V0X3JvbGVzGAsgAygJEhMKC3Byb2plY3Rfa2V5GAwgASgJEg8KB3ZlcnNpb24YDSABKAMSEwoLY29uZmlnX2hhc2gYDiABKAkSKAoEYXV0aBgPIAEoCzIaLmhhcm5lc3MubWNwLnYxLkF1dGhTdGF0dXMSEgoKY3JlYXRlZF9hdBgQIAEoCRISCgp1cGRhdGVkX2F0GBEgASgJEh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgSIAEoCCKYAQoLU3RkaW9Db25maWcSDwoHY29tbWFuZBgBIAEoCRIMCgRhcmdzGAIgAygJEjEKA2VudhgDIAMoCzIkLmhhcm5lc3MubWNwLnYxLlN0ZGlvQ29uZmlnLkVudkVudHJ5EgsKA2N3ZBgEIAEoCRoqCghFbnZFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBItYBCgxSZW1vdGVDb25maWcSCwoDdXJsGAEgASgJEjoKB2hlYWRlcnMYAiADKAsyKS5oYXJuZXNzLm1jcC52MS5SZW1vdGVDb25maWcuSGVhZGVyc0VudHJ5EioKBW9hdXRoGAMgASgLMhsuaGFybmVzcy5tY3AudjEuT0F1dGhDb25maWcSIQoZcmVxdWlyZXNfdXNlcl9pbnRlcmFjdGlvbhgEIAEoCBouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJOCgtPQXV0aENvbmZpZxIRCgljbGllbnRfaWQYASABKAkSDgoGc2NvcGVzGAIgAygJEhwKFGF1dGhvcml6YXRpb25fc2VydmVyGAMgASgJIq4BCg1TdGRpb092ZXJyaWRlEhEKCWRldmljZV9pZBgBIAEoCRIKCgJvcxgCIAEoCRIPCgdjb21tYW5kGAMgASgJEgwKBGFyZ3MYBCADKAkSMwoDZW52GAUgAygLMiYuaGFybmVzcy5tY3AudjEuU3RkaW9PdmVycmlkZS5FbnZFbnRyeRoqCghFbnZFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkEKClNlY3JldEluZm8SDAoEbmFtZRgBIAEoCRIRCgloYXNfdmFsdWUYAiABKAgSEgoKdXBkYXRlZF9hdBgDIAEoCSKAAQoNU2VjcmV0Q2hhbmdlcxIzCgNzZXQYASADKAsyJi5oYXJuZXNzLm1jcC52MS5TZWNyZXRDaGFuZ2VzLlNldEVudHJ5Eg4KBnJlbW92ZRgCIAMoCRoqCghTZXRFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIm0KEkxpc3RTZXJ2ZXJzUmVxdWVzdBIoCgZzY29wZXMYASADKA4yGC5oYXJuZXNzLmNvbW1vbi52MS5TY29wZRIYChBpbmNsdWRlX2Rpc2FibGVkGAIgASgIEhMKC3Byb2plY3Rfa2V5GAMgASgJIj4KE0xpc3RTZXJ2ZXJzUmVzcG9uc2USJwoHc2VydmVycxgBIAMoCzIWLmhhcm5lc3MubWNwLnYxLlNlcnZlciIlChBHZXRTZXJ2ZXJSZXF1ZXN0EhEKCXNlcnZlcl9pZBgBIAEoCSI7ChFHZXRTZXJ2ZXJSZXNwb25zZRImCgZzZXJ2ZXIYASABKAsyFi5oYXJuZXNzLm1jcC52MS5TZXJ2ZXIibQoTQ3JlYXRlU2VydmVyUmVxdWVzdBImCgZzZXJ2ZXIYASABKAsyFi5oYXJuZXNzLm1jcC52MS5TZXJ2ZXISLgoHc2VjcmV0cxgCIAEoCzIdLmhhcm5lc3MubWNwLnYxLlNlY3JldENoYW5nZXMiPgoUQ3JlYXRlU2VydmVyUmVzcG9uc2USJgoGc2VydmVyGAEgASgLMhYuaGFybmVzcy5tY3AudjEuU2VydmVyIoMBChNVcGRhdGVTZXJ2ZXJSZXF1ZXN0EiYKBnNlcnZlchgBIAEoCzIWLmhhcm5lc3MubWNwLnYxLlNlcnZlchIuCgdzZWNyZXRzGAIgASgLMh0uaGFybmVzcy5tY3AudjEuU2VjcmV0Q2hhbmdlcxIUCgxiYXNlX3ZlcnNpb24YAyABKAMieAoUVXBkYXRlU2VydmVyUmVzcG9uc2USKAoGc2VydmVyGAEgASgLMhYuaGFybmVzcy5tY3AudjEuU2VydmVySAASLAoIY29uZmxpY3QYAiABKAsyGC5oYXJuZXNzLm1jcC52MS5Db25mbGljdEgAQggKBnJlc3VsdCIzCghDb25mbGljdBInCgdjdXJyZW50GAEgASgLMhYuaGFybmVzcy5tY3AudjEuU2VydmVyIlQKE0RlbGV0ZVNlcnZlclJlcXVlc3QSEQoJc2VydmVyX2lkGAEgASgJEhkKDGJhc2VfdmVyc2lvbhgCIAEoA0gAiAEBQg8KDV9iYXNlX3ZlcnNpb24iQgoURGVsZXRlU2VydmVyUmVzcG9uc2USKgoIY29uZmxpY3QYASABKAsyGC5oYXJuZXNzLm1jcC52MS5Db25mbGljdCKEAQoKQXV0aFN0YXR1cxIoCgVzdGF0ZRgBIAEoDjIZLmhhcm5lc3MubWNwLnYxLkF1dGhTdGF0ZRIPCgdtZXNzYWdlGAIgASgJEhYKDmdyYW50ZWRfc2NvcGVzGAMgAygJEg8KB2FjY291bnQYBCABKAkSEgoKZXhwaXJlc19hdBgFIAEoCSI6ChFTdGFydE9BdXRoUmVxdWVzdBIRCglzZXJ2ZXJfaWQYASABKAkSEgoKcmV0dXJuX3VybBgCIAEoCSJUChJTdGFydE9BdXRoUmVzcG9uc2USDwoHZmxvd19pZBgBIAEoCRIZChFhdXRob3JpemF0aW9uX3VybBgCIAEoCRISCgpleHBpcmVzX2F0GAMgASgJIiYKE0dldE9BdXRoRmxvd1JlcXVlc3QSDwoHZmxvd19pZBgBIAEoCSL/AQoUR2V0T0F1dGhGbG93UmVzcG9uc2USOQoFc3RhdGUYASABKA4yKi5oYXJuZXNzLm1jcC52MS5HZXRPQXV0aEZsb3dSZXNwb25zZS5TdGF0ZRIVCg1lcnJvcl9tZXNzYWdlGAIgASgJEigKBGF1dGgYAyABKAsyGi5oYXJuZXNzLm1jcC52MS5BdXRoU3RhdHVzImsKBVN0YXRlEhUKEVNUQVRFX1VOU1BFQ0lGSUVEEAASEQoNU1RBVEVfUEVORElORxABEhMKD1NUQVRFX0NPTVBMRVRFRBACEhAKDFNUQVRFX0ZBSUxFRBADEhEKDVNUQVRFX0VYUElSRUQQBCIqChRHZXRBdXRoU3RhdHVzUmVxdWVzdBISCgpzZXJ2ZXJfaWRzGAEgAygJIqsBChVHZXRBdXRoU3RhdHVzUmVzcG9uc2USRQoIc3RhdHVzZXMYASADKAsyMy5oYXJuZXNzLm1jcC52MS5HZXRBdXRoU3RhdHVzUmVzcG9uc2UuU3RhdHVzZXNFbnRyeRpLCg1TdGF0dXNlc0VudHJ5EgsKA2tleRgBIAEoCRIpCgV2YWx1ZRgCIAEoCzIaLmhhcm5lc3MubWNwLnYxLkF1dGhTdGF0dXM6AjgBIiYKEVJldm9rZUF1dGhSZXF1ZXN0EhEKCXNlcnZlcl9pZBgBIAEoCSIUChJSZXZva2VBdXRoUmVzcG9uc2Ui/wEKEkRldmljZVNlcnZlclN0YXR1cxIRCglzZXJ2ZXJfaWQYASABKAkSEwoLY29uZmlnX2hhc2gYAiABKAkSMgoMYXZhaWxhYmlsaXR5GAMgASgOMhwuaGFybmVzcy5tY3AudjEuQXZhaWxhYmlsaXR5Eg4KBnJlYXNvbhgEIAEoCRIvCghhcHByb3ZhbBgFIAEoDjIdLmhhcm5lc3MubWNwLnYxLkFwcHJvdmFsU3RhdGUSEgoKbGFzdF9lcnJvchgGIAEoCRIjCgV0b29scxgHIAMoCzIULmhhcm5lc3MubWNwLnYxLlRvb2wSEwoLcmVwb3J0ZWRfYXQYCCABKAkiUQoZUmVwb3J0RGV2aWNlU3RhdHVzUmVxdWVzdBI0CghzdGF0dXNlcxgBIAMoCzIiLmhhcm5lc3MubWNwLnYxLkRldmljZVNlcnZlclN0YXR1cyIcChpSZXBvcnREZXZpY2VTdGF0dXNSZXNwb25zZSI/ChdMaXN0RGV2aWNlU3RhdHVzUmVxdWVzdBIRCglzZXJ2ZXJfaWQYASABKAkSEQoJZGV2aWNlX2lkGAIgASgJIk4KGExpc3REZXZpY2VTdGF0dXNSZXNwb25zZRIyCgdlbnRyaWVzGAEgAygLMiEuaGFybmVzcy5tY3AudjEuRGV2aWNlU3RhdHVzRW50cnkibwoRRGV2aWNlU3RhdHVzRW50cnkSEQoJZGV2aWNlX2lkGAEgASgJEhMKC2RldmljZV9uYW1lGAIgASgJEjIKBnN0YXR1cxgDIAEoCzIiLmhhcm5lc3MubWNwLnYxLkRldmljZVNlcnZlclN0YXR1cyJBChdJc3N1ZVN0ZGlvTGF1bmNoUmVxdWVzdBIRCglzZXJ2ZXJfaWQYASABKAkSEwoLY29uZmlnX2hhc2gYAiABKAkixgEKGElzc3VlU3RkaW9MYXVuY2hSZXNwb25zZRIPCgdjb21tYW5kGAEgASgJEgwKBGFyZ3MYAiADKAkSPgoDZW52GAMgAygLMjEuaGFybmVzcy5tY3AudjEuSXNzdWVTdGRpb0xhdW5jaFJlc3BvbnNlLkVudkVudHJ5EgsKA2N3ZBgEIAEoCRISCgpleHBpcmVzX2F0GAUgASgJGioKCEVudkVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiiQEKBFRvb2wSDAoEbmFtZRgBIAEoCRINCgV0aXRsZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIZChFpbnB1dF9zY2hlbWFfanNvbhgEIAEoCRIaChJvdXRwdXRfc2NoZW1hX2pzb24YBSABKAkSGAoQYW5ub3RhdGlvbnNfanNvbhgGIAEoCSJSCgZQcm9tcHQSDAoEbmFtZRgBIAEoCRINCgV0aXRsZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIWCg5hcmd1bWVudHNfanNvbhgEIAEoCSJqCghSZXNvdXJjZRILCgN1cmkYASABKAkSDAoEbmFtZRgCIAEoCRINCgV0aXRsZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIRCgltaW1lX3R5cGUYBSABKAkSDAoEc2l6ZRgGIAEoAyJtChBSZXNvdXJjZVRlbXBsYXRlEhQKDHVyaV90ZW1wbGF0ZRgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBXRpdGxlGAMgASgJEhMKC2Rlc2NyaXB0aW9uGAQgASgJEhEKCW1pbWVfdHlwZRgFIAEoCSI1ChBMaXN0VG9vbHNSZXF1ZXN0EhEKCXNlcnZlcl9pZBgBIAEoCRIOCgZjdXJzb3IYAiABKAkiTQoRTGlzdFRvb2xzUmVzcG9uc2USIwoFdG9vbHMYASADKAsyFC5oYXJuZXNzLm1jcC52MS5Ub29sEhMKC25leHRfY3Vyc29yGAIgASgJIjcKEkxpc3RQcm9tcHRzUmVxdWVzdBIRCglzZXJ2ZXJfaWQYASABKAkSDgoGY3Vyc29yGAIgASgJIlMKE0xpc3RQcm9tcHRzUmVzcG9uc2USJwoHcHJvbXB0cxgBIAMoCzIWLmhhcm5lc3MubWNwLnYxLlByb21wdBITCgtuZXh0X2N1cnNvchgCIAEoCSI5ChRMaXN0UmVzb3VyY2VzUmVxdWVzdBIRCglzZXJ2ZXJfaWQYASABKAkSDgoGY3Vyc29yGAIgASgJIo4BChVMaXN0UmVzb3VyY2VzUmVzcG9uc2USKwoJcmVzb3VyY2VzGAEgAygLMhguaGFybmVzcy5tY3AudjEuUmVzb3VyY2USMwoJdGVtcGxhdGVzGAIgAygLMiAuaGFybmVzcy5tY3AudjEuUmVzb3VyY2VUZW1wbGF0ZRITCgtuZXh0X2N1cnNvchgDIAEoCSKMAQoPQ2FsbFRvb2xSZXF1ZXN0EhEKCXNlcnZlcl9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSFgoOYXJndW1lbnRzX2pzb24YAyABKAkSEgoKc2Vzc2lvbl9pZBgEIAEoCRITCgt0b29sX3VzZV9pZBgFIAEoCRISCgp0aW1lb3V0X21zGAYgASgDInsKEENhbGxUb29sUmVzcG9uc2USLAoIcHJvZ3Jlc3MYASABKAsyGC5oYXJuZXNzLm1jcC52MS5Qcm9ncmVzc0gAEjAKBnJlc3VsdBgCIAEoCzIeLmhhcm5lc3MubWNwLnYxLkNhbGxUb29sUmVzdWx0SABCBwoFZXZlbnQiPAoIUHJvZ3Jlc3MSEAoIcHJvZ3Jlc3MYASABKAESDQoFdG90YWwYAiABKAESDwoHbWVzc2FnZRgDIAEoCSI3Cg5DYWxsVG9vbFJlc3VsdBIQCghpc19lcnJvchgBIAEoCBITCgtyZXN1bHRfanNvbhgCIAEoCSKpAQoQR2V0UHJvbXB0UmVxdWVzdBIRCglzZXJ2ZXJfaWQYASABKAkSDAoEbmFtZRgCIAEoCRJCCglhcmd1bWVudHMYAyADKAsyLy5oYXJuZXNzLm1jcC52MS5HZXRQcm9tcHRSZXF1ZXN0LkFyZ3VtZW50c0VudHJ5GjAKDkFyZ3VtZW50c0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiKAoRR2V0UHJvbXB0UmVzcG9uc2USEwoLcmVzdWx0X2pzb24YASABKAkiNQoTUmVhZFJlc291cmNlUmVxdWVzdBIRCglzZXJ2ZXJfaWQYASABKAkSCwoDdXJpGAIgASgJIisKFFJlYWRSZXNvdXJjZVJlc3BvbnNlEhMKC3Jlc3VsdF9qc29uGAEgASgJIlQKFUdldFRvb2xDYXRhbG9nUmVxdWVzdBIPCgd2ZXJzaW9uGAEgASgJEhUKDWlmX25vbmVfbWF0Y2gYAiABKAkSEwoLcHJvamVjdF9rZXkYAyABKAkiXAoWR2V0VG9vbENhdGFsb2dSZXNwb25zZRIUCgxub3RfbW9kaWZpZWQYASABKAgSLAoHY2F0YWxvZxgCIAEoCzIbLmhhcm5lc3MubWNwLnYxLlRvb2xDYXRhbG9nImIKC1Rvb2xDYXRhbG9nEg8KB3ZlcnNpb24YASABKAkSLgoHc2VydmVycxgCIAMoCzIdLmhhcm5lc3MubWNwLnYxLkNhdGFsb2dTZXJ2ZXISEgoKY3JlYXRlZF9hdBgDIAEoCSLVAQoNQ2F0YWxvZ1NlcnZlchIRCglzZXJ2ZXJfaWQYASABKAkSDAoEbmFtZRgCIAEoCRIsCgl0cmFuc3BvcnQYAyABKA4yGS5oYXJuZXNzLm1jcC52MS5UcmFuc3BvcnQSEwoLYWx3YXlzX2xvYWQYBCABKAgSIwoFdG9vbHMYBSADKAsyFC5oYXJuZXNzLm1jcC52MS5Ub29sEhgKEHRvb2xzX3VwZGF0ZWRfYXQYBiABKAkSIQoZcmVxdWlyZXNfdXNlcl9pbnRlcmFjdGlvbhgHIAEoCCp/CglUcmFuc3BvcnQSGQoVVFJBTlNQT1JUX1VOU1BFQ0lGSUVEEAASEwoPVFJBTlNQT1JUX1NURElPEAESHQoZVFJBTlNQT1JUX1NUUkVBTUFCTEVfSFRUUBACEhEKDVRSQU5TUE9SVF9TU0UQAxIQCgxUUkFOU1BPUlRfV1MQBCqPAQoJQXV0aFN0YXRlEhoKFkFVVEhfU1RBVEVfVU5TUEVDSUZJRUQQABIbChdBVVRIX1NUQVRFX05PVF9SRVFVSVJFRBABEhkKFUFVVEhfU1RBVEVfTkVFRFNfQVVUSBACEhgKFEFVVEhfU1RBVEVfQ09OTkVDVEVEEAMSFAoQQVVUSF9TVEFURV9FUlJPUhAEKnAKDEF2YWlsYWJpbGl0eRIcChhBVkFJTEFCSUxJVFlfVU5TUEVDSUZJRUQQABIaChZBVkFJTEFCSUxJVFlfQVZBSUxBQkxFEAESJgoiQVZBSUxBQklMSVRZX1VOQVZBSUxBQkxFX09OX0RFVklDRRACKoMBCg1BcHByb3ZhbFN0YXRlEh4KGkFQUFJPVkFMX1NUQVRFX1VOU1BFQ0lGSUVEEAASGgoWQVBQUk9WQUxfU1RBVEVfUEVORElORxABEhsKF0FQUFJPVkFMX1NUQVRFX0FQUFJPVkVEEAISGQoVQVBQUk9WQUxfU1RBVEVfREVOSUVEEAMyzA0KCk1jcFNlcnZpY2USVgoLTGlzdFNlcnZlcnMSIi5oYXJuZXNzLm1jcC52MS5MaXN0U2VydmVyc1JlcXVlc3QaIy5oYXJuZXNzLm1jcC52MS5MaXN0U2VydmVyc1Jlc3BvbnNlElAKCUdldFNlcnZlchIgLmhhcm5lc3MubWNwLnYxLkdldFNlcnZlclJlcXVlc3QaIS5oYXJuZXNzLm1jcC52MS5HZXRTZXJ2ZXJSZXNwb25zZRJZCgxDcmVhdGVTZXJ2ZXISIy5oYXJuZXNzLm1jcC52MS5DcmVhdGVTZXJ2ZXJSZXF1ZXN0GiQuaGFybmVzcy5tY3AudjEuQ3JlYXRlU2VydmVyUmVzcG9uc2USWQoMVXBkYXRlU2VydmVyEiMuaGFybmVzcy5tY3AudjEuVXBkYXRlU2VydmVyUmVxdWVzdBokLmhhcm5lc3MubWNwLnYxLlVwZGF0ZVNlcnZlclJlc3BvbnNlElkKDERlbGV0ZVNlcnZlchIjLmhhcm5lc3MubWNwLnYxLkRlbGV0ZVNlcnZlclJlcXVlc3QaJC5oYXJuZXNzLm1jcC52MS5EZWxldGVTZXJ2ZXJSZXNwb25zZRJTCgpTdGFydE9BdXRoEiEuaGFybmVzcy5tY3AudjEuU3RhcnRPQXV0aFJlcXVlc3QaIi5oYXJuZXNzLm1jcC52MS5TdGFydE9BdXRoUmVzcG9uc2USWQoMR2V0T0F1dGhGbG93EiMuaGFybmVzcy5tY3AudjEuR2V0T0F1dGhGbG93UmVxdWVzdBokLmhhcm5lc3MubWNwLnYxLkdldE9BdXRoRmxvd1Jlc3BvbnNlElwKDUdldEF1dGhTdGF0dXMSJC5oYXJuZXNzLm1jcC52MS5HZXRBdXRoU3RhdHVzUmVxdWVzdBolLmhhcm5lc3MubWNwLnYxLkdldEF1dGhTdGF0dXNSZXNwb25zZRJTCgpSZXZva2VBdXRoEiEuaGFybmVzcy5tY3AudjEuUmV2b2tlQXV0aFJlcXVlc3QaIi5oYXJuZXNzLm1jcC52MS5SZXZva2VBdXRoUmVzcG9uc2USawoSUmVwb3J0RGV2aWNlU3RhdHVzEikuaGFybmVzcy5tY3AudjEuUmVwb3J0RGV2aWNlU3RhdHVzUmVxdWVzdBoqLmhhcm5lc3MubWNwLnYxLlJlcG9ydERldmljZVN0YXR1c1Jlc3BvbnNlEmUKEExpc3REZXZpY2VTdGF0dXMSJy5oYXJuZXNzLm1jcC52MS5MaXN0RGV2aWNlU3RhdHVzUmVxdWVzdBooLmhhcm5lc3MubWNwLnYxLkxpc3REZXZpY2VTdGF0dXNSZXNwb25zZRJlChBJc3N1ZVN0ZGlvTGF1bmNoEicuaGFybmVzcy5tY3AudjEuSXNzdWVTdGRpb0xhdW5jaFJlcXVlc3QaKC5oYXJuZXNzLm1jcC52MS5Jc3N1ZVN0ZGlvTGF1bmNoUmVzcG9uc2USUAoJTGlzdFRvb2xzEiAuaGFybmVzcy5tY3AudjEuTGlzdFRvb2xzUmVxdWVzdBohLmhhcm5lc3MubWNwLnYxLkxpc3RUb29sc1Jlc3BvbnNlElYKC0xpc3RQcm9tcHRzEiIuaGFybmVzcy5tY3AudjEuTGlzdFByb21wdHNSZXF1ZXN0GiMuaGFybmVzcy5tY3AudjEuTGlzdFByb21wdHNSZXNwb25zZRJcCg1MaXN0UmVzb3VyY2VzEiQuaGFybmVzcy5tY3AudjEuTGlzdFJlc291cmNlc1JlcXVlc3QaJS5oYXJuZXNzLm1jcC52MS5MaXN0UmVzb3VyY2VzUmVzcG9uc2USTwoIQ2FsbFRvb2wSHy5oYXJuZXNzLm1jcC52MS5DYWxsVG9vbFJlcXVlc3QaIC5oYXJuZXNzLm1jcC52MS5DYWxsVG9vbFJlc3BvbnNlMAESUAoJR2V0UHJvbXB0EiAuaGFybmVzcy5tY3AudjEuR2V0UHJvbXB0UmVxdWVzdBohLmhhcm5lc3MubWNwLnYxLkdldFByb21wdFJlc3BvbnNlElkKDFJlYWRSZXNvdXJjZRIjLmhhcm5lc3MubWNwLnYxLlJlYWRSZXNvdXJjZVJlcXVlc3QaJC5oYXJuZXNzLm1jcC52MS5SZWFkUmVzb3VyY2VSZXNwb25zZRJfCg5HZXRUb29sQ2F0YWxvZxIlLmhhcm5lc3MubWNwLnYxLkdldFRvb2xDYXRhbG9nUmVxdWVzdBomLmhhcm5lc3MubWNwLnYxLkdldFRvb2xDYXRhbG9nUmVzcG9uc2VCuwEKEmNvbS5oYXJuZXNzLm1jcC52MUIITWNwUHJvdG9QAVpBZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9tY3AvdjE7bWNwdjGiAgNITViqAg5IYXJuZXNzLk1jcC5WMcoCDkhhcm5lc3NcTWNwXFYx4gIaSGFybmVzc1xNY3BcVjFcR1BCTWV0YWRhdGHqAhBIYXJuZXNzOjpNY3A6OlYxYgZwcm90bzM", [file_harness_common_v1_scope]);
+  fileDesc("ChhoYXJuZXNzL21jcC92MS9tY3AucHJvdG8SDmhhcm5lc3MubWNwLnYxIowFCgZTZXJ2ZXISCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRInCgVzY29wZRgDIAEoDjIYLmhhcm5lc3MuY29tbW9uLnYxLlNjb3BlEiwKCXRyYW5zcG9ydBgEIAEoDjIZLmhhcm5lc3MubWNwLnYxLlRyYW5zcG9ydBIPCgdlbmFibGVkGAUgASgIEhMKC2Fsd2F5c19sb2FkGAYgASgIEioKBXN0ZGlvGAcgASgLMhsuaGFybmVzcy5tY3AudjEuU3RkaW9Db25maWcSLAoGcmVtb3RlGAggASgLMhwuaGFybmVzcy5tY3AudjEuUmVtb3RlQ29uZmlnEisKB3NlY3JldHMYCSADKAsyGi5oYXJuZXNzLm1jcC52MS5TZWNyZXRJbmZvEjAKCW92ZXJyaWRlcxgKIAMoCzIdLmhhcm5lc3MubWNwLnYxLlN0ZGlvT3ZlcnJpZGUSFAoMdGFyZ2V0X3JvbGVzGAsgAygJEhMKC3Byb2plY3Rfa2V5GAwgASgJEg8KB3ZlcnNpb24YDSABKAMSEwoLY29uZmlnX2hhc2gYDiABKAkSKAoEYXV0aBgPIAEoCzIaLmhhcm5lc3MubWNwLnYxLkF1dGhTdGF0dXMSEgoKY3JlYXRlZF9hdBgQIAEoCRISCgp1cGRhdGVkX2F0GBEgASgJEh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgSIAEoCBIXCg90b29sX3RpbWVvdXRfbXMYEyABKAMSFQoNYWxsb3dlZF90b29scxgUIAMoCRIUCgxkZW5pZWRfdG9vbHMYFSADKAkSGAoQbWF4X291dHB1dF9jaGFycxgWIAEoBRIQCghjYW5fZWRpdBgXIAEoCCKYAQoLU3RkaW9Db25maWcSDwoHY29tbWFuZBgBIAEoCRIMCgRhcmdzGAIgAygJEjEKA2VudhgDIAMoCzIkLmhhcm5lc3MubWNwLnYxLlN0ZGlvQ29uZmlnLkVudkVudHJ5EgsKA2N3ZBgEIAEoCRoqCghFbnZFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIu4BCgxSZW1vdGVDb25maWcSCwoDdXJsGAEgASgJEjoKB2hlYWRlcnMYAiADKAsyKS5oYXJuZXNzLm1jcC52MS5SZW1vdGVDb25maWcuSGVhZGVyc0VudHJ5EioKBW9hdXRoGAMgASgLMhsuaGFybmVzcy5tY3AudjEuT0F1dGhDb25maWcSIQoZcmVxdWlyZXNfdXNlcl9pbnRlcmFjdGlvbhgEIAEoCBIWCg5oZWFkZXJzX2hlbHBlchgFIAEoCRouCgxIZWFkZXJzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJOCgtPQXV0aENvbmZpZxIRCgljbGllbnRfaWQYASABKAkSDgoGc2NvcGVzGAIgAygJEhwKFGF1dGhvcml6YXRpb25fc2VydmVyGAMgASgJIq4BCg1TdGRpb092ZXJyaWRlEhEKCWRldmljZV9pZBgBIAEoCRIKCgJvcxgCIAEoCRIPCgdjb21tYW5kGAMgASgJEgwKBGFyZ3MYBCADKAkSMwoDZW52GAUgAygLMiYuaGFybmVzcy5tY3AudjEuU3RkaW9PdmVycmlkZS5FbnZFbnRyeRoqCghFbnZFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIkEKClNlY3JldEluZm8SDAoEbmFtZRgBIAEoCRIRCgloYXNfdmFsdWUYAiABKAgSEgoKdXBkYXRlZF9hdBgDIAEoCSKAAQoNU2VjcmV0Q2hhbmdlcxIzCgNzZXQYASADKAsyJi5oYXJuZXNzLm1jcC52MS5TZWNyZXRDaGFuZ2VzLlNldEVudHJ5Eg4KBnJlbW92ZRgCIAMoCRoqCghTZXRFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIm0KEkxpc3RTZXJ2ZXJzUmVxdWVzdBIoCgZzY29wZXMYASADKA4yGC5oYXJuZXNzLmNvbW1vbi52MS5TY29wZRIYChBpbmNsdWRlX2Rpc2FibGVkGAIgASgIEhMKC3Byb2plY3Rfa2V5GAMgASgJIlYKE0xpc3RTZXJ2ZXJzUmVzcG9uc2USJwoHc2VydmVycxgBIAMoCzIWLmhhcm5lc3MubWNwLnYxLlNlcnZlchIWCg5jYW5fbWFuYWdlX29yZxgCIAEoCCIlChBHZXRTZXJ2ZXJSZXF1ZXN0EhEKCXNlcnZlcl9pZBgBIAEoCSI7ChFHZXRTZXJ2ZXJSZXNwb25zZRImCgZzZXJ2ZXIYASABKAsyFi5oYXJuZXNzLm1jcC52MS5TZXJ2ZXIibQoTQ3JlYXRlU2VydmVyUmVxdWVzdBImCgZzZXJ2ZXIYASABKAsyFi5oYXJuZXNzLm1jcC52MS5TZXJ2ZXISLgoHc2VjcmV0cxgCIAEoCzIdLmhhcm5lc3MubWNwLnYxLlNlY3JldENoYW5nZXMiPgoUQ3JlYXRlU2VydmVyUmVzcG9uc2USJgoGc2VydmVyGAEgASgLMhYuaGFybmVzcy5tY3AudjEuU2VydmVyIoMBChNVcGRhdGVTZXJ2ZXJSZXF1ZXN0EiYKBnNlcnZlchgBIAEoCzIWLmhhcm5lc3MubWNwLnYxLlNlcnZlchIuCgdzZWNyZXRzGAIgASgLMh0uaGFybmVzcy5tY3AudjEuU2VjcmV0Q2hhbmdlcxIUCgxiYXNlX3ZlcnNpb24YAyABKAMieAoUVXBkYXRlU2VydmVyUmVzcG9uc2USKAoGc2VydmVyGAEgASgLMhYuaGFybmVzcy5tY3AudjEuU2VydmVySAASLAoIY29uZmxpY3QYAiABKAsyGC5oYXJuZXNzLm1jcC52MS5Db25mbGljdEgAQggKBnJlc3VsdCIzCghDb25mbGljdBInCgdjdXJyZW50GAEgASgLMhYuaGFybmVzcy5tY3AudjEuU2VydmVyIlQKE0RlbGV0ZVNlcnZlclJlcXVlc3QSEQoJc2VydmVyX2lkGAEgASgJEhkKDGJhc2VfdmVyc2lvbhgCIAEoA0gAiAEBQg8KDV9iYXNlX3ZlcnNpb24iQgoURGVsZXRlU2VydmVyUmVzcG9uc2USKgoIY29uZmxpY3QYASABKAsyGC5oYXJuZXNzLm1jcC52MS5Db25mbGljdCKEAQoKQXV0aFN0YXR1cxIoCgVzdGF0ZRgBIAEoDjIZLmhhcm5lc3MubWNwLnYxLkF1dGhTdGF0ZRIPCgdtZXNzYWdlGAIgASgJEhYKDmdyYW50ZWRfc2NvcGVzGAMgAygJEg8KB2FjY291bnQYBCABKAkSEgoKZXhwaXJlc19hdBgFIAEoCSI6ChFTdGFydE9BdXRoUmVxdWVzdBIRCglzZXJ2ZXJfaWQYASABKAkSEgoKcmV0dXJuX3VybBgCIAEoCSJUChJTdGFydE9BdXRoUmVzcG9uc2USDwoHZmxvd19pZBgBIAEoCRIZChFhdXRob3JpemF0aW9uX3VybBgCIAEoCRISCgpleHBpcmVzX2F0GAMgASgJIiYKE0dldE9BdXRoRmxvd1JlcXVlc3QSDwoHZmxvd19pZBgBIAEoCSL/AQoUR2V0T0F1dGhGbG93UmVzcG9uc2USOQoFc3RhdGUYASABKA4yKi5oYXJuZXNzLm1jcC52MS5HZXRPQXV0aEZsb3dSZXNwb25zZS5TdGF0ZRIVCg1lcnJvcl9tZXNzYWdlGAIgASgJEigKBGF1dGgYAyABKAsyGi5oYXJuZXNzLm1jcC52MS5BdXRoU3RhdHVzImsKBVN0YXRlEhUKEVNUQVRFX1VOU1BFQ0lGSUVEEAASEQoNU1RBVEVfUEVORElORxABEhMKD1NUQVRFX0NPTVBMRVRFRBACEhAKDFNUQVRFX0ZBSUxFRBADEhEKDVNUQVRFX0VYUElSRUQQBCIqChRHZXRBdXRoU3RhdHVzUmVxdWVzdBISCgpzZXJ2ZXJfaWRzGAEgAygJIqsBChVHZXRBdXRoU3RhdHVzUmVzcG9uc2USRQoIc3RhdHVzZXMYASADKAsyMy5oYXJuZXNzLm1jcC52MS5HZXRBdXRoU3RhdHVzUmVzcG9uc2UuU3RhdHVzZXNFbnRyeRpLCg1TdGF0dXNlc0VudHJ5EgsKA2tleRgBIAEoCRIpCgV2YWx1ZRgCIAEoCzIaLmhhcm5lc3MubWNwLnYxLkF1dGhTdGF0dXM6AjgBIiYKEVJldm9rZUF1dGhSZXF1ZXN0EhEKCXNlcnZlcl9pZBgBIAEoCSIUChJSZXZva2VBdXRoUmVzcG9uc2Ui/wEKEkRldmljZVNlcnZlclN0YXR1cxIRCglzZXJ2ZXJfaWQYASABKAkSEwoLY29uZmlnX2hhc2gYAiABKAkSMgoMYXZhaWxhYmlsaXR5GAMgASgOMhwuaGFybmVzcy5tY3AudjEuQXZhaWxhYmlsaXR5Eg4KBnJlYXNvbhgEIAEoCRIvCghhcHByb3ZhbBgFIAEoDjIdLmhhcm5lc3MubWNwLnYxLkFwcHJvdmFsU3RhdGUSEgoKbGFzdF9lcnJvchgGIAEoCRIjCgV0b29scxgHIAMoCzIULmhhcm5lc3MubWNwLnYxLlRvb2wSEwoLcmVwb3J0ZWRfYXQYCCABKAkiUQoZUmVwb3J0RGV2aWNlU3RhdHVzUmVxdWVzdBI0CghzdGF0dXNlcxgBIAMoCzIiLmhhcm5lc3MubWNwLnYxLkRldmljZVNlcnZlclN0YXR1cyIcChpSZXBvcnREZXZpY2VTdGF0dXNSZXNwb25zZSI/ChdMaXN0RGV2aWNlU3RhdHVzUmVxdWVzdBIRCglzZXJ2ZXJfaWQYASABKAkSEQoJZGV2aWNlX2lkGAIgASgJIk4KGExpc3REZXZpY2VTdGF0dXNSZXNwb25zZRIyCgdlbnRyaWVzGAEgAygLMiEuaGFybmVzcy5tY3AudjEuRGV2aWNlU3RhdHVzRW50cnkibwoRRGV2aWNlU3RhdHVzRW50cnkSEQoJZGV2aWNlX2lkGAEgASgJEhMKC2RldmljZV9uYW1lGAIgASgJEjIKBnN0YXR1cxgDIAEoCzIiLmhhcm5lc3MubWNwLnYxLkRldmljZVNlcnZlclN0YXR1cyJBChdJc3N1ZVN0ZGlvTGF1bmNoUmVxdWVzdBIRCglzZXJ2ZXJfaWQYASABKAkSEwoLY29uZmlnX2hhc2gYAiABKAkixgEKGElzc3VlU3RkaW9MYXVuY2hSZXNwb25zZRIPCgdjb21tYW5kGAEgASgJEgwKBGFyZ3MYAiADKAkSPgoDZW52GAMgAygLMjEuaGFybmVzcy5tY3AudjEuSXNzdWVTdGRpb0xhdW5jaFJlc3BvbnNlLkVudkVudHJ5EgsKA2N3ZBgEIAEoCRISCgpleHBpcmVzX2F0GAUgASgJGioKCEVudkVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiiQEKBFRvb2wSDAoEbmFtZRgBIAEoCRINCgV0aXRsZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIZChFpbnB1dF9zY2hlbWFfanNvbhgEIAEoCRIaChJvdXRwdXRfc2NoZW1hX2pzb24YBSABKAkSGAoQYW5ub3RhdGlvbnNfanNvbhgGIAEoCSJSCgZQcm9tcHQSDAoEbmFtZRgBIAEoCRINCgV0aXRsZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIWCg5hcmd1bWVudHNfanNvbhgEIAEoCSJqCghSZXNvdXJjZRILCgN1cmkYASABKAkSDAoEbmFtZRgCIAEoCRINCgV0aXRsZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIRCgltaW1lX3R5cGUYBSABKAkSDAoEc2l6ZRgGIAEoAyJtChBSZXNvdXJjZVRlbXBsYXRlEhQKDHVyaV90ZW1wbGF0ZRgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBXRpdGxlGAMgASgJEhMKC2Rlc2NyaXB0aW9uGAQgASgJEhEKCW1pbWVfdHlwZRgFIAEoCSI1ChBMaXN0VG9vbHNSZXF1ZXN0EhEKCXNlcnZlcl9pZBgBIAEoCRIOCgZjdXJzb3IYAiABKAkiTQoRTGlzdFRvb2xzUmVzcG9uc2USIwoFdG9vbHMYASADKAsyFC5oYXJuZXNzLm1jcC52MS5Ub29sEhMKC25leHRfY3Vyc29yGAIgASgJIjcKEkxpc3RQcm9tcHRzUmVxdWVzdBIRCglzZXJ2ZXJfaWQYASABKAkSDgoGY3Vyc29yGAIgASgJIlMKE0xpc3RQcm9tcHRzUmVzcG9uc2USJwoHcHJvbXB0cxgBIAMoCzIWLmhhcm5lc3MubWNwLnYxLlByb21wdBITCgtuZXh0X2N1cnNvchgCIAEoCSI5ChRMaXN0UmVzb3VyY2VzUmVxdWVzdBIRCglzZXJ2ZXJfaWQYASABKAkSDgoGY3Vyc29yGAIgASgJIo4BChVMaXN0UmVzb3VyY2VzUmVzcG9uc2USKwoJcmVzb3VyY2VzGAEgAygLMhguaGFybmVzcy5tY3AudjEuUmVzb3VyY2USMwoJdGVtcGxhdGVzGAIgAygLMiAuaGFybmVzcy5tY3AudjEuUmVzb3VyY2VUZW1wbGF0ZRITCgtuZXh0X2N1cnNvchgDIAEoCSKMAQoPQ2FsbFRvb2xSZXF1ZXN0EhEKCXNlcnZlcl9pZBgBIAEoCRIRCgl0b29sX25hbWUYAiABKAkSFgoOYXJndW1lbnRzX2pzb24YAyABKAkSEgoKc2Vzc2lvbl9pZBgEIAEoCRITCgt0b29sX3VzZV9pZBgFIAEoCRISCgp0aW1lb3V0X21zGAYgASgDIusBChBDYWxsVG9vbFJlc3BvbnNlEiwKCHByb2dyZXNzGAEgASgLMhguaGFybmVzcy5tY3AudjEuUHJvZ3Jlc3NIABIwCgZyZXN1bHQYAiABKAsyHi5oYXJuZXNzLm1jcC52MS5DYWxsVG9vbFJlc3VsdEgAEjkKC2VsaWNpdGF0aW9uGAMgASgLMiIuaGFybmVzcy5tY3AudjEuRWxpY2l0YXRpb25SZXF1ZXN0SAASMwoMbGlzdF9jaGFuZ2VkGAQgASgLMhsuaGFybmVzcy5tY3AudjEuTGlzdENoYW5nZWRIAEIHCgVldmVudCJrChJFbGljaXRhdGlvblJlcXVlc3QSCgoCaWQYASABKAkSDAoEbW9kZRgCIAEoCRIPCgdtZXNzYWdlGAMgASgJEh0KFXJlcXVlc3RlZF9zY2hlbWFfanNvbhgEIAEoCRILCgN1cmwYBSABKAkiTwobUmVzcG9uZFRvRWxpY2l0YXRpb25SZXF1ZXN0EgoKAmlkGAEgASgJEg4KBmFjdGlvbhgCIAEoCRIUCgxjb250ZW50X2pzb24YAyABKAkiHgocUmVzcG9uZFRvRWxpY2l0YXRpb25SZXNwb25zZSKRAQoLTGlzdENoYW5nZWQSLgoEa2luZBgBIAEoDjIgLmhhcm5lc3MubWNwLnYxLkxpc3RDaGFuZ2VkLktpbmQiUgoES2luZBIUChBLSU5EX1VOU1BFQ0lGSUVEEAASDgoKS0lORF9UT09MUxABEhAKDEtJTkRfUFJPTVBUUxACEhIKDktJTkRfUkVTT1VSQ0VTEAMiKQoUR2V0U2VydmVySW5mb1JlcXVlc3QSEQoJc2VydmVyX2lkGAEgASgJIosBChVHZXRTZXJ2ZXJJbmZvUmVzcG9uc2USDAoEbmFtZRgBIAEoCRIPCgd2ZXJzaW9uGAIgASgJEhQKDGluc3RydWN0aW9ucxgDIAEoCRIRCgloYXNfdG9vbHMYBCABKAgSEwoLaGFzX3Byb21wdHMYBSABKAgSFQoNaGFzX3Jlc291cmNlcxgGIAEoCCI8CghQcm9ncmVzcxIQCghwcm9ncmVzcxgBIAEoARINCgV0b3RhbBgCIAEoARIPCgdtZXNzYWdlGAMgASgJIjcKDkNhbGxUb29sUmVzdWx0EhAKCGlzX2Vycm9yGAEgASgIEhMKC3Jlc3VsdF9qc29uGAIgASgJIqkBChBHZXRQcm9tcHRSZXF1ZXN0EhEKCXNlcnZlcl9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEkIKCWFyZ3VtZW50cxgDIAMoCzIvLmhhcm5lc3MubWNwLnYxLkdldFByb21wdFJlcXVlc3QuQXJndW1lbnRzRW50cnkaMAoOQXJndW1lbnRzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASIoChFHZXRQcm9tcHRSZXNwb25zZRITCgtyZXN1bHRfanNvbhgBIAEoCSI1ChNSZWFkUmVzb3VyY2VSZXF1ZXN0EhEKCXNlcnZlcl9pZBgBIAEoCRILCgN1cmkYAiABKAkiKwoUUmVhZFJlc291cmNlUmVzcG9uc2USEwoLcmVzdWx0X2pzb24YASABKAkiVAoVR2V0VG9vbENhdGFsb2dSZXF1ZXN0Eg8KB3ZlcnNpb24YASABKAkSFQoNaWZfbm9uZV9tYXRjaBgCIAEoCRITCgtwcm9qZWN0X2tleRgDIAEoCSJcChZHZXRUb29sQ2F0YWxvZ1Jlc3BvbnNlEhQKDG5vdF9tb2RpZmllZBgBIAEoCBIsCgdjYXRhbG9nGAIgASgLMhsuaGFybmVzcy5tY3AudjEuVG9vbENhdGFsb2ciYgoLVG9vbENhdGFsb2cSDwoHdmVyc2lvbhgBIAEoCRIuCgdzZXJ2ZXJzGAIgAygLMh0uaGFybmVzcy5tY3AudjEuQ2F0YWxvZ1NlcnZlchISCgpjcmVhdGVkX2F0GAMgASgJIpcCCg1DYXRhbG9nU2VydmVyEhEKCXNlcnZlcl9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEiwKCXRyYW5zcG9ydBgDIAEoDjIZLmhhcm5lc3MubWNwLnYxLlRyYW5zcG9ydBITCgthbHdheXNfbG9hZBgEIAEoCBIjCgV0b29scxgFIAMoCzIULmhhcm5lc3MubWNwLnYxLlRvb2wSGAoQdG9vbHNfdXBkYXRlZF9hdBgGIAEoCRIhChlyZXF1aXJlc191c2VyX2ludGVyYWN0aW9uGAcgASgIEhQKDGluc3RydWN0aW9ucxgIIAEoCRITCgtoYXNfcHJvbXB0cxgJIAEoCBIVCg1oYXNfcmVzb3VyY2VzGAogASgIImUKEExpc3RBdWRpdFJlcXVlc3QSEQoJc2VydmVyX2lkGAEgASgJEg8KB3VzZXJfaWQYAiABKAkSDgoGYWN0aW9uGAMgASgJEg0KBWxpbWl0GAQgASgFEg4KBmN1cnNvchgFIAEoCSJVChFMaXN0QXVkaXRSZXNwb25zZRIrCgdlbnRyaWVzGAEgAygLMhouaGFybmVzcy5tY3AudjEuQXVkaXRFbnRyeRITCgtuZXh0X2N1cnNvchgCIAEoCSKQAgoKQXVkaXRFbnRyeRIKCgJpZBgBIAEoCRISCgpjcmVhdGVkX2F0GAIgASgJEg8KB3VzZXJfaWQYAyABKAkSEQoJdXNlcl9uYW1lGAQgASgJEhEKCWRldmljZV9pZBgFIAEoCRIRCglzZXJ2ZXJfaWQYBiABKAkSEwoLc2VydmVyX25hbWUYByABKAkSDgoGYWN0aW9uGAggASgJEhMKC2NvbmZpZ19oYXNoGAkgASgJEgwKBHRvb2wYCiABKAkSEAoIaXNfZXJyb3IYCyABKAgSEwoLZHVyYXRpb25fbXMYDCABKAMSFQoNZXJyb3JfbWVzc2FnZRgNIAEoCRISCgpzZXNzaW9uX2lkGA4gASgJKn8KCVRyYW5zcG9ydBIZChVUUkFOU1BPUlRfVU5TUEVDSUZJRUQQABITCg9UUkFOU1BPUlRfU1RESU8QARIdChlUUkFOU1BPUlRfU1RSRUFNQUJMRV9IVFRQEAISEQoNVFJBTlNQT1JUX1NTRRADEhAKDFRSQU5TUE9SVF9XUxAEKo8BCglBdXRoU3RhdGUSGgoWQVVUSF9TVEFURV9VTlNQRUNJRklFRBAAEhsKF0FVVEhfU1RBVEVfTk9UX1JFUVVJUkVEEAESGQoVQVVUSF9TVEFURV9ORUVEU19BVVRIEAISGAoUQVVUSF9TVEFURV9DT05ORUNURUQQAxIUChBBVVRIX1NUQVRFX0VSUk9SEAQqcAoMQXZhaWxhYmlsaXR5EhwKGEFWQUlMQUJJTElUWV9VTlNQRUNJRklFRBAAEhoKFkFWQUlMQUJJTElUWV9BVkFJTEFCTEUQARImCiJBVkFJTEFCSUxJVFlfVU5BVkFJTEFCTEVfT05fREVWSUNFEAIqgwEKDUFwcHJvdmFsU3RhdGUSHgoaQVBQUk9WQUxfU1RBVEVfVU5TUEVDSUZJRUQQABIaChZBUFBST1ZBTF9TVEFURV9QRU5ESU5HEAESGwoXQVBQUk9WQUxfU1RBVEVfQVBQUk9WRUQQAhIZChVBUFBST1ZBTF9TVEFURV9ERU5JRUQQAzLvDwoKTWNwU2VydmljZRJWCgtMaXN0U2VydmVycxIiLmhhcm5lc3MubWNwLnYxLkxpc3RTZXJ2ZXJzUmVxdWVzdBojLmhhcm5lc3MubWNwLnYxLkxpc3RTZXJ2ZXJzUmVzcG9uc2USUAoJR2V0U2VydmVyEiAuaGFybmVzcy5tY3AudjEuR2V0U2VydmVyUmVxdWVzdBohLmhhcm5lc3MubWNwLnYxLkdldFNlcnZlclJlc3BvbnNlElkKDENyZWF0ZVNlcnZlchIjLmhhcm5lc3MubWNwLnYxLkNyZWF0ZVNlcnZlclJlcXVlc3QaJC5oYXJuZXNzLm1jcC52MS5DcmVhdGVTZXJ2ZXJSZXNwb25zZRJZCgxVcGRhdGVTZXJ2ZXISIy5oYXJuZXNzLm1jcC52MS5VcGRhdGVTZXJ2ZXJSZXF1ZXN0GiQuaGFybmVzcy5tY3AudjEuVXBkYXRlU2VydmVyUmVzcG9uc2USWQoMRGVsZXRlU2VydmVyEiMuaGFybmVzcy5tY3AudjEuRGVsZXRlU2VydmVyUmVxdWVzdBokLmhhcm5lc3MubWNwLnYxLkRlbGV0ZVNlcnZlclJlc3BvbnNlElMKClN0YXJ0T0F1dGgSIS5oYXJuZXNzLm1jcC52MS5TdGFydE9BdXRoUmVxdWVzdBoiLmhhcm5lc3MubWNwLnYxLlN0YXJ0T0F1dGhSZXNwb25zZRJZCgxHZXRPQXV0aEZsb3cSIy5oYXJuZXNzLm1jcC52MS5HZXRPQXV0aEZsb3dSZXF1ZXN0GiQuaGFybmVzcy5tY3AudjEuR2V0T0F1dGhGbG93UmVzcG9uc2USXAoNR2V0QXV0aFN0YXR1cxIkLmhhcm5lc3MubWNwLnYxLkdldEF1dGhTdGF0dXNSZXF1ZXN0GiUuaGFybmVzcy5tY3AudjEuR2V0QXV0aFN0YXR1c1Jlc3BvbnNlElMKClJldm9rZUF1dGgSIS5oYXJuZXNzLm1jcC52MS5SZXZva2VBdXRoUmVxdWVzdBoiLmhhcm5lc3MubWNwLnYxLlJldm9rZUF1dGhSZXNwb25zZRJrChJSZXBvcnREZXZpY2VTdGF0dXMSKS5oYXJuZXNzLm1jcC52MS5SZXBvcnREZXZpY2VTdGF0dXNSZXF1ZXN0GiouaGFybmVzcy5tY3AudjEuUmVwb3J0RGV2aWNlU3RhdHVzUmVzcG9uc2USZQoQTGlzdERldmljZVN0YXR1cxInLmhhcm5lc3MubWNwLnYxLkxpc3REZXZpY2VTdGF0dXNSZXF1ZXN0GiguaGFybmVzcy5tY3AudjEuTGlzdERldmljZVN0YXR1c1Jlc3BvbnNlEmUKEElzc3VlU3RkaW9MYXVuY2gSJy5oYXJuZXNzLm1jcC52MS5Jc3N1ZVN0ZGlvTGF1bmNoUmVxdWVzdBooLmhhcm5lc3MubWNwLnYxLklzc3VlU3RkaW9MYXVuY2hSZXNwb25zZRJQCglMaXN0VG9vbHMSIC5oYXJuZXNzLm1jcC52MS5MaXN0VG9vbHNSZXF1ZXN0GiEuaGFybmVzcy5tY3AudjEuTGlzdFRvb2xzUmVzcG9uc2USVgoLTGlzdFByb21wdHMSIi5oYXJuZXNzLm1jcC52MS5MaXN0UHJvbXB0c1JlcXVlc3QaIy5oYXJuZXNzLm1jcC52MS5MaXN0UHJvbXB0c1Jlc3BvbnNlElwKDUxpc3RSZXNvdXJjZXMSJC5oYXJuZXNzLm1jcC52MS5MaXN0UmVzb3VyY2VzUmVxdWVzdBolLmhhcm5lc3MubWNwLnYxLkxpc3RSZXNvdXJjZXNSZXNwb25zZRJPCghDYWxsVG9vbBIfLmhhcm5lc3MubWNwLnYxLkNhbGxUb29sUmVxdWVzdBogLmhhcm5lc3MubWNwLnYxLkNhbGxUb29sUmVzcG9uc2UwARJQCglHZXRQcm9tcHQSIC5oYXJuZXNzLm1jcC52MS5HZXRQcm9tcHRSZXF1ZXN0GiEuaGFybmVzcy5tY3AudjEuR2V0UHJvbXB0UmVzcG9uc2USWQoMUmVhZFJlc291cmNlEiMuaGFybmVzcy5tY3AudjEuUmVhZFJlc291cmNlUmVxdWVzdBokLmhhcm5lc3MubWNwLnYxLlJlYWRSZXNvdXJjZVJlc3BvbnNlEnEKFFJlc3BvbmRUb0VsaWNpdGF0aW9uEisuaGFybmVzcy5tY3AudjEuUmVzcG9uZFRvRWxpY2l0YXRpb25SZXF1ZXN0GiwuaGFybmVzcy5tY3AudjEuUmVzcG9uZFRvRWxpY2l0YXRpb25SZXNwb25zZRJcCg1HZXRTZXJ2ZXJJbmZvEiQuaGFybmVzcy5tY3AudjEuR2V0U2VydmVySW5mb1JlcXVlc3QaJS5oYXJuZXNzLm1jcC52MS5HZXRTZXJ2ZXJJbmZvUmVzcG9uc2USXwoOR2V0VG9vbENhdGFsb2cSJS5oYXJuZXNzLm1jcC52MS5HZXRUb29sQ2F0YWxvZ1JlcXVlc3QaJi5oYXJuZXNzLm1jcC52MS5HZXRUb29sQ2F0YWxvZ1Jlc3BvbnNlElAKCUxpc3RBdWRpdBIgLmhhcm5lc3MubWNwLnYxLkxpc3RBdWRpdFJlcXVlc3QaIS5oYXJuZXNzLm1jcC52MS5MaXN0QXVkaXRSZXNwb25zZUK7AQoSY29tLmhhcm5lc3MubWNwLnYxQghNY3BQcm90b1ABWkFnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL21jcC92MTttY3B2MaICA0hNWKoCDkhhcm5lc3MuTWNwLlYxygIOSGFybmVzc1xNY3BcVjHiAhpIYXJuZXNzXE1jcFxWMVxHUEJNZXRhZGF0YeoCEEhhcm5lc3M6Ok1jcDo6VjFiBnByb3RvMw", [file_harness_common_v1_scope]);
 
 /**
  * Secret values are referenced from env values, args, header values and URLs as `${secret:NAME}`.
@@ -140,6 +140,44 @@ export type Server = Message<"harness.mcp.v1.Server"> & {
    * @generated from field: bool allow_private_network = 18;
    */
   allowPrivateNetwork: boolean;
+
+  /**
+   * Time limit of one tools/call; 0 -> the default (10 minutes). Time spent waiting for the user's answer to an
+   * elicitation does not count.
+   *
+   * @generated from field: int64 tool_timeout_ms = 19;
+   */
+  toolTimeoutMs: bigint;
+
+  /**
+   * Glob patterns ('*') over the server's own tool names. Non-empty: only matching tools exist for the agent.
+   *
+   * @generated from field: repeated string allowed_tools = 20;
+   */
+  allowedTools: string[];
+
+  /**
+   * Glob patterns over the server's own tool names; wins over allowed_tools. Enforced by whoever talks to the
+   * upstream: the proxy for remote servers, the client for stdio servers. Unlike the user's permission rules it
+   * belongs to whoever manages the server, so an admin's list on an org server cannot be undone by a user.
+   *
+   * @generated from field: repeated string denied_tools = 21;
+   */
+  deniedTools: string[];
+
+  /**
+   * Largest text of one tool result given to the model, in characters; 0 -> the client's default.
+   *
+   * @generated from field: int32 max_output_chars = 22;
+   */
+  maxOutputChars: number;
+
+  /**
+   * Read-only: whether the caller may change or delete this server.
+   *
+   * @generated from field: bool can_edit = 23;
+   */
+  canEdit: boolean;
 };
 
 /**
@@ -214,6 +252,14 @@ export type RemoteConfig = Message<"harness.mcp.v1.RemoteConfig"> & {
    * @generated from field: bool requires_user_interaction = 4;
    */
   requiresUserInteraction: boolean;
+
+  /**
+   * Device-local servers only (harness.agent.v1 McpServerSource.DEVICE; the registry refuses it): a command run on
+   * the device whose stdout is a JSON object of headers, merged over `headers` for each new connection.
+   *
+   * @generated from field: string headers_helper = 5;
+   */
+  headersHelper: string;
 };
 
 /**
@@ -389,6 +435,13 @@ export type ListServersResponse = Message<"harness.mcp.v1.ListServersResponse"> 
    * @generated from field: repeated harness.mcp.v1.Server servers = 1;
    */
   servers: Server[];
+
+  /**
+   * The caller is an admin: may create org servers and read the audit log.
+   *
+   * @generated from field: bool can_manage_org = 2;
+   */
+  canManageOrg: boolean;
 };
 
 /**
@@ -1435,6 +1488,22 @@ export type CallToolResponse = Message<"harness.mcp.v1.CallToolResponse"> & {
      */
     value: CallToolResult;
     case: "result";
+  } | {
+    /**
+     * The upstream asks the user something; the call waits for RespondToElicitation.
+     *
+     * @generated from field: harness.mcp.v1.ElicitationRequest elicitation = 3;
+     */
+    value: ElicitationRequest;
+    case: "elicitation";
+  } | {
+    /**
+     * The upstream announced a changed list while this call ran: the caller refreshes what it keeps.
+     *
+     * @generated from field: harness.mcp.v1.ListChanged list_changed = 4;
+     */
+    value: ListChanged;
+    case: "listChanged";
   } | { case: undefined; value?: undefined };
 };
 
@@ -1444,6 +1513,208 @@ export type CallToolResponse = Message<"harness.mcp.v1.CallToolResponse"> & {
  */
 export const CallToolResponseSchema: GenMessage<CallToolResponse> = /*@__PURE__*/
   messageDesc(file_harness_mcp_v1_mcp, 46);
+
+/**
+ * An MCP elicitation/create as sent by the upstream.
+ *
+ * @generated from message harness.mcp.v1.ElicitationRequest
+ */
+export type ElicitationRequest = Message<"harness.mcp.v1.ElicitationRequest"> & {
+  /**
+   * mel_...
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * "form" or "url".
+   *
+   * @generated from field: string mode = 2;
+   */
+  mode: string;
+
+  /**
+   * @generated from field: string message = 3;
+   */
+  message: string;
+
+  /**
+   * Form: JSON Schema of the answer (flat object of primitives), exact upstream JSON.
+   *
+   * @generated from field: string requested_schema_json = 4;
+   */
+  requestedSchemaJson: string;
+
+  /**
+   * URL: the page the user is sent to.
+   *
+   * @generated from field: string url = 5;
+   */
+  url: string;
+};
+
+/**
+ * Describes the message harness.mcp.v1.ElicitationRequest.
+ * Use `create(ElicitationRequestSchema)` to create a new message.
+ */
+export const ElicitationRequestSchema: GenMessage<ElicitationRequest> = /*@__PURE__*/
+  messageDesc(file_harness_mcp_v1_mcp, 47);
+
+/**
+ * @generated from message harness.mcp.v1.RespondToElicitationRequest
+ */
+export type RespondToElicitationRequest = Message<"harness.mcp.v1.RespondToElicitationRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * "accept", "decline" or "cancel".
+   *
+   * @generated from field: string action = 2;
+   */
+  action: string;
+
+  /**
+   * Accept of a form: the answers, a JSON object.
+   *
+   * @generated from field: string content_json = 3;
+   */
+  contentJson: string;
+};
+
+/**
+ * Describes the message harness.mcp.v1.RespondToElicitationRequest.
+ * Use `create(RespondToElicitationRequestSchema)` to create a new message.
+ */
+export const RespondToElicitationRequestSchema: GenMessage<RespondToElicitationRequest> = /*@__PURE__*/
+  messageDesc(file_harness_mcp_v1_mcp, 48);
+
+/**
+ * @generated from message harness.mcp.v1.RespondToElicitationResponse
+ */
+export type RespondToElicitationResponse = Message<"harness.mcp.v1.RespondToElicitationResponse"> & {
+};
+
+/**
+ * Describes the message harness.mcp.v1.RespondToElicitationResponse.
+ * Use `create(RespondToElicitationResponseSchema)` to create a new message.
+ */
+export const RespondToElicitationResponseSchema: GenMessage<RespondToElicitationResponse> = /*@__PURE__*/
+  messageDesc(file_harness_mcp_v1_mcp, 49);
+
+/**
+ * @generated from message harness.mcp.v1.ListChanged
+ */
+export type ListChanged = Message<"harness.mcp.v1.ListChanged"> & {
+  /**
+   * @generated from field: harness.mcp.v1.ListChanged.Kind kind = 1;
+   */
+  kind: ListChanged_Kind;
+};
+
+/**
+ * Describes the message harness.mcp.v1.ListChanged.
+ * Use `create(ListChangedSchema)` to create a new message.
+ */
+export const ListChangedSchema: GenMessage<ListChanged> = /*@__PURE__*/
+  messageDesc(file_harness_mcp_v1_mcp, 50);
+
+/**
+ * @generated from enum harness.mcp.v1.ListChanged.Kind
+ */
+export enum ListChanged_Kind {
+  /**
+   * @generated from enum value: KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: KIND_TOOLS = 1;
+   */
+  TOOLS = 1,
+
+  /**
+   * @generated from enum value: KIND_PROMPTS = 2;
+   */
+  PROMPTS = 2,
+
+  /**
+   * @generated from enum value: KIND_RESOURCES = 3;
+   */
+  RESOURCES = 3,
+}
+
+/**
+ * Describes the enum harness.mcp.v1.ListChanged.Kind.
+ */
+export const ListChanged_KindSchema: GenEnum<ListChanged_Kind> = /*@__PURE__*/
+  enumDesc(file_harness_mcp_v1_mcp, 50, 0);
+
+/**
+ * @generated from message harness.mcp.v1.GetServerInfoRequest
+ */
+export type GetServerInfoRequest = Message<"harness.mcp.v1.GetServerInfoRequest"> & {
+  /**
+   * @generated from field: string server_id = 1;
+   */
+  serverId: string;
+};
+
+/**
+ * Describes the message harness.mcp.v1.GetServerInfoRequest.
+ * Use `create(GetServerInfoRequestSchema)` to create a new message.
+ */
+export const GetServerInfoRequestSchema: GenMessage<GetServerInfoRequest> = /*@__PURE__*/
+  messageDesc(file_harness_mcp_v1_mcp, 51);
+
+/**
+ * @generated from message harness.mcp.v1.GetServerInfoResponse
+ */
+export type GetServerInfoResponse = Message<"harness.mcp.v1.GetServerInfoResponse"> & {
+  /**
+   * The upstream's own name and version.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string version = 2;
+   */
+  version: string;
+
+  /**
+   * Text the upstream offers for the model.
+   *
+   * @generated from field: string instructions = 3;
+   */
+  instructions: string;
+
+  /**
+   * @generated from field: bool has_tools = 4;
+   */
+  hasTools: boolean;
+
+  /**
+   * @generated from field: bool has_prompts = 5;
+   */
+  hasPrompts: boolean;
+
+  /**
+   * @generated from field: bool has_resources = 6;
+   */
+  hasResources: boolean;
+};
+
+/**
+ * Describes the message harness.mcp.v1.GetServerInfoResponse.
+ * Use `create(GetServerInfoResponseSchema)` to create a new message.
+ */
+export const GetServerInfoResponseSchema: GenMessage<GetServerInfoResponse> = /*@__PURE__*/
+  messageDesc(file_harness_mcp_v1_mcp, 52);
 
 /**
  * @generated from message harness.mcp.v1.Progress
@@ -1472,7 +1743,7 @@ export type Progress = Message<"harness.mcp.v1.Progress"> & {
  * Use `create(ProgressSchema)` to create a new message.
  */
 export const ProgressSchema: GenMessage<Progress> = /*@__PURE__*/
-  messageDesc(file_harness_mcp_v1_mcp, 47);
+  messageDesc(file_harness_mcp_v1_mcp, 53);
 
 /**
  * @generated from message harness.mcp.v1.CallToolResult
@@ -1499,7 +1770,7 @@ export type CallToolResult = Message<"harness.mcp.v1.CallToolResult"> & {
  * Use `create(CallToolResultSchema)` to create a new message.
  */
 export const CallToolResultSchema: GenMessage<CallToolResult> = /*@__PURE__*/
-  messageDesc(file_harness_mcp_v1_mcp, 48);
+  messageDesc(file_harness_mcp_v1_mcp, 54);
 
 /**
  * @generated from message harness.mcp.v1.GetPromptRequest
@@ -1526,7 +1797,7 @@ export type GetPromptRequest = Message<"harness.mcp.v1.GetPromptRequest"> & {
  * Use `create(GetPromptRequestSchema)` to create a new message.
  */
 export const GetPromptRequestSchema: GenMessage<GetPromptRequest> = /*@__PURE__*/
-  messageDesc(file_harness_mcp_v1_mcp, 49);
+  messageDesc(file_harness_mcp_v1_mcp, 55);
 
 /**
  * @generated from message harness.mcp.v1.GetPromptResponse
@@ -1545,7 +1816,7 @@ export type GetPromptResponse = Message<"harness.mcp.v1.GetPromptResponse"> & {
  * Use `create(GetPromptResponseSchema)` to create a new message.
  */
 export const GetPromptResponseSchema: GenMessage<GetPromptResponse> = /*@__PURE__*/
-  messageDesc(file_harness_mcp_v1_mcp, 50);
+  messageDesc(file_harness_mcp_v1_mcp, 56);
 
 /**
  * @generated from message harness.mcp.v1.ReadResourceRequest
@@ -1567,7 +1838,7 @@ export type ReadResourceRequest = Message<"harness.mcp.v1.ReadResourceRequest"> 
  * Use `create(ReadResourceRequestSchema)` to create a new message.
  */
 export const ReadResourceRequestSchema: GenMessage<ReadResourceRequest> = /*@__PURE__*/
-  messageDesc(file_harness_mcp_v1_mcp, 51);
+  messageDesc(file_harness_mcp_v1_mcp, 57);
 
 /**
  * @generated from message harness.mcp.v1.ReadResourceResponse
@@ -1586,7 +1857,7 @@ export type ReadResourceResponse = Message<"harness.mcp.v1.ReadResourceResponse"
  * Use `create(ReadResourceResponseSchema)` to create a new message.
  */
 export const ReadResourceResponseSchema: GenMessage<ReadResourceResponse> = /*@__PURE__*/
-  messageDesc(file_harness_mcp_v1_mcp, 52);
+  messageDesc(file_harness_mcp_v1_mcp, 58);
 
 /**
  * @generated from message harness.mcp.v1.GetToolCatalogRequest
@@ -1619,7 +1890,7 @@ export type GetToolCatalogRequest = Message<"harness.mcp.v1.GetToolCatalogReques
  * Use `create(GetToolCatalogRequestSchema)` to create a new message.
  */
 export const GetToolCatalogRequestSchema: GenMessage<GetToolCatalogRequest> = /*@__PURE__*/
-  messageDesc(file_harness_mcp_v1_mcp, 53);
+  messageDesc(file_harness_mcp_v1_mcp, 59);
 
 /**
  * @generated from message harness.mcp.v1.GetToolCatalogResponse
@@ -1643,7 +1914,7 @@ export type GetToolCatalogResponse = Message<"harness.mcp.v1.GetToolCatalogRespo
  * Use `create(GetToolCatalogResponseSchema)` to create a new message.
  */
 export const GetToolCatalogResponseSchema: GenMessage<GetToolCatalogResponse> = /*@__PURE__*/
-  messageDesc(file_harness_mcp_v1_mcp, 54);
+  messageDesc(file_harness_mcp_v1_mcp, 60);
 
 /**
  * @generated from message harness.mcp.v1.ToolCatalog
@@ -1674,7 +1945,7 @@ export type ToolCatalog = Message<"harness.mcp.v1.ToolCatalog"> & {
  * Use `create(ToolCatalogSchema)` to create a new message.
  */
 export const ToolCatalogSchema: GenMessage<ToolCatalog> = /*@__PURE__*/
-  messageDesc(file_harness_mcp_v1_mcp, 55);
+  messageDesc(file_harness_mcp_v1_mcp, 61);
 
 /**
  * @generated from message harness.mcp.v1.CatalogServer
@@ -1721,6 +1992,24 @@ export type CatalogServer = Message<"harness.mcp.v1.CatalogServer"> & {
    * @generated from field: bool requires_user_interaction = 7;
    */
   requiresUserInteraction: boolean;
+
+  /**
+   * Remote servers: what the upstream said when its tools were last fetched. Text for the model, as sent by the
+   * upstream; the client applies its own size budget.
+   *
+   * @generated from field: string instructions = 8;
+   */
+  instructions: string;
+
+  /**
+   * @generated from field: bool has_prompts = 9;
+   */
+  hasPrompts: boolean;
+
+  /**
+   * @generated from field: bool has_resources = 10;
+   */
+  hasResources: boolean;
 };
 
 /**
@@ -1728,7 +2017,164 @@ export type CatalogServer = Message<"harness.mcp.v1.CatalogServer"> & {
  * Use `create(CatalogServerSchema)` to create a new message.
  */
 export const CatalogServerSchema: GenMessage<CatalogServer> = /*@__PURE__*/
-  messageDesc(file_harness_mcp_v1_mcp, 56);
+  messageDesc(file_harness_mcp_v1_mcp, 62);
+
+/**
+ * @generated from message harness.mcp.v1.ListAuditRequest
+ */
+export type ListAuditRequest = Message<"harness.mcp.v1.ListAuditRequest"> & {
+  /**
+   * Optional filters.
+   *
+   * @generated from field: string server_id = 1;
+   */
+  serverId: string;
+
+  /**
+   * @generated from field: string user_id = 2;
+   */
+  userId: string;
+
+  /**
+   * stdio_launch, call_tool, oauth_completed, oauth_revoked.
+   *
+   * @generated from field: string action = 3;
+   */
+  action: string;
+
+  /**
+   * 0 -> 50; at most 200.
+   *
+   * @generated from field: int32 limit = 4;
+   */
+  limit: number;
+
+  /**
+   * next_cursor of the previous page.
+   *
+   * @generated from field: string cursor = 5;
+   */
+  cursor: string;
+};
+
+/**
+ * Describes the message harness.mcp.v1.ListAuditRequest.
+ * Use `create(ListAuditRequestSchema)` to create a new message.
+ */
+export const ListAuditRequestSchema: GenMessage<ListAuditRequest> = /*@__PURE__*/
+  messageDesc(file_harness_mcp_v1_mcp, 63);
+
+/**
+ * @generated from message harness.mcp.v1.ListAuditResponse
+ */
+export type ListAuditResponse = Message<"harness.mcp.v1.ListAuditResponse"> & {
+  /**
+   * @generated from field: repeated harness.mcp.v1.AuditEntry entries = 1;
+   */
+  entries: AuditEntry[];
+
+  /**
+   * @generated from field: string next_cursor = 2;
+   */
+  nextCursor: string;
+};
+
+/**
+ * Describes the message harness.mcp.v1.ListAuditResponse.
+ * Use `create(ListAuditResponseSchema)` to create a new message.
+ */
+export const ListAuditResponseSchema: GenMessage<ListAuditResponse> = /*@__PURE__*/
+  messageDesc(file_harness_mcp_v1_mcp, 64);
+
+/**
+ * @generated from message harness.mcp.v1.AuditEntry
+ */
+export type AuditEntry = Message<"harness.mcp.v1.AuditEntry"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * RFC 3339, UTC.
+   *
+   * @generated from field: string created_at = 2;
+   */
+  createdAt: string;
+
+  /**
+   * @generated from field: string user_id = 3;
+   */
+  userId: string;
+
+  /**
+   * Empty once the user is gone.
+   *
+   * @generated from field: string user_name = 4;
+   */
+  userName: string;
+
+  /**
+   * @generated from field: string device_id = 5;
+   */
+  deviceId: string;
+
+  /**
+   * @generated from field: string server_id = 6;
+   */
+  serverId: string;
+
+  /**
+   * Empty once the server is gone.
+   *
+   * @generated from field: string server_name = 7;
+   */
+  serverName: string;
+
+  /**
+   * @generated from field: string action = 8;
+   */
+  action: string;
+
+  /**
+   * @generated from field: string config_hash = 9;
+   */
+  configHash: string;
+
+  /**
+   * call_tool: the tool's name, how long it took and how it ended.
+   *
+   * @generated from field: string tool = 10;
+   */
+  tool: string;
+
+  /**
+   * @generated from field: bool is_error = 11;
+   */
+  isError: boolean;
+
+  /**
+   * @generated from field: int64 duration_ms = 12;
+   */
+  durationMs: bigint;
+
+  /**
+   * @generated from field: string error_message = 13;
+   */
+  errorMessage: string;
+
+  /**
+   * @generated from field: string session_id = 14;
+   */
+  sessionId: string;
+};
+
+/**
+ * Describes the message harness.mcp.v1.AuditEntry.
+ * Use `create(AuditEntrySchema)` to create a new message.
+ */
+export const AuditEntrySchema: GenMessage<AuditEntry> = /*@__PURE__*/
+  messageDesc(file_harness_mcp_v1_mcp, 65);
 
 /**
  * @generated from enum harness.mcp.v1.Transport
@@ -1888,8 +2334,9 @@ export const ApprovalStateSchema: GenEnum<ApprovalState> = /*@__PURE__*/
  * - Concurrency: UpdateServer / DeleteServer take base_version; a mismatch is returned as a Conflict in the
  *   response (not an error), as in harness.sync.v1. ERROR_TYPE_CONFLICT (ABORTED) is used only for non-CAS
  *   conflicts, e.g. a server name already taken in that scope.
- * - TODO(M3+): server-initiated MCP requests through the proxy (elicitation, sampling, roots) are out of
- *   scope for M2. Supporting them needs a round-trip to a host / viewer, similar to relay commands.
+ * - Elicitation through the proxy: an upstream elicitation/create during a tools/call reaches the caller on
+ *   that call's stream (CallToolResponse.elicitation); the caller answers with RespondToElicitation.
+ *   Sampling and roots are not offered to remote servers.
  *
  * @generated from service harness.mcp.v1.McpService
  */
@@ -2085,6 +2532,27 @@ export const McpService: GenService<{
     output: typeof ReadResourceResponseSchema;
   },
   /**
+   * Answers an elicitation received on the caller's own CallTool stream. An unknown or finished id is NOT_FOUND.
+   *
+   * @generated from rpc harness.mcp.v1.McpService.RespondToElicitation
+   */
+  respondToElicitation: {
+    methodKind: "unary";
+    input: typeof RespondToElicitationRequestSchema;
+    output: typeof RespondToElicitationResponseSchema;
+  },
+  /**
+   * What the upstream says about itself: name, version, capabilities, instructions. Connects if needed; a server
+   * that cannot be reached fails like the other proxy RPCs.
+   *
+   * @generated from rpc harness.mcp.v1.McpService.GetServerInfo
+   */
+  getServerInfo: {
+    methodKind: "unary";
+    input: typeof GetServerInfoRequestSchema;
+    output: typeof GetServerInfoResponseSchema;
+  },
+  /**
    * --- Tool schema cache (ToolSearch) -----------------------------------------------------------------
    * Tool names, descriptions and schemas of all servers visible to the caller, as a versioned snapshot.
    * A session records catalog.version at start and keeps using that snapshot (freeze per session, for the
@@ -2096,6 +2564,17 @@ export const McpService: GenService<{
     methodKind: "unary";
     input: typeof GetToolCatalogRequestSchema;
     output: typeof GetToolCatalogResponseSchema;
+  },
+  /**
+   * --- Audit ------------------------------------------------------------------------------------------
+   * The audit log of MCP operations, newest first. Admins only. Entries carry no secret values or tool arguments.
+   *
+   * @generated from rpc harness.mcp.v1.McpService.ListAudit
+   */
+  listAudit: {
+    methodKind: "unary";
+    input: typeof ListAuditRequestSchema;
+    output: typeof ListAuditResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_mcp_v1_mcp, 0);

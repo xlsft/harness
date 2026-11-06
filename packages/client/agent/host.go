@@ -69,7 +69,7 @@ func (a *Agent) Remind(id string, vars map[string]string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for i, r := range a.reminders {
-		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell && id != ReminderAgentReport && id != ReminderWorkflowReport && id != "monitor_match" && id != "monitor_stopped" && id != ReminderSessionMessage && id != ReminderSessionReport && id != ReminderPRActivity && id != ReminderTerminalDone && id != ReminderHookContext {
+		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell && id != ReminderAgentReport && id != ReminderWorkflowReport && id != "monitor_match" && id != "monitor_stopped" && id != ReminderSessionMessage && id != ReminderSessionReport && id != ReminderPRActivity && id != ReminderTerminalDone && id != ReminderHookContext && id != "mcp_tools_changed" && id != "mcp_instructions" {
 			if id == "environment_changed" || id == "session_moved" {
 				a.reminders[i].vars = vars // the latest state replaces the pending one
 			}

@@ -81,6 +81,8 @@ type Config struct {
 
 	Vars           map[string]string
 	ProjectContext string
+	// MCPInstructions returns what MCP servers offer the model (nil: nothing).
+	MCPInstructions func() string
 	AutoCompactPct float64
 	UsageMonitor   agent.UsageMonitor
 	// Hooks is the session's hook engine (agent.Config.Hooks; may be nil).
@@ -744,7 +746,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 		AutoCompactPct: m.cfg.AutoCompactPct,
 		RefreshBundle:  func(ctx context.Context) (*prompts.Bundle, error) { return m.cfg.Bundle(ctx, model) },
 		Effort:         effort, SessionID: m.cfg.SessionID, RequestClass: "subagent", AgentID: id,
-		Vars: vars, ProjectContext: m.cfg.ProjectContext, History: conv,
+		Vars: vars, ProjectContext: m.cfg.ProjectContext, MCPInstructions: m.cfg.MCPInstructions, History: conv,
 		DisabledTools: m.cfg.DisabledTools, ExtraTools: extra, PermissionMode: m.agentMode,
 		DisableInterruptReply: true, UsageMonitor: m.cfg.UsageMonitor, Hooks: m.cfg.Hooks, AgentType: a.info.Type,
 		OnEvent: func(e agent.Event) { m.onAgentEvent(a, e) }, Logger: m.cfg.Logger,

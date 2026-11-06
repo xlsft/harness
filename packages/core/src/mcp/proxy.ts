@@ -13,6 +13,11 @@
  * Every outbound connection goes through the SSRF guard (lib/ssrf.ts) unless the admin set
  * allow_private_network on the server.
  *
+ * Elicitation: an upstream's elicitation/create goes to the newest running tools/call of the pooled session (the
+ * protocol does not say which one it belongs to, and sessions are shared), as an event on that call's stream; the caller
+ * answers with RespondToElicitation. While it waits, the call's time limit stands still. Without a running call the
+ * request is cancelled: nobody could answer it.
+ *
  * Health: per (server, user) consecutive failures; after 3 failures new connections are refused for an
  * exponentially growing window (max 60 s) so a dead upstream does not stall every caller.
  */
@@ -22,6 +27,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import type { Transport as McpTransport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import {
   CallToolResultSchema,
+  ElicitRequestSchema,
   ErrorCode,
   GetPromptResultSchema,
   ListPromptsResultSchema,
@@ -29,7 +35,9 @@ import {
   ListResourceTemplatesResultSchema,
   ListToolsResultSchema,
   McpError,
+  PromptListChangedNotificationSchema,
   ReadResourceResultSchema,
+  ResourceListChangedNotificationSchema,
   ToolListChangedNotificationSchema,
   type Tool as McpTool,
 } from "@modelcontextprotocol/sdk/types.js";
@@ -37,9 +45,10 @@ import { and, eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { Transport } from "../gen/harness/mcp/v1/mcp_pb.ts";
 import { ApiError } from "../lib/errors.ts";
+import { newId } from "../lib/ids.ts";
 import { assertUrlAllowed, guardedFetchFn, ssrfError } from "../lib/ssrf.ts";
 import type { PublicUser } from "../services/devices.ts";
-import { REMOTE_TRANSPORTS, substitute, substituteMap } from "./config.ts";
+import { MAX_TOOL_TIMEOUT_MS, REMOTE_TRANSPORTS, substitute, substituteMap, toolVisible } from "./config.ts";
 import { assertAuthorized, getAccessToken, markNeedsAuth, onAuthChanged } from "./oauth.ts";
 import { loadSecrets, onServerChanged, rowConfig, type ServerRow, type ServerView } from "./registry.ts";
 import { GuardedWebSocketTransport } from "./ws-transport.ts";
@@ -54,6 +63,35 @@ export interface ToolData {
   annotations?: Record<string, unknown>;
 }
 
+/** What the upstream says about itself, kept with its tool list. */
+export interface UpstreamMeta {
+  instructions?: string;
+  hasPrompts?: boolean;
+  hasResources?: boolean;
+}
+
+export type ListKind = "tools" | "prompts" | "resources";
+
+export interface ElicitationEvent {
+  id: string;
+  mode: string;
+  message: string;
+  requestedSchemaJson: string;
+  url: string;
+}
+
+type ElicitAnswer = { action: "accept" | "decline" | "cancel"; content?: Record<string, unknown> };
+
+/** A running tools/call of a pooled session. */
+interface RunningCall {
+  onElicit(e: ElicitationEvent): void;
+  onListChanged(kind: ListKind): void;
+  pause(): void;
+  resume(): void;
+  /** Elicitations waiting for this call's answer. */
+  waiting: Set<string>;
+}
+
 interface Entry {
   key: string;
   serverId: string;
@@ -66,7 +104,10 @@ interface Entry {
   closed: boolean;
   /** Set by the fetch wrapper when the upstream answered 401 even after a refresh. */
   unauthorized: boolean;
+  calls: RunningCall[];
 }
+
+const pendingElicitations = new Map<string, { userId: string; resolve: (a: ElicitAnswer) => void; call: RunningCall }>();
 
 interface Health {
   failures: number;
@@ -87,7 +128,6 @@ function intEnv(name: string, def: number): number {
 const idleMs = () => intEnv("HARNESS_MCP_IDLE_MS", 300_000);
 const requestTimeoutMs = () => intEnv("HARNESS_MCP_REQUEST_TIMEOUT_MS", 60_000);
 const DEFAULT_CALL_TIMEOUT_MS = 600_000;
-const MAX_CALL_TIMEOUT_MS = 3_600_000;
 
 const keyOf = (serverId: string, userId: string) => `${serverId}\0${userId}`;
 
@@ -204,12 +244,13 @@ async function connect(user: PublicUser, row: ServerRow): Promise<Entry> {
     serverId: row.id,
     userId: user.id,
     fingerprint: fingerprint(row),
-    client: new Client({ name: "harness", version: "0.1.0" }, { capabilities: {} }),
+    client: new Client({ name: "harness", version: "0.1.0" }, { capabilities: { elicitation: { form: {}, url: {} } } }),
     transport: undefined as unknown as McpTransport,
     lastUsed: Date.now(),
     inflight: 0,
     closed: false,
     unauthorized: false,
+    calls: [],
   };
 
   const authFetch = async (input: string | URL, init?: RequestInit): Promise<Response> => {
@@ -247,8 +288,37 @@ async function connect(user: PublicUser, row: ServerRow): Promise<Entry> {
     const slot = pool.get(entry.key);
     if (slot) slot.entry.then((e) => e === entry && pool.get(entry.key) === slot && pool.delete(entry.key), () => {});
   };
+  const changed = (kind: ListKind) => {
+    for (const call of entry.calls) call.onListChanged(kind);
+  };
   entry.client.setNotificationHandler(ToolListChangedNotificationSchema, async () => {
     await invalidateToolCache(row.id, user.id);
+    changed("tools");
+  });
+  entry.client.setNotificationHandler(PromptListChangedNotificationSchema, async () => changed("prompts"));
+  entry.client.setNotificationHandler(ResourceListChangedNotificationSchema, async () => changed("resources"));
+  entry.client.setRequestHandler(ElicitRequestSchema, async (req) => {
+    const call = entry.calls.at(-1);
+    if (!call) return { action: "cancel" as const };
+    const id = newId("mel");
+    const p = req.params as { mode?: string; message: string; requestedSchema?: unknown; url?: string };
+    const answer = new Promise<ElicitAnswer>((resolve) => pendingElicitations.set(id, { userId: user.id, resolve, call }));
+    call.waiting.add(id);
+    call.pause();
+    try {
+      call.onElicit({
+        id,
+        mode: p.mode === "url" ? "url" : "form",
+        message: p.message,
+        requestedSchemaJson: p.requestedSchema ? JSON.stringify(p.requestedSchema) : "",
+        url: p.url ?? "",
+      });
+      return await answer;
+    } finally {
+      call.waiting.delete(id);
+      pendingElicitations.delete(id);
+      call.resume();
+    }
   });
   try {
     await entry.client.connect(transport, { timeout: requestTimeoutMs() });
@@ -307,7 +377,7 @@ async function acquire(user: PublicUser, row: ServerRow): Promise<Entry> {
  * Runs `fn` with a pooled client. Connection-level failures of idempotent requests are retried once on a
  * fresh connection; tool calls are never retried.
  */
-async function withClient<T>(user: PublicUser, view: Pick<ServerView, "row" | "secrets">, idempotent: boolean, fn: (c: Client) => Promise<T>): Promise<T> {
+async function withClient<T>(user: PublicUser, view: Pick<ServerView, "row" | "secrets">, idempotent: boolean, fn: (c: Client, e: Entry) => Promise<T>): Promise<T> {
   const row = view.row;
   if (!REMOTE_TRANSPORTS.has(row.transport)) throw new ApiError("invalid_request", "stdio MCP servers run on devices, not through the proxy");
   if (!row.enabled) throw new ApiError("failed_precondition", `MCP server ${row.name} is disabled`);
@@ -316,7 +386,7 @@ async function withClient<T>(user: PublicUser, view: Pick<ServerView, "row" | "s
     const e = await acquire(user, row);
     e.inflight++;
     try {
-      const r = await fn(e.client);
+      const r = await fn(e.client, e);
       recordOk(e.key);
       return r;
     } catch (err) {
@@ -356,8 +426,10 @@ function toToolData(t: McpTool): ToolData {
  * ToolSearch) still knows it must ask.
  */
 export function presentTools(row: ServerRow, tools: ToolData[]): ToolData[] {
-  if (!rowConfig(row).remote?.requiresUserInteraction) return tools;
-  return tools.map((t) => ({ ...t, annotations: { ...(t.annotations ?? {}), requiresUserInteraction: true } }));
+  const cfg = rowConfig(row);
+  const visible = tools.filter((t) => toolVisible(cfg, t.name));
+  if (!cfg.remote?.requiresUserInteraction) return visible;
+  return visible.map((t) => ({ ...t, annotations: { ...(t.annotations ?? {}), requiresUserInteraction: true } }));
 }
 
 async function invalidateToolCache(serverId: string, userId: string): Promise<void> {
@@ -365,9 +437,14 @@ async function invalidateToolCache(serverId: string, userId: string): Promise<vo
   await getDb().delete(schema.mcpToolCache).where(and(eq(schema.mcpToolCache.serverId, serverId), eq(schema.mcpToolCache.userId, userId)));
 }
 
-async function storeToolCache(row: ServerRow, userId: string, tools: ToolData[]): Promise<void> {
+function upstreamMeta(c: Client): UpstreamMeta {
+  const caps = c.getServerCapabilities();
+  return { instructions: c.getInstructions() ?? "", hasPrompts: !!caps?.prompts, hasResources: !!caps?.resources };
+}
+
+async function storeToolCache(row: ServerRow, userId: string, tools: ToolData[], meta: UpstreamMeta): Promise<void> {
   await ensureDb();
-  const values = { configHash: row.configHash, tools, fetchedAt: new Date() };
+  const values = { configHash: row.configHash, tools, meta, fetchedAt: new Date() };
   await getDb()
     .insert(schema.mcpToolCache)
     .values({ serverId: row.id, userId, ...values })
@@ -377,29 +454,44 @@ async function storeToolCache(row: ServerRow, userId: string, tools: ToolData[])
 const reqOpts = (signal?: AbortSignal) => ({ timeout: requestTimeoutMs(), signal });
 
 export async function listTools(user: PublicUser, view: ServerView, cursor: string, signal?: AbortSignal) {
-  const r = await withClient(user, view, true, (c) =>
-    c.request({ method: "tools/list", params: cursor ? { cursor } : {} }, ListToolsResultSchema, reqOpts(signal)),
-  );
+  const { r, meta } = await withClient(user, view, true, async (c) => ({
+    r: await c.request({ method: "tools/list", params: cursor ? { cursor } : {} }, ListToolsResultSchema, reqOpts(signal)),
+    meta: upstreamMeta(c),
+  }));
   const tools = r.tools.map(toToolData);
   // A complete first page is the whole list: keep it for the catalog.
-  if (!cursor && !r.nextCursor) await storeToolCache(view.row, user.id, tools);
+  if (!cursor && !r.nextCursor) await storeToolCache(view.row, user.id, tools, meta);
   return { tools: presentTools(view.row, tools), nextCursor: r.nextCursor ?? "" };
 }
 
+/** What the upstream says about itself (Settings > MCP). */
+export async function getServerInfo(user: PublicUser, view: ServerView, signal?: AbortSignal) {
+  return withClient(user, view, true, async (c) => {
+    // The request proves the session is alive; a pooled session may have died since it connected.
+    await c.ping(reqOpts(signal));
+    const caps = c.getServerCapabilities();
+    const v = c.getServerVersion();
+    return { name: v?.name ?? "", version: v?.version ?? "", instructions: c.getInstructions() ?? "", hasTools: !!caps?.tools, hasPrompts: !!caps?.prompts, hasResources: !!caps?.resources };
+  });
+}
+
 /** All pages of tools/list (catalog refresh); stores the result in the tool cache. */
-export async function fetchAllTools(user: PublicUser, view: Pick<ServerView, "row" | "secrets">, signal?: AbortSignal): Promise<ToolData[]> {
+export async function fetchAllTools(user: PublicUser, view: Pick<ServerView, "row" | "secrets">, signal?: AbortSignal): Promise<{ tools: ToolData[]; meta: UpstreamMeta }> {
   const tools: ToolData[] = [];
+  let meta: UpstreamMeta = {};
   let cursor: string | undefined;
   for (let page = 0; page < 50; page++) {
-    const r = await withClient(user, view, true, (c) =>
-      c.request({ method: "tools/list", params: cursor ? { cursor } : {} }, ListToolsResultSchema, reqOpts(signal)),
-    );
+    const r = await withClient(user, view, true, async (c) => {
+      const res = await c.request({ method: "tools/list", params: cursor ? { cursor } : {} }, ListToolsResultSchema, reqOpts(signal));
+      meta = upstreamMeta(c);
+      return res;
+    });
     tools.push(...r.tools.map(toToolData));
     cursor = r.nextCursor;
     if (!cursor) break;
   }
-  await storeToolCache(view.row, user.id, tools);
-  return tools;
+  await storeToolCache(view.row, user.id, tools, meta);
+  return { tools, meta };
 }
 
 export async function listPrompts(user: PublicUser, view: ServerView, cursor: string, signal?: AbortSignal) {
@@ -450,10 +542,65 @@ export interface ProgressEvent {
   message: string;
 }
 
+export interface CallEvents {
+  onProgress(p: ProgressEvent): void;
+  onElicit(e: ElicitationEvent): void;
+  onListChanged(kind: ListKind): void;
+}
+
+/** Answers an elicitation of one of the user's running calls. */
+export function respondToElicitation(user: PublicUser, id: string, action: string, contentJson: string): void {
+  const pending = pendingElicitations.get(id);
+  // Someone else's id looks like one that does not exist.
+  if (!pending || pending.userId !== user.id) throw new ApiError("not_found", "No such elicitation is waiting");
+  if (action !== "accept" && action !== "decline" && action !== "cancel") throw new ApiError("invalid_request", "action must be accept, decline or cancel");
+  let content: Record<string, unknown> | undefined;
+  if (action === "accept" && contentJson) {
+    let v: unknown;
+    try {
+      v = JSON.parse(contentJson);
+    } catch {
+      throw new ApiError("invalid_request", "content_json must be valid JSON");
+    }
+    if (!v || typeof v !== "object" || Array.isArray(v)) throw new ApiError("invalid_request", "content_json must be a JSON object");
+    content = v as Record<string, unknown>;
+  }
+  pending.resolve({ action, content });
+}
+
+/** A time limit that stands still while paused. */
+function pausableTimer(ms: number, fire: () => void) {
+  let left = ms;
+  let started = Date.now();
+  let paused = 0;
+  let timer: NodeJS.Timeout | undefined = setTimeout(fire, ms);
+  return {
+    pause() {
+      if (++paused === 1 && timer) {
+        clearTimeout(timer);
+        timer = undefined;
+        left -= Date.now() - started;
+      }
+    },
+    resume() {
+      if (--paused === 0) {
+        started = Date.now();
+        timer = setTimeout(fire, Math.max(0, left));
+      }
+    },
+    stop() {
+      if (timer) clearTimeout(timer);
+      timer = undefined;
+      paused = Number.POSITIVE_INFINITY;
+    },
+  };
+}
+
 /**
- * tools/call. Progress notifications are passed to `onProgress`; aborting `signal` (the RPC was cancelled)
+ * tools/call. Progress, elicitations and list changes go to `events`; aborting `signal` (the RPC was cancelled)
  * makes the SDK send notifications/cancelled upstream. The call times out after
- * `timeoutMs` (default 10 minutes).
+ * `timeoutMs` (default: the server's tool_timeout_ms, else 10 minutes), not counting the wait for the user's answer
+ * to an elicitation.
  */
 export async function callTool(
   user: PublicUser,
@@ -462,9 +609,10 @@ export async function callTool(
   argumentsJson: string,
   timeoutMs: number,
   signal: AbortSignal,
-  onProgress: (p: ProgressEvent) => void,
+  events: CallEvents,
 ): Promise<{ isError: boolean; resultJson: string }> {
   if (!toolName) throw new ApiError("invalid_request", "tool_name is required");
+  if (!toolVisible(view.config, toolName)) throw new ApiError("permission", `This server's configuration does not allow the tool ${toolName}`);
   let args: unknown = {};
   if (argumentsJson) {
     try {
@@ -474,13 +622,32 @@ export async function callTool(
     }
   }
   if (!args || typeof args !== "object" || Array.isArray(args)) throw new ApiError("invalid_request", "arguments_json must be a JSON object");
-  const total = Math.min(timeoutMs > 0 ? timeoutMs : DEFAULT_CALL_TIMEOUT_MS, MAX_CALL_TIMEOUT_MS);
-  const r = await withClient(user, view, false, (c) =>
-    c.request({ method: "tools/call", params: { name: toolName, arguments: args as Record<string, unknown> } }, CallToolResultSchema, {
-      signal,
-      timeout: total,
-      onprogress: (p) => onProgress({ progress: p.progress, total: p.total ?? 0, message: p.message ?? "" }),
-    }),
-  );
+  const limit = Math.min(timeoutMs > 0 ? timeoutMs : view.config.toolTimeoutMs || DEFAULT_CALL_TIMEOUT_MS, MAX_TOOL_TIMEOUT_MS);
+  const r = await withClient(user, view, false, async (c, entry) => {
+    const expired = new AbortController();
+    let timedOut = false;
+    const timer = pausableTimer(limit, () => {
+      timedOut = true;
+      expired.abort();
+    });
+    const call: RunningCall = { onElicit: events.onElicit, onListChanged: events.onListChanged, pause: timer.pause, resume: timer.resume, waiting: new Set() };
+    entry.calls.push(call);
+    try {
+      return await c.request({ method: "tools/call", params: { name: toolName, arguments: args as Record<string, unknown> } }, CallToolResultSchema, {
+        signal: AbortSignal.any([signal, expired.signal]),
+        // The timer above is the limit; this only keeps a call from outliving every limit there can be.
+        timeout: 2 * MAX_TOOL_TIMEOUT_MS,
+        onprogress: (p) => events.onProgress({ progress: p.progress, total: p.total ?? 0, message: p.message ?? "" }),
+      });
+    } catch (err) {
+      if (timedOut) throw new ApiError("upstream", `MCP server ${view.row.name} did not answer within ${Math.round(limit / 1000)} s`);
+      throw err;
+    } finally {
+      timer.stop();
+      entry.calls.splice(entry.calls.indexOf(call), 1);
+      // The upstream may still be waiting for an answer nobody will give.
+      for (const id of call.waiting) pendingElicitations.get(id)?.resolve({ action: "cancel" });
+    }
+  });
   return { isError: r.isError === true, resultJson: JSON.stringify(r) };
 }

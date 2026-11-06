@@ -38,6 +38,7 @@ import { ConnectLocalModelsApi } from './localModels'
 import { ConnectClaudeImportApi } from '~/lib/import/connect'
 import { ConnectLimitsApi } from '~/lib/limits/connect'
 import { ConnectAcpApi } from '~/lib/acp/connect'
+import { ConnectMcpApi } from '~/lib/mcp/connect'
 import { ConnectBrowserApi } from '~/lib/browser/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
@@ -97,6 +98,7 @@ export class ConnectTransport implements SessionTransport {
     this.speechApi = new ConnectSpeechApi(transport)
     this.limitsApi = new ConnectLimitsApi(transport)
     this.acpApi = new ConnectAcpApi(transport)
+    this.mcpApi = new ConnectMcpApi(transport)
     this.browserApi = new ConnectBrowserApi(transport, baseUrl)
   }
 
@@ -452,6 +454,11 @@ export class ConnectTransport implements SessionTransport {
   private localModelsApi?: ConnectLocalModelsApi
   localModels() {
     return (this.localModelsApi ??= new ConnectLocalModelsApi(this.transport))
+  }
+
+  private mcpApi!: ConnectMcpApi
+  mcp() {
+    return this.mcpApi
   }
 
   private acpApi!: ConnectAcpApi

@@ -26,8 +26,9 @@ import "harness/common/v1/scope.proto";
 // - Concurrency: UpdateServer / DeleteServer take base_version; a mismatch is returned as a Conflict in the
 //   response (not an error), as in harness.sync.v1. ERROR_TYPE_CONFLICT (ABORTED) is used only for non-CAS
 //   conflicts, e.g. a server name already taken in that scope.
-// - TODO(M3+): server-initiated MCP requests through the proxy (elicitation, sampling, roots) are out of
-//   scope for M2. Supporting them needs a round-trip to a host / viewer, similar to relay commands.
+// - Elicitation through the proxy: an upstream elicitation/create during a tools/call reaches the caller on
+//   that call's stream (CallToolResponse.elicitation); the caller answers with RespondToElicitation.
+//   Sampling and roots are not offered to remote servers.
 service McpService {
   // --- Registry ---------------------------------------------------------------------------------------
   rpc ListServers(ListServersRequest) returns (ListServersResponse);
@@ -83,12 +84,21 @@ service McpService {
   rpc CallTool(CallToolRequest) returns (stream CallToolResponse);
   rpc GetPrompt(GetPromptRequest) returns (GetPromptResponse);
   rpc ReadResource(ReadResourceRequest) returns (ReadResourceResponse);
+  // Answers an elicitation received on the caller's own CallTool stream. An unknown or finished id is NOT_FOUND.
+  rpc RespondToElicitation(RespondToElicitationRequest) returns (RespondToElicitationResponse);
+  // What the upstream says about itself: name, version, capabilities, instructions. Connects if needed; a server
+  // that cannot be reached fails like the other proxy RPCs.
+  rpc GetServerInfo(GetServerInfoRequest) returns (GetServerInfoResponse);
 
   // --- Tool schema cache (ToolSearch) -----------------------------------------------------------------
   // Tool names, descriptions and schemas of all servers visible to the caller, as a versioned snapshot.
   // A session records catalog.version at start and keeps using that snapshot (freeze per session, for the
   // prompt cache); it can refetch the same snapshot with `version` (kept for at least 7 days).
   rpc GetToolCatalog(GetToolCatalogRequest) returns (GetToolCatalogResponse);
+
+  // --- Audit ------------------------------------------------------------------------------------------
+  // The audit log of MCP operations, newest first. Admins only. Entries carry no secret values or tool arguments.
+  rpc ListAudit(ListAuditRequest) returns (ListAuditResponse);
 }
 
 enum Transport {
@@ -160,6 +170,19 @@ message Server {
   string updated_at = 17;
   // Remote servers on private networks (admin-only to set; reset when the URL moves to another origin).
   bool allow_private_network = 18;
+  // Time limit of one tools/call; 0 -> the default (10 minutes). Time spent waiting for the user's answer to an
+  // elicitation does not count.
+  int64 tool_timeout_ms = 19;
+  // Glob patterns ('*') over the server's own tool names. Non-empty: only matching tools exist for the agent.
+  repeated string allowed_tools = 20;
+  // Glob patterns over the server's own tool names; wins over allowed_tools. Enforced by whoever talks to the
+  // upstream: the proxy for remote servers, the client for stdio servers. Unlike the user's permission rules it
+  // belongs to whoever manages the server, so an admin's list on an org server cannot be undone by a user.
+  repeated string denied_tools = 21;
+  // Largest text of one tool result given to the model, in characters; 0 -> the client's default.
+  int32 max_output_chars = 22;
+  // Read-only: whether the caller may change or delete this server.
+  bool can_edit = 23;
 }
 
 message StdioConfig {
@@ -179,6 +202,9 @@ message RemoteConfig {
   OAuthConfig oauth = 3;
   // Tools of this server always require a user confirmation, regardless of permission rules.
   bool requires_user_interaction = 4;
+  // Device-local servers only (harness.agent.v1 McpServerSource.DEVICE; the registry refuses it): a command run on
+  // the device whose stdout is a JSON object of headers, merged over `headers` for each new connection.
+  string headers_helper = 5;
 }
 
 message OAuthConfig {
@@ -223,6 +249,8 @@ message ListServersRequest {
 
 message ListServersResponse {
   repeated Server servers = 1;
+  // The caller is an admin: may create org servers and read the audit log.
+  bool can_manage_org = 2;
 }
 
 message GetServerRequest {
@@ -472,7 +500,59 @@ message CallToolResponse {
   oneof event {
     Progress progress = 1;
     CallToolResult result = 2;
+    // The upstream asks the user something; the call waits for RespondToElicitation.
+    ElicitationRequest elicitation = 3;
+    // The upstream announced a changed list while this call ran: the caller refreshes what it keeps.
+    ListChanged list_changed = 4;
   }
+}
+
+// An MCP elicitation/create as sent by the upstream.
+message ElicitationRequest {
+  // mel_...
+  string id = 1;
+  // "form" or "url".
+  string mode = 2;
+  string message = 3;
+  // Form: JSON Schema of the answer (flat object of primitives), exact upstream JSON.
+  string requested_schema_json = 4;
+  // URL: the page the user is sent to.
+  string url = 5;
+}
+
+message RespondToElicitationRequest {
+  string id = 1;
+  // "accept", "decline" or "cancel".
+  string action = 2;
+  // Accept of a form: the answers, a JSON object.
+  string content_json = 3;
+}
+
+message RespondToElicitationResponse {}
+
+message ListChanged {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_TOOLS = 1;
+    KIND_PROMPTS = 2;
+    KIND_RESOURCES = 3;
+  }
+  Kind kind = 1;
+}
+
+message GetServerInfoRequest {
+  string server_id = 1;
+}
+
+message GetServerInfoResponse {
+  // The upstream's own name and version.
+  string name = 1;
+  string version = 2;
+  // Text the upstream offers for the model.
+  string instructions = 3;
+  bool has_tools = 4;
+  bool has_prompts = 5;
+  bool has_resources = 6;
 }
 
 message Progress {
@@ -546,4 +626,47 @@ message CatalogServer {
   string tools_updated_at = 6;
   // Every call to this server needs an explicit user approval, whatever the permission mode.
   bool requires_user_interaction = 7;
+  // Remote servers: what the upstream said when its tools were last fetched. Text for the model, as sent by the
+  // upstream; the client applies its own size budget.
+  string instructions = 8;
+  bool has_prompts = 9;
+  bool has_resources = 10;
+}
+
+message ListAuditRequest {
+  // Optional filters.
+  string server_id = 1;
+  string user_id = 2;
+  // stdio_launch, call_tool, oauth_completed, oauth_revoked.
+  string action = 3;
+  // 0 -> 50; at most 200.
+  int32 limit = 4;
+  // next_cursor of the previous page.
+  string cursor = 5;
+}
+
+message ListAuditResponse {
+  repeated AuditEntry entries = 1;
+  string next_cursor = 2;
+}
+
+message AuditEntry {
+  string id = 1;
+  // RFC 3339, UTC.
+  string created_at = 2;
+  string user_id = 3;
+  // Empty once the user is gone.
+  string user_name = 4;
+  string device_id = 5;
+  string server_id = 6;
+  // Empty once the server is gone.
+  string server_name = 7;
+  string action = 8;
+  string config_hash = 9;
+  // call_tool: the tool's name, how long it took and how it ended.
+  string tool = 10;
+  bool is_error = 11;
+  int64 duration_ms = 12;
+  string error_message = 13;
+  string session_id = 14;
 }
