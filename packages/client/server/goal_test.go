@@ -136,7 +136,8 @@ func TestGoalStopsOnRequestAndComesBackPaused(t *testing.T) {
 	gate := make(chan struct{})
 	var checks atomic.Int32
 	h, _ := startScheduling(t, func(_ int, r *llm.Request) fg.Reply {
-		if r.Metadata != nil && r.Metadata.RequestClass == "auxiliary" {
+		// The reply to an interruption is an auxiliary request too; a check is the one that holds the condition.
+		if strings.Contains(allRequestText(r), "<condition>") {
 			checks.Add(1)
 			return answer(notMet(0))
 		}
