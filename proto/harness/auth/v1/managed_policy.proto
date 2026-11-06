@@ -45,6 +45,8 @@ message ManagedPolicy {
   repeated string distributed_plugins = 16;
   // enabledPlugins false: name@marketplace, blocked at every level.
   repeated string blocked_plugins = 17;
+  // Only always-on hosts registered by an admin may be used: nobody registers or runs a host of their own.
+  bool personal_hosts_disabled = 230;
 }
 
 message GetManagedPolicyRequest {}

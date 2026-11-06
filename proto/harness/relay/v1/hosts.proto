@@ -1,0 +1,409 @@
+syntax = "proto3";
+
+package harness.relay.v1;
+
+import "harness/agent/v1/agent.proto";
+import "harness/agent/v1/auto_fix.proto";
+import "harness/llm/v1/content.proto";
+
+// Always-on hosts: `harness-client daemon` on a server or in a container, taking work while nobody's machine is awake.
+// docs/design/hosts.md has the design and the isolation model.
+//
+// HostsService is for people and is what frontends reach, through their client or the web console's cookie.
+// HostAgentService is for daemons, signed in with a host's device token, and is not proxied: it hands out credentials.
+
+service HostsService {
+  // The hosts the caller may use: their own and those of their teams. With all (roles that read users): every host, with
+  // workers and load.
+  rpc ListAgentHosts(ListAgentHostsRequest) returns (ListAgentHostsResponse);
+  // Registers a host and returns its device token, once. USER: for the caller. TEAM: admins only, needs group_id.
+  rpc CreateAgentHost(CreateAgentHostRequest) returns (CreateAgentHostResponse);
+  // Owner or admin; the capacity limits, the group and the allowed repositories of a team host are for admins.
+  rpc UpdateAgentHost(UpdateAgentHostRequest) returns (UpdateAgentHostResponse);
+  // Owner or admin. Revokes the host's devices and ends the work still queued.
+  rpc DeleteAgentHost(DeleteAgentHostRequest) returns (DeleteAgentHostResponse);
+  // Queues a new session in a repository on a host. Returns at once; the work names its session when one exists.
+  rpc StartHostWork(StartHostWorkRequest) returns (StartHostWorkResponse);
+  rpc GetHostWork(GetHostWorkRequest) returns (GetHostWorkResponse);
+  // The caller's work, newest first. With a host_id and a role that reads users: everyone's on that host, without prompts.
+  rpc ListHostWork(ListHostWorkRequest) returns (ListHostWorkResponse);
+  rpc CancelHostWork(CancelHostWorkRequest) returns (CancelHostWorkResponse);
+  // Which host takes the caller's auto-fix jobs and @mentions while their machines are away. Empty: none.
+  rpc SetAwayHost(SetAwayHostRequest) returns (SetAwayHostResponse);
+  // First caller for a schedule and due time wins (docs/design/hosts.md, decision 19).
+  rpc ClaimScheduleRun(ClaimScheduleRunRequest) returns (ClaimScheduleRunResponse);
+}
+
+service HostAgentService {
+  // Says what this daemon is. Creates the host on the first call of a token made by `harness-client daemon login`.
+  rpc RegisterAgentHost(RegisterAgentHostRequest) returns (RegisterAgentHostResponse);
+  // Load, every 30 s or so. Also what hands over away work (decision 16).
+  rpc ReportAgentHost(ReportAgentHostRequest) returns (ReportAgentHostResponse);
+  // Long poll: the next work of this device's user that fits the host's capacity. Empty after wait_seconds.
+  rpc ClaimHostWork(ClaimHostWorkRequest) returns (ClaimHostWorkResponse);
+  // Progress of claimed work. Renews the claim's lease.
+  rpc UpdateHostWork(UpdateHostWorkRequest) returns (UpdateHostWorkResponse);
+  // Short-lived git credentials for a repository, from the code host connection.
+  rpc IssueGitCredentials(IssueGitCredentialsRequest) returns (IssueGitCredentialsResponse);
+  // Opens a draft or ready pull request with the same identity as the credentials.
+  rpc OpenHostPullRequest(OpenHostPullRequestRequest) returns (OpenHostPullRequestResponse);
+  // Supervisor of a team host: long poll for the members that should have a worker running.
+  rpc ListWantedWorkers(ListWantedWorkersRequest) returns (ListWantedWorkersResponse);
+  // Supervisor of a team host: a fresh device token for a member's worker; the previous one stops working.
+  rpc IssueWorkerToken(IssueWorkerTokenRequest) returns (IssueWorkerTokenResponse);
+}
+
+enum AgentHostScope {
+  AGENT_HOST_SCOPE_UNSPECIFIED = 0;
+  // Runs the work of one user.
+  AGENT_HOST_SCOPE_USER = 1;
+  // Registered by an admin for the members of a group.
+  AGENT_HOST_SCOPE_TEAM = 2;
+}
+
+enum AgentHostIsolation {
+  AGENT_HOST_ISOLATION_UNSPECIFIED = 0;
+  // All sessions run as one OS user. Fine for one person; a team host like this takes no work.
+  AGENT_HOST_ISOLATION_NONE = 1;
+  // Each member's worker runs under a Unix user of its own.
+  AGENT_HOST_ISOLATION_UID = 2;
+}
+
+enum HostWorkKind {
+  HOST_WORK_KIND_UNSPECIFIED = 0;
+  HOST_WORK_KIND_NEW_SESSION = 1;
+  // An auto-fix job whose session's machine is away, or an @mention of it.
+  HOST_WORK_KIND_AUTO_FIX = 2;
+  // An @mention on a pull request with no session.
+  HOST_WORK_KIND_MENTION = 3;
+}
+
+enum HostWorkState {
+  HOST_WORK_STATE_UNSPECIFIED = 0;
+  // Waiting for the host: offline, full or busy.
+  HOST_WORK_STATE_QUEUED = 1;
+  // A daemon has it and is making the checkout.
+  HOST_WORK_STATE_CLAIMED = 2;
+  // The session exists (session_id).
+  HOST_WORK_STATE_RUNNING = 3;
+  HOST_WORK_STATE_DONE = 4;
+  HOST_WORK_STATE_FAILED = 5;
+  HOST_WORK_STATE_CANCELLED = 6;
+  HOST_WORK_STATE_EXPIRED = 7;
+}
+
+// How a session's work leaves the host.
+enum HostWorkLanding {
+  // The default: a pull request.
+  HOST_WORK_LANDING_UNSPECIFIED = 0;
+  HOST_WORK_LANDING_PULL_REQUEST = 1;
+  HOST_WORK_LANDING_BRANCH = 2;
+  // Stays in the host's checkout.
+  HOST_WORK_LANDING_NONE = 3;
+}
+
+message AgentHost {
+  // ahs_...
+  string id = 1;
+  string name = 2;
+  AgentHostScope scope = 3;
+  string owner_user_id = 4;
+  string owner_name = 5;
+  // Team hosts.
+  string group_id = 6;
+  string group_name = 7;
+  bool online = 8;
+  // Takes no new work. What runs goes on.
+  bool draining = 9;
+  // Why the host can't take the caller's work right now, for the menu. Empty: it can.
+  string unavailable_reason = 10;
+  int32 max_sessions = 11;
+  // 0: no limit per user.
+  int32 max_sessions_per_user = 12;
+  int32 open_sessions = 13;
+  int32 queued_work = 14;
+  AgentHostIsolation isolation = 15;
+  // The OS sandbox on this host: "seatbelt", "bubblewrap" and so on, "" for none.
+  string sandbox_driver = 16;
+  string os = 17;
+  string arch = 18;
+  string client_version = 19;
+  int32 cpu_count = 20;
+  double load_average = 21;
+  int64 disk_free_bytes = 22;
+  // Team hosts: repositories the connection's own identity may be used on for members, as patterns like
+  // "github.com/acme/*". Empty: every member needs their own account connected.
+  repeated string allowed_repositories = 23;
+  // The caller's machines being away, this host takes their jobs.
+  bool away_host = 24;
+  // RFC 3339, UTC.
+  string last_seen_at = 25;
+  string created_at = 26;
+  // With ListAgentHostsRequest.all.
+  repeated AgentHostWorker workers = 27;
+}
+
+message AgentHostWorker {
+  string user_id = 1;
+  string user_name = 2;
+  string device_id = 3;
+  bool online = 4;
+  int32 open_sessions = 5;
+}
+
+message ListAgentHostsRequest {
+  bool all = 1;
+}
+
+message ListAgentHostsResponse {
+  repeated AgentHost hosts = 1;
+}
+
+message CreateAgentHostRequest {
+  string name = 1;
+  AgentHostScope scope = 2;
+  string group_id = 3;
+  int32 max_sessions = 4;
+  int32 max_sessions_per_user = 5;
+  repeated string allowed_repositories = 6;
+}
+
+message CreateAgentHostResponse {
+  AgentHost host = 1;
+  // Shown once. HARNESS_DEVICE_TOKEN for the daemon.
+  string device_token = 2;
+}
+
+message UpdateAgentHostRequest {
+  string id = 1;
+  optional string name = 2;
+  optional bool draining = 3;
+  optional int32 max_sessions = 4;
+  optional int32 max_sessions_per_user = 5;
+  optional string group_id = 6;
+  // Replaces the list when set_allowed_repositories.
+  bool set_allowed_repositories = 7;
+  repeated string allowed_repositories = 8;
+}
+
+message UpdateAgentHostResponse {
+  AgentHost host = 1;
+}
+
+message DeleteAgentHostRequest {
+  string id = 1;
+}
+
+message DeleteAgentHostResponse {}
+
+message HostWork {
+  // hwk_...
+  string id = 1;
+  string host_id = 2;
+  string host_name = 3;
+  string user_id = 4;
+  HostWorkKind kind = 5;
+  HostWorkState state = 6;
+  // host/owner/name.
+  string repository_key = 7;
+  // What the new branch starts from; empty: the repository's default branch.
+  string base_ref = 8;
+  // The branch the work is on. For a job, the pull request's head branch.
+  string branch = 9;
+  HostWorkLanding landing = 10;
+  // A fresh clone rather than a worktree of the host's cache.
+  bool fresh_clone = 11;
+  // The first message. Empty in other people's listings.
+  string prompt = 12;
+  string title = 13;
+  string model = 14;
+  harness.llm.v1.Effort effort = 15;
+  harness.agent.v1.PermissionMode permission_mode = 16;
+  // A job to give the new session. Its text is external data, as in any job.
+  harness.agent.v1.AutoFixJob job = 17;
+  // The session whose transcript this continues, when the server has it.
+  string fork_session_id = 18;
+  // Set when the session exists, and when work landed.
+  string session_id = 19;
+  string pull_request_url = 20;
+  string error = 21;
+  int32 attempts = 22;
+  // RFC 3339, UTC.
+  string created_at = 23;
+  string updated_at = 24;
+}
+
+message StartHostWorkRequest {
+  string host_id = 1;
+  string repository_key = 2;
+  string base_ref = 3;
+  string prompt = 4;
+  string title = 5;
+  string model = 6;
+  harness.llm.v1.Effort effort = 7;
+  // PERMISSION_MODE_BYPASS_PERMISSIONS is refused. Unspecified: the host's default, auto.
+  harness.agent.v1.PermissionMode permission_mode = 8;
+  HostWorkLanding landing = 9;
+  bool fresh_clone = 10;
+  // Retrying with the same key returns the same work.
+  string idempotency_key = 11;
+}
+
+message StartHostWorkResponse {
+  HostWork work = 1;
+}
+
+message GetHostWorkRequest {
+  string id = 1;
+}
+
+message GetHostWorkResponse {
+  HostWork work = 1;
+}
+
+message ListHostWorkRequest {
+  string host_id = 1;
+  int32 limit = 2;
+}
+
+message ListHostWorkResponse {
+  repeated HostWork work = 1;
+}
+
+message CancelHostWorkRequest {
+  string id = 1;
+}
+
+message CancelHostWorkResponse {
+  HostWork work = 1;
+}
+
+message SetAwayHostRequest {
+  string host_id = 1;
+}
+
+message SetAwayHostResponse {}
+
+message ClaimScheduleRunRequest {
+  string schedule_id = 1;
+  // The time it was due, RFC 3339, UTC.
+  string due_at = 2;
+}
+
+message ClaimScheduleRunResponse {
+  bool granted = 1;
+}
+
+message RegisterAgentHostRequest {
+  string name = 1;
+  AgentHostIsolation isolation = 2;
+  string sandbox_driver = 3;
+  string os = 4;
+  string arch = 5;
+  string client_version = 6;
+  int32 cpu_count = 7;
+  // The daemon's --max-sessions. 0 leaves the host's limit as it is.
+  int32 max_sessions = 8;
+}
+
+message RegisterAgentHostResponse {
+  AgentHost host = 1;
+  // This device runs members' workers and takes no work itself.
+  bool supervisor = 2;
+}
+
+message ReportAgentHostRequest {
+  int32 open_sessions = 1;
+  double load_average = 2;
+  int64 disk_free_bytes = 3;
+}
+
+message ReportAgentHostResponse {
+  bool draining = 1;
+  int32 max_sessions = 2;
+}
+
+message ClaimHostWorkRequest {
+  // At most 25.
+  int32 wait_seconds = 1;
+}
+
+message ClaimHostWorkResponse {
+  // Absent: nothing for now.
+  HostWork work = 1;
+  // For commits on the host, the user's name and address.
+  string git_name = 2;
+  string git_email = 3;
+}
+
+message UpdateHostWorkRequest {
+  string work_id = 1;
+  // CLAIMED (a lease renewal), RUNNING, DONE or FAILED.
+  HostWorkState state = 2;
+  string session_id = 3;
+  string branch = 4;
+  string pull_request_url = 5;
+  string error = 6;
+}
+
+message UpdateHostWorkResponse {
+  // Someone cancelled it: drop what's in progress.
+  bool cancelled = 1;
+}
+
+message IssueGitCredentialsRequest {
+  string repository_key = 1;
+}
+
+message IssueGitCredentialsResponse {
+  // No credentials in it.
+  string clone_url = 1;
+  string username = 2;
+  string password = 3;
+  // RFC 3339, UTC. Ask again after this.
+  string expires_at = 4;
+  // The user's own account, rather than the connection's identity.
+  bool as_user = 5;
+}
+
+message OpenHostPullRequestRequest {
+  string repository_key = 1;
+  string head_branch = 2;
+  string base_branch = 3;
+  string title = 4;
+  string body = 5;
+  bool draft = 6;
+  // Linked to the pull request when the server knows the session by then.
+  string session_id = 7;
+}
+
+message OpenHostPullRequestResponse {
+  string url = 1;
+  int64 number = 2;
+}
+
+message ListWantedWorkersRequest {
+  // At most 25.
+  int32 wait_seconds = 1;
+}
+
+message WantedWorker {
+  string user_id = 1;
+  // Stable: names the worker's home on the host.
+  string device_id = 2;
+}
+
+message ListWantedWorkersResponse {
+  repeated WantedWorker workers = 1;
+  // Workers to stop, by user: access was removed.
+  repeated string stop_user_ids = 2;
+}
+
+message IssueWorkerTokenRequest {
+  string user_id = 1;
+}
+
+message IssueWorkerTokenResponse {
+  string device_id = 1;
+  string device_token = 2;
+}

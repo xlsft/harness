@@ -133,6 +133,11 @@ message Schedule {
   string device_name = 17;
   // It stays on that machine: not synced, other machines don't see it.
   bool device_local = 18;
+  // The always-on host that runs this while its machine is away (docs/design/hosts.md, decision 19). Needs repository_key:
+  // the folder is on the machine, and the host makes a checkout of its own.
+  string away_host_id = 230;
+  // host/owner/name.
+  string repository_key = 231;
 
   // Output only.
   ScheduleOrigin origin = 30;

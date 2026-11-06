@@ -54,8 +54,10 @@ type ManagedPolicy struct {
 	DistributedPlugins []string `protobuf:"bytes,16,rep,name=distributed_plugins,json=distributedPlugins,proto3" json:"distributed_plugins,omitempty"`
 	// enabledPlugins false: name@marketplace, blocked at every level.
 	BlockedPlugins []string `protobuf:"bytes,17,rep,name=blocked_plugins,json=blockedPlugins,proto3" json:"blocked_plugins,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Only always-on hosts registered by an admin may be used: nobody registers or runs a host of their own.
+	PersonalHostsDisabled bool `protobuf:"varint,230,opt,name=personal_hosts_disabled,json=personalHostsDisabled,proto3" json:"personal_hosts_disabled,omitempty"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -205,6 +207,13 @@ func (x *ManagedPolicy) GetBlockedPlugins() []string {
 		return x.BlockedPlugins
 	}
 	return nil
+}
+
+func (x *ManagedPolicy) GetPersonalHostsDisabled() bool {
+	if x != nil {
+		return x.PersonalHostsDisabled
+	}
+	return false
 }
 
 type GetManagedPolicyRequest struct {
@@ -465,7 +474,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xb4\x06\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xed\x06\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -486,7 +495,8 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\x16blocked_plugin_sources\x18\x0e \x03(\tR\x14blockedPluginSources\x129\n" +
 	"\x18distributed_marketplaces\x18\x0f \x03(\tR\x17distributedMarketplaces\x12/\n" +
 	"\x13distributed_plugins\x18\x10 \x03(\tR\x12distributedPlugins\x12'\n" +
-	"\x0fblocked_plugins\x18\x11 \x03(\tR\x0eblockedPlugins\"\x19\n" +
+	"\x0fblocked_plugins\x18\x11 \x03(\tR\x0eblockedPlugins\x127\n" +
+	"\x17personal_hosts_disabled\x18\xe6\x01 \x01(\bR\x15personalHostsDisabled\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +
 	"\x06policy\x18\x01 \x01(\v2\x1e.harness.auth.v1.ManagedPolicyR\x06policy\x12\x1d\n" +
