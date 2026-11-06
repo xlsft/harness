@@ -270,6 +270,7 @@ func (e *docxEdit) setText(ed Edit) error {
 	if p.text == "" {
 		// Nothing to cut: a new run goes at the end of the paragraph.
 		e.touched[p] = true
+		e.noteFallback(p)
 		run := e.newRun(p, ed.Text, "", track, authorOf(ed))
 		e.spans[p.story] = append(e.spans[p.story], insertKidSpan(p.story.xml.Data, p.node, run))
 		e.res.Changes = append(e.res.Changes, fmt.Sprintf("Set the text of %s%s.", p.id(), trackedWord(track)))
@@ -329,7 +330,15 @@ func (e *docxEdit) addRep(p *docxPara, r *rep) error {
 	}
 	e.reps[p] = append(e.reps[p], r)
 	e.touched[p] = true
+	e.noteFallback(p)
 	return nil
+}
+
+// noteFallback says when a text box's copy for old readers keeps the old text.
+func (e *docxEdit) noteFallback(p *docxPara) {
+	if p.node.HasAncestor("Choice") {
+		e.res.Notes = append(e.res.Notes, fmt.Sprintf("%s is in a text box: its fallback copy for old readers keeps the old text. Current Word and LibreOffice show the new one.", p.id()))
+	}
 }
 
 func rawRPr(data []byte, run *Node) string {

@@ -116,4 +116,35 @@ See the operation list in the tool description (`packages/core/prompts/tools/Doc
   set when a formula input changes, and dependents get computed values when the built-in evaluator can compute them.
 - pptx: slide add, delete and move are atomic. A cloned slide shares layouts and media, loses its notes, and deep-copies
   charts and embedded objects, with a warning.
-- pdf: page-level and form fields only. XFA and signed files are reported and refused. Flat-form overlay and OCR are later.
+- pdf: page-level and form fields only. XFA, signed and encrypted files are reported and refused. Flat-form overlay and OCR are later.
+
+## The skill
+
+Built in rather than a `catalog/` plugin: the tool descriptions point to it and it must be there without an install. It is
+embedded, ranks below every other source, so a user's own `documents` skill replaces it, and costs only its name and
+description until loaded. A `.claude` path is not involved.
+
+## Changes pane
+
+`server/sessiondiff_documents.go` projects both versions with `Document.Project` and diffs the lines. Projection lines hold
+no ordinals, so an inserted paragraph is one added line. Limits: `maxDocumentDiffBytes` per file, `maxDocumentDiffLines` per
+side. Results go through the existing `diffCache`, since the totals are measured after every tool. A version that cannot be
+read shows as binary. No contract changed: hunks carry the header `compared by content`, and `DiffPane.vue` knows the
+extensions. Rewind goes through the existing file history.
+
+## Tests
+
+- Fixtures are generated in Go from the specifications (`documents/fixtures_test.go`, `documents/create.go`), never copied.
+- A default test run starts no real LibreOffice and no PDFium. `HARNESS_TEST_LIBREOFFICE=1` and `HARNESS_TEST_PDFIUM=1` turn on
+  the real ones (`-run Real`). Tools that reach the engine replace `documents.FindSoffice` with a fake.
+- `evals/tasks/doc-*` grade with Python's standard library alone and need no model to self-test.
+- [documents-compatibility.md](documents-compatibility.md) lists what only a person with Office can check.
+
+## Left for later
+
+- Row and column insertion in sheets (excluded by design), and writing past `MaxXMLNodes`: very large sheets are refused, not streamed.
+- docx: nested comment replies and resolved state, table row operations, images. Moves and row-level tracked changes are refused and left to Word. Rejecting formatting changes is refused.
+- xlsx: data validation is listed but not enforced on written values. Structured references and other workbooks are not traced: the report counts such formulas. The evaluator covers common functions; others report "unknown".
+- pptx: images and charts cannot be added; shapes in groups cannot be moved. Clones are tested with a chart and a workbook, not SmartArt or media.
+- pdf: flat-form overlay, OCR, adding content to pages. Created PDFs hold Latin-1 only.
+- Conversion between formats, and pages from an engine other than LibreOffice.

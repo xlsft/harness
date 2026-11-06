@@ -34,7 +34,8 @@ export function toolIcon(t: ToolItem): IconName {
     case 'PreviewStop':
     case 'PreviewList':
     case 'PreviewLogs': return 'term'
-    case 'Read': return 'file'
+    case 'Read':
+    case 'DocumentRead': return 'file'
     case 'EnterWorktree':
     case 'ExitWorktree':
     case 'ProposeBranch': return 'branch'
