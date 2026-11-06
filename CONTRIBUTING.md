@@ -14,6 +14,7 @@ A monorepo **without monorepo tooling**: every package builds on its own. Packag
 | `ci/` | GitHub Action and GitLab CI template running `harness-client ci` | — |
 | `proto/` | RPC contracts (buf module) | buf |
 | `evals/` | Model eval suite | Go |
+| `catalog/` | Skills catalog, a plugin marketplace; see [its README](catalog/README.md) | JSON, checked by `scripts/catalog` (Python, standard library) |
 | `scripts/` | e2e test and local dev stack | bash |
 | `docs/` | Plan, protocol conventions, design | — |
 
