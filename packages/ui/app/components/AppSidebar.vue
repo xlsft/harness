@@ -68,8 +68,8 @@ const settings = useSettingsModal()
 const searchOpen = useState('search-open', () => false)
 const onSettings = settings.isOpen
 // A page other than the session view is open (or the new-session screen): no session row is current.
-const onCustomize = computed(() => route.path.startsWith('/customize'))
-const onPage = computed(() => onArtifacts.value || onCustomize.value || !!route.query.new)
+const onExtensions = computed(() => route.path.startsWith('/extensions'))
+const onPage = computed(() => onArtifacts.value || onExtensions.value || !!route.query.new)
 
 function mark(s: SessionState) {
   if (s.meta.status === 'error') return { text: 'fail', cls: 'text-bad' }
@@ -127,7 +127,7 @@ const NuxtLink = resolveComponent('NuxtLink')
 const nav = [
   { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts', soon: true },
   { label: 'Scheduled', icon: 'clock' as const, soon: true },
-  { label: 'Customize', icon: 'sliders' as const, to: '/customize' },
+  { label: 'Extensions', icon: 'sliders' as const, to: '/extensions' },
   { label: 'Knowledge base', icon: 'page' as const, soon: true },
   { label: 'Task tracker', icon: 'tasks' as const, soon: true }
 ]
@@ -200,8 +200,8 @@ const nav = [
         :href="item.to ? undefined : '#'"
         class="nav-row px-[9px] hover:bg-hover"
         :aria-disabled="item.soon && !item.to ? true : undefined"
-        :class="(item.to === '/artifacts' && onArtifacts) || (item.to === '/customize' && onCustomize) ? 'nav-row-current' : ''"
-        :aria-current="(item.to === '/artifacts' && onArtifacts) || (item.to === '/customize' && onCustomize) ? 'page' : undefined"
+        :class="(item.to === '/artifacts' && onArtifacts) || (item.to === '/extensions' && onExtensions) ? 'nav-row-current' : ''"
+        :aria-current="(item.to === '/artifacts' && onArtifacts) || (item.to === '/extensions' && onExtensions) ? 'page' : undefined"
         @click="item.soon && !item.to && $event.preventDefault()"
       >
         <HIcon :name="item.icon" />{{ item.label }}<span

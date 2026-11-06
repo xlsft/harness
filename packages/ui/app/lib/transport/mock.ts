@@ -60,6 +60,7 @@ import { MockSpeechApi } from '~/lib/speech/mock'
 import { ACP_SWITCH_REFUSAL, acpUnsupported, MockAcpApi } from '~/lib/acp/mock'
 import { MockMcpApi } from '~/lib/mcp/mock'
 import { MockPluginsApi } from '~/lib/plugins/mock'
+import { MockExtensionsApi, type MockScenario } from '~/lib/extensions/mock'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import { MockClaudeImportApi, type MockImportedSession } from '~/lib/import/mock'
@@ -1521,6 +1522,15 @@ export class MockTransport implements SessionTransport {
   private mcpApi = new MockMcpApi()
   mcp() {
     return this.mcpApi
+  }
+
+  private extensionsApi?: MockExtensionsApi
+  extensions() {
+    if (!this.extensionsApi) {
+      const scenario = typeof location === 'undefined' ? null : new URLSearchParams(location.search).get('scenario')
+      this.extensionsApi = new MockExtensionsApi(this.pluginsApi, this.mcpApi, () => mockSlashCatalog(this.disabledSkills), (scenario as MockScenario) ?? 'default')
+    }
+    return this.extensionsApi
   }
 
   private acpApi?: MockAcpApi

@@ -235,5 +235,10 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
         Older
       </HBtn>
     </div>
+      <SettingsMcpAudit
+      v-if="store.transport"
+      :api="store.transport.mcp()"
+      class="mt-6"
+    />
   </div>
 </template>

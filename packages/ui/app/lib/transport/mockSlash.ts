@@ -1,4 +1,4 @@
-// What the mock client reports for the slash menu and Customize: the built-ins the real one has, and one skill and one
+// What the mock client reports for the slash menu and Extensions: the built-ins the real one has, and one skill and one
 // command for the switch.
 import { create } from '@bufbuild/protobuf'
 import { SlashCommandKind, SlashCommandSchema, type SlashCommand } from '~/gen/harness/agent/v1/slash_commands_pb'
@@ -19,9 +19,9 @@ export function mockSlashCatalog(disabled: ReadonlySet<string>): SlashCatalog {
     builtin('effort', 'Set how hard the model thinks', '[low|medium|high|xhigh|max|auto]'),
     builtin('init', 'Write an instructions file for this repository', '[what to emphasize]'),
     builtin('code-review', 'Review the current diff for bugs and list the findings', '[range, files or focus]'),
-    builtin('skills', 'Open Customize: skills and commands, with their switches'),
-    own('release-notes', 'Draft release notes from the commits since the last tag', SlashCommandKind.SKILL, '.claude/skills/release-notes/SKILL.md'),
-    own('fe:test', 'Run the frontend tests', SlashCommandKind.COMMAND, '.claude/commands/fe/test.md')
+    builtin('skills', 'Open Extensions: skills and commands, with their switches'),
+    own('release-notes', 'Draft release notes from the commits since the last tag', SlashCommandKind.SKILL, '.harness/skills/release-notes/SKILL.md'),
+    own('fe:test', 'Run the frontend tests', SlashCommandKind.COMMAND, '.harness/commands/fe/test.md')
   ]
   return { commands, projectSkippedUntrusted: false, listingBudgetChars: 8000, listingUsedChars: 120 }
 }

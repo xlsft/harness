@@ -189,6 +189,10 @@ export interface ManagedPolicy {
   distributedMarketplaces: string[]
   distributedPlugins: string[]
   blockedPlugins: string[]
+  restrictSkills: boolean
+  allowedSkills: string[]
+  blockedSkills: string[]
+  externalSkillSearchDisabled: boolean
 }
 
 export interface PolicyChoice {
@@ -204,7 +208,7 @@ export interface ManagedPolicyState {
 }
 
 export function emptyManagedPolicy(): ManagedPolicy {
-  return { allowRules: [], askRules: [], denyRules: [], managedRulesOnly: false, sandboxRequired: false, sandboxOutsideRefused: false, restrictProviders: false, allowedProviders: [], personalProvidersDisabled: false, restrictMcpServers: false, allowedMcpServers: [], restrictPluginSources: false, allowedPluginSources: [], blockedPluginSources: [], distributedMarketplaces: [], distributedPlugins: [], blockedPlugins: [] }
+  return { allowRules: [], askRules: [], denyRules: [], managedRulesOnly: false, sandboxRequired: false, sandboxOutsideRefused: false, restrictProviders: false, allowedProviders: [], personalProvidersDisabled: false, restrictMcpServers: false, allowedMcpServers: [], restrictPluginSources: false, allowedPluginSources: [], blockedPluginSources: [], distributedMarketplaces: [], distributedPlugins: [], blockedPlugins: [], restrictSkills: false, allowedSkills: [], blockedSkills: [], externalSkillSearchDisabled: false }
 }
 
 export interface EnterpriseApi {

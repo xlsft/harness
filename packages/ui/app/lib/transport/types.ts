@@ -38,6 +38,7 @@ import type { LimitsApi } from '~/lib/limits/types'
 import type { AcpApi } from '~/lib/acp/types'
 import type { McpApi } from '~/lib/mcp/types'
 import type { PluginsApi } from '~/lib/plugins/types'
+import type { ExtensionsApi } from '~/lib/extensions/types'
 import type { BrowserApi } from '~/lib/browser/types'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 
@@ -121,6 +122,10 @@ export interface ManagedPolicyView {
   restrictMcpServers: boolean
   allowedMcpServers: string[]
   localModelsDisabled: boolean
+  restrictSkills: boolean
+  allowedSkills: string[]
+  blockedSkills: string[]
+  externalSkillSearchDisabled: boolean
 }
 
 export interface UserPreferences {
@@ -302,7 +307,7 @@ export interface SessionTransport {
   updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences>
   // Everything runnable from the composer, with its details, as the client resolves it (ListSlashCommands).
   listSlashCommands(target: SlashTarget): Promise<SlashCatalog>
-  // One switch of the Customize screen (a preference, synced).
+  // One switch of the Extensions screen (a preference, synced).
   setSkillEnabled(name: string, enabled: boolean): Promise<void>
   getSandboxStatus(): Promise<SandboxStatus>
   // The hooks of an open session as it runs them, or of a folder, or (neither) those that do not depend on a folder.
@@ -384,6 +389,7 @@ export interface SessionTransport {
   // MCP servers: Settings > MCP, and a session's commands and mentions (~/lib/mcp).
   mcp(): McpApi
   plugins(): PluginsApi
+  extensions(): ExtensionsApi
   // The session's real browser, shared with the agent's Browser* tools: availability and the Chrome for Testing
   // download, and the live view (BrowserConnection: screencast frames, tab state, agent actions; navigation and
   // input go back over it). See ~/lib/browser.

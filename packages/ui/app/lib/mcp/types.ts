@@ -1,4 +1,4 @@
-// McpApi: what Settings > MCP and the composer need about MCP servers. The client keeps the logic (who manages what,
+// McpApi: what Extensions > Connectors and the composer need about MCP servers. The client keeps the logic (who manages what,
 // approvals, the trust rule); the xlsft`s harness server keeps the registry, OAuth and the audit log. Two implementations:
 // connect.ts (AgentService, plus the McpService calls the client forwards) and mock.ts (in memory).
 
@@ -180,14 +180,6 @@ export function serverOf(d: McpDraft, base?: Server): MessageInitShape<typeof Se
 export function secretChangesOf(d: McpDraft): McpSecretChanges {
   return { set: parseMap(d.secrets, 'Secrets'), remove: d.removeSecrets }
 }
-
-// The groups of the list, in order, with what they mean for syncing.
-export const SOURCE_GROUPS: { source: McpServerSource, title: string, note: string }[] = [
-  { source: McpServerSource.DEVICE, title: 'On this device', note: 'Kept on this computer and never sent to the xlsft`s harness server. Other devices do not see them.' },
-  { source: McpServerSource.ACCOUNT, title: 'Your account', note: 'Registered on the xlsft`s harness server: they follow you to every device, and only you see them.' },
-  { source: McpServerSource.ORG, title: 'From your admin', note: 'Managed by an admin for everyone or for some roles. Sign-ins are still your own.' },
-  { source: McpServerSource.PROJECT, title: 'From this repository', note: 'Listed in the repository\'s .mcp.json. They only load in a trusted folder and after you approve each one here.' }
-]
 
 export interface StateView {
   label: string

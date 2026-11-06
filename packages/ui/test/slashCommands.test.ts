@@ -4,7 +4,7 @@ import { SendUserMessageRequest_Delivery } from '~/gen/harness/agent/v1/agent_pb
 import { SlashCommandKind, SlashCommandResult_Action, SlashCommandSchema } from '~/gen/harness/agent/v1/slash_commands_pb'
 import { pendingMessages } from '~/lib/session/delivery'
 import { createSessionState, reduceAll } from '~/lib/session/reducer'
-import { commandFacts, customizeSections, matchSlash, SLASH_ACTION_FRESH_MS, slashMenuOptions, sourceLabel, takeSlashAction } from '~/lib/session/slashCommands'
+import { commandFacts, matchSlash, SLASH_ACTION_FRESH_MS, slashMenuOptions, sourceLabel, takeSlashAction } from '~/lib/session/slashCommands'
 import { EventBuilder } from '~/lib/transport/events'
 import { MockTransport } from '~/lib/transport/mock'
 import { toolIcon, toolTarget } from '~/utils/tools'
@@ -101,18 +101,7 @@ describe('skills in the transcript', () => {
   })
 })
 
-describe('Customize', () => {
-  it('groups by kind, leaving agents\' commands out', () => {
-    const sections = customizeSections([
-      command('compact', { kind: SlashCommandKind.BUILTIN }),
-      command('a'),
-      command('b', { kind: SlashCommandKind.COMMAND }),
-      command('c', { kind: SlashCommandKind.AGENT })
-    ])
-    expect(sections.map(s => [s.title, s.rows.map(r => r.name)])).toEqual([['Skills', ['a']], ['Commands', ['b']], ['Built-in commands', ['compact']]])
-    expect(customizeSections([])).toEqual([])
-  })
-
+describe('commands in Extensions', () => {
   it('says what a row does', () => {
     expect(commandFacts(command('x', { modelInvocable: false, fork: true, model: 'm', effort: 'high', allowedTools: ['Read', 'Bash(git *)'], paths: ['**/*.go'], shadowedBy: 'personal' })))
       .toEqual(['replaced by personal', 'you only', 'runs in a subagent', 'model m', 'effort high', 'may use Read, Bash(git *)', 'for **/*.go'])

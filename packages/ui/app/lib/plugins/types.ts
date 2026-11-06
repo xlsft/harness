@@ -1,4 +1,4 @@
-// Settings > Plugins works on the client's PluginService. The client decides what may run; this only shows it and sends intent.
+// Extensions > Plugins works on the client's PluginService. The client decides what may run; this only shows it and sends intent.
 
 export type PluginStatusVM = 'active' | 'needs_approval' | 'disabled' | 'untrusted_folder' | 'blocked_by_policy' | 'changed_on_disk' | 'broken' | 'not_installed'
 
@@ -44,6 +44,7 @@ export interface PluginVM {
   managed: boolean
   suggestedBy: string
   source: string
+  installedAt?: string
   contents: PluginContentsVM
   problems: string[]
 }

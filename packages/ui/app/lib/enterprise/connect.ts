@@ -93,7 +93,11 @@ export function policyView(p: ManagedPolicyPb | undefined): ManagedPolicy {
     blockedPluginSources: p?.blockedPluginSources ?? [],
     distributedMarketplaces: p?.distributedMarketplaces ?? [],
     distributedPlugins: p?.distributedPlugins ?? [],
-    blockedPlugins: p?.blockedPlugins ?? []
+    blockedPlugins: p?.blockedPlugins ?? [],
+    restrictSkills: p?.restrictSkills ?? false,
+    allowedSkills: p?.allowedSkills ?? [],
+    blockedSkills: p?.blockedSkills ?? [],
+    externalSkillSearchDisabled: p?.externalSkillSearchDisabled ?? false
   }
 }
 

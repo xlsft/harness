@@ -22,11 +22,9 @@ const SECTIONS = [
   { key: 'sessions', label: 'Sessions', icon: 'session', group: 'app' },
   { key: 'sandbox', label: 'Sandbox', icon: 'box', group: 'app' },
   { key: 'hooks', label: 'Hooks', icon: 'hook', group: 'app' },
-  { key: 'plugins', label: 'Plugins', icon: 'grid', group: 'app' },
   { key: 'import', label: 'Import', icon: 'download', group: 'app' },
   { key: 'models', label: 'Models', icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
-  { key: 'mcp', label: 'MCP', icon: 'link', group: 'ai' },
   { key: 'search', label: 'Search', icon: 'search', group: 'ai' },
   { key: 'speech', label: 'Speech', icon: 'mic', group: 'ai' },
   { key: 'computer', label: 'Computer use', icon: 'monitor', group: 'ai' },
@@ -63,12 +61,10 @@ const KEYWORDS: Record<Section, string> = {
   appearance: 'theme light dark mode system colours',
   sessions: 'permission modes ask auto plan bypass new sessions worktree defaults compact idle compaction context',
   sandbox: 'sandbox seatbelt restrict commands bash write paths network hosts proxy allowlist localhost',
-  plugins: 'plugins marketplace install update approve bundle skills commands agents output styles hooks mcp claude-plugin',
   hooks: 'hooks pretooluse posttooluse stop sessionstart scripts automation disable trust',
   import: 'import bring claude code migrate memory skills agents commands output styles mcp sessions history',
   models: 'providers llm keys slots default model title effort',
   classifiers: 'classifier decision model rules',
-  mcp: 'mcp model context protocol servers tools resources prompts oauth sign in stdio http sse websocket approval audit log project .mcp.json',
   search: 'web search providers searxng brave tavily exa kagi perplexity',
   speech: 'voice dictation microphone read aloud stt tts parakeet whisper piper elevenlabs openai deepgram minimax',
   computer: 'computer use desktop apps control screen recording accessibility permissions click type',
@@ -77,7 +73,7 @@ const KEYWORDS: Record<Section, string> = {
   ldap: 'ldap directory active directory sign in bind',
   sso: 'sso single sign-on oidc saml identity provider okta entra two-factor mfa totp require',
   provisioning: 'scim provisioning okta azure entra tokens groups',
-  audit: 'audit log compliance events sign-ins csv export',
+  audit: 'audit log compliance events sign-ins csv export mcp tool calls servers',
   policy: 'managed policy permission rules sandbox required allowed providers mcp servers plugins marketplaces administrator',
   about: 'version about'
 }
@@ -163,7 +159,6 @@ const notifications = computed({
       <SettingsSandbox v-else-if="section === 'sandbox'" />
 
       <SettingsHooks v-else-if="section === 'hooks'" />
-      <SettingsPlugins v-else-if="section === 'plugins'" />
 
       <template v-else-if="section === 'sessions'">
         <template v-if="managed?.active">
@@ -213,7 +208,6 @@ const notifications = computed({
 
       <SettingsImport v-else-if="section === 'import'" />
 
-      <SettingsMcp v-else-if="section === 'mcp'" />
 
       <template v-else-if="section === 'models' || section === 'classifiers'">
         <p
