@@ -26,14 +26,15 @@ func HookTrustStore() *hooks.TrustStore {
 	return &hooks.TrustStore{Path: filepath.Join(config.Home(), "hook-trust.json")}
 }
 
-// BuildHooks reads the hooks of merged settings with this device's trust.
-func BuildHooks(st *settings.Settings) *hooks.Set {
-	return hooks.Build(st, HookTrustStore().Trusted)
+// BuildHooks reads the hooks of merged settings with this device's trust, and those of the plugins for a folder ("" when there is
+// none).
+func BuildHooks(st *settings.Settings, cwd string) *hooks.Set {
+	return hooks.BuildWith(st, HookTrustStore().Trusted, pluginHookLayers(st, cwd))
 }
 
 // newHookEngine makes the session's engine. Nothing runs before Open returns.
 func (s *Session) newHookEngine(st *settings.Settings) *hooks.Engine {
-	return hooks.New(BuildHooks(st), hooks.Options{
+	return hooks.New(BuildHooks(st, s.Dir()), hooks.Options{
 		SessionID:      s.ID,
 		TranscriptPath: func() string { return s.Transcript.Path() },
 		Cwd:            s.Dir,
@@ -116,7 +117,7 @@ func (s *Session) StartHooks() {
 
 // relocateHooks replaces the hooks of the folder the session left with those of the one it moved to, under that folder's trust.
 func (s *Session) relocateHooks(st *settings.Settings, from, to string) {
-	s.Hooks.Replace(BuildHooks(st))
+	s.Hooks.Replace(BuildHooks(st, to))
 	s.Hooks.Fire(hooks.CwdChanged, "", hooks.Input{OldCwd: from, NewCwd: to})
 }
 

@@ -55,6 +55,7 @@ func WatchModePolicy(ctx context.Context, url string, hc *http.Client, tokens au
 		if p.Set(modes) {
 			log.Info("permission mode policy changed", "disabled", modes)
 		}
+		applyPluginPolicy(ctx, cache.List(kind), log)
 		p.SetSandbox(settings.PolicySandbox(cache.List(kind)))
 		managed := settings.PolicyManaged(cache.List(kind))
 		p.SetManaged(managed)

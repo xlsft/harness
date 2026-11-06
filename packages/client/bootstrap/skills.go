@@ -15,6 +15,7 @@ import (
 
 	"github.com/xlsft/harness/packages/client/agent"
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/hooks"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/prompts"
@@ -49,7 +50,7 @@ func SkillOptions(home, cwd string, trusted bool, docs skills.DocSource, disable
 		defer cancel()
 		gitRoot = workspace.GitRoot(ctx, cwd)
 	}
-	return skills.Options{Home: home, HarnessHome: config.Home(), Cwd: cwd, GitRoot: gitRoot, Trusted: trusted, Docs: docs, Disabled: disabled}
+	return skills.Options{Home: home, HarnessHome: config.Home(), Cwd: cwd, GitRoot: gitRoot, Trusted: trusted, Docs: docs, Disabled: disabled, Plugins: pluginSkillSources(cwd, trusted)}
 }
 
 // DisabledSkills reads the user's switches from settings.
@@ -224,15 +225,24 @@ func (s *Session) skillActivation(sk skills.Skill, args, toolUseID string, env *
 	}
 	act.Use = use
 	forks := sk.Fork && env.Agents != nil
-	if !forks && len(sk.AllowedTools) > 0 {
-		act.Grant = func() func() { return s.Permissions.AddScopedAllow(sk.AllowedTools) }
+	scoped, hookWarnings := s.skillHooks(sk)
+	warnings = append(warnings, hookWarnings...)
+	if !forks && (len(sk.AllowedTools) > 0 || len(scoped) > 0) {
+		act.Grant = func() func() {
+			releaseRules := s.Permissions.AddScopedAllow(sk.AllowedTools)
+			releaseHooks := s.Hooks.AddScoped(scoped, "")
+			return func() {
+				releaseHooks()
+				releaseRules()
+			}
+		}
 	}
 	act.Prepare = func(ctx context.Context) (string, string, string) {
 		text, dir := s.skillText(ctx, sk, args, env)
 		if !forks {
 			return text, dir, ""
 		}
-		return s.forkSkill(ctx, sk, text, dir, toolUseID, use.Model, env)
+		return s.forkSkill(ctx, sk, text, dir, toolUseID, use.Model, env, scoped)
 	}
 	return act, warnings
 }
@@ -245,6 +255,9 @@ func (s *Session) skillText(ctx context.Context, sk skills.Skill, args string, e
 	}
 	if dir != "" {
 		s.Permissions.AddReadableDir(dir)
+	}
+	if sk.PluginRoot != "" {
+		s.Permissions.AddReadableDir(sk.PluginRoot)
 	}
 	body, err := sk.LoadBody()
 	if err != nil {
@@ -286,8 +299,13 @@ func oneLine(s string) string { return strings.Join(strings.Fields(s), " ") }
 
 // forkSkill runs a skill's text in a subagent. Its allowed-tools last until the agent ends: nothing else knows when
 // that is, so the session's event stream releases them (releaseSkillFork).
-func (s *Session) forkSkill(ctx context.Context, sk skills.Skill, text, dir, toolUseID, model string, env *tools.Env) (string, string, string) {
-	release := s.Permissions.AddScopedAllow(sk.AllowedTools)
+func (s *Session) forkSkill(ctx context.Context, sk skills.Skill, text, dir, toolUseID, model string, env *tools.Env, scoped []*hooks.Hook) (string, string, string) {
+	releaseRules := s.Permissions.AddScopedAllow(sk.AllowedTools)
+	releaseHooks := s.Hooks.AddScoped(scoped, "")
+	release := func() {
+		releaseHooks()
+		releaseRules()
+	}
 	if dir != "" {
 		text = "This skill's folder is " + dir + ".\n\n" + text
 	}
@@ -336,6 +354,7 @@ func (s *Session) watchSkillForks(next func(agent.Event)) func(agent.Event) {
 	return func(e agent.Event) {
 		if e.Kind == agent.EventSubagent && e.Subagent != nil && !e.Subagent.State.Active() {
 			s.skillForks.done(e.Subagent.ID)
+			s.agentHookGrants.done(e.Subagent.ID)
 		}
 		if next != nil {
 			next(e)
@@ -366,7 +385,7 @@ func (r skillRunner) find(name string) (skills.Skill, bool) {
 // SkillInfo implements tools.SkillRunner.
 func (r skillRunner) SkillInfo(name string) tools.SkillInfo {
 	sk, ok := r.find(name)
-	return tools.SkillInfo{Runnable: ok, Harmless: ok && len(sk.AllowedTools) == 0 && !sk.Fork}
+	return tools.SkillInfo{Runnable: ok, Harmless: ok && len(sk.AllowedTools) == 0 && !sk.Fork && len(sk.Hooks) == 0}
 }
 
 // RunSkill implements tools.SkillRunner.

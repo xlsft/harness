@@ -365,3 +365,114 @@ func TestSessionEndHasAShortDefaultTimeout(t *testing.T) {
 		t.Fatal("something is closing and waits")
 	}
 }
+
+func commandHook(t *testing.T, event, command string) json.RawMessage {
+	t.Helper()
+	raw, err := json.Marshal(map[string]any{event: []any{map[string]any{"hooks": []any{map[string]any{"type": "command", "command": command}}}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
+}
+
+func TestPluginLayersKeepTheirOwnEnvironmentAndAreNotMerged(t *testing.T) {
+	dir := t.TempDir()
+	cmd := `printf '%s\n' "$CLAUDE_PLUGIN_ROOT" >> ` + filepath.Join(dir, "out")
+	raw := commandHook(t, string(Stop), cmd)
+	plugin := func(id, root string) settings.HookLayer {
+		return settings.HookLayer{Source: settings.Source{Level: settings.LevelPlugin, Plugin: id}, Raw: raw, Hash: settings.ContentHash(raw), Env: []string{"CLAUDE_PLUGIN_ROOT=" + root}}
+	}
+	set := BuildWith(nil, nil, []settings.HookLayer{plugin("a@m", "/root-a"), plugin("b@m", "/root-b")})
+	var runs []Run
+	var mu sync.Mutex
+	e := New(set, Options{OnRun: func(r Run) {
+		mu.Lock()
+		defer mu.Unlock()
+		if r.Status != RunRunning {
+			runs = append(runs, r)
+		}
+	}})
+	defer e.Close()
+	e.Dispatch(context.Background(), Stop, "", Input{Cwd: dir})
+	data, err := os.ReadFile(filepath.Join(dir, "out"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(data); !strings.Contains(got, "/root-a") || !strings.Contains(got, "/root-b") {
+		t.Fatalf("each plugin's own folder: %q", got)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(runs) != 2 || !strings.HasPrefix(runs[0].Source, "plugin:") {
+		t.Fatalf("%+v", runs)
+	}
+}
+
+func TestPluginHooksWaitBehindTheirGate(t *testing.T) {
+	raw := commandHook(t, string(Stop), "true")
+	for gate, want := range map[settings.HookGate]Status{settings.HookGateWorkspace: StatusNeedsWorkspaceTrust, settings.HookGateManaged: StatusBlockedByPolicy} {
+		set := BuildWith(nil, nil, []settings.HookLayer{{Source: settings.Source{Level: settings.LevelPlugin, Plugin: "a@m"}, Raw: raw, Gate: gate}})
+		if set.All[0].Status != want || set.Has(Stop) {
+			t.Fatalf("%v: %+v", gate, set.All[0])
+		}
+	}
+}
+
+func TestScopedHooksComeAndGo(t *testing.T) {
+	dir := t.TempDir()
+	out := filepath.Join(dir, "out")
+	e := New(&Set{}, Options{})
+	defer e.Close()
+	list := ParseBlock(settings.HookLayer{Raw: commandHook(t, string(Stop), "echo x >> "+out)}, nil)
+	if e.Has(Stop) {
+		t.Fatal("nothing yet")
+	}
+	release := e.AddScoped(list, "")
+	if !e.Has(Stop) {
+		t.Fatal("Has doesn't see it")
+	}
+	count := func() int {
+		data, _ := os.ReadFile(out)
+		return strings.Count(string(data), "x")
+	}
+	e.Dispatch(context.Background(), Stop, "", Input{Cwd: dir})
+	if count() != 1 {
+		t.Fatal("it didn't run")
+	}
+	release()
+	e.Dispatch(context.Background(), Stop, "", Input{Cwd: dir})
+	if count() != 1 || e.Has(Stop) {
+		t.Fatal("it outlived its release")
+	}
+}
+
+func TestScopedHooksOfAnAgentSeeOnlyIt(t *testing.T) {
+	dir := t.TempDir()
+	out := filepath.Join(dir, "out")
+	e := New(&Set{}, Options{})
+	defer e.Close()
+	defer e.AddScoped(ParseBlock(settings.HookLayer{Raw: commandHook(t, string(SubagentStop), "echo x >> "+out)}, nil), "agent-1")()
+	e.Dispatch(context.Background(), SubagentStop, "t", Input{Cwd: dir, AgentID: "agent-2"})
+	if _, err := os.Stat(out); err == nil {
+		t.Fatal("it saw another agent")
+	}
+	e.Dispatch(context.Background(), SubagentStop, "t", Input{Cwd: dir, AgentID: "agent-1"})
+	if _, err := os.Stat(out); err != nil {
+		t.Fatal("it missed its own agent")
+	}
+}
+
+func TestOnceHookRunsOnce(t *testing.T) {
+	dir := t.TempDir()
+	out := filepath.Join(dir, "out")
+	raw, _ := json.Marshal(map[string]any{"Stop": []any{map[string]any{"hooks": []any{map[string]any{"type": "command", "command": "echo x >> " + out, "once": true}}}}})
+	e := New(&Set{}, Options{})
+	defer e.Close()
+	defer e.AddScoped(ParseBlock(settings.HookLayer{Raw: raw}, nil), "")()
+	e.Dispatch(context.Background(), Stop, "", Input{Cwd: dir})
+	e.Dispatch(context.Background(), Stop, "", Input{Cwd: dir})
+	data, _ := os.ReadFile(out)
+	if strings.Count(string(data), "x") != 1 {
+		t.Fatalf("%q", data)
+	}
+}

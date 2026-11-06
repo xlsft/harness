@@ -48,6 +48,7 @@ Usage:
                                         bearer token, CORS allowlist); combinable with --socket
   harness-client -p "<prompt>" [flags]  Run one headless turn
   harness-client update [--check]       Replace this binary with the newest release (verified)
+  harness-client plugin [help|...]      Install, approve and manage plugins and marketplaces
   harness-client version
 
 Headless flags:
@@ -84,6 +85,8 @@ func run(args []string) int {
 			return runSync(args[1:])
 		case "update":
 			return runUpdate(ctx, args[1:])
+		case "plugin":
+			return runPlugin(args[1:])
 		case "version", "--version":
 			fmt.Println(config.UserAgent())
 			return 0

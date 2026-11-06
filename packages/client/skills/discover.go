@@ -70,6 +70,28 @@ type Options struct {
 	Docs DocSource
 	// Disabled are the names the user turned off.
 	Disabled map[string]bool
+	// Plugins are the installed plugins allowed to run here (package plugins decides which).
+	Plugins []PluginSource
+}
+
+// PluginSource is what one plugin brings. Everything it holds is named below its prefix.
+type PluginSource struct {
+	// Prefix goes before every name, with a colon; ID is the plugin's id; Root and Data its folders.
+	Prefix, ID, Root, Data string
+	// SkillDirs hold <name>/SKILL.md folders, or are a skill themselves.
+	SkillDirs []string
+	Commands  []PluginCommand
+}
+
+// PluginCommand is one command: a Markdown file or a folder of them, or (with Name) one named entry of the manifest.
+type PluginCommand struct {
+	// Path is a file or folder; "" when Content holds the text.
+	Path, Content string
+	// Name is the name below the prefix of a named entry; "" takes it from the file.
+	Name string
+	// What a named entry sets over the file's frontmatter.
+	Description, ArgumentHint, Model string
+	AllowedTools                     []string
 }
 
 // Catalog is what Discover found.
@@ -97,7 +119,7 @@ func (c *Catalog) Lookup(name string) (Skill, bool) {
 // Enabled reports the user's switch.
 func (c *Catalog) Enabled(name string) bool { return c == nil || !c.disabled[name] }
 
-var sourceRank = map[string]int{SourceOrganization: 0, SourcePersonal: 1, SourceImported: 2, SourceProject: 3}
+var sourceRank = map[string]int{SourceOrganization: 0, SourcePersonal: 1, SourceImported: 2, SourceProject: 3, SourcePlugin: 4}
 
 func (s Skill) rank() [3]int {
 	k := 0
@@ -149,9 +171,104 @@ func Discover(o Options) *Catalog {
 			sc.skillsDir(filepath.Join(d, ".claude", "skills"), SourceProject)
 		}
 	}
+	for _, p := range o.Plugins {
+		sc.plugin(p)
+	}
 	c.resolve(sc.found)
 	return c
 }
+
+// ScanPlugin lists what a plugin holds, for showing it before anything may run.
+func ScanPlugin(p PluginSource) []Skill {
+	sc := &scanner{}
+	sc.plugin(p)
+	return sc.found
+}
+
+// plugin reads a plugin's skills and commands and puts its prefix on them.
+func (sc *scanner) plugin(p PluginSource) {
+	start := len(sc.found)
+	for _, dir := range p.SkillDirs {
+		md := filepath.Join(dir, SkillFile)
+		if st, err := os.Stat(md); err == nil && st.Mode().IsRegular() {
+			if text, err := readHead(md); err == nil {
+				s := Parse(text, filepath.Base(dir), KindSkill)
+				s.Source, s.Path, s.Dir = SourcePlugin, md, dir
+				sc.add(s)
+			}
+			continue
+		}
+		sc.skillsDir(dir, SourcePlugin)
+	}
+	for _, c := range p.Commands {
+		sc.pluginCommand(p, c)
+	}
+	for i := start; i < len(sc.found); i++ {
+		s := &sc.found[i]
+		s.Name = p.Prefix + ":" + s.Name
+		s.Plugin, s.PluginRoot, s.PluginData = p.ID, p.Root, p.Data
+		if !ValidName(s.Name) {
+			s.Problems = append(s.Problems, "The name \""+s.Name+"\" can't follow a slash.")
+			s.UserInvocable, s.DisableModelInvocation = false, true
+		}
+	}
+}
+
+func (sc *scanner) pluginCommand(p PluginSource, c PluginCommand) {
+	if c.Path != "" {
+		st, err := os.Stat(c.Path)
+		if err != nil {
+			return
+		}
+		if st.IsDir() {
+			sc.commandsDir(c.Path, SourcePlugin)
+			return
+		}
+		text, err := readHead(c.Path)
+		if err != nil {
+			return
+		}
+		name := c.Name
+		if name == "" {
+			name = strings.TrimSuffix(filepath.Base(c.Path), ".md")
+		}
+		s := Parse(text, name, KindCommand)
+		s.Source, s.Path = SourcePlugin, c.Path
+		sc.add(c.apply(s))
+		return
+	}
+	s := Parse(c.Content, c.Name, KindCommand)
+	s.Source, s.Path = SourcePlugin, "plugin:"+p.ID+"/"+c.Name
+	s.doc = docBody{content: c.Content, id: "plugin:" + p.ID + "/" + c.Name}
+	sc.add(c.apply(s))
+}
+
+func (c PluginCommand) apply(s Skill) Skill {
+	if c.Description != "" {
+		s.Description = c.Description
+	}
+	if c.ArgumentHint != "" {
+		s.ArgumentHint = c.ArgumentHint
+	}
+	if c.Model != "" {
+		s.Model = c.Model
+	}
+	if len(c.AllowedTools) > 0 {
+		s.AllowedTools = ruleList(toAny(c.AllowedTools))
+	}
+	return s
+}
+
+func toAny(in []string) []any {
+	out := make([]any, len(in))
+	for i, s := range in {
+		out[i] = s
+	}
+	return out
+}
+
+// FromServer reports whether the skill's text came from a document of the server.
+func (s Skill) FromServer() bool { return s.doc.id != "" && s.Plugin == "" }
 
 // resolve keeps a winner per name and orders the entries for display.
 func (c *Catalog) resolve(found []Skill) {
@@ -200,7 +317,7 @@ func (c *Catalog) resolve(found []Skill) {
 }
 
 func realPath(p string) string {
-	if strings.HasPrefix(p, "sync:") {
+	if strings.HasPrefix(p, "sync:") || strings.HasPrefix(p, "plugin:") {
 		return p
 	}
 	if r, err := filepath.EvalSymlinks(p); err == nil {

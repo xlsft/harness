@@ -192,6 +192,15 @@ func connectDirect(ctx context.Context, cfg *mcpv1.Server, local bool, client *C
 	return startStdio(ctx, launch, cwd, hooks)
 }
 
+// connectPlugin starts a server of a plugin, whose launch data is its config.
+func connectPlugin(ctx context.Context, cfg *mcpv1.Server, cwd string, hooks connHooks) (*directConn, error) {
+	if cfg.GetTransport() != mcpv1.Transport_TRANSPORT_STDIO {
+		return startHTTP(ctx, cfg.GetTransport(), cfg.GetRemote().GetUrl(), cfg.GetRemote().GetHeaders(), hooks)
+	}
+	s := cfg.GetStdio()
+	return startStdio(ctx, &mcpv1.IssueStdioLaunchResponse{Command: s.GetCommand(), Args: s.GetArgs(), Env: s.GetEnv()}, cwd, hooks)
+}
+
 // startSession connects a transport with a context that lives as long as the connection; ctx only bounds the start.
 func startSession(ctx context.Context, t sdk.Transport, hooks connHooks) (*sdk.ClientSession, context.CancelFunc, error) {
 	life, cancel := context.WithCancel(context.WithoutCancel(ctx))

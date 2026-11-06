@@ -225,7 +225,7 @@ func (a *Agent) postToolHook(ctx context.Context, u llm.ContentBlock, input json
 
 // postToolBatchHook runs PostToolBatch when all the calls of a model reply are done.
 func (a *Agent) postToolBatchHook(ctx context.Context, uses []llm.ContentBlock, outcomes []outcome) {
-	if !a.cfg.Hooks.Set().Has(hooks.PostToolBatch) {
+	if !a.cfg.Hooks.Has(hooks.PostToolBatch) {
 		return
 	}
 	calls := make([]hooks.ToolCall, len(uses))
@@ -253,7 +253,7 @@ func (a *Agent) stopHookContinues(ctx context.Context, active *bool, last string
 	if a.cfg.AgentID != "" {
 		ev = hooks.SubagentStop
 	}
-	if !a.cfg.Hooks.Set().Has(ev) {
+	if !a.cfg.Hooks.Has(ev) {
 		return false
 	}
 	wasActive := *active
@@ -289,7 +289,7 @@ func (a *Agent) stopHookContinues(ctx context.Context, active *bool, last string
 
 // stopFailureHook tells hooks that a turn ended because the model request failed. Nothing can answer it.
 func (a *Agent) stopFailureHook(err error) {
-	if !a.cfg.Hooks.Set().Has(hooks.StopFailure) {
+	if !a.cfg.Hooks.Has(hooks.StopFailure) {
 		return
 	}
 	kind := "unknown"

@@ -38,6 +38,9 @@ const (
 	LevelLocal   // .claude/settings.local.json, .harness/settings.local.json
 	LevelCLI
 	LevelPolicy
+	// LevelPlugin is the hooks of an installed plugin (package plugins). It is no settings file and holds nothing else; it
+	// sits out of order on purpose, as nothing merges by it.
+	LevelPlugin
 )
 
 func (l Level) String() string {
@@ -54,6 +57,8 @@ func (l Level) String() string {
 		return "cli"
 	case LevelPolicy:
 		return "policy"
+	case LevelPlugin:
+		return "plugin"
 	}
 	return "unknown"
 }
@@ -70,6 +75,8 @@ type Source struct {
 	// directory for user documents, the cwd for CLI flags, empty for org
 	// and policy documents.
 	Dir string
+	// Plugin is the plugin id (name@marketplace) at LevelPlugin.
+	Plugin string
 }
 
 func (s Source) String() string {
@@ -198,6 +205,8 @@ type Settings struct {
 	// HooksPolicyOff: in a policy document, which also stops the policy's own hooks.
 	Hooks                    []HookLayer
 	HooksOff, HooksPolicyOff bool
+	// HooksManagedOnly: allowManagedHooksOnly in a policy document, which also keeps plugins' hooks from running.
+	HooksManagedOnly bool
 
 	// Raw holds every top-level key of the winning level (for keys this
 	// package does not model). Values are byte-exact JSON.

@@ -488,7 +488,7 @@ func TestListWithoutASession(t *testing.T) {
 	personal := t.TempDir()
 	writeFile(t, filepath.Join(personal, ".claude/skills/mine/SKILL.md"), "---\ndescription: personal\n---\nb")
 	docs := skills.Documents{
-		{Id: "doc_1", Scope: commonv1.Scope_SCOPE_USER, Kind: syncv1.DocumentKind_DOCUMENT_KIND_SKILL, Key: "imported-one", Content: "---\ndescription: from import\nhooks: {}\n---\nIMPORTED BODY",
+		{Id: "doc_1", Scope: commonv1.Scope_SCOPE_USER, Kind: syncv1.DocumentKind_DOCUMENT_KIND_SKILL, Key: "imported-one", Content: "---\ndescription: from import\nmystery: {}\n---\nIMPORTED BODY",
 			Files: []*syncv1.DocumentFile{{Path: "ref.md", Content: []byte("REF")}}},
 		{Id: "doc_2", Scope: commonv1.Scope_SCOPE_USER, Kind: syncv1.DocumentKind_DOCUMENT_KIND_COMMAND, Key: "ns:imp", Content: "command from import"},
 	}
@@ -507,7 +507,7 @@ func TestListWithoutASession(t *testing.T) {
 	if list["mine"].GetSource() != "personal" || list["imported-one"].GetSource() != "imported" || list["ns:imp"].GetKind() != agentv1.SlashCommandKind_SLASH_COMMAND_KIND_COMMAND {
 		t.Fatalf("%+v", list)
 	}
-	if !slices.Equal(list["imported-one"].GetSkippedFields(), []string{"hooks"}) {
+	if !slices.Equal(list["imported-one"].GetSkippedFields(), []string{"mystery"}) {
 		t.Fatalf("skipped: %+v", list["imported-one"])
 	}
 	if list["local"] != nil || !res.Msg.GetProjectSkippedUntrusted() {

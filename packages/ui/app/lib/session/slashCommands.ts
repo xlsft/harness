@@ -41,7 +41,8 @@ const SOURCE_LABELS: Record<string, string> = {
   imported: 'Imported',
   organization: 'Organization',
   builtin: 'Built-in',
-  agent: 'Agent'
+  agent: 'Agent',
+  plugin: 'Plugin'
 }
 
 export function sourceLabel(source: string): string {

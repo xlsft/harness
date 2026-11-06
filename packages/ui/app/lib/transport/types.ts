@@ -37,6 +37,7 @@ import type { ClaudeImportApi } from '~/lib/import/claudeCode'
 import type { LimitsApi } from '~/lib/limits/types'
 import type { AcpApi } from '~/lib/acp/types'
 import type { McpApi } from '~/lib/mcp/types'
+import type { PluginsApi } from '~/lib/plugins/types'
 import type { BrowserApi } from '~/lib/browser/types'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 
@@ -382,6 +383,7 @@ export interface SessionTransport {
 
   // MCP servers: Settings > MCP, and a session's commands and mentions (~/lib/mcp).
   mcp(): McpApi
+  plugins(): PluginsApi
   // The session's real browser, shared with the agent's Browser* tools: availability and the Chrome for Testing
   // download, and the live view (BrowserConnection: screencast frames, tab state, agent actions; navigation and
   // input go back over it). See ~/lib/browser.

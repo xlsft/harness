@@ -83,14 +83,16 @@ type Config struct {
 	ProjectContext string
 	// MCPInstructions returns what MCP servers offer the model (nil: nothing).
 	MCPInstructions func() string
-	AutoCompactPct float64
-	UsageMonitor   agent.UsageMonitor
-	Skills         agent.SkillSource
+	AutoCompactPct  float64
+	UsageMonitor    agent.UsageMonitor
+	Skills          agent.SkillSource
 	// Hooks is the session's hook engine (agent.Config.Hooks; may be nil).
 	Hooks *hooks.Engine
 	// CustomTypes are the types loaded from definitions (LoadDefinitions).
 	CustomTypes []Type
-	Logger      *slog.Logger
+	// AgentHooks starts the hooks of a definition for one agent (may be nil).
+	AgentHooks func(t Type, agentID string)
+	Logger     *slog.Logger
 }
 
 // Options start one agent (SpawnSubagent).
@@ -756,6 +758,9 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 	env.Reminders = func(k string) string { return ag.Bundle().Reminder(k, "") }
 	if env.Tasks != nil {
 		env.Tasks.OnEvent = ag.OnTaskEvent
+	}
+	if m.cfg.AgentHooks != nil {
+		m.cfg.AgentHooks(t, id)
 	}
 	drv := agent.NewDriver(m.ctx, ag, func(res agent.TurnResult) { m.onResult(a, res) })
 

@@ -58,7 +58,7 @@ func configuredHooks(set *hooks.Set, off, policyOff bool) []*agentv1.ConfiguredH
 			}
 		}
 		out = append(out, &agentv1.ConfiguredHook{Event: string(h.Event), Matcher: h.Matcher, HandlerType: h.Type, Command: h.Command, TimeoutSeconds: int32(h.Timeout.Seconds()),
-			Async: h.Async, Source: h.Source.Level.String(), SourcePath: h.Source.Path, Status: configuredStatus[status], Reason: reason, TrustHash: h.TrustHash})
+			Async: h.Async, Source: h.SourceLabel(), SourcePath: h.Source.Path, Status: configuredStatus[status], Reason: reason, TrustHash: h.TrustHash})
 	}
 	return out
 }
@@ -91,7 +91,11 @@ func (s *Server) ListHooks(ctx context.Context, req *connect.Request[agentv1.Lis
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	resp := &agentv1.ListHooksResponse{Hooks: configuredHooks(bootstrap.BuildHooks(st), st.HooksOff, st.HooksPolicyOff)}
+	folder := ""
+	if known {
+		folder = cwd
+	}
+	resp := &agentv1.ListHooksResponse{Hooks: configuredHooks(bootstrap.BuildHooks(st, folder), st.HooksOff, st.HooksPolicyOff)}
 	if known {
 		resp.Cwd = cwd
 	}

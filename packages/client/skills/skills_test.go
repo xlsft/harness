@@ -57,7 +57,7 @@ Body`, "folder", KindSkill)
 		t.Fatalf("paths %q", s.Paths)
 	}
 	// What is read but not acted on is reported; what only describes the skill isn't.
-	if strings.Join(s.Skipped, ",") != "hooks,mystery" {
+	if strings.Join(s.Skipped, ",") != "mystery" || len(s.Hooks) == 0 {
 		t.Fatalf("skipped %q", s.Skipped)
 	}
 }

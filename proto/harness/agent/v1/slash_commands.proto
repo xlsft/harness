@@ -89,6 +89,8 @@ message SlashCommandResult {
     // Open the session in new_session_id.
     ACTION_OPEN_SESSION = 3;
     ACTION_OPEN_CUSTOMIZE = 4;
+    // Open Settings > Plugins.
+    ACTION_OPEN_PLUGINS = 160;
   }
   // The client-generated id of the message (SendUserMessageRequest.uuid).
   string uuid = 1;

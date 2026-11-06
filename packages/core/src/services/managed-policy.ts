@@ -8,6 +8,8 @@
  *   sandbox.enabled true, sandbox.allowOutside false                   enforced by clients
  *   allowedProviders, disablePersonalProviders                         enforced here too: the gateway serves only allowed models
  *   allowedMcpServers                                                  enforced here too: the catalog, proxy and stdio launches
+ *   strictKnownMarketplaces, blockedMarketplaces, extraKnownMarketplaces, enabledPlugins
+ *                                                                      enforced by clients (packages/client/plugins): plugins are a device's
  * The server cannot be talked out of what it enforces itself, whatever a modified client does; permission rules and the
  * sandbox can only live on the client, because that is where commands run.
  */
@@ -35,10 +37,85 @@ export interface ManagedPolicy {
   personal_providers_disabled: boolean;
   restrict_mcp_servers: boolean;
   allowed_mcp_servers: string[];
+  restrict_plugin_sources: boolean;
+  allowed_plugin_sources: string[];
+  blocked_plugin_sources: string[];
+  distributed_marketplaces: string[];
+  distributed_plugins: string[];
+  blocked_plugins: string[];
 }
 
 const isObject = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
 const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((s): s is string => typeof s === "string" && !!s.trim()).map((s) => s.trim()) : []);
+
+/** A plugin source as one line of the form, from the object the settings format stores. A shape the form can't show reads as "". */
+export function sourceToLine(v: unknown): string {
+  if (!isObject(v)) return "";
+  const ref = typeof v.ref === "string" && v.ref ? `#${v.ref}` : "";
+  switch (v.source) {
+    case "github":
+      return typeof v.repo === "string" && !v.path ? v.repo + ref : "";
+    case "git":
+      return typeof v.url === "string" && !v.path ? v.url + ref : "";
+    case "url":
+      return typeof v.url === "string" ? v.url : "";
+    case "file":
+    case "directory":
+      return typeof v.path === "string" ? v.path : "";
+    case "hostPattern":
+      return typeof v.hostPattern === "string" ? `host:${v.hostPattern}` : "";
+    case "pathPattern":
+      return typeof v.pathPattern === "string" ? `path:${v.pathPattern}` : "";
+  }
+  return "";
+}
+
+/** The settings format's object for one line of the form. */
+export function lineToSource(line: string): Json {
+  const text = line.trim();
+  if (text.startsWith("host:")) return checkPattern({ source: "hostPattern", hostPattern: text.slice(5) }, text.slice(5));
+  if (text.startsWith("path:")) return checkPattern({ source: "pathPattern", pathPattern: text.slice(5) }, text.slice(5));
+  if (text.startsWith("/")) return text.endsWith(".json") ? { source: "file", path: text } : { source: "directory", path: text };
+  const hash = text.lastIndexOf("#");
+  const base = hash > 0 ? text.slice(0, hash) : text;
+  const ref = hash > 0 ? { ref: text.slice(hash + 1) } : {};
+  if (/^[A-Za-z0-9][\w.-]*\/(\*|[A-Za-z0-9][\w.-]*)$/.test(base)) return { source: "github", repo: base, ...ref };
+  if (/^https?:\/\/\S+\.json$/.test(text)) return { source: "url", url: text };
+  if (/^(https?|ssh|git|file):\/\/\S+$/.test(base) || /^[\w.-]+@[\w.-]+:\S+$/.test(base)) return { source: "git", url: base, ...ref };
+  throw new ApiError("invalid_request", `Not a plugin source: ${text}`);
+}
+
+function checkPattern(out: Json, pattern: string): Json {
+  try {
+    new RegExp(pattern);
+  } catch {
+    throw new ApiError("invalid_request", `Not a regular expression: ${pattern}`);
+  }
+  return out;
+}
+
+const PLUGIN_ID = /^[A-Za-z0-9][\w.-]*@[A-Za-z0-9][\w.-]*$/;
+const MARKET_NAME = /^[A-Za-z0-9][\w.-]*$/;
+
+function sourceLines(v: unknown): string[] {
+  return Array.isArray(v) ? v.map(sourceToLine).filter((s) => !!s) : [];
+}
+
+function pluginFields(content: Json) {
+  const enabled = isObject(content.enabledPlugins) ? content.enabledPlugins : {};
+  const extra = isObject(content.extraKnownMarketplaces) ? content.extraKnownMarketplaces : {};
+  return {
+    restrict_plugin_sources: Array.isArray(content.strictKnownMarketplaces),
+    allowed_plugin_sources: sourceLines(content.strictKnownMarketplaces),
+    blocked_plugin_sources: sourceLines(content.blockedMarketplaces),
+    distributed_marketplaces: Object.entries(extra).flatMap(([name, m]) => {
+      const line = isObject(m) ? sourceToLine(m.source) : "";
+      return line ? [`${name}=${line}`] : [];
+    }),
+    distributed_plugins: Object.keys(enabled).filter((id) => enabled[id] === true),
+    blocked_plugins: Object.keys(enabled).filter((id) => enabled[id] === false),
+  };
+}
 
 /** The managed part of a POLICY document's content. */
 export function managedOf(content: Json): ManagedPolicy {
@@ -56,6 +133,7 @@ export function managedOf(content: Json): ManagedPolicy {
     personal_providers_disabled: content.disablePersonalProviders === true,
     restrict_mcp_servers: Array.isArray(content.allowedMcpServers),
     allowed_mcp_servers: strings(content.allowedMcpServers),
+    ...pluginFields(content),
   };
 }
 
@@ -80,6 +158,19 @@ export function withManaged(content: Json, p: ManagedPolicy): Json {
   setOrDelete(next, "allowedProviders", p.allowed_providers, p.restrict_providers);
   setOrDelete(next, "disablePersonalProviders", true, p.personal_providers_disabled);
   setOrDelete(next, "allowedMcpServers", p.allowed_mcp_servers, p.restrict_mcp_servers);
+  setOrDelete(next, "strictKnownMarketplaces", p.allowed_plugin_sources.map(lineToSource), p.restrict_plugin_sources);
+  setOrDelete(next, "blockedMarketplaces", p.blocked_plugin_sources.map(lineToSource), p.blocked_plugin_sources.length > 0);
+  const extra = Object.fromEntries(
+    p.distributed_marketplaces.map((l) => {
+      const i = l.indexOf("=");
+      return [l.slice(0, i), { source: lineToSource(l.slice(i + 1)) }];
+    }),
+  );
+  setOrDelete(next, "extraKnownMarketplaces", extra, p.distributed_marketplaces.length > 0);
+  const enabled: Json = {};
+  for (const id of p.distributed_plugins) enabled[id] = true;
+  for (const id of p.blocked_plugins) enabled[id] = false;
+  setOrDelete(next, "enabledPlugins", enabled, Object.keys(enabled).length > 0);
   return next;
 }
 
@@ -95,7 +186,23 @@ export function cleanManaged(p: ManagedPolicy): ManagedPolicy {
     deny_rules: list(p.deny_rules),
     allowed_providers: list(p.allowed_providers),
     allowed_mcp_servers: list(p.allowed_mcp_servers),
+    allowed_plugin_sources: list(p.allowed_plugin_sources),
+    blocked_plugin_sources: list(p.blocked_plugin_sources),
+    distributed_marketplaces: list(p.distributed_marketplaces),
+    distributed_plugins: list(p.distributed_plugins),
+    blocked_plugins: list(p.blocked_plugins),
   };
+  for (const l of [...out.allowed_plugin_sources, ...out.blocked_plugin_sources]) lineToSource(l);
+  for (const l of out.distributed_marketplaces) {
+    const i = l.indexOf("=");
+    if (i <= 0 || !MARKET_NAME.test(l.slice(0, i))) throw new ApiError("invalid_request", `Not name=source: ${l}`);
+    lineToSource(l.slice(i + 1));
+  }
+  for (const id of [...out.distributed_plugins, ...out.blocked_plugins]) {
+    if (!PLUGIN_ID.test(id)) throw new ApiError("invalid_request", `Not name@marketplace: ${id}`);
+  }
+  const both = out.distributed_plugins.find((id) => out.blocked_plugins.includes(id));
+  if (both) throw new ApiError("invalid_request", `Both distributed and blocked: ${both}`);
   for (const r of [...out.allow_rules, ...out.ask_rules, ...out.deny_rules]) {
     if (!RULE.test(r)) throw new ApiError("invalid_request", `Not a permission rule: ${r}`);
   }

@@ -59,6 +59,7 @@ import { diffVersion, type DiffBaseChoice, type DiffBases, type SessionDiff, typ
 import { MockSpeechApi } from '~/lib/speech/mock'
 import { ACP_SWITCH_REFUSAL, acpUnsupported, MockAcpApi } from '~/lib/acp/mock'
 import { MockMcpApi } from '~/lib/mcp/mock'
+import { MockPluginsApi } from '~/lib/plugins/mock'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import { MockClaudeImportApi, type MockImportedSession } from '~/lib/import/mock'
@@ -1511,6 +1512,11 @@ export class MockTransport implements SessionTransport {
   }
 
   // ---- ACP sessions (~/lib/acp) ----
+
+  private pluginsApi = new MockPluginsApi()
+  plugins() {
+    return this.pluginsApi
+  }
 
   private mcpApi = new MockMcpApi()
   mcp() {

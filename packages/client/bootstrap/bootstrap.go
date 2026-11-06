@@ -241,6 +241,8 @@ type Session struct {
 	// skillForks holds the grants of skills running in subagents; promptLoader finds prompts a frozen bundle lacks.
 	skillForks   skillForkGrants
 	promptLoader *prompts.Loader
+	// agentHookGrants holds the hooks of agent definitions, by agent id, until the agent ends.
+	agentHookGrants skillForkGrants
 	// Hooks runs the hooks of the settings (hooks.go; never nil once Open returns). endReason is what SessionEnd reports.
 	Hooks      *hooks.Engine
 	endReason  string
@@ -579,6 +581,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		styleDocs = s.Sync.Cache()
 	}
 	s.styleOpts = styleOptions(styleDocs, workspace.GitRoot(ctx, cwd), cwd)
+	s.styleOpts.Plugins = func() []outputstyle.PluginStyle { return pluginStyles(s.Dir(), s.IsTrusted()) }
 	style, styleID := s.resolveOutputStyle(o, st, conv, log)
 	projectContext := memory.ProjectContext(s.Memory.Initial(), gitForContext)
 
@@ -601,6 +604,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.Tools = tools.Default()
 	tools.RegisterSessionTools(s.Tools)
 	s.openSkills(o)
+	s.Warnings = append(s.Warnings, pluginWarnings(cwd, s.Trusted)...)
 	s.registerWebTools(o)
 	s.LSP = lsp.New(lsp.Options{Config: s.lspConfig, Trusted: s.lspTrusted, ReadDenied: func(p string) bool { return s.ToolEnv.ReadDenied != nil && s.ToolEnv.ReadDenied(p) }, Logger: log})
 	s.Tools.Register(s.LSP.Tool())
@@ -763,7 +767,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		LeadEnv: s.ToolEnv, Tools: s.Tools, DisabledTools: disabled, ExtraTools: s.extraTools(useBrowser),
 		Permissions: s.Permissions, Mode: func() string { return string(s.Permissions.Mode()) }, AddWorkDir: s.Permissions.AddWorkDir,
 		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), AutoCompactPct: o.AutoCompactPct, UsageMonitor: o.UsageMonitor, Skills: s.skillSource(), Hooks: s.Hooks,
-		CustomTypes: subagent.LoadDefinitions(subagent.DefinitionDirs(config.Home(), homeDir(), cwd, s.Trusted)), Logger: log,
+		CustomTypes: append(subagent.LoadDefinitions(subagent.DefinitionDirs(config.Home(), homeDir(), cwd, s.Trusted)), pluginAgents(cwd, s.Trusted)...),
+		AgentHooks:  s.agentHooks, Logger: log,
 	})
 	s.Subagents.Attach(s.Agent)
 	s.ToolEnv.Agents = s.Subagents

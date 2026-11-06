@@ -80,6 +80,9 @@ type Options struct {
 	Disabled func(name string) bool
 	// LaunchTimeout bounds starting one stdio server (default 30 s).
 	LaunchTimeout time.Duration
+	// PluginServers are the servers of the installed plugins allowed to run. Approving the plugin approved them: they start
+	// without a decision of their own, and nothing about them goes to the xlsft`s harness server.
+	PluginServers []*mcpv1.Server
 	// Local is this device's own server list (nil: none). Its servers never reach the xlsft`s harness server.
 	Local *LocalStore
 	// Registry receives tools that appear or disappear while the session runs (nil: the tool set stays as it is).
@@ -148,7 +151,9 @@ type server struct {
 	// remote: reached through the xlsft`s harness server's proxy. Everything else has a direct connection.
 	remote bool
 	// local: from this device's own list; nothing about it goes to the xlsft`s harness server.
-	local     bool
+	local bool
+	// plugin: from an installed plugin, with its launch data in cfg. Always local too.
+	plugin    bool
 	alwaysAsk bool
 	// needsApproval: this device decides before the first use (stdio servers and everything from a .mcp.json).
 	needsApproval bool
@@ -197,6 +202,9 @@ func Open(ctx context.Context, o Options) (*Manager, error) {
 			continue
 		}
 		m.servers = append(m.servers, &server{cfg: cfg, local: true, needsApproval: true, alwaysAsk: cfg.GetRemote().GetRequiresUserInteraction()})
+	}
+	for _, cfg := range o.PluginServers {
+		m.servers = append(m.servers, &server{cfg: cfg, local: true, plugin: true, needsApproval: true})
 	}
 	all, err := o.Client.ListServers(ctx, o.ProjectKey)
 	if err != nil {
@@ -298,6 +306,9 @@ func (m *Manager) startDirect(ctx context.Context) {
 		}
 		hash := s.cfg.GetConfigHash()
 		s.approval = m.o.Approvals.State(s.cfg.GetId(), hash)
+		if s.plugin {
+			s.approval = mcpv1.ApprovalState_APPROVAL_STATE_APPROVED
+		}
 		if s.approval == mcpv1.ApprovalState_APPROVAL_STATE_PENDING && m.autoApproved(s.name()) {
 			s.approval = mcpv1.ApprovalState_APPROVAL_STATE_APPROVED
 		}
@@ -342,7 +353,13 @@ func (m *Manager) stdioServers() []*server {
 func (m *Manager) launchLocked(ctx context.Context, s *server) error {
 	ctx, cancel := context.WithTimeout(ctx, m.o.LaunchTimeout)
 	defer cancel()
-	conn, err := connectDirect(ctx, s.cfg, s.local, m.o.Client, m.o.Local, m.o.Cwd, m.hooksFor(s))
+	var conn *directConn
+	var err error
+	if s.plugin {
+		conn, err = connectPlugin(ctx, s.cfg, m.o.Cwd, m.hooksFor(s))
+	} else {
+		conn, err = connectDirect(ctx, s.cfg, s.local, m.o.Client, m.o.Local, m.o.Cwd, m.hooksFor(s))
+	}
 	if err != nil {
 		s.lastErr = err.Error()
 		m.log.Warn("MCP server failed to start", "server", s.name(), "err", err)

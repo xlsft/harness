@@ -41,8 +41,21 @@ type ManagedPolicy struct {
 	// allowedMcpServers: only MCP servers with these names may be used, at any scope.
 	RestrictMcpServers bool     `protobuf:"varint,10,opt,name=restrict_mcp_servers,json=restrictMcpServers,proto3" json:"restrict_mcp_servers,omitempty"`
 	AllowedMcpServers  []string `protobuf:"bytes,11,rep,name=allowed_mcp_servers,json=allowedMcpServers,proto3" json:"allowed_mcp_servers,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// strictKnownMarketplaces: plugins come only from these sources, when restrict_plugin_sources is set (none listed: from nowhere).
+	// A source is one line: owner/repo, owner/*, a git or marketplace.json URL, an absolute path, host:<regexp> or path:<regexp>;
+	// "#ref" after a repository names its ref. Enforced by clients, before a download and when a plugin would load.
+	RestrictPluginSources bool     `protobuf:"varint,12,opt,name=restrict_plugin_sources,json=restrictPluginSources,proto3" json:"restrict_plugin_sources,omitempty"`
+	AllowedPluginSources  []string `protobuf:"bytes,13,rep,name=allowed_plugin_sources,json=allowedPluginSources,proto3" json:"allowed_plugin_sources,omitempty"`
+	// blockedMarketplaces: the same forms, checked first.
+	BlockedPluginSources []string `protobuf:"bytes,14,rep,name=blocked_plugin_sources,json=blockedPluginSources,proto3" json:"blocked_plugin_sources,omitempty"`
+	// extraKnownMarketplaces: "name=source", registered on every device.
+	DistributedMarketplaces []string `protobuf:"bytes,15,rep,name=distributed_marketplaces,json=distributedMarketplaces,proto3" json:"distributed_marketplaces,omitempty"`
+	// enabledPlugins true: name@marketplace, fetched on every device and kept on. Each device still approves what runs.
+	DistributedPlugins []string `protobuf:"bytes,16,rep,name=distributed_plugins,json=distributedPlugins,proto3" json:"distributed_plugins,omitempty"`
+	// enabledPlugins false: name@marketplace, blocked at every level.
+	BlockedPlugins []string `protobuf:"bytes,17,rep,name=blocked_plugins,json=blockedPlugins,proto3" json:"blocked_plugins,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -148,6 +161,48 @@ func (x *ManagedPolicy) GetRestrictMcpServers() bool {
 func (x *ManagedPolicy) GetAllowedMcpServers() []string {
 	if x != nil {
 		return x.AllowedMcpServers
+	}
+	return nil
+}
+
+func (x *ManagedPolicy) GetRestrictPluginSources() bool {
+	if x != nil {
+		return x.RestrictPluginSources
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetAllowedPluginSources() []string {
+	if x != nil {
+		return x.AllowedPluginSources
+	}
+	return nil
+}
+
+func (x *ManagedPolicy) GetBlockedPluginSources() []string {
+	if x != nil {
+		return x.BlockedPluginSources
+	}
+	return nil
+}
+
+func (x *ManagedPolicy) GetDistributedMarketplaces() []string {
+	if x != nil {
+		return x.DistributedMarketplaces
+	}
+	return nil
+}
+
+func (x *ManagedPolicy) GetDistributedPlugins() []string {
+	if x != nil {
+		return x.DistributedPlugins
+	}
+	return nil
+}
+
+func (x *ManagedPolicy) GetBlockedPlugins() []string {
+	if x != nil {
+		return x.BlockedPlugins
 	}
 	return nil
 }
@@ -410,7 +465,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xfb\x03\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xb4\x06\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -425,7 +480,13 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\x1bpersonal_providers_disabled\x18\t \x01(\bR\x19personalProvidersDisabled\x120\n" +
 	"\x14restrict_mcp_servers\x18\n" +
 	" \x01(\bR\x12restrictMcpServers\x12.\n" +
-	"\x13allowed_mcp_servers\x18\v \x03(\tR\x11allowedMcpServers\"\x19\n" +
+	"\x13allowed_mcp_servers\x18\v \x03(\tR\x11allowedMcpServers\x126\n" +
+	"\x17restrict_plugin_sources\x18\f \x01(\bR\x15restrictPluginSources\x124\n" +
+	"\x16allowed_plugin_sources\x18\r \x03(\tR\x14allowedPluginSources\x124\n" +
+	"\x16blocked_plugin_sources\x18\x0e \x03(\tR\x14blockedPluginSources\x129\n" +
+	"\x18distributed_marketplaces\x18\x0f \x03(\tR\x17distributedMarketplaces\x12/\n" +
+	"\x13distributed_plugins\x18\x10 \x03(\tR\x12distributedPlugins\x12'\n" +
+	"\x0fblocked_plugins\x18\x11 \x03(\tR\x0eblockedPlugins\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +
 	"\x06policy\x18\x01 \x01(\v2\x1e.harness.auth.v1.ManagedPolicyR\x06policy\x12\x1d\n" +

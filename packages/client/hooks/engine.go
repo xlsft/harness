@@ -160,6 +160,7 @@ type Engine struct {
 
 	mu     sync.Mutex
 	set    *Set
+	scoped []*scopedHooks
 	closed bool
 	wg     sync.WaitGroup
 }
@@ -190,6 +191,72 @@ func (e *Engine) Set() *Set {
 	return e.set
 }
 
+// scopedHooks are the hooks of a skill or agent's frontmatter while it is at work.
+type scopedHooks struct {
+	hooks []*Hook
+	// agentID limits them to the events of that subagent ("": every event of the session).
+	agentID string
+	// fired holds the Once hooks that have run.
+	fired map[*Hook]bool
+}
+
+// AddScoped runs list next to the set until the returned function is called. With an agent id they see only that subagent's
+// events.
+func (e *Engine) AddScoped(list []*Hook, agentID string) (release func()) {
+	if e == nil || len(list) == 0 {
+		return func() {}
+	}
+	sc := &scopedHooks{hooks: list, agentID: agentID, fired: map[*Hook]bool{}}
+	e.mu.Lock()
+	e.scoped = append(e.scoped, sc)
+	e.mu.Unlock()
+	return func() {
+		e.mu.Lock()
+		defer e.mu.Unlock()
+		e.scoped = slices.DeleteFunc(e.scoped, func(x *scopedHooks) bool { return x == sc })
+	}
+}
+
+// Has reports whether anything runs for an event now, a skill's or agent's hooks included.
+func (e *Engine) Has(ev Event) bool {
+	if e == nil {
+		return false
+	}
+	if e.Set().Has(ev) {
+		return true
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	for _, sc := range e.scoped {
+		if (&Set{All: sc.hooks}).Has(ev) {
+			return true
+		}
+	}
+	return false
+}
+
+// scopedMatching returns the scoped hooks that run for an event seen by this agent, marking the Once ones as used.
+func (e *Engine) scopedMatching(ev Event, value, agentID string) []*Hook {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	var out []*Hook
+	for _, sc := range e.scoped {
+		if sc.agentID != "" && sc.agentID != agentID {
+			continue
+		}
+		for _, h := range (&Set{All: sc.hooks}).Matching(ev, value) {
+			if h.Once {
+				if sc.fired[h] {
+					continue
+				}
+				sc.fired[h] = true
+			}
+			out = append(out, h)
+		}
+	}
+	return out
+}
+
 // Close cancels what still runs (handlers on their own, notifications) and waits for it.
 func (e *Engine) Close() {
 	if e == nil {
@@ -212,7 +279,7 @@ func (e *Engine) Context() context.Context {
 
 // Fire runs an event's handlers without waiting for them: for events nothing can answer. It never blocks the caller.
 func (e *Engine) Fire(ev Event, value string, in Input) {
-	if e == nil || !e.Set().Has(ev) {
+	if e == nil || !e.Has(ev) {
 		return
 	}
 	e.Spawn(func() { e.Dispatch(e.ctx, ev, value, in) })
@@ -244,12 +311,12 @@ func (e *Engine) End(reason string) {
 }
 
 // active returns the hooks that run now for an event.
-func (e *Engine) active(ev Event, value string) []*Hook {
-	hooks := e.Set().Matching(ev, value)
-	if len(hooks) == 0 {
+func (e *Engine) active(ev Event, value, agentID string) []*Hook {
+	if os.Getenv("HARNESS_NO_HOOKS") == "1" {
 		return nil
 	}
-	if os.Getenv("HARNESS_NO_HOOKS") == "1" {
+	hooks := append(e.Set().Matching(ev, value), e.scopedMatching(ev, value, agentID)...)
+	if len(hooks) == 0 {
 		return nil
 	}
 	off, policyOff := e.Set().Off, e.Set().PolicyOff
@@ -271,7 +338,7 @@ func (e *Engine) Dispatch(ctx context.Context, ev Event, value string, in Input)
 	if e == nil {
 		return Outcome{}
 	}
-	hooks := e.active(ev, value)
+	hooks := e.active(ev, value, in.AgentID)
 	if len(hooks) == 0 {
 		return Outcome{}
 	}
@@ -356,7 +423,7 @@ type output struct {
 
 // runOne runs a handler and reports it.
 func (e *Engine) runOne(ctx context.Context, h *Hook, ev Event, in Input, body []byte) *result {
-	run := Run{ID: "hook_" + session.NewID(), Event: string(ev), Type: h.Type, Command: valid(h.Command), Matcher: h.Matcher, Source: h.Source.Level.String(),
+	run := Run{ID: "hook_" + session.NewID(), Event: string(ev), Type: h.Type, Command: valid(h.Command), Matcher: h.Matcher, Source: h.SourceLabel(),
 		Status: RunRunning, ToolName: in.ToolName, ToolUseID: in.ToolUseID, AgentID: in.AgentID, Async: h.Async}
 	e.report(run)
 	start := time.Now()
@@ -417,7 +484,7 @@ func (l *limitedBuffer) Write(p []byte) (int, error) {
 func (e *Engine) runCommand(ctx context.Context, h *Hook, in Input, body []byte) *result {
 	cmd, kill := shellCommand(h.Command)
 	cmd.Dir = in.Cwd
-	cmd.Env = e.environ()
+	cmd.Env = append(e.environ(), h.Env...)
 	cmd.Stdin = bytes.NewReader(body)
 	var stdout, stderr limitedBuffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
