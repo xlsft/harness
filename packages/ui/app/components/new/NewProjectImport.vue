@@ -70,7 +70,7 @@ async function accept() {
           This folder has Claude Code files, which aren't read.
           <button
             type="button"
-            class="underline"
+            class="inline text-left underline"
             :aria-expanded="open"
             @click="open = !open"
           >{{ offerSummary(scan.items) }}</button>

@@ -466,12 +466,8 @@ func (r *run) settings() {
 	if raw, ok := m["hooks"]; ok {
 		delete(m, "hooks")
 		note := "runs only after it is trusted on each device"
-		if rewritten, left := rewriteHooksJSON(raw); left != "" {
-			raw, note = rewritten, note+"; "+left
-		} else {
-			raw = rewritten
-		}
-		r.doc(syncv1.DocumentKind_DOCUMENT_KIND_HOOK, "hooks", "user", prettyJSON(raw), nil, note)
+		rewritten, left := rewriteHooksJSON(raw)
+		r.doc(syncv1.DocumentKind_DOCUMENT_KIND_HOOK, "hooks", "user", prettyJSON(rewritten), nil, joinNote(note, left))
 	}
 	if _, ok := m["apiKeyHelper"]; ok {
 		delete(m, "apiKeyHelper")
