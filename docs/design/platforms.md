@@ -54,6 +54,12 @@ The guard is detection, not a boundary. A process left running can write after i
 
 **Supported architectures are `amd64` and `arm64`**, the ones CI builds. On others the driver reports unsupported, since the filter needs a table of system call numbers.
 
+**A command's processes end with it under `bubblewrap`.** The helper becomes the command as PID 1 of the namespace (`--as-pid-1`), so `bwrap` does not wait for what the command left running, and a tool's result does not hang on it. That means `nohup server &` does not outlive its command there; `run_in_background` is the way, and it is one command to the sandbox.
+
+### How it is tested
+
+The plans (`sandbox/linux_plan_test.go`) run everywhere. The real backends (`sandbox/linux_test.go`, `tools/sandbox_linux_test.go`) need a Linux kernel, and they skip a backend the machine lacks, so `client.yml` names the ones it expects in `HARNESS_SANDBOX_REQUIRE`, which turns the skip into a failure: `sandbox-linux` on `ubuntu-latest` proves both, then Landlock alone inside a default `ubuntu:24.04` container. `powershell-windows` runs the tool against real PowerShell.
+
 ### Not closed on Linux
 
 - Protected names at depth when they do not exist yet, e.g. a new `sub/.harness/settings.local.json`. The client only reads settings from the session's folder and above, so this matters when a session later opens in `sub`.
