@@ -11,6 +11,9 @@ import (
 // A process in the sandbox sees a plain EPERM ("Operation not permitted"): nothing says who refused. So a failed command's
 // output is read for the paths and the network errors it names, and each is checked against the policy, which knows the
 // answer. A "Permission denied" on a path the policy allows is the file's own mode, and no business of the sandbox.
+//
+// On Linux the kernel words it differently, which the same reading covers: a read-only bind mount gives EROFS, Landlock
+// gives EACCES, a masked store is missing or unreadable, and a network namespace has no route.
 
 // BlockedHosts are the hosts the proxy refused since this command started.
 func (w *Wrapped) BlockedHosts() []string {
@@ -21,13 +24,22 @@ func (w *Wrapped) BlockedHosts() []string {
 }
 
 var (
-	refusedRe = regexp.MustCompile(`(?i)operation not permitted|\bEPERM\b|permission denied|\bEACCES\b`)
+	refusedRe = regexp.MustCompile(`(?i)operation not permitted|\bEPERM\b|permission denied|\bEACCES\b|read-only file system|\bEROFS\b`)
+	// What a masked credential store looks like, once the path is known to be one.
+	missingRe = regexp.MustCompile(`(?i)no such file or directory|\bENOENT\b|not a directory`)
+	// Landlock's refused connect.
+	portRefusedRe = regexp.MustCompile(`(?i)(connect|dial|socket)[^\n]*(permission denied|EACCES)|(permission denied|EACCES)[^\n]*connect`)
+	// A connection nothing answers, on the loopback interface.
+	loopbackRefusedRe = regexp.MustCompile(`(?i)connection refused|ECONNREFUSED|failed to connect to (localhost|127\.0\.0\.1)|couldn't connect to server`)
+	loopbackRe        = regexp.MustCompile(`(?i)localhost|127\.0\.0\.1|\[?::1\]?`)
+	// sudo and the like under no_new_privs.
+	noNewPrivsRe = regexp.MustCompile(`(?i)no new privileges|effective uid is not 0`)
 	// A word that looks like a path, quoted or not.
 	pathWordRe = regexp.MustCompile(`(?:^|[\s'"‘“(=:])((?:~|\.{1,2})?/[^\s'"’”:,;)]+|[\w.@+-]+(?:/[\w.@+-]+)+|\.[\w.-]+)`)
 
 	dnsRe = regexp.MustCompile(`(?i)could not resolve|couldn't resolve|name or service not known|nodename nor servname|no such host|getaddrinfo|temporary failure in name resolution|ENOTFOUND|EAI_AGAIN|name resolution failed|lookup [^ ]+ on|lookup [^ ]+: no`)
 	// A socket call the kernel refused.
-	netRe        = regexp.MustCompile(`(?i)(connect|socket|dial|bind|listen|sendto|fetch)[^\n]*(operation not permitted|EPERM)|(operation not permitted|EPERM)[^\n]*(connect|socket|bind|listen)|EADDRNOTAVAIL|failed to connect to [^ ]+ port`)
+	netRe        = regexp.MustCompile(`(?i)(connect|socket|dial|bind|listen|sendto|fetch)[^\n]*(operation not permitted|EPERM)|(operation not permitted|EPERM)[^\n]*(connect|socket|bind|listen)|EADDRNOTAVAIL|failed to connect to [^ ]+ port|network is unreachable|ENETUNREACH`)
 	socketCallRe = regexp.MustCompile(`\.(bind|listen|connect)\(`)
 	sshRe        = regexp.MustCompile(`(?i)(ssh: |ssh_|could not read from remote repository|host key verification failed|permission denied \(publickey)`)
 	dockerRe     = regexp.MustCompile(`(?i)docker daemon|docker\.sock|colima|podman\.sock`)
@@ -50,6 +62,8 @@ type Denial struct {
 	SSH bool
 	// Local says binding or reaching a local port or socket was refused.
 	Local bool
+	// PrivateLoopback says a local connection found nothing because the command has a loopback interface of its own.
+	PrivateLoopback bool
 	// Credentials says a tool looked for the user's stored credentials: the keychain or a credential helper.
 	Credentials bool
 	// Unnamed says the output shows a refusal the sandbox may be behind, with nothing that names what.
@@ -57,7 +71,7 @@ type Denial struct {
 }
 
 func (d Denial) empty() bool {
-	return len(d.Paths)+len(d.Hosts) == 0 && !d.Network && !d.SSH && !d.Local && !d.Credentials && !d.Unnamed
+	return len(d.Paths)+len(d.Hosts) == 0 && !d.Network && !d.SSH && !d.Local && !d.PrivateLoopback && !d.Credentials && !d.Unnamed
 }
 
 // Diagnose reads the output of a command that ran under w. failed says it did not succeed: a command that succeeded
@@ -67,7 +81,7 @@ func (w *Wrapped) Diagnose(output, cwd string, failed bool) *Denial {
 	if w == nil {
 		return nil
 	}
-	d := Denial{Hosts: w.BlockedHosts()}
+	d := Denial{Hosts: w.BlockedHosts(), Paths: w.Verify()}
 	for _, m := range proxyRe.FindAllStringSubmatch(output, -1) {
 		if !slices.Contains(d.Hosts, m[1]) {
 			d.Hosts = append(d.Hosts, m[1])
@@ -131,6 +145,21 @@ func (w *Wrapped) readLines(d *Denial, output, cwd string) {
 				d.Network = true
 			}
 			continue
+		case w.Policy.PortRules && portRefusedRe.MatchString(line):
+			if loopbackRe.MatchString(line) {
+				d.Local = true
+			} else {
+				d.Network = true
+			}
+			continue
+		case w.Policy.PrivateLoopback && loopbackRefusedRe.MatchString(line) && loopbackRe.MatchString(line):
+			d.PrivateLoopback = true
+			continue
+		case noNewPrivsRe.MatchString(line):
+			if entry := "setuid programs: they run without their privileges in a sandbox (sudo cannot work)"; !slices.Contains(d.Paths, entry) {
+				d.Paths = append(d.Paths, entry)
+			}
+			continue
 		case netRe.MatchString(line):
 			if strings.Contains(strings.ToLower(line), "bind") || strings.Contains(strings.ToLower(line), "listen") || strings.Contains(line, "127.0.0.1") || strings.Contains(line, "localhost") {
 				d.Local = true
@@ -140,9 +169,12 @@ func (w *Wrapped) readLines(d *Denial, output, cwd string) {
 			continue
 		}
 		if !refusedRe.MatchString(line) {
+			w.readMasked(d, line, cwd)
 			continue
 		}
-		eperm := strings.Contains(strings.ToLower(line), "not permitted") || strings.Contains(line, "EPERM")
+		lower := strings.ToLower(line)
+		// What only the sandbox says for writes. Under Landlock its refusal is also the file's own mode's, so the policy decides.
+		eperm := strings.Contains(lower, "not permitted") || strings.Contains(line, "EPERM") || strings.Contains(lower, "read-only file system") || strings.Contains(line, "EROFS") || w.Policy.FilesByPermission
 		named := false
 		for _, m := range pathWordRe.FindAllStringSubmatch(line, -1) {
 			p := m[1]
@@ -173,6 +205,29 @@ func (w *Wrapped) readLines(d *Denial, output, cwd string) {
 	}
 	if len(d.Paths) > 5 {
 		d.Paths = d.Paths[:5]
+	}
+}
+
+// readMasked looks for a credential store a mount has hidden: to the command it is simply not there.
+func (w *Wrapped) readMasked(d *Denial, line, cwd string) {
+	if !missingRe.MatchString(line) {
+		return
+	}
+	for _, m := range pathWordRe.FindAllStringSubmatch(line, -1) {
+		p := m[1]
+		switch {
+		case strings.HasPrefix(p, "~/") && w.Policy.Home != "":
+			p = filepath.Join(w.Policy.Home, p[2:])
+		case !filepath.IsAbs(p):
+			p = filepath.Join(cwd, p)
+		}
+		p = canon(p)
+		if !slices.ContainsFunc(w.Policy.ReadDeny, func(s string) bool { return within(p, s) }) {
+			continue
+		}
+		if entry := m[1] + ": " + w.Policy.Why(p, false); !slices.Contains(d.Paths, entry) {
+			d.Paths = append(d.Paths, entry)
+		}
 	}
 }
 
@@ -229,6 +284,9 @@ func (d *Denial) Note(outsideParam string) string {
 	if d.Local {
 		what = append(what, "a local port or socket: commands cannot listen or reach local services unless the user turns on Allow localhost in Settings > Sandbox")
 	}
+	if d.PrivateLoopback {
+		what = append(what, "a connection on the loopback interface: each sandboxed command here has a loopback of its own, so a server started by another command or running on this machine is not reachable from it (start the server and its client in one command)")
+	}
 	var b strings.Builder
 	b.WriteString("[sandbox] ")
 	if len(what) > 0 {
@@ -264,7 +322,7 @@ func (d *Denial) Summary() string {
 	case d.Network:
 		parts = append(parts, "network")
 	}
-	if d.Local {
+	if d.Local || d.PrivateLoopback {
 		parts = append(parts, "local port or socket")
 	}
 	if len(parts) == 0 {

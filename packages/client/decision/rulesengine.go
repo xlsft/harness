@@ -1018,6 +1018,7 @@ var secretPatterns = []*regexp.Regexp{
 	jsRe(`(^|\/)\.azure(\/|$)`),
 	jsRe(`(^|\/)\.gnupg(\/|$)`),
 	jsRe(`(^|\/)\.password-store(\/|$)`),
+	jsRe(`(^|\/)\.local\/share\/keyrings(\/|$)`),
 	jsRe(`(^|\/)Keychains(\/|$)`),
 	jsRe(`^\/etc\/(shadow|gshadow|master\.passwd)$`),
 	jsRe(`^\/proc\/[^/]+\/environ$`),
@@ -1025,7 +1026,7 @@ var secretPatterns = []*regexp.Regexp{
 
 // IsSecretPath reports whether a path is one of the sensitive ones: credentials and keys in their usual places (.env
 // files, .ssh keys, .aws, .netrc, .npmrc, .pypirc, .docker/config.json, .git-credentials, .kube/config, gcloud, gh, azure,
-// gnupg, password stores, keychains, shadow files, a process's environ). The object store's uploads skip them.
+// gnupg, password stores, keychains, GNOME keyrings, shadow files, a process's environ). The object store's uploads skip them.
 func IsSecretPath(s string) bool { return isSecretPath(s) }
 
 func isSecretPath(s string) bool {

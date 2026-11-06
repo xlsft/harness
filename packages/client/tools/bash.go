@@ -482,6 +482,8 @@ func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecRes
 	}
 	if !res.Interrupted && !res.TimedOut {
 		res.Denial = wrapped.Diagnose(res.Stdout+"\n"+res.Stderr, cwd, res.ExitCode != 0)
+	} else {
+		wrapped.Verify()
 	}
 
 	// A stopped command leaves the directory as it was: the shell's EXIT trap may not have run. A failed one
