@@ -59,7 +59,7 @@ export function presetView(p: ProviderPreset): PresetView {
     description: p.description,
     type: p.type,
     baseUrl: p.baseUrl,
-    fields: p.fields.map(f => ({ name: f.name, label: f.label, required: f.required, placeholder: f.placeholder })),
+    fields: p.fields.map(f => ({ name: f.name, label: f.label, required: f.required, placeholder: f.placeholder, modes: f.modes, multiline: f.multiline })),
     docsUrl: p.docsUrl,
     keyUrl: p.keyUrl,
     defaultModels: p.defaultModels.map(m => ({ upstream: m.upstreamModel, name: m.displayName || m.upstreamModel, contextWindow: Number(m.contextWindow) })),
@@ -70,14 +70,17 @@ export function presetView(p: ProviderPreset): PresetView {
       name: o.name,
       label: o.label,
       kind: o.kind === 'number' || o.kind === 'select' ? o.kind : 'text',
-      choices: o.choices.map(c => ({ value: c.value, label: c.label })),
+      choices: o.choices.map(c => ({ value: c.value, label: c.label, globalOnly: c.globalOnly })),
       defaultValue: o.defaultValue,
       placeholder: o.placeholder,
       min: o.min,
-      max: o.max
+      max: o.max,
+      modes: o.modes,
+      required: o.required
     })),
     builtin: p.builtin,
-    billing: billing(p.billing)
+    billing: billing(p.billing),
+    cloud: p.cloud
   }
 }
 

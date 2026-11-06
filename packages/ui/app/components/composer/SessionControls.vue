@@ -56,7 +56,7 @@ const POPOVER = { side: 'top', align: 'end', sideOffset: 6 } as const
   >
     <button
       type="button"
-      aria-label="Model"
+      :aria-label="tt('Model')"
       :class="[CHIP, menu === 'model' && 'bg-hover']"
     >
       <span
@@ -67,7 +67,7 @@ const POPOVER = { side: 'top', align: 'end', sideOffset: 6 } as const
     <template #content>
       <div
         role="listbox"
-        aria-label="Model"
+        :aria-label="tt('Model')"
         class="w-[380px] max-w-[calc(100vw-32px)] overflow-hidden border border-accented bg-hover text-[12.5px]"
       >
         <ModelList
@@ -87,7 +87,7 @@ const POPOVER = { side: 'top', align: 'end', sideOffset: 6 } as const
   >
     <button
       type="button"
-      aria-label="Effort"
+      :aria-label="tt('Effort')"
       :class="[CHIP, menu === 'effort' && 'bg-hover', 'max-sm:hidden @max-[560px]:hidden']"
     >
       {{ effortLabel }}
@@ -111,7 +111,7 @@ const POPOVER = { side: 'top', align: 'end', sideOffset: 6 } as const
   >
     <button
       type="button"
-      aria-label="Agent mode"
+      :aria-label="tt('Agent mode')"
       :class="[CHIP, menu === 'mode' && 'bg-hover']"
     >
       <span class="text-strong">{{ currentAcpMode?.name ?? acpModes.current }}</span>
@@ -119,7 +119,7 @@ const POPOVER = { side: 'top', align: 'end', sideOffset: 6 } as const
     <template #content>
       <div
         role="listbox"
-        aria-label="Agent mode"
+        :aria-label="tt('Agent mode')"
         class="w-[340px] max-w-[calc(100vw-32px)] overflow-hidden border border-accented bg-hover text-[12.5px]"
       >
         <div
@@ -147,7 +147,7 @@ const POPOVER = { side: 'top', align: 'end', sideOffset: 6 } as const
   >
     <button
       type="button"
-      aria-label="Permission mode"
+      :aria-label="tt('Permission mode')"
       :class="[CHIP, menu === 'mode' && 'bg-hover']"
     >
       <span class="text-strong">{{ MODE_LABEL[mode] }}</span>
@@ -155,7 +155,7 @@ const POPOVER = { side: 'top', align: 'end', sideOffset: 6 } as const
     <template #content>
       <div
         role="listbox"
-        aria-label="Permission mode"
+        :aria-label="tt('Permission mode')"
         class="w-[340px] max-w-[calc(100vw-32px)] overflow-hidden border border-accented bg-hover text-[12.5px]"
       >
         <div

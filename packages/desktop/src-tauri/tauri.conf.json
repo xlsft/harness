@@ -32,7 +32,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc2MkNCM0NBRkREM0Y5OUMKUldTYytkUDl5ck1zZHU0ZE9FRzRwWWhVMHNIZ1VCNFFvc0lkTnNiZXpKSHBpTVVCeUJtelBjdjAK",
       "requireSignedVersion": true,
       "endpoints": [
         "https://github.com/xlsft/harness/releases/latest/download/latest.json"

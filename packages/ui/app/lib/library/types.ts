@@ -3,6 +3,7 @@
 // and the client decide what exists and who may see it; this only names things for the screens. Two implementations:
 // connect.ts and mock.ts.
 
+import { tt } from '~/utils/i18n'
 import type { Artifact, ArtifactVersion, GetArtifactResponse } from '~/gen/harness/library/v1/artifacts_pb'
 import type { GetKnowledgeDocumentResponse, KnowledgeDocument, KnowledgeHit } from '~/gen/harness/library/v1/knowledge_pb'
 import type { TrackerTask } from '~/gen/harness/library/v1/tracker_pb'
@@ -64,28 +65,28 @@ export interface LibraryApi {
 
 // How each kind of artifact looks on the screen.
 export const ARTIFACT_VIEW: Record<ArtifactKind, { label: string, icon: IconName, tint: string, color: string }> = {
-  [ArtifactKind.UNSPECIFIED]: { label: 'File', icon: 'file', tint: 'rgba(160,160,160,.1)', color: '#9a9a9a' },
-  [ArtifactKind.PAGE]: { label: 'Page', icon: 'page', tint: 'rgba(90,163,255,.1)', color: '#5aa3ff' },
-  [ArtifactKind.MARKDOWN]: { label: 'Document', icon: 'doc', tint: 'rgba(138,201,123,.1)', color: '#8ac97b' },
-  [ArtifactKind.TEXT]: { label: 'Text', icon: 'file', tint: 'rgba(160,160,160,.1)', color: '#9a9a9a' },
-  [ArtifactKind.IMAGE]: { label: 'Image', icon: 'image', tint: 'rgba(214,145,226,.1)', color: '#d691e2' },
+  [ArtifactKind.UNSPECIFIED]: { label: tt('File'), icon: 'file', tint: 'rgba(160,160,160,.1)', color: '#9a9a9a' },
+  [ArtifactKind.PAGE]: { label: tt('Page'), icon: 'page', tint: 'rgba(90,163,255,.1)', color: '#5aa3ff' },
+  [ArtifactKind.MARKDOWN]: { label: tt('Document'), icon: 'doc', tint: 'rgba(138,201,123,.1)', color: '#8ac97b' },
+  [ArtifactKind.TEXT]: { label: tt('Text'), icon: 'file', tint: 'rgba(160,160,160,.1)', color: '#9a9a9a' },
+  [ArtifactKind.IMAGE]: { label: tt('Image'), icon: 'image', tint: 'rgba(214,145,226,.1)', color: '#d691e2' },
   [ArtifactKind.PDF]: { label: 'PDF', icon: 'slides', tint: 'rgba(234,90,79,.1)', color: '#ea5a4f' },
-  [ArtifactKind.FILE]: { label: 'File', icon: 'file', tint: 'rgba(160,160,160,.1)', color: '#9a9a9a' }
+  [ArtifactKind.FILE]: { label: tt('File'), icon: 'file', tint: 'rgba(160,160,160,.1)', color: '#9a9a9a' }
 }
 
 // The columns of the tracker, in the order work moves through them.
 export const TASK_STATUSES: { status: TrackerStatus, label: string }[] = [
-  { status: TrackerStatus.TODO, label: 'To do' },
-  { status: TrackerStatus.IN_PROGRESS, label: 'In progress' },
-  { status: TrackerStatus.BLOCKED, label: 'Blocked' },
-  { status: TrackerStatus.DONE, label: 'Done' },
-  { status: TrackerStatus.CANCELLED, label: 'Cancelled' }
+  { status: TrackerStatus.TODO, label: tt('To do') },
+  { status: TrackerStatus.IN_PROGRESS, label: tt('In progress') },
+  { status: TrackerStatus.BLOCKED, label: tt('Blocked') },
+  { status: TrackerStatus.DONE, label: tt('Done') },
+  { status: TrackerStatus.CANCELLED, label: tt('Cancelled') }
 ]
 
 export const TASK_PRIORITIES: { priority: TrackerPriority, label: string }[] = [
-  { priority: TrackerPriority.HIGH, label: 'High' },
-  { priority: TrackerPriority.NORMAL, label: 'Normal' },
-  { priority: TrackerPriority.LOW, label: 'Low' }
+  { priority: TrackerPriority.HIGH, label: tt('High') },
+  { priority: TrackerPriority.NORMAL, label: tt('Normal') },
+  { priority: TrackerPriority.LOW, label: tt('Low') }
 ]
 
 export function statusLabel(s: TrackerStatus): string {

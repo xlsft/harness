@@ -30,6 +30,7 @@
 import { randomBytes } from "node:crypto";
 import { and, asc, eq, isNull, ne, or } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
+import type { CloudAuth } from "../gateway/cloud/credentials.ts";
 import { decryptSecret, deriveKey, encryptSecret } from "../lib/crypto.ts";
 import { ApiError } from "../lib/errors.ts";
 import { assertResolvesPublic } from "../lib/ssrf.ts";
@@ -37,6 +38,7 @@ import { clearBalanceCache } from "../limits/balance.ts";
 import { forgetRateLimits } from "../limits/headers.ts";
 import { setBalanceEstimate } from "../limits/policy.ts";
 import type { PublicUser } from "./devices.ts";
+import { cloudBaseUrl, cloudModeOf, CloudOptionProblem, cloudSecretHint, cloudSecretRequired, validateCloudOptions } from "./presets-cloud.ts";
 import {
   BUILTIN_SEARCH_ID,
   CLASSIFIER_TYPES,
@@ -76,6 +78,12 @@ export interface ProviderRuntime {
   options: Record<string, string>;
   /** LLM providers: a "plan" provider's requests never cost money (services/presets.ts). */
   billing: Billing;
+  /** Cloud platform providers: how requests get their signature or token. Its secret is never `apiKey`. */
+  cloud?: CloudAuth;
+  /** Set with `cloud`: a secret to keep out of errors and logs. */
+  cloudSecret?: string;
+  /** The preset it was connected from, if any. */
+  presetId?: string | null;
 }
 
 export interface ProviderInput {
@@ -304,7 +312,24 @@ export async function createProvider(input: ProviderInput, owner: ProviderOwner 
   let kind: ProviderGroup;
   let type: string;
   let baseUrl = input.base_url?.trim();
-  if (preset) {
+  let cloudOptions: Record<string, string> | undefined;
+  if (preset?.cloud) {
+    kind = preset.group;
+    type = preset.type;
+    try {
+      cloudOptions = validateCloudOptions(preset, input.options, !!owner);
+      // The endpoint follows from the options. An admin may name another one (a private AWS or Azure endpoint); a personal
+      // provider cannot, since that would send its signed requests from the server to anywhere.
+      if (owner || !baseUrl) baseUrl = cloudBaseUrl(preset, cloudOptions);
+    } catch (e) {
+      if (e instanceof CloudOptionProblem) throw new ApiError("invalid_request", e.message);
+      throw e;
+    }
+    if (cloudSecretRequired(preset, cloudModeOf(preset, cloudOptions)) && !input.api_key) {
+      throw new ApiError("invalid_request", `${preset.display_name} needs its secret with these credentials`);
+    }
+    if (input.api_key && preset.cloud.kind === "gcp") checkServiceAccount(input.api_key);
+  } else if (preset) {
     kind = preset.group;
     type = preset.type;
     // The URL is the preset's unless the preset asks for it (a local server).
@@ -342,8 +367,8 @@ export async function createProvider(input: ProviderInput, owner: ProviderOwner 
     throw new ApiError("invalid_request", `Provider ${id} already exists`, { status: 409 });
   }
   const headers = validateHeaders(input.headers);
-  const options = kind === "search" ? validateOptions(searchOptionSpecs({ presetId: preset?.id ?? null, kind, type, baseUrl }), input.options) : {};
-  if (kind !== "search" && input.options && Object.keys(input.options).length) throw new ApiError("invalid_request", "Only search providers have options");
+  const options = cloudOptions ?? (kind === "search" ? validateOptions(searchOptionSpecs({ presetId: preset?.id ?? null, kind, type, baseUrl }), input.options) : {});
+  if (!cloudOptions && kind !== "search" && input.options && Object.keys(input.options).length) throw new ApiError("invalid_request", "Only search and cloud providers have options");
   const now = new Date();
   const [row] = await db
     .insert(schema.provider)
@@ -356,7 +381,7 @@ export async function createProvider(input: ProviderInput, owner: ProviderOwner 
       displayName: input.display_name || preset?.display_name || null,
       baseUrl: baseUrl.replace(/\/+$/, ""),
       apiKeyEnc: input.api_key ? encryptSecret(input.api_key, `${id}:api_key`, secretKey(owner?.userId)) : null,
-      apiKeyHint: input.api_key ? hint(input.api_key) : null,
+      apiKeyHint: input.api_key ? (preset?.cloud ? cloudSecretHint(preset.cloud.kind, input.api_key) ?? hint(input.api_key) : hint(input.api_key)) : null,
       headersEnc: Object.keys(headers).length ? encryptSecret(JSON.stringify(headers), `${id}:headers`, secretKey(owner?.userId)) : null,
       allowPrivateNetwork: allowPrivate,
       enabled: input.enabled ?? true,
@@ -381,17 +406,36 @@ export async function updateProvider(id: string, input: ProviderInput, owner: Pr
     await assertResolvesPublic(url, allowPrivate);
     patch.baseUrl = url.replace(/\/+$/, "");
   }
+  const curPreset = presetOf(cur);
   if (input.api_key !== undefined) {
+    if (input.api_key && curPreset?.cloud?.kind === "gcp") checkServiceAccount(input.api_key);
     patch.apiKeyEnc = input.api_key ? encryptSecret(input.api_key, `${id}:api_key`, secretKey(cur.ownerUserId)) : null;
-    patch.apiKeyHint = input.api_key ? hint(input.api_key) : null;
+    patch.apiKeyHint = input.api_key ? (curPreset?.cloud ? cloudSecretHint(curPreset.cloud.kind, input.api_key) ?? hint(input.api_key) : hint(input.api_key)) : null;
   }
   if (input.headers !== undefined) {
     const headers = validateHeaders(input.headers);
     patch.headersEnc = Object.keys(headers).length ? encryptSecret(JSON.stringify(headers), `${id}:headers`, secretKey(cur.ownerUserId)) : null;
   }
   if (input.enabled !== undefined) patch.enabled = input.enabled;
-  if (input.options !== undefined) {
-    if (cur.kind !== "search") throw new ApiError("invalid_request", "Only search providers have options");
+  if (curPreset?.cloud) {
+    if (owner && input.base_url !== undefined) throw new ApiError("invalid_request", "A personal cloud provider's endpoint follows from its options");
+    if (input.options !== undefined) {
+      try {
+        const options = validateCloudOptions(curPreset, input.options, !!owner);
+        patch.options = options;
+        // An endpoint an admin named stays; one that came from the options follows them.
+        const wasDerived = cur.baseUrl === cloudBaseUrl(curPreset, (cur.options as Record<string, string> | null) ?? {});
+        if (wasDerived && input.base_url === undefined) patch.baseUrl = cloudBaseUrl(curPreset, options);
+      } catch (e) {
+        if (e instanceof CloudOptionProblem) throw new ApiError("invalid_request", e.message);
+        throw e;
+      }
+    }
+    const mode = cloudModeOf(curPreset, (patch.options as Record<string, string> | undefined) ?? (cur.options as Record<string, string> | null) ?? {});
+    const secretLeft = patch.apiKeyEnc !== undefined ? patch.apiKeyEnc : cur.apiKeyEnc;
+    if (cloudSecretRequired(curPreset, mode) && !secretLeft) throw new ApiError("invalid_request", `${curPreset.display_name} needs its secret with these credentials`);
+  } else if (input.options !== undefined) {
+    if (cur.kind !== "search") throw new ApiError("invalid_request", "Only search and cloud providers have options");
     const options = validateOptions(searchOptionSpecs({ ...cur, type: patch.type ?? cur.type }), input.options);
     patch.options = Object.keys(options).length ? options : null;
   }
@@ -421,24 +465,50 @@ export async function deleteProvider(id: string, owner: ProviderOwner = null) {
  * Removes a provider's secrets (API key, header values) from text that may reach clients or logs, such as
  * an upstream error body that echoes the key back.
  */
-export function redactSecrets(text: string, p: Pick<ProviderRuntime, "apiKey" | "headers">): string {
+export function redactSecrets(text: string, p: Pick<ProviderRuntime, "apiKey" | "headers"> & { cloudSecret?: string }): string {
   let out = text;
-  for (const s of [p.apiKey, ...Object.values(p.headers)]) {
+  for (const s of [p.apiKey, p.cloudSecret, ...Object.values(p.headers)]) {
     if (s && s.length >= 6) out = out.split(s).join("[redacted]");
   }
   return out;
+}
+
+/** A service account file must be one, or the provider would only fail on its first request. */
+function checkServiceAccount(text: string) {
+  let file: Record<string, unknown> | undefined;
+  try {
+    file = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    // Said below.
+  }
+  if (!file || file.type !== "service_account" || typeof file.client_email !== "string" || typeof file.private_key !== "string") {
+    throw new ApiError("invalid_request", "That is not a service account file: paste the JSON key file Google gave you");
+  }
 }
 
 export async function loadProviderRuntime(id: string): Promise<ProviderRuntime> {
   await ensureDb();
   const r = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, id) });
   if (!r) throw new ApiError("internal", `Provider ${id} is missing`);
+  const secret = r.apiKeyEnc ? decryptSecret(r.apiKeyEnc, `${r.id}:api_key`, secretKey(r.ownerUserId)) : undefined;
+  const preset = presetOf(r);
+  const options = (r.options as Record<string, string> | null) ?? {};
+  const cloud: CloudAuth | undefined = preset?.cloud && {
+    kind: preset.cloud.kind,
+    service: preset.cloud.service,
+    mode: cloudModeOf(preset, options),
+    options,
+    ...(secret !== undefined && { secret }),
+    ownerUserId: r.ownerUserId,
+  };
   return {
     id: r.id,
     type: r.type as ProviderType,
     kind: r.kind as ProviderGroup,
     baseUrl: r.baseUrl,
-    apiKey: r.apiKeyEnc ? decryptSecret(r.apiKeyEnc, `${r.id}:api_key`, secretKey(r.ownerUserId)) : undefined,
+    apiKey: cloud ? undefined : secret,
+    ...(cloud && { cloud, ...(secret !== undefined && { cloudSecret: secret }) }),
+    presetId: preset?.id ?? null,
     headers: r.headersEnc ? JSON.parse(decryptSecret(r.headersEnc, `${r.id}:headers`, secretKey(r.ownerUserId))) : {},
     allowPrivateNetwork: r.allowPrivateNetwork,
     enabled: r.enabled,

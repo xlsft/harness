@@ -48,6 +48,11 @@ export interface BrowserStateVM {
   allowedSites: string[]
   // The user took the browser over: the agent's action tools fail meanwhile.
   takenOver: boolean
+  // The tabs are in the user's own Chrome, not a profile of this session's.
+  realChrome: boolean
+  // A recording runs, and where the last one went (on the session's machine).
+  recording: boolean
+  lastRecording: string
 }
 
 // What the agent does in the browser: one 'started' and one 'finished' per Browser* tool call (the pane's overlay,
@@ -148,7 +153,22 @@ export interface PreviewServerVM {
   exitCode: number
 }
 
+export type BrowserSiteAnswer = 'deny' | 'session' | 'always'
+
+export interface RealChromeVM {
+  available: boolean
+  inUse: boolean
+  allowedSites: string[]
+}
+
 export interface BrowserApi {
+  // The user's own Chrome: whether one can be attached to, whether this session is, the sites allowed for good here.
+  realChrome(sessionId?: string): Promise<RealChromeVM>
+  useRealChrome(sessionId: string, on: boolean): Promise<void>
+  respondToSite(sessionId: string, requestId: string, answer: BrowserSiteAnswer): Promise<void>
+  revokeSite(site: string): Promise<string[]>
+  // Starts or stops a recording as a GIF; stopping answers with where it was saved.
+  record(sessionId: string, on: boolean): Promise<{ path: string }>
   // Which browser would run, or that none is found (then offer install()).
   availability(): Promise<BrowserAvailabilityVM>
   // Downloads the pinned Chrome for Testing build into the client's HARNESS_HOME, with progress.
@@ -232,7 +252,10 @@ export function stateView(s: BrowserState | undefined): BrowserStateVM {
     activeTabId: s?.activeTabId ?? '',
     viewport: viewportView(s?.viewport),
     allowedSites: [...(s?.allowedSites ?? [])],
-    takenOver: s?.takenOver ?? false
+    takenOver: s?.takenOver ?? false,
+    realChrome: s?.realChrome ?? false,
+    recording: s?.recording ?? false,
+    lastRecording: s?.lastRecording ?? ''
   }
 }
 

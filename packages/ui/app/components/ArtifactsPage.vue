@@ -11,9 +11,9 @@ const route = useRoute()
 const router = useRouter()
 
 const FILTERS = [
-  { label: 'All', value: ArtifactFilter.ALL },
-  { label: 'Yours', value: ArtifactFilter.MINE },
-  { label: 'Shared', value: ArtifactFilter.SHARED }
+  { label: tt('All'), value: ArtifactFilter.ALL },
+  { label: tt('Yours'), value: ArtifactFilter.MINE },
+  { label: tt('Shared'), value: ArtifactFilter.SHARED }
 ]
 const filter = ref(ArtifactFilter.ALL)
 const query = ref('')
@@ -82,18 +82,18 @@ function onDeleted() {
   />
   <section
     v-else
-    aria-label="Artifacts"
+    :aria-label="tt('Artifacts')"
     class="h-full overflow-y-auto bg-default"
   >
     <div class="mx-auto flex max-w-[1080px] flex-col gap-[22px] px-10 pt-[52px] pb-10 max-sm:px-4">
       <h1 class="m-0 font-display text-[26px] font-bold text-strong">
-        Artifacts
+        {{ tt('Artifacts') }}
       </h1>
 
       <div class="flex flex-wrap items-center gap-2">
         <div
           role="tablist"
-          aria-label="Filter"
+          :aria-label="tt('Filter')"
           class="flex gap-[2px]"
         >
           <button
@@ -117,15 +117,15 @@ function onDeleted() {
           />
           <input
             v-model="query"
-            placeholder="Search titles"
-            aria-label="Search artifacts"
+            :placeholder="tt('Search titles')"
+            :aria-label="tt('Search artifacts')"
             class="w-[180px] bg-transparent text-[12.5px] text-strong outline-none placeholder:text-muted"
           >
         </label>
         <button
           type="button"
-          :aria-label="props.view === 'grid' ? 'Show as list' : 'Show as grid'"
-          :title="props.view === 'grid' ? 'Show as list' : 'Show as grid'"
+          :aria-label="props.view === 'grid' ? tt('Show as list') : tt('Show as grid')"
+          :title="props.view === 'grid' ? tt('Show as list') : tt('Show as grid')"
           class="flex size-8 items-center justify-center text-toned hover:text-strong"
           @click="emit('update:view', props.view === 'grid' ? 'list' : 'grid')"
         >
@@ -147,7 +147,7 @@ function onDeleted() {
         v-else-if="loaded && !items.length"
         class="m-0 text-[12.5px] text-muted"
       >
-        {{ query || filter !== ArtifactFilter.ALL ? 'Nothing matches.' : 'Nothing published yet. Ask an agent to publish a report or a page as an artifact and it stays here after the session, private until you share it.' }}
+        {{ query || filter !== ArtifactFilter.ALL ? tt('Nothing matches.') : tt('Nothing published yet. Ask an agent to publish a report or a page as an artifact and it stays here after the session, private until you share it.') }}
       </p>
 
       <div
@@ -179,7 +179,7 @@ function onDeleted() {
               v-if="isShared(a)"
               name="globe-share"
               class="text-toned"
-              aria-label="Shared on this server"
+              :aria-label="tt('Shared on this server')"
             />
           </span>
         </button>
@@ -209,7 +209,7 @@ function onDeleted() {
             v-if="isShared(a)"
             name="globe-share"
             class="shrink-0 text-toned"
-            aria-label="Shared on this server"
+            :aria-label="tt('Shared on this server')"
           />
         </button>
       </div>

@@ -41,21 +41,21 @@ async function save(key: Keys, v: boolean) {
 }
 
 const rows: { key: Keys, label: string, desc: string }[] = [
-  { key: 'ideDiffs', label: 'Prompts open a diff', desc: 'When an edit would ask for permission, its change also opens in your editor\'s diff, where you can accept or reject it.' },
-  { key: 'ideReviewAllEdits', label: 'Review every edit first', desc: 'Edits the permission mode would allow wait for an answer in your editor\'s diff too. A rule that denies still denies.' }
+  { key: 'ideDiffs', label: tt('Prompts open a diff'), desc: tt('When an edit would ask for permission, its change also opens in your editor\'s diff, where you can accept or reject it.') },
+  { key: 'ideReviewAllEdits', label: tt('Review every edit first'), desc: tt('Edits the permission mode would allow wait for an answer in your editor\'s diff too. A rule that denies still denies.') }
 ]
 </script>
 
 <template>
   <section
-    aria-label="Editor"
+    :aria-label="tt('Editor')"
     class="mt-6 flex flex-col"
   >
     <h2 class="set-h">
-      Editor
+      {{ tt('Editor') }}
     </h2>
     <p class="set-sub">
-      Applies while an editor extension is attached to the session. Saved to your account on the server, so it applies on every machine.
+      {{ tt('Applies while an editor extension is attached to the session. Saved to your account on the server, so it applies on every machine.') }}
     </p>
     <p
       v-if="error"

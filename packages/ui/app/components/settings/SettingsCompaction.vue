@@ -43,14 +43,14 @@ async function save(v: boolean) {
 
 <template>
   <section
-    aria-label="Compaction"
+    :aria-label="tt('Compaction')"
     class="mt-6 flex flex-col"
   >
     <h2 class="set-h">
-      Compaction
+      {{ tt('Compaction') }}
     </h2>
     <p class="set-sub">
-      Saved to your account on the server, so it applies on every machine.
+      {{ tt('Saved to your account on the server, so it applies on every machine.') }}
     </p>
     <p
       v-if="error"
@@ -61,12 +61,12 @@ async function save(v: boolean) {
     </p>
     <div class="set-row">
       <div class="set-label">
-        <span>Compact idle sessions</span>
-        <span class="set-desc">After 30 minutes without activity, sessions above half their context window are compacted in the background.</span>
+        <span>{{ tt('Compact idle sessions') }}</span>
+        <span class="set-desc">{{ tt('After 30 minutes without activity, sessions above half their context window are compacted in the background.') }}</span>
       </div>
       <HToggle
         v-model="value"
-        label="Compact idle sessions"
+        :label="tt('Compact idle sessions')"
         :disabled="!loaded"
       />
     </div>

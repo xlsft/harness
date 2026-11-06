@@ -154,7 +154,7 @@ const placeholder = computed(() => {
 
 // Footer hint: text segments, each optionally led by a shortcut rendered with UKbd.
 const hint = computed<Hint>(() => {
-  if (props.session.editorReview) return [{ text: `${props.session.editorReview.path.split('/').pop()} is open for review in ${props.session.editorReview.editor}` }]
+  if (props.session.editorReview) return [{ text: tt('{0} is open for review in {1}', [props.session.editorReview.path.split('/').pop(), props.session.editorReview.editor]) }]
   if (mode.value === 'shell') return [{ text: 'output goes to context ·' }, { keys: 'backspace', text: 'on empty to exit' }]
   if (files.value.some(f => f.error)) return [{ text: 'remove the files that cannot be sent' }]
   if (uploading.value) return [{ text: `waiting for ${uploading.value} upload${uploading.value > 1 ? 's' : ''}` }]
@@ -258,9 +258,9 @@ function retry() {
           :size="14"
           class="text-warn"
         />
-        <span class="text-strong">Context {{ contextPct }}% full</span><span class="text-muted">auto-compact at 95%</span>
+        <span class="text-strong">{{ tt('Context {0}% full', [contextPct]) }}</span><span class="text-muted">{{ tt('auto-compact at 95%') }}</span>
         <span class="flex-1" /><HBtn @click="store.compact(id)">
-          Compact now
+          {{ tt('Compact now') }}
         </HBtn>
       </div>
     </template>
@@ -275,12 +275,12 @@ function retry() {
         class="flex min-h-11 items-center gap-2 border border-default bg-default px-2.5 text-muted"
       >
         <HIcon name="wifi" />
-        <span class="flex-1">Reconnecting to {{ session.meta.deviceName || 'the' }} client…</span>
+        <span class="flex-1">{{ tt('Reconnecting to {0} client…', [session.meta.deviceName || 'the']) }}</span>
         <HBtn
           size="sm"
           @click="store.open(id)"
         >
-          Reconnect now
+          {{ tt('Reconnect now') }}
         </HBtn>
       </div>
 
@@ -290,12 +290,12 @@ function retry() {
         class="flex min-h-11 items-center gap-2 border border-default px-2.5 text-muted"
       >
         <HIcon name="lock" />
-        <span class="flex-1">Session ended · {{ session.endedReason || 'closed' }}</span>
+        <span class="flex-1">{{ tt('Session ended · {0}', [session.endedReason || 'closed']) }}</span>
         <HBtn
           variant="primary"
           size="sm"
         >
-          Fork to continue
+          {{ tt('Fork to continue') }}
         </HBtn>
       </div>
     </template>
@@ -305,13 +305,13 @@ function retry() {
         v-if="error"
         class="text-[11.5px] text-bad"
       >
-        {{ error }} Your message wasn't sent.
+        {{ tt('{0} Your message wasn\'t sent.', [error]) }}
       </div>
       <div
         v-if="mode === 'memory'"
         class="flex flex-wrap gap-2 text-[11.5px] text-muted"
       >
-        <span>save to</span>
+        <span>{{ tt('save to') }}</span>
         <button
           v-for="t in ['AGENTS.md', 'user memory', '.harness/rules']"
           :key="t"

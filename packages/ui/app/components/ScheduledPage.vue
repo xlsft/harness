@@ -40,17 +40,17 @@ const list = computed(() => sortSchedules(data.value?.schedules ?? []))
 const folderOptions = computed(() => {
   const paths = new Set(folders.value.map(f => f.path))
   if (draft.value?.cwd) paths.add(draft.value.cwd)
-  return [{ value: '', label: 'No folder' }, ...[...paths].map(p => ({ value: p, label: p }))]
+  return [{ value: '', label: tt('No folder') }, ...[...paths].map(p => ({ value: p, label: p }))]
 })
 
 const modeOptions = [
-  { value: '', label: 'As in settings' },
-  { value: 'default', label: 'Ask for everything' },
-  { value: 'acceptEdits', label: 'Accept edits' },
-  { value: 'auto', label: 'Auto' },
-  { value: 'plan', label: 'Plan only' },
-  { value: 'dontAsk', label: 'Refuse what would ask' },
-  { value: 'bypassPermissions', label: 'Skip permission checks' }
+  { value: '', label: tt('As in settings') },
+  { value: 'default', label: tt('Ask for everything') },
+  { value: 'acceptEdits', label: tt('Accept edits') },
+  { value: 'auto', label: tt('Auto') },
+  { value: 'plan', label: tt('Plan only') },
+  { value: 'dontAsk', label: tt('Refuse what would ask') },
+  { value: 'bypassPermissions', label: tt('Skip permission checks') }
 ]
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
@@ -144,22 +144,22 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
 
 <template>
   <section
-    aria-label="Scheduled"
+    :aria-label="tt('Scheduled')"
     class="h-full overflow-y-auto bg-default"
   >
     <div class="mx-auto flex max-w-[860px] flex-col gap-[22px] px-10 pt-[52px] pb-10 max-sm:px-4">
       <div class="flex items-center gap-3">
         <h1 class="m-0 flex-1 font-display text-[26px] font-bold text-strong">
-          Scheduled
+          {{ tt('Scheduled') }}
         </h1>
         <div
           v-if="data"
           class="flex items-center gap-2 text-[12px] text-muted"
         >
-          <span>Run on their own</span>
+          <span>{{ tt('Run on their own') }}</span>
           <HToggle
             :model-value="data.enabled"
-            label="Run schedules on their own"
+            :label="tt('Run schedules on their own')"
             @update:model-value="setEnabled"
           />
         </div>
@@ -168,14 +168,14 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
           size="md"
           @click="startNew"
         >
-          New schedule
+          {{ tt('New schedule') }}
         </HBtn>
       </div>
 
       <p class="m-0 text-[12.5px] text-muted">
-        Tasks run on a machine where xlsft`s harness is up: what comes due while it's down runs when it's back, or is recorded as missed.
+        {{ tt('Tasks run on a machine where xlsft`s harness is up: what comes due while it\'s down runs when it\'s back, or is recorded as missed.') }}
         <template v-if="data && !data.synced">
-          No server is connected, so these stay on this machine.
+          {{ tt('No server is connected, so these stay on this machine.') }}
         </template>
       </p>
 
@@ -196,41 +196,41 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
 
       <form
         v-if="draft"
-        aria-label="Schedule"
+        :aria-label="tt('Schedule')"
         class="flex flex-col gap-3 border border-default p-4 text-[12.5px]"
         @submit.prevent="save"
       >
         <label class="flex flex-col gap-1 text-muted">
-          Name
+          {{ tt('Name') }}
           <input
             v-model="draft.name"
             class="border border-default bg-transparent px-2 py-1 text-strong outline-none focus:border-accent"
-            placeholder="Optional"
+            :placeholder="tt('Optional')"
           >
         </label>
         <label class="flex flex-col gap-1 text-muted">
-          Prompt
+          {{ tt('Prompt') }}
           <textarea
             v-model="draft.prompt"
             rows="4"
             class="resize-y border border-default bg-transparent px-2 py-1 text-strong outline-none focus:border-accent"
-            placeholder="What to do. A slash command works too."
+            :placeholder="tt('What to do. A slash command works too.')"
           />
         </label>
         <div class="flex flex-wrap gap-3">
           <div class="flex min-w-[220px] flex-1 flex-col gap-1 text-muted">
-            When
+            {{ tt('When') }}
             <HSelect
               v-model="draft.trigger"
               :options="TRIGGER_OPTIONS"
-              aria-label="When"
+              :aria-label="tt('When')"
             />
           </div>
           <label
             v-if="draft.trigger === 'once'"
             class="flex min-w-[220px] flex-1 flex-col gap-1 text-muted"
           >
-            At
+            {{ tt('At') }}
             <input
               v-model="draft.at"
               type="datetime-local"
@@ -241,7 +241,7 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
             v-if="draft.trigger === 'interval'"
             class="flex min-w-[220px] flex-1 flex-col gap-1 text-muted"
           >
-            Minutes between runs
+            {{ tt('Minutes between runs') }}
             <input
               v-model="draft.everyMinutes"
               inputmode="decimal"
@@ -252,7 +252,7 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
             v-if="draft.trigger === 'cron'"
             class="flex min-w-[220px] flex-1 flex-col gap-1 text-muted"
           >
-            Minute, hour, day, month, weekday
+            {{ tt('Minute, hour, day, month, weekday') }}
             <input
               v-model="draft.cron"
               class="border border-default bg-transparent px-2 py-1 font-mono text-strong outline-none focus:border-accent"
@@ -263,7 +263,7 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
           v-if="draft.trigger === 'file'"
           class="flex flex-col gap-1 text-muted"
         >
-          Files to watch in the folder, one pattern per line
+          {{ tt('Files to watch in the folder, one pattern per line') }}
           <textarea
             v-model="draft.paths"
             rows="2"
@@ -275,23 +275,23 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
           v-if="draft.trigger === 'webhook'"
           class="m-0 text-muted"
         >
-          The address to post to appears here once the schedule has reached the server. What is posted reaches the run as data, never as instructions.
+          {{ tt('The address to post to appears here once the schedule has reached the server. What is posted reaches the run as data, never as instructions.') }}
         </p>
         <div class="flex flex-wrap gap-3">
           <div class="flex min-w-[220px] flex-1 flex-col gap-1 text-muted">
-            Folder
+            {{ tt('Folder') }}
             <HSelect
               v-model="draft.cwd"
               :options="folderOptions"
-              aria-label="Folder"
+              :aria-label="tt('Folder')"
             />
           </div>
           <div class="flex min-w-[220px] flex-1 flex-col gap-1 text-muted">
-            Permissions
+            {{ tt('Permissions') }}
             <HSelect
               v-model="draft.permissionMode"
               :options="modeOptions"
-              aria-label="Permissions"
+              :aria-label="tt('Permissions')"
             />
           </div>
         </div>
@@ -299,16 +299,16 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
           <span class="flex items-center gap-2">
             <HToggle
               v-model="draft.catchUp"
-              label="Run once when back if a time was missed"
+              :label="tt('Run once when back if a time was missed')"
             />
-            Run once when back if a time was missed
+            {{ tt('Run once when back if a time was missed') }}
           </span>
           <span class="flex items-center gap-2">
             <HToggle
               v-model="draft.worktree"
-              label="Each run in a new git worktree"
+              :label="tt('Each run in a new git worktree')"
             />
-            Each run in a new git worktree
+            {{ tt('Each run in a new git worktree') }}
           </span>
         </div>
         <div class="flex gap-2">
@@ -318,13 +318,13 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
             type="submit"
             :disabled="saving"
           >
-            {{ draft.id ? 'Save' : 'Create' }}
+            {{ draft.id ? tt('Save') : tt('Create') }}
           </HBtn>
           <HBtn
             size="md"
             @click="draft = null"
           >
-            Cancel
+            {{ tt('Cancel') }}
           </HBtn>
         </div>
       </form>
@@ -333,7 +333,7 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
         v-if="data && !list.length && !draft"
         class="m-0 text-[12.5px] text-muted"
       >
-        Nothing is scheduled. Make a task here, or type /loop 10m &lt;prompt&gt; in a session.
+        {{ tt('Nothing is scheduled. Make a task here, or type /loop 10m <prompt> in a session.') }}
       </p>
 
       <div class="flex flex-col">
@@ -357,7 +357,7 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
           <span
             v-if="s.lastRun"
             class="text-[11.5px] text-muted"
-          >Last run {{ formatWhen(s.lastRun.startedAt) }}: <span :class="runStatusTone(s.lastRun)">{{ runStatusText(s.lastRun) }}</span></span>
+          >{{ tt('Last run {0}:', [formatWhen(s.lastRun.startedAt)]) }} <span :class="runStatusTone(s.lastRun)">{{ runStatusText(s.lastRun) }}</span></span>
           <span
             v-if="s.problem"
             class="text-[11.5px] text-warn"
@@ -368,7 +368,7 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
           >
             <code class="min-w-0 flex-1 truncate">{{ s.trigger.webhookUrl }}</code>
             <HBtn @click="act(() => api!.rotateWebhook(s.id))">
-              New address
+              {{ tt('New address') }}
             </HBtn>
           </div>
           <div class="flex flex-wrap gap-1.5 pt-1">
@@ -377,37 +377,37 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
               variant="primary"
               @click="act(() => api!.trust(s.id))"
             >
-              Allow on this machine
+              {{ tt('Allow on this machine') }}
             </HBtn>
             <HBtn @click="runNow(s)">
-              Run now
+              {{ tt('Run now') }}
             </HBtn>
             <HBtn
               v-if="!s.done"
               @click="act(() => api!.setPaused(s.id, !s.paused))"
             >
-              {{ s.paused ? 'Resume' : 'Pause' }}
+              {{ s.paused ? tt('Resume') : tt('Pause') }}
             </HBtn>
             <HBtn
               v-if="!s.sessionId"
               @click="edit(s)"
             >
-              Edit
+              {{ tt('Edit') }}
             </HBtn>
             <HBtn
               v-if="!s.thisDevice && data?.deviceId && !s.deviceLocal"
               @click="act(() => api!.update({ ...s, deviceId: data!.deviceId }))"
             >
-              Run here instead
+              {{ tt('Run here instead') }}
             </HBtn>
             <HBtn @click="toggleRuns(s)">
-              History
+              {{ tt('History') }}
             </HBtn>
             <HBtn
               tone="danger"
               @click="act(() => api!.remove(s.id))"
             >
-              Delete
+              {{ tt('Delete') }}
             </HBtn>
           </div>
           <div
@@ -417,7 +417,7 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
             <span
               v-if="!runs.length"
               class="py-1 text-[11.5px] text-muted"
-            >It hasn't run yet.</span>
+            >{{ tt('It hasn\'t run yet.') }}</span>
             <div
               v-for="r in runs"
               :key="r.id"
@@ -431,7 +431,7 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
                   variant="ghost"
                   @click="openSession(r.sessionId)"
                 >
-                  Open session
+                  {{ tt('Open session') }}
                 </HBtn>
               </div>
               <span

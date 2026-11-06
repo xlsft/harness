@@ -114,6 +114,10 @@ func (b *Browser) activeTab(ctx context.Context) (*tab, *conn, error) {
 	if t == nil || c == nil {
 		return nil, nil, errors.New("the browser stopped")
 	}
+	// In the user's Chrome, the guard on navigations keeps a tab on allowed sites; this holds if one got past it.
+	if b.Attached() && !b.siteAllowed(b.TabURL(t.id)) {
+		return nil, nil, fmt.Errorf("this tab is on %s, which the user has not allowed in their Chrome", SiteOf(b.TabURL(t.id)))
+	}
 	return t, c, nil
 }
 
@@ -279,6 +283,11 @@ func (b *Browser) Navigate(ctx context.Context, u string, wait bool) (NavResult,
 	if err != nil {
 		return NavResult{}, err
 	}
+	if b.Attached() && !b.siteAllowed(u) {
+		if err := b.askSite(ctx, u); err != nil {
+			return NavResult{}, err
+		}
+	}
 	s := b.seqsOf(t)
 	var res struct {
 		LoaderID  string `json:"loaderId"`
@@ -398,7 +407,31 @@ func (b *Browser) NewTab(ctx context.Context, u string) (string, error) {
 	var res struct {
 		TargetID string `json:"targetId"`
 	}
-	if err := c.Call(ctx, "", "Target.createTarget", map[string]any{"url": u}, &res); err != nil {
+	if b.Attached() {
+		// The tab opens blank: it is guarded before it goes anywhere.
+		if !b.siteAllowed(u) {
+			if err := b.askSite(ctx, u); err != nil {
+				return "", err
+			}
+		}
+		target, err := b.openAttachedTab(ctx, c, "about:blank", false)
+		if err != nil {
+			return "", err
+		}
+		res.TargetID = target
+		if u != "" && u != "about:blank" {
+			defer func() {
+				nctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+				defer cancel()
+				b.mu.Lock()
+				t := b.byTarget[target]
+				b.mu.Unlock()
+				if t != nil {
+					_ = c.Call(nctx, t.session, "Page.navigate", map[string]any{"url": u}, nil)
+				}
+			}()
+		}
+	} else if err := c.Call(ctx, "", "Target.createTarget", map[string]any{"url": u}, &res); err != nil {
 		return "", err
 	}
 	var id string
@@ -487,6 +520,9 @@ func (b *Browser) SwitchTab(ctx context.Context, id string) error {
 
 // SetViewport changes the emulated screen of every tab.
 func (b *Browser) SetViewport(ctx context.Context, vp Viewport) error {
+	if b.Attached() {
+		return errors.New("the size of a tab in your own Chrome follows its window")
+	}
 	b.mu.Lock()
 	b.viewport = vp
 	c, ua := b.conn, b.userAgent
@@ -510,6 +546,9 @@ func (b *Browser) SetViewport(ctx context.Context, vp Viewport) error {
 
 // ClearData deletes cookies, cache and site storage of the session's profile and reloads the open pages.
 func (b *Browser) ClearData(ctx context.Context) error {
+	if b.Attached() {
+		return errors.New("this session uses your own Chrome: its data is yours and stays as it is")
+	}
 	b.mu.Lock()
 	c := b.conn
 	var session string

@@ -13,7 +13,7 @@ async function toBackground() {
   try {
     await store.transport?.backgroundToolCall(props.sessionId, props.tool.id, 'user')
   } catch (e) {
-    toast.add({ title: 'Could not move it to the background', description: e instanceof Error ? e.message : String(e), color: 'error' })
+    toast.add({ title: tt('Could not move it to the background'), description: e instanceof Error ? e.message : String(e), color: 'error' })
   }
 }
 </script>
@@ -30,7 +30,7 @@ async function toBackground() {
       :name="tool.name === 'Task' || tool.name === 'Agent' ? 'agent' : toolIcon(tool)"
       :spin="tool.status === 'running' && tool.name !== 'Task' && tool.name !== 'Agent'"
     />
-    {{ tool.name === 'Task' ? 'Agent' : tool.name }} <span
+    {{ tool.name === 'Task' ? tt('Agent') : tool.name }} <span
       v-if="tool.name === 'Bash'"
       class="min-w-0 truncate"
     ><span
@@ -43,10 +43,10 @@ async function toBackground() {
     <span class="flex-1" />
     <HBtn
       v-if="canBackground"
-      title="Keep it running as a background task and let the agent go on"
+      :title="tt('Keep it running as a background task and let the agent go on')"
       @click.stop="toBackground"
     >
-      Run in background
+      {{ tt('Run in background') }}
     </HBtn>
     <span
       v-if="toolMeta(tool, now, true).cls === 'diff'"

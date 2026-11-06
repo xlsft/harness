@@ -244,6 +244,7 @@ func cmdServe(ctx context.Context, args []string) int {
 	base.IDE = &ide.Manager{}
 	srv := server.New(base)
 	srv.UserEmail = email
+	srv.SSHBinaries = sshBinaries
 	srv.Logger = log
 	// A web UI that opens sessions by ?session=<id> (Initialize web_url); the harness server serves none yet.
 	srv.WebURL = strings.TrimRight(strings.TrimSpace(os.Getenv("HARNESS_WEB_URL")), "/")

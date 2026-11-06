@@ -36,11 +36,15 @@ if [[ "$triple" == *apple-darwin* ]]; then
   echo "sidecar: src-tauri/binaries/$helper-$triple"
 fi
 # `tauri dev` copies external binaries only when the shell itself is rebuilt; refresh the copy it runs.
+# Remove first: copying over a binary that has already run keeps its inode, macOS still holds the old
+# code signature for that inode, and kills every later run of the new file (exit 137, no output).
 for dir in "$here/src-tauri/target/debug" "$here/src-tauri/target/$triple/debug"; do
   if [[ -d "$dir" ]]; then
+    rm -f "$dir/harness-client$ext"
     cp "$here/src-tauri/binaries/harness-client-$triple$ext" "$dir/harness-client$ext"
     echo "sidecar: refreshed ${dir#$here/}/harness-client$ext"
     if [[ -n "$helper" ]]; then
+      rm -f "$dir/$helper"
       cp "$here/src-tauri/binaries/$helper-$triple" "$dir/$helper"
     fi
   fi

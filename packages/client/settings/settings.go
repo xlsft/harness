@@ -158,8 +158,13 @@ func (p Problem) Error() string {
 
 // Settings is the merged result.
 type Settings struct {
-	Model                  string
-	EffortLevel            string
+	Model       string
+	EffortLevel string
+	// SpeedTier and CacheTTL are what requests ask of the model when it has them (speedTier, cacheTtl; "": the provider's
+	// default); AdvisorModel is the model behind the Advisor tool (advisorModel; "": no such tool).
+	SpeedTier              string
+	CacheTTL               string
+	AdvisorModel           string
 	OutputStyle            string
 	AutoCompactWindow      int
 	CleanupPeriodDays      int
@@ -335,6 +340,19 @@ const KeyPRMonitorWakesPerHour = "prMonitorWakesPerHour"
 // KeyInterruptReply is the settings key of Settings.InterruptReply.
 const KeyInterruptReply = "interruptReply"
 
+// The settings keys of how requests use the models.
+const (
+	KeySpeedTier    = "speedTier"
+	KeyCacheTTL     = "cacheTtl"
+	KeyAdvisorModel = "advisorModel"
+)
+
+// ValidSpeedTier reports whether s can be Settings.SpeedTier.
+func ValidSpeedTier(s string) bool { return s == "" || s == "standard" || s == "fast" || s == "flex" }
+
+// ValidCacheTTL reports whether s can be Settings.CacheTTL.
+func ValidCacheTTL(s string) bool { return s == "" || s == "5m" || s == "1h" || s == "24h" }
+
 // KeyAutoMemoryEnabled is the settings key of Settings.AutoMemoryEnabled.
 const KeyAutoMemoryEnabled = "autoMemoryEnabled"
 
@@ -378,6 +396,7 @@ type layer struct {
 	includeGit, interruptReply, compactIdle                   *bool
 	lspEnabled, lspDiagnostics, lspStartServer                *bool
 	ideDiffs, ideReviewAll                                    *bool
+	speedTier, cacheTTL, advisorModel                         *string
 	autoMemory                                                *bool
 	lspServers                                                map[string]LSPServer
 	attrCommit, attrPR                                        *string

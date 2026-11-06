@@ -102,7 +102,7 @@ const gutter = computed(() => `${Math.max(2, String(lineCount.value).length) + 2
       role="status"
       class="shrink-0 border-b border-line bg-surface px-3.5 py-1.5 text-[11.5px] text-muted"
     >
-      Showing the first {{ formatSize(FILE_LIMITS.text) }} of {{ formatSize(content.size) }}.
+      {{ tt('Showing the first {0} of {1}.', [formatSize(FILE_LIMITS.text), formatSize(content.size)]) }}
     </div>
 
     <div
@@ -125,7 +125,7 @@ const gutter = computed(() => `${Math.max(2, String(lineCount.value).length) + 2
         :size="22"
         class="text-warn"
       />
-      <span class="text-[13px] text-strong">Could not open this file</span>
+      <span class="text-[13px] text-strong">{{ tt('Could not open this file') }}</span>
       <span class="max-w-[420px] text-[12px] break-words text-muted">{{ error }}</span>
     </div>
 
@@ -154,7 +154,7 @@ const gutter = computed(() => `${Math.max(2, String(lineCount.value).length) + 2
         :size="26"
         class="text-muted"
       />
-      <span class="text-[13px] text-strong">No preview for this file</span>
+      <span class="text-[13px] text-strong">{{ tt('No preview for this file') }}</span>
       <span class="text-[12px] text-muted">
         {{ formatSize(content.size) }}{{ content.tooLarge ? ' · too large to preview' : content.mime ? ` · ${content.mime}` : '' }}
       </span>
@@ -165,14 +165,14 @@ const gutter = computed(() => `${Math.max(2, String(lineCount.value).length) + 2
           class="border border-line bg-hover px-2.5 py-[5px] text-[12px] text-strong hover:bg-raised"
           @click="emit('open-app')"
         >
-          Open in default app
+          {{ tt('Open in default app') }}
         </button>
         <button
           type="button"
           class="border border-line bg-hover px-2.5 py-[5px] text-[12px] text-strong hover:bg-raised"
           @click="emit('copy-path')"
         >
-          Copy path
+          {{ tt('Copy path') }}
         </button>
       </div>
     </div>
@@ -238,8 +238,8 @@ const gutter = computed(() => `${Math.max(2, String(lineCount.value).length) + 2
         :size="26"
         class="text-muted"
       />
-      <span class="text-[13px] text-strong">No file open</span>
-      <span class="text-[12px] text-muted">Pick a file in the tree</span>
+      <span class="text-[13px] text-strong">{{ tt('No file open') }}</span>
+      <span class="text-[12px] text-muted">{{ tt('Pick a file in the tree') }}</span>
     </div>
   </div>
 </template>

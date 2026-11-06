@@ -134,6 +134,9 @@ class MockBrowser {
       activeTabId: this.activeId,
       allowedSites: this.allowedSites,
       takenOver: this.takenOver,
+      realChrome: false,
+      recording: false,
+      lastRecording: '',
       viewport: create(BrowserViewportSchema, {
         preset: presetPb(this.viewport.preset),
         width: this.viewport.width,
@@ -163,6 +166,9 @@ class MockBrowser {
       activeTabId: this.activeId,
       allowedSites: [...this.allowedSites],
       takenOver: this.takenOver,
+      realChrome: false,
+      recording: false,
+      lastRecording: '',
       viewport: { ...this.viewport },
       tabs: this.tabs.map(t => ({
         id: t.id,
@@ -326,6 +332,25 @@ export class MockBrowserApi implements BrowserApi {
       downloaded: this.downloaded,
       downloading: false
     }
+  }
+
+  // The mock has no real Chrome to attach to and records nothing.
+  async realChrome() {
+    return { available: false, inUse: false, allowedSites: [] as string[] }
+  }
+
+  async useRealChrome() {
+    throw new Error('no Chrome with remote debugging found')
+  }
+
+  async respondToSite() {}
+
+  async revokeSite() {
+    return [] as string[]
+  }
+
+  async record() {
+    return { path: '' }
   }
 
   async availability() {

@@ -93,7 +93,7 @@ const parsed = computed(() => {
         v-for="(img, i) in images"
         :key="i"
         :type="queued || pending ? undefined : 'button'"
-        :aria-label="queued || pending ? undefined : `Open ${img.name}`"
+        :aria-label="queued || pending ? undefined : tt('Open {0}', [img.name])"
         @click="!queued && !pending && openImage(img.src)"
       >
         <img
@@ -111,14 +111,14 @@ const parsed = computed(() => {
     <button
       v-if="queued"
       type="button"
-      title="Edit: back to the composer"
+      :title="tt('Edit: back to the composer')"
       class="flex max-w-[78%] cursor-text flex-col gap-[7px] self-end border border-dashed border-accented px-3 py-[9px] text-left leading-[1.55] text-toned hover:border-accent"
       @click="emit('edit')"
     >
       <span
         v-if="!parsed.blocks.length"
         class="text-muted"
-      >Files only</span>
+      >{{ tt('Files only') }}</span>
       <template
         v-for="(b, bi) in parsed.blocks"
         :key="bi"
@@ -177,7 +177,7 @@ const parsed = computed(() => {
       <HIcon
         name="play"
         :size="12"
-      />Ran <code class="truncate font-mono text-toned">{{ ran.split('\n')[0] }}</code>
+      />{{ tt('Ran') }} <code class="truncate font-mono text-toned">{{ ran.split('\n')[0] }}</code>
     </span>
     <span
       v-else-if="interrupted"
@@ -186,7 +186,7 @@ const parsed = computed(() => {
       <HIcon
         name="interrupt"
         :size="13"
-      />Stopped
+      />{{ tt('Stopped') }}
     </span>
     <ReviewMessage
       v-else-if="review"
@@ -200,7 +200,7 @@ const parsed = computed(() => {
       <span
         v-if="fromVisual"
         class="self-start border border-accented px-[5px] text-[11.5px] text-muted"
-      >from visual</span>
+      >{{ tt('from visual') }}</span>
       <template
         v-for="(b, bi) in parsed.blocks"
         :key="bi"

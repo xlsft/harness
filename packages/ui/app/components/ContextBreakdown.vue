@@ -96,16 +96,16 @@ function share(n: number) {
       v-else-if="!usage"
       class="m-0 text-[11.5px] text-muted"
     >
-      {{ loading ? 'Counting…' : '' }}
+      {{ loading ? tt('Counting…') : '' }}
     </p>
 
     <template v-if="usage">
       <div class="flex items-baseline gap-2 text-[12px]">
-        <span class="shrink-0 text-strong tabular-nums">{{ percentOf(usage.used, usage.window) }}% used</span>
+        <span class="shrink-0 text-strong tabular-nums">{{ tt('{0}% used', [percentOf(usage.used, usage.window)]) }}</span>
         <span class="flex-1" />
         <span
           class="min-w-0 truncate text-muted tabular-nums"
-          :title="usage.estimated ? 'Estimated: no provider count yet' : undefined"
+          :title="usage.estimated ? tt('Estimated: no provider count yet') : undefined"
         >{{ usage.estimated ? '~' : '' }}{{ tok(usage.used) }} / {{ tok(usage.window) }}</span>
       </div>
 
@@ -155,7 +155,7 @@ function share(n: number) {
           :aria-expanded="toolsOpen"
           @click="toolsOpen = !toolsOpen"
         >
-          <span class="text-muted">MCP tools</span>
+          <span class="text-muted">{{ tt('MCP tools') }}</span>
           <HIcon
             name="right"
             :size="12"
@@ -185,14 +185,14 @@ function share(n: number) {
       </template>
 
       <div class="mt-2 flex items-center gap-2">
-        <span class="min-w-0 flex-1 truncate text-[11.5px] text-muted tabular-nums">{{ usage.autocompactThreshold ? `${tok(usage.untilAutocompact)} until auto-compact` : 'Auto-compact off' }}</span>
+        <span class="min-w-0 flex-1 truncate text-[11.5px] text-muted tabular-nums">{{ usage.autocompactThreshold ? `${tok(usage.untilAutocompact)} until auto-compact` : tt('Auto-compact off') }}</span>
         <HBtn
           v-if="hasCompaction"
           :disabled="!canCompact"
           :aria-busy="compacting"
           @click="compact"
         >
-          {{ compacting ? 'Compacting…' : 'Compact session' }}
+          {{ compacting ? tt('Compacting…') : tt('Compact session') }}
         </HBtn>
       </div>
     </template>

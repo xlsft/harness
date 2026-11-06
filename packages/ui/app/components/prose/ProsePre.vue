@@ -35,7 +35,7 @@ async function run() {
   try {
     commandId.value = await store.runShell(s.meta.id, blockCommand.value, { inline: true })
   } catch (e) {
-    toast.add({ title: 'Could not run the command', description: e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e), color: 'error' })
+    toast.add({ title: tt('Could not run the command'), description: e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e), color: 'error' })
   }
 }
 
@@ -58,8 +58,8 @@ async function copy() {
       <button
         v-if="runnable"
         type="button"
-        aria-label="Run in the session's shell"
-        title="Run in the session's shell"
+        :aria-label="tt('Run in the session\'s shell')"
+        :title="tt('Run in the session\'s shell')"
         class="flex items-center gap-1.5 px-1 py-0.5 text-muted hover:text-highlighted"
         @click="run"
       >
@@ -67,18 +67,18 @@ async function copy() {
           :name="running ? 'loading' : 'play'"
           :spin="running"
           :size="14"
-        />{{ running ? 'Running' : 'Run' }}
+        />{{ running ? tt('Running') : tt('Run') }}
       </button>
       <button
         type="button"
-        aria-label="Copy code"
+        :aria-label="tt('Copy code')"
         class="flex items-center gap-1.5 px-1 py-0.5 text-muted hover:text-highlighted"
         @click="copy"
       >
         <HIcon
           name="clipboard"
           :size="14"
-        />{{ copied ? 'Copied' : 'Copy' }}
+        />{{ copied ? tt('Copied') : tt('Copy') }}
       </button>
     </div>
     <pre
@@ -100,7 +100,7 @@ class="inline-block w-10 pr-3.5 text-right text-dimmed select-none"
       class="border-t border-default"
     >
       <div class="flex items-center gap-2 px-3.5 pt-2 text-[11px] text-muted">
-        <span>Output</span><span class="flex-1" /><span
+        <span>{{ tt('Output') }}</span><span class="flex-1" /><span
           v-if="result.state !== 'running'"
           :class="result.exitCode === 0 ? 'text-ok' : 'text-bad'"
         >{{ result.state === 'stopped' ? 'stopped' : result.state === 'timeout' ? 'time limit' : `exit ${result.exitCode}` }} · {{ formatSeconds(result.durationMs) }}</span>

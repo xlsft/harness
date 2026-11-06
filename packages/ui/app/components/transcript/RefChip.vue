@@ -43,7 +43,7 @@ const fileName = computed(() => props.label)
       />
     </span>
     <span class="flex min-w-0 flex-1 flex-col"><span class="text-strong">{{ label }}</span><span class="text-[11px] text-muted">{{ detail }}</span></span>
-    <span class="flex items-center gap-1.5 border border-default px-[9px] py-[3px] text-[11.5px] text-strong">Open<HIcon
+    <span class="flex items-center gap-1.5 border border-default px-[9px] py-[3px] text-[11.5px] text-strong">{{ tt('Open') }}<HIcon
       v-if="tone !== 'ok'"
       name="arrow-up-right"
       :size="12"

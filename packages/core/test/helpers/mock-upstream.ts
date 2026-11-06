@@ -16,6 +16,8 @@ export interface MockResponse {
   json?: unknown;
   /** Raw SSE text; split into `chunks` pieces to exercise the parser. */
   sse?: string;
+  /** A binary body, such as an AWS event stream. */
+  binary?: Uint8Array;
   chunkSize?: number;
   /** Delay between chunks. */
   delayMs?: number;
@@ -69,6 +71,13 @@ export class MockUpstream {
     const handler = this.queue.shift() ?? this.fallback;
     const r = handler(rec);
     const status = r.status ?? 200;
+    if (r.binary !== undefined) {
+      res.writeHead(status, r.headers);
+      // Sliced, so a reader must put frames back together.
+      for (let i = 0; i < r.binary.length; i += 41) res.write(r.binary.subarray(i, Math.min(i + 41, r.binary.length)));
+      res.end();
+      return;
+    }
     if (r.sse !== undefined) {
       res.writeHead(status, { "content-type": "text/event-stream", ...r.headers });
       const size = r.chunkSize ?? 37;

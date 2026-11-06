@@ -36,14 +36,14 @@ async function save() {
 
 <template>
   <section
-    aria-label="Pull requests"
+    :aria-label="tt('Pull requests')"
     class="mt-6 flex flex-col"
   >
     <h2 class="set-h">
-      Pull requests
+      {{ tt('Pull requests') }}
     </h2>
     <p class="set-sub">
-      Saved to your account on the server, so it applies on every machine.
+      {{ tt('Saved to your account on the server, so it applies on every machine.') }}
     </p>
     <p
       v-if="error"
@@ -57,8 +57,8 @@ async function save() {
         class="set-label"
         for="pr-wakes-per-hour"
       >
-        <span>Auto-fix wakes per hour</span>
-        <span class="set-desc">How many times per hour a watched pull request may wake a session, from 1 to 240. What is over the limit waits.</span>
+        <span>{{ tt('Auto-fix wakes per hour') }}</span>
+        <span class="set-desc">{{ tt('How many times per hour a watched pull request may wake a session, from 1 to 240. What is over the limit waits.') }}</span>
       </label>
       <input
         id="pr-wakes-per-hour"

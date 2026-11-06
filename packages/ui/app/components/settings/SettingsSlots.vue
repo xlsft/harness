@@ -9,9 +9,9 @@ const props = defineProps<{ providers: ProviderView[], api: ProvidersApi }>()
 const store = useSessionStore()
 
 const ROWS: { key: keyof ModelSlots, label: string, desc: string }[] = [
-  { key: 'main', label: 'Default model', desc: 'New sessions start with it.' },
-  { key: 'title', label: 'Chat titles', desc: 'Short model is enough; falls back to the small model.' },
-  { key: 'small', label: 'Background tasks', desc: 'Summaries, web fetch and compaction.' }
+  { key: 'main', label: tt('Default model'), desc: tt('New sessions start with it.') },
+  { key: 'title', label: tt('Chat titles'), desc: tt('Short model is enough; falls back to the small model.') },
+  { key: 'small', label: tt('Background tasks'), desc: tt('Summaries, web fetch and compaction.') }
 ]
 
 const slots = ref<ModelSlots>(emptySlots())
@@ -23,7 +23,7 @@ const error = ref('')
 const models = computed(() => slotModelOptions(props.providers))
 // Per row: "Server default" names the model it currently resolves to.
 const defaults = ref<ModelSlots>(emptySlots())
-const optionsFor = (key: keyof ModelSlots) => [{ value: '', label: 'Server default', hint: name(defaults.value[key]) }, ...models.value]
+const optionsFor = (key: keyof ModelSlots) => [{ value: '', label: tt('Server default'), hint: name(defaults.value[key]) }, ...models.value]
 
 function message(e: unknown) {
   return e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e)
@@ -71,14 +71,14 @@ async function set(key: keyof ModelSlots, id: string) {
 
 <template>
   <section
-    aria-label="Defaults"
+    :aria-label="tt('Defaults')"
     class="mb-6 flex flex-col"
   >
     <h3 class="m-0 text-[13px] font-semibold text-strong">
-      Defaults
+      {{ tt('Defaults') }}
     </h3>
     <p class="m-0 mt-1 mb-2 text-[12px] text-muted">
-      Models used when nothing else is chosen. Applies to every user{{ editable ? '' : '; admins change them' }}.
+      {{ tt('Models used when nothing else is chosen. Applies to every user{0}.', [editable ? '' : '; admins change them']) }}
     </p>
     <p
       v-if="error"

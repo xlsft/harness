@@ -65,7 +65,7 @@ const align = computed(() => props.side === 'right' ? 'justify-end' : 'justify-s
         :size="26"
         class="text-line-strong"
       />
-      [screenshot 2880×1620]
+      {{ tt('[screenshot 2880×1620]') }}
     </div>
     <figcaption class="flex gap-2 text-[11px] text-muted">
       {{ caption }}<span class="flex-1" />{{ meta }}
@@ -80,7 +80,7 @@ const align = computed(() => props.side === 'right' ? 'justify-end' : 'justify-s
       v-for="(f, i) in files.slice(0, 3)"
       :key="i"
       role="img"
-      :aria-label="`Screenshot ${i + 1}`"
+      :aria-label="tt('Screenshot {0}', [i + 1])"
       class="flex aspect-square items-end border border-default bg-surface bg-[repeating-linear-gradient(135deg,var(--color-hover)_0_1px,transparent_1px_10px)] p-[5px] text-[10px] text-muted"
     >
       {{ f.name }}
@@ -97,10 +97,10 @@ const align = computed(() => props.side === 'right' ? 'justify-end' : 'justify-s
     class="m-0 flex w-[440px] max-w-full flex-col gap-[5px]"
   >
     <div class="relative flex aspect-video items-center justify-center border border-default bg-surface">
-      <span class="absolute top-2 left-2.5 text-[11px] text-muted">[screen recording]</span>
+      <span class="absolute top-2 left-2.5 text-[11px] text-muted">{{ tt('[screen recording]') }}</span>
       <button
         type="button"
-        aria-label="Play"
+        :aria-label="tt('Play')"
         class="flex size-[46px] items-center justify-center bg-accent text-on-accent"
         @click="playing = !playing"
       >
@@ -129,7 +129,7 @@ const align = computed(() => props.side === 'right' ? 'justify-end' : 'justify-s
     <div class="flex items-center gap-2.5 px-2.5 py-2">
       <button
         type="button"
-        aria-label="Play voice message"
+        :aria-label="tt('Play voice message')"
         class="flex size-8 shrink-0 items-center justify-center bg-accent text-on-accent"
       >
         <HIcon name="play" />
@@ -146,7 +146,7 @@ const align = computed(() => props.side === 'right' ? 'justify-end' : 'justify-s
       <span class="text-[11px] text-muted">{{ meta }}</span>
     </div>
     <div class="border-t border-default px-2.5 py-[7px] text-[12px] leading-[1.55] text-muted">
-      <span class="text-toned">Transcript:</span> “{{ transcript }}”
+      <span class="text-toned">{{ tt('Transcript:') }}</span> “{{ transcript }}”
     </div>
   </div>
 </template>

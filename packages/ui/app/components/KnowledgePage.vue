@@ -11,9 +11,9 @@ const error = ref('')
 const isAdmin = ref(store.account.role === 'admin')
 
 const SCOPES = [
-  { label: 'All', value: Scope.UNSPECIFIED },
-  { label: 'Everyone', value: Scope.ORG },
-  { label: 'Only you', value: Scope.USER }
+  { label: tt('All'), value: Scope.UNSPECIFIED },
+  { label: tt('Everyone'), value: Scope.ORG },
+  { label: tt('Only you'), value: Scope.USER }
 ]
 const filter = ref(Scope.UNSPECIFIED)
 const search = ref('')
@@ -141,24 +141,24 @@ async function remove() {
 
 <template>
   <section
-    aria-label="Knowledge base"
+    :aria-label="tt('Knowledge base')"
     class="h-full overflow-y-auto bg-default"
   >
     <div class="mx-auto flex max-w-[860px] flex-col gap-[18px] px-10 pt-[52px] pb-10 max-sm:px-4">
       <div class="flex items-center gap-3">
         <h1 class="m-0 flex-1 font-display text-[26px] font-bold text-strong">
-          Knowledge base
+          {{ tt('Knowledge base') }}
         </h1>
         <HBtn
           size="md"
           variant="primary"
           @click="newDocument"
         >
-          Add a document
+          {{ tt('Add a document') }}
         </HBtn>
       </div>
       <p class="m-0 text-[12.5px] text-muted">
-        Agents search these with their KnowledgeSearch tool. Documents for everyone are added by admins; yours stay visible to you alone.
+        {{ tt('Agents search these with their KnowledgeSearch tool. Documents for everyone are added by admins; yours stay visible to you alone.') }}
       </p>
 
       <p
@@ -176,8 +176,8 @@ async function remove() {
       >
         <input
           v-model="editing.title"
-          placeholder="Title"
-          aria-label="Title"
+          :placeholder="tt('Title')"
+          :aria-label="tt('Title')"
           :readonly="!editing.editable"
           class="border border-line bg-transparent px-2.5 py-1.5 text-[13px] text-strong outline-none focus:border-accent"
         >
@@ -186,17 +186,17 @@ async function remove() {
           class="flex flex-wrap items-center gap-3 text-[12.5px] text-toned"
         >
           <template v-if="isAdmin">
-            <span>Visible to</span>
+            <span>{{ tt('Visible to') }}</span>
             <HSelect
               :model-value="String(editing.scope)"
               class="w-[150px]"
               :options="[{ value: String(Scope.USER), label: 'Only you' }, { value: String(Scope.ORG), label: 'Everyone' }]"
-              aria-label="Visible to"
+              :aria-label="tt('Visible to')"
               @update:model-value="editing!.scope = Number($event)"
             />
           </template>
           <label class="cursor-pointer text-accent hover:underline">
-            Load from a text file
+            {{ tt('Load from a text file') }}
             <input
               type="file"
               accept=".md,.markdown,.txt,.rst,.csv,.json,.yaml,.yml,.html,text/*"
@@ -211,8 +211,8 @@ async function remove() {
         </div>
         <textarea
           v-model="editing.content"
-          placeholder="Text or Markdown"
-          aria-label="Content"
+          :placeholder="tt('Text or Markdown')"
+          :aria-label="tt('Content')"
           rows="14"
           :readonly="!editing.editable"
           class="resize-y border border-line bg-transparent p-2.5 font-mono text-[12px] text-strong outline-none focus:border-accent"
@@ -225,14 +225,14 @@ async function remove() {
             type="submit"
             :disabled="saving"
           >
-            Save
+            {{ tt('Save') }}
           </HBtn>
           <HBtn
             size="md"
             variant="ghost"
             @click="editing = null"
           >
-            {{ editing.editable ? 'Cancel' : 'Close' }}
+            {{ editing.editable ? tt('Cancel') : tt('Close') }}
           </HBtn>
           <span class="flex-1" />
           <HBtn
@@ -241,7 +241,7 @@ async function remove() {
             tone="danger"
             @click="remove"
           >
-            {{ confirming ? 'Delete for good' : 'Delete' }}
+            {{ confirming ? tt('Delete for good') : tt('Delete') }}
           </HBtn>
         </div>
       </form>
@@ -249,7 +249,7 @@ async function remove() {
       <div class="flex flex-wrap items-center gap-2">
         <div
           role="tablist"
-          aria-label="Scope"
+          :aria-label="tt('Scope')"
           class="flex gap-[2px]"
         >
           <button
@@ -273,8 +273,8 @@ async function remove() {
           />
           <input
             v-model="search"
-            placeholder="Search as an agent would"
-            aria-label="Search the knowledge base"
+            :placeholder="tt('Search as an agent would')"
+            :aria-label="tt('Search the knowledge base')"
             class="w-[220px] bg-transparent text-[12.5px] text-strong outline-none placeholder:text-muted"
           >
         </label>
@@ -288,7 +288,7 @@ async function remove() {
           v-if="!hits.length"
           class="m-0 text-[12.5px] text-muted"
         >
-          Nothing matches.
+          {{ tt('Nothing matches.') }}
         </p>
         <button
           v-for="(h, i) in hits"
@@ -310,7 +310,7 @@ async function remove() {
           v-if="loaded && !documents.length"
           class="m-0 text-[12.5px] text-muted"
         >
-          No documents yet.
+          {{ tt('No documents yet.') }}
         </p>
         <button
           v-for="d in documents"

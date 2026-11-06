@@ -393,7 +393,12 @@ type BrowserState struct {
 	// in settings are not listed).
 	AllowedSites []string `protobuf:"bytes,6,rep,name=allowed_sites,json=allowedSites,proto3" json:"allowed_sites,omitempty"`
 	// The user took the browser over ({"type":"takeover"}): the agent's action tools fail meanwhile.
-	TakenOver     bool `protobuf:"varint,7,opt,name=taken_over,json=takenOver,proto3" json:"taken_over,omitempty"`
+	TakenOver bool `protobuf:"varint,7,opt,name=taken_over,json=takenOver,proto3" json:"taken_over,omitempty"`
+	// The tabs are in the user's own Chrome (real_browser.proto), not a profile of this session's.
+	RealChrome bool `protobuf:"varint,20,opt,name=real_chrome,json=realChrome,proto3" json:"real_chrome,omitempty"`
+	// A recording runs (RealBrowserService.RecordBrowser, or the BrowserRecord tool), and where the last one went.
+	Recording     bool   `protobuf:"varint,21,opt,name=recording,proto3" json:"recording,omitempty"`
+	LastRecording string `protobuf:"bytes,22,opt,name=last_recording,json=lastRecording,proto3" json:"last_recording,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -475,6 +480,27 @@ func (x *BrowserState) GetTakenOver() bool {
 		return x.TakenOver
 	}
 	return false
+}
+
+func (x *BrowserState) GetRealChrome() bool {
+	if x != nil {
+		return x.RealChrome
+	}
+	return false
+}
+
+func (x *BrowserState) GetRecording() bool {
+	if x != nil {
+		return x.Recording
+	}
+	return false
+}
+
+func (x *BrowserState) GetLastRecording() string {
+	if x != nil {
+		return x.LastRecording
+	}
+	return ""
 }
 
 // What the agent is doing in the browser: one STARTED and one FINISHED per browser tool call, for the pane's
@@ -1298,7 +1324,7 @@ const file_harness_agent_v1_browser_proto_rawDesc = "" +
 	"\x0econsole_errors\x18\x06 \x01(\x05R\rconsoleErrors\x12\x1e\n" +
 	"\vcan_go_back\x18\a \x01(\bR\tcanGoBack\x12$\n" +
 	"\x0ecan_go_forward\x18\b \x01(\bR\fcanGoForward\x12\x16\n" +
-	"\x06active\x18\t \x01(\bR\x06active\"\xa0\x02\n" +
+	"\x06active\x18\t \x01(\bR\x06active\"\x86\x03\n" +
 	"\fBrowserState\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x18\n" +
@@ -1308,7 +1334,11 @@ const file_harness_agent_v1_browser_proto_rawDesc = "" +
 	"\bviewport\x18\x05 \x01(\v2!.harness.agent.v1.BrowserViewportR\bviewport\x12#\n" +
 	"\rallowed_sites\x18\x06 \x03(\tR\fallowedSites\x12\x1d\n" +
 	"\n" +
-	"taken_over\x18\a \x01(\bR\ttakenOver\"\xf4\x02\n" +
+	"taken_over\x18\a \x01(\bR\ttakenOver\x12\x1f\n" +
+	"\vreal_chrome\x18\x14 \x01(\bR\n" +
+	"realChrome\x12\x1c\n" +
+	"\trecording\x18\x15 \x01(\bR\trecording\x12%\n" +
+	"\x0elast_recording\x18\x16 \x01(\tR\rlastRecording\"\xf4\x02\n" +
 	"\rBrowserAction\x12\x1e\n" +
 	"\vtool_use_id\x18\x01 \x01(\tR\ttoolUseId\x12;\n" +
 	"\x05phase\x18\x02 \x01(\x0e2%.harness.agent.v1.BrowserAction.PhaseR\x05phase\x12\x12\n" +

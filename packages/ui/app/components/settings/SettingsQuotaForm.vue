@@ -35,26 +35,26 @@ const input = 'h-7 w-[92px] border border-accented bg-default px-2 text-[12.5px]
 <template>
   <form
     class="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11.5px] text-muted"
-    :aria-label="`Spend limits of ${name}`"
+    :aria-label="tt('Spend limits of {0}', [name])"
     @submit.prevent="save"
   >
-    <label class="flex items-center gap-1.5">Per day $
+    <label class="flex items-center gap-1.5">{{ tt('Per day $') }}
       <input
         v-model="daily"
         inputmode="decimal"
         placeholder="no limit"
         :disabled="readonly"
-        :aria-label="`Daily limit of ${name} in USD`"
+        :aria-label="tt('Daily limit of {0} in USD', [name])"
         :class="input"
       >
     </label>
-    <label class="flex items-center gap-1.5">Per month $
+    <label class="flex items-center gap-1.5">{{ tt('Per month $') }}
       <input
         v-model="monthly"
         inputmode="decimal"
         placeholder="no limit"
         :disabled="readonly"
-        :aria-label="`Monthly limit of ${name} in USD`"
+        :aria-label="tt('Monthly limit of {0} in USD', [name])"
         :class="input"
       >
     </label>
@@ -64,7 +64,7 @@ const input = 'h-7 w-[92px] border border-accented bg-default px-2 text-[12.5px]
       type="submit"
       :disabled="!dirty"
     >
-      Save
+      {{ tt('Save') }}
     </HBtn>
     <span
       v-if="hint"

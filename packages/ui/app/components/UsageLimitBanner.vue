@@ -82,12 +82,12 @@ const note = computed(() => {
           class="accent-(--color-accent)"
           @change="store.setAutoContinue(session.meta.id, ($event.target as HTMLInputElement).checked)"
         >
-        Continue the interrupted work when the limit returns
+        {{ tt('Continue the interrupted work when the limit returns') }}
       </label>
     </span>
     <HIconBtn
       icon="close"
-      label="Dismiss"
+      :label="tt('Dismiss')"
       :size="26"
       :icon-size="12"
       @click="dismissed = key"

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -35,6 +36,7 @@ const (
 	ToolConsole    = "BrowserConsole"
 	ToolNetwork    = "BrowserNetwork"
 	ToolWait       = "BrowserWait"
+	ToolRecord     = "BrowserRecord"
 )
 
 // Tools returns the browser tools bound to m.
@@ -43,7 +45,42 @@ func (m *Manager) Tools() []tools.Tool {
 	return []tools.Tool{
 		&navigateTool{base}, &snapshotTool{base}, &clickTool{base}, &typeTool{base}, &keyTool{base}, &scrollTool{base},
 		&screenshotTool{base}, &evalTool{base}, &tabsTool{base}, &consoleTool{base}, &networkTool{base}, &waitTool{base},
+		&recordTool{base},
 	}
+}
+
+// recordTool records the browser as a GIF. It changes nothing on the page; the file goes to the session's scratch folder, from
+// where SendUserFile takes it.
+type recordTool struct{ toolBase }
+
+func (*recordTool) Name() string                  { return ToolRecord }
+func (*recordTool) ReadOnly(json.RawMessage) bool { return true }
+
+func (t *recordTool) Run(ctx context.Context, env *tools.Env, call tools.Call) tools.Result {
+	var in struct {
+		Action string `json:"action"`
+	}
+	if err := decodeInput(call.Input, &in); err != nil {
+		return errResult(err)
+	}
+	b, err := t.browser(env)
+	if err != nil {
+		return errResult(err)
+	}
+	switch in.Action {
+	case "start":
+		if err := b.StartRecording(ctx); err != nil {
+			return errResult(err)
+		}
+		return tools.TextResult("Recording started. Stop it with action \"stop\".", nil)
+	case "stop":
+		rec, err := b.StopRecording(filepath.Join(env.ScratchDir, "recordings"))
+		if err != nil {
+			return errResult(err)
+		}
+		return tools.TextResult(fmt.Sprintf("Recording saved to %s (%d frames, %d KB, %s).", rec.Path, rec.Frames, rec.Size/1024, rec.Duration.Round(time.Second)), nil)
+	}
+	return errResult(fmt.Errorf("InputValidationError: action must be \"start\" or \"stop\""))
 }
 
 type toolBase struct{ m *Manager }

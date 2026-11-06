@@ -15,11 +15,11 @@ const sidebarOpen = useState('sidebar-open', () => false)
 const toolsOpen = ref(menu.value === 'tools')
 
 const buttons: { pane: PaneName, icon: IconName, label: string, kbd?: string }[] = [
-  { pane: 'details', icon: 'tasks', label: 'Tasks' },
-  { pane: 'terminal', icon: 'terminal', label: 'Terminal', kbd: 'meta+j' },
-  { pane: 'diff', icon: 'diff', label: 'Changes' },
-  { pane: 'browser', icon: 'globe', label: 'Browser' },
-  { pane: 'files', icon: 'folder', label: 'Files' }
+  { pane: 'details', icon: 'tasks', label: tt('Tasks') },
+  { pane: 'terminal', icon: 'terminal', label: tt('Terminal'), kbd: 'meta+j' },
+  { pane: 'diff', icon: 'diff', label: tt('Changes') },
+  { pane: 'browser', icon: 'globe', label: tt('Browser') },
+  { pane: 'files', icon: 'folder', label: tt('Files') }
 ]
 </script>
 
@@ -32,13 +32,13 @@ const buttons: { pane: PaneName, icon: IconName, label: string, kbd?: string }[]
     <HIconBtn
       v-if="collapsed"
       icon="sidebar"
-      label="Show sidebar"
+      :label="tt('Show sidebar')"
       class="-ml-2"
       @click="collapsed = false"
     />
     <HIconBtn
       icon="sidebar"
-      label="Sessions"
+      :label="tt('Sessions')"
       class="-ml-2 lg:hidden"
       @click="sidebarOpen = true"
     />
@@ -72,7 +72,7 @@ const buttons: { pane: PaneName, icon: IconName, label: string, kbd?: string }[]
     >
       <button
         type="button"
-        aria-label="More tools"
+        :aria-label="tt('More tools')"
         aria-haspopup="menu"
         :aria-expanded="toolsOpen"
         class="flex size-7 items-center justify-center border"

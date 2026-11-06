@@ -101,23 +101,23 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
 
 <template>
   <section
-    aria-label="Models on this computer"
+    :aria-label="tt('Models on this computer')"
     class="mb-8 flex flex-col"
   >
     <div class="mb-1 flex items-center gap-2">
       <h3 class="m-0 flex-1 text-[13px] font-semibold text-strong">
-        On this computer
+        {{ tt('On this computer') }}
       </h3>
       <HBtn
         size="sm"
         :disabled="refreshing || state.disabledByPolicy"
         @click="load(true)"
       >
-        {{ refreshing ? 'Looking…' : 'Look again' }}
+        {{ refreshing ? tt('Looking…') : tt('Look again') }}
       </HBtn>
     </div>
     <p class="m-0 mb-3 text-[12px] text-muted">
-      Model servers running on this machine, called directly by this computer. Free, offline, and never synced to your other devices.
+      {{ tt('Model servers running on this machine, called directly by this computer. Free, offline, and never synced to your other devices.') }}
     </p>
 
     <p
@@ -128,7 +128,7 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
       <span class="flex-1">{{ error }}</span>
       <HIconBtn
         icon="x"
-        label="Dismiss"
+        :label="tt('Dismiss')"
         :size="26"
         :icon-size="12"
         @click="error = ''"
@@ -138,13 +138,13 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
       v-if="loading"
       class="m-0 py-2 text-[12.5px] text-muted"
     >
-      Looking for model servers…
+      {{ tt('Looking for model servers…') }}
     </p>
     <p
       v-else-if="state.disabledByPolicy"
       class="m-0 border border-default px-3 py-2.5 text-[12px] text-muted"
     >
-      Your administrator turned off local models.
+      {{ tt('Your administrator turned off local models.') }}
     </p>
 
     <div
@@ -184,11 +184,11 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
             tone="danger"
             @click="remove(p)"
           >
-            Remove
+            {{ tt('Remove') }}
           </HBtn>
           <HToggle
             :model-value="p.enabled"
-            :label="`Use ${p.name}`"
+            :label="tt('Use {0}', [p.name])"
             @update:model-value="toggle(p)"
           />
         </div>
@@ -212,7 +212,7 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
               tone="danger"
               @click="deleteModel(p, m)"
             >
-              Delete
+              {{ tt('Delete') }}
             </HBtn>
           </li>
         </ul>
@@ -236,8 +236,8 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
           <template v-else>
             <input
               v-model="pullName"
-              placeholder="Model to pull, e.g. qwen3:8b"
-              aria-label="Ollama model to pull"
+              :placeholder="tt('Model to pull, e.g. qwen3:8b')"
+              :aria-label="tt('Ollama model to pull')"
               autocapitalize="off"
               autocorrect="off"
               spellcheck="false"
@@ -248,7 +248,7 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
               type="submit"
               :disabled="!pullName.trim()"
             >
-              Pull
+              {{ tt('Pull') }}
             </HBtn>
           </template>
         </form>
@@ -265,8 +265,8 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
             dim
           />
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span class="text-[12.5px] text-strong">Custom endpoint</span>
-            <span class="truncate text-[11.5px] text-muted">Any OpenAI-compatible server, on this machine or your network.</span>
+            <span class="text-[12.5px] text-strong">{{ tt('Custom endpoint') }}</span>
+            <span class="truncate text-[11.5px] text-muted">{{ tt('Any OpenAI-compatible server, on this machine or your network.') }}</span>
           </span>
           <HBtn
             v-if="!adding"
@@ -276,7 +276,7 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
             <HIcon
               name="plus"
               :size="12"
-            />Add
+            />{{ tt('Add') }}
           </HBtn>
         </div>
         <form
@@ -287,14 +287,14 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
           <div class="flex gap-2 max-sm:flex-col">
             <input
               v-model="draft.name"
-              placeholder="Name"
-              aria-label="Name"
+              :placeholder="tt('Name')"
+              :aria-label="tt('Name')"
               :class="[input, 'w-[160px] max-sm:w-full']"
             >
             <input
               v-model="draft.baseUrl"
               placeholder="http://192.168.1.10:8000/v1"
-              aria-label="Base URL"
+              :aria-label="tt('Base URL')"
               autocapitalize="off"
               spellcheck="false"
               :class="[input, 'flex-1']"
@@ -304,8 +304,8 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
             v-model="draft.apiKey"
             type="password"
             autocomplete="off"
-            placeholder="API key (optional, kept on this computer)"
-            aria-label="API key"
+            :placeholder="tt('API key (optional, kept on this computer)')"
+            :aria-label="tt('API key')"
             :class="input"
           >
           <div class="flex justify-end gap-2">
@@ -313,7 +313,7 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
               size="md"
               @click="adding = false"
             >
-              Cancel
+              {{ tt('Cancel') }}
             </HBtn>
             <HBtn
               size="md"
@@ -321,7 +321,7 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
               type="submit"
               :disabled="!/^https?:\/\/.+/.test(draft.baseUrl.trim())"
             >
-              Add
+              {{ tt('Add') }}
             </HBtn>
           </div>
         </form>
@@ -331,7 +331,7 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
         v-if="offline.length"
         class="m-0 border-t border-default px-3 py-2 text-[11.5px] text-muted"
       >
-        Not running: {{ offline.map(p => p.name).join(', ') }}. Start one and press Look again.
+        {{ tt('Not running: {0}. Start one and press Look again.', [offline.map(p => p.name).join(', ')]) }}
       </p>
     </div>
   </section>

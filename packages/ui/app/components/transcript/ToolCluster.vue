@@ -79,7 +79,7 @@ const time = computed(() => {
         <span
           v-if="!current && failed && tools.length > 1"
           class="shrink-0 text-bad"
-        >{{ failed }} failed</span>
+        >{{ tt('{0} failed', [failed]) }}</span>
         <span class="shrink-0 text-[11px] tabular-nums">{{ time }}</span>
         <HIcon
           name="right"
@@ -91,7 +91,7 @@ const time = computed(() => {
       <button
         v-if="lastImage"
         type="button"
-        aria-label="Open image"
+        :aria-label="tt('Open image')"
         class="-my-1 shrink-0"
         @click="openImage(lastImage)"
       >

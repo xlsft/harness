@@ -153,7 +153,7 @@ async function act(title: string, fn: () => unknown) {
 const sid = computed(() => props.session.meta.id)
 const copy = (text: string) => act('Could not copy', async () => {
   await navigator.clipboard.writeText(text)
-  toast.add({ title: 'Message copied', color: 'neutral' })
+  toast.add({ title: tt('Message copied'), color: 'neutral' })
 })
 const rewind = (item: UserItem) => act('Could not rewind', () => store.rewind(sid.value, item.id))
 // A fork from a message holds the conversation before it, with the message in the fork's composer; a queued
@@ -163,7 +163,7 @@ const fork = (text: string, at?: string) => act('Could not fork', async () => {
   if (route.path !== '/') await navigateTo('/')
 })
 const cancel = (id: string) => act('Could not cancel the message', async () => {
-  if (!await store.removeQueued(sid.value, id)) toast.add({ title: 'Already sent', description: 'The agent has already read this message.', color: 'neutral' })
+  if (!await store.removeQueued(sid.value, id)) toast.add({ title: tt('Already sent'), description: tt('The agent has already read this message.'), color: 'neutral' })
 })
 const sendNow = (id: string) => act('Could not send the message', () => store.sendNow(sid.value, id))
 // The turn footer: the turn's answer is the text of the assistant messages since the user message that started it.
@@ -263,6 +263,10 @@ function toBottom() {
   <div class="relative flex min-h-0 flex-col">
     <div
       ref="scroller"
+      role="log"
+      aria-live="off"
+      :aria-label="tt('Conversation')"
+      :aria-busy="session.meta.status !== 'idle'"
       class="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto px-5 pt-[21px] pb-[144px]"
       @scroll="onScroll"
     >
@@ -273,7 +277,7 @@ function toBottom() {
         v-if="session.loading"
         class="m-auto"
         role="status"
-        aria-label="Loading the session"
+        :aria-label="tt('Loading the session')"
       >
         <HMark :width="28" />
       </div>
@@ -359,7 +363,7 @@ function toBottom() {
               <HIcon
                 name="info"
                 :size="14"
-              />{{ b.item.status === 'error' ? 'Could not enter plan mode' : b.item.status === 'running' ? 'Entering plan mode' : 'Entered plan mode' }}
+              />{{ b.item.status === 'error' ? tt('Could not enter plan mode') : b.item.status === 'running' ? tt('Entering plan mode') : tt('Entered plan mode') }}
             </div>
             <!-- A chapter: a divider, and an entry in the table of contents -->
             <template v-else-if="b.item.kind === 'tool' && b.item.name === 'MarkChapter'">
@@ -392,6 +396,11 @@ function toBottom() {
             />
             <QuestionCard
               v-else-if="b.item.kind === 'question'"
+              :item="b.item"
+              :session-id="session.meta.id"
+            />
+            <BrowserSiteCard
+              v-else-if="b.item.kind === 'browserSite'"
               :item="b.item"
               :session-id="session.meta.id"
             />
@@ -449,8 +458,8 @@ function toBottom() {
               v-else-if="b.item.kind === 'rewound'"
               class="text-[12px] text-muted"
             >
-              Rewound · {{ b.item.filesRestored }} files restored<template v-if="b.item.filesSkipped">
-                , {{ b.item.filesSkipped }} skipped
+              {{ tt('Rewound · {0} files restored', [b.item.filesRestored]) }}<template v-if="b.item.filesSkipped">
+                {{ tt(', {0} skipped', [b.item.filesSkipped]) }}
               </template>
             </div>
           </template>
@@ -499,7 +508,7 @@ function toBottom() {
             :width="18"
             class="shrink-0"
           />
-          <span class="min-w-0 truncate"><template v-if="activity"><span class="text-strong">{{ activity }}</span> · </template>{{ formatDuration(now - (session.turnStartedAt || now)) }} · {{ formatTokens(session.turnTokens) }} tok</span>
+          <span class="min-w-0 truncate"><template v-if="activity"><span class="text-strong">{{ activity }}</span> · </template>{{ tt('{0} · {1} tok', [formatDuration(now - (session.turnStartedAt || now)), formatTokens(session.turnTokens)]) }}</span>
         </div>
       </div>
     </div>
@@ -512,8 +521,8 @@ function toBottom() {
     <button
       v-if="scrolledUp"
       type="button"
-      :aria-label="working ? 'Working · scroll to the latest' : 'Scroll to the latest'"
-      :title="working ? 'Working · scroll to the latest' : 'Scroll to the latest'"
+      :aria-label="working ? tt('Working · scroll to the latest') : tt('Scroll to the latest')"
+      :title="working ? tt('Working · scroll to the latest') : tt('Scroll to the latest')"
       class="absolute bottom-9 left-1/2 flex h-9 -translate-x-1/2 items-center gap-2 rounded-box border border-line-strong bg-hover px-3 text-[12px] text-muted hover:text-strong"
       @click="toBottom"
     >

@@ -13,7 +13,7 @@ const props = withDefaults(defineProps<{
   placeholder?: string
   ariaLabel?: string
   disabled?: boolean
-}>(), { placeholder: 'Choose…', ariaLabel: undefined, disabled: false })
+}>(), { placeholder: tt('Choose…'), ariaLabel: undefined, disabled: false })
 const model = defineModel<string>({ default: '' })
 
 const open = ref(false)
@@ -93,8 +93,8 @@ function pick(v: string) {
           />
           <input
             v-model="query"
-            placeholder="Filter"
-            aria-label="Filter options"
+            :placeholder="tt('Filter')"
+            :aria-label="tt('Filter options')"
             class="min-w-0 flex-1 bg-transparent text-strong outline-none placeholder:text-muted"
           >
         </label>
@@ -130,7 +130,7 @@ function pick(v: string) {
             v-if="!groups.length"
             class="m-0 px-2.5 py-3 text-center text-muted"
           >
-            Nothing matches.
+            {{ tt('Nothing matches.') }}
           </p>
         </div>
       </div>

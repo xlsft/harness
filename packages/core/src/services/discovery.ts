@@ -4,6 +4,7 @@
  * classifier provider) answers the preset's curated models instead. Also the LLM half of TestProvider. A list that
  * gives prices is the provider's own word on them: services/model-prices.ts applies what it says.
  */
+import { authorize, CloudAuthError } from "../gateway/cloud/credentials.ts";
 import { eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ANTHROPIC_VERSION } from "../gateway/adapters/anthropic.ts";
@@ -66,7 +67,7 @@ function num(v: unknown): number | undefined {
 
 function headersFor(p: ProviderRuntime): Record<string, string> {
   const h: Record<string, string> = { accept: "application/json" };
-  if (p.type === "anthropic") {
+  if (p.type === "anthropic" || p.type === "bedrock-invoke" || p.type === "vertex-anthropic") {
     h["anthropic-version"] = ANTHROPIC_VERSION;
     if (p.apiKey) h["x-api-key"] = p.apiKey;
   } else if (p.apiKey) {
@@ -78,14 +79,16 @@ function headersFor(p: ProviderRuntime): Record<string, string> {
 async function fetchJson(p: ProviderRuntime, url: string): Promise<Record<string, any>> {
   let res;
   try {
+    const plain = headersFor(p);
     res = await guardedFetch(url, {
       method: "GET",
-      headers: headersFor(p),
+      headers: p.cloud ? await authorize(p.cloud, { method: "GET", url, headers: plain, body: "" }) : plain,
       allowPrivateNetwork: p.allowPrivateNetwork,
       signal: AbortSignal.timeout(20_000),
     });
   } catch (err) {
     if (err instanceof ApiError) throw err;
+    if (err instanceof CloudAuthError) throw new ApiError("upstream", redactSecrets(err.message, p), { upstreamStatus: err.retryable ? 503 : 401 });
     throw new ApiError("upstream", redactSecrets(`Could not reach ${url}: ${(err as Error).message}`, p));
   }
   const text = await res.text();
@@ -304,6 +307,25 @@ export interface TestResult {
 export async function testLlmProvider(providerId: string): Promise<TestResult> {
   const p = await loadProviderRuntime(providerId);
   const url = p.type === "anthropic" ? joinUrl(p.baseUrl, "/v1/models") : joinUrl(p.baseUrl, "/models");
+  // A cloud platform may list no models, or refuse the list to a role allowed to run them: the credentials are what can be
+  // told for sure here, and the first request tells the rest.
+  if (p.cloud) {
+    try {
+      await authorize(p.cloud, { method: "GET", url, headers: headersFor(p), body: "" });
+    } catch (e) {
+      return { ok: false, message: redactSecrets((e as Error).message, p), model_count: 0 };
+    }
+    try {
+      const j = await fetchJson(p, url);
+      const list = Array.isArray(j.data) ? j.data : [];
+      return { ok: true, message: list.length ? `Connected, ${list.length} models offered` : "Connected", model_count: list.length };
+    } catch (e) {
+      const status = e instanceof ApiError ? e.upstreamStatus : undefined;
+      if (status === 401) return { ok: false, message: `The credentials were rejected (HTTP ${status})`, model_count: 0 };
+      if (status === 403 || status === 404 || status === 405) return { ok: true, message: "Credentials obtained; whether they may run a model shows on the first request", model_count: 0 };
+      return { ok: false, message: e instanceof Error ? e.message : String(e), model_count: 0 };
+    }
+  }
   try {
     const j = await fetchJson(p, url);
     const list = Array.isArray(j.data) ? j.data : Array.isArray(j.models) ? j.models : [];

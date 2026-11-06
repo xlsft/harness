@@ -25,7 +25,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
 <template>
   <div
     role="menu"
-    aria-label="Folder"
+    :aria-label="tt('Folder')"
     class="w-[300px] max-w-[calc(100vw-32px)] border border-accented bg-hover text-[12.5px]"
   >
     <label class="flex items-center gap-2 border-b border-default px-2.5 py-1.5 text-muted">
@@ -35,7 +35,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
       />
       <input
         v-model="query"
-        placeholder="Search folders"
+        :placeholder="tt('Search folders')"
         class="min-w-0 flex-1 bg-transparent text-strong outline-none placeholder:text-muted"
         autofocus
       >
@@ -44,11 +44,11 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
       v-if="!query"
       role="menuitemradio"
       :aria-checked="!cwd"
-      title="The session gets a private folder of its own"
+      :title="tt('The session gets a private folder of its own')"
       :class="[ROW, 'mt-1', !cwd ? 'border-accent bg-raised text-strong' : 'border-transparent text-toned hover:bg-raised hover:text-strong']"
       @click="emit('select', '')"
     >
-      <span class="min-w-0 flex-1 truncate">No folder</span>
+      <span class="min-w-0 flex-1 truncate">{{ tt('No folder') }}</span>
       <HIcon
         v-if="!cwd"
         name="check"
@@ -57,7 +57,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
       />
     </div>
     <div class="px-2.5 pt-[5px] pb-0.5 text-[11px] text-muted">
-      Recent
+      {{ tt('Recent') }}
     </div>
     <div class="max-h-[260px] overflow-y-auto">
       <div
@@ -85,7 +85,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
         v-if="!shown.length"
         class="px-2.5 py-1.5 text-muted"
       >
-        {{ folders.length ? 'No matches' : 'No recent folders yet' }}
+        {{ folders.length ? tt('No matches') : tt('No recent folders yet') }}
       </div>
     </div>
     <div class="my-1 h-px bg-line" />
@@ -97,7 +97,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
       <HIcon
         name="folder"
         :size="13"
-      />Open folder…
+      />{{ tt('Open folder…') }}
     </div>
     <div class="my-1 h-px bg-line" />
     <UPopover
@@ -108,14 +108,14 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
       <div
         role="menuitem"
         :aria-disabled="!worktree || !branches.length || undefined"
-        :title="worktree ? 'Branch the worktree starts from' : 'Turn on Worktree to start from another branch'"
+        :title="worktree ? tt('Branch the worktree starts from') : tt('Turn on Worktree to start from another branch')"
         :class="[ROW, 'border-transparent', worktree && branches.length ? 'text-toned hover:bg-raised hover:text-strong' : 'text-muted']"
       >
         <HIcon
           name="branch"
           :size="13"
         />
-        <span class="flex-1">Branch</span>
+        <span class="flex-1">{{ tt('Branch') }}</span>
         <span class="text-[11px] text-muted">{{ (worktree && baseRef) || current || '—' }}</span>
         <HIcon
           name="right"
@@ -126,7 +126,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
       <template #content>
         <div
           role="menu"
-          aria-label="Branch"
+          :aria-label="tt('Branch')"
           class="max-h-[300px] w-[240px] overflow-y-auto border border-accented bg-hover text-[12.5px]"
         >
           <div
@@ -141,7 +141,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
             <span
               v-if="b.name === current"
               class="text-[11px] text-muted"
-            >current</span>
+            >{{ tt('current') }}</span>
           </div>
         </div>
       </template>

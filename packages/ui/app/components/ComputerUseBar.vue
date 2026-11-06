@@ -17,7 +17,7 @@ async function stop() {
   try {
     await store.stopComputerUse(props.session.meta.id)
   } catch (e) {
-    toast.add({ title: 'Could not stop computer use', description: e instanceof Error ? e.message : String(e), color: 'error' })
+    toast.add({ title: tt('Could not stop computer use'), description: e instanceof Error ? e.message : String(e), color: 'error' })
   }
 }
 </script>
@@ -36,7 +36,7 @@ async function stop() {
     />
     <span class="flex min-w-0 flex-1 flex-col">
       <span :class="state!.controlling ? 'text-strong' : 'text-muted'">
-        {{ state!.controlling ? (state!.action || 'The agent is controlling this machine') : 'Computer use has access' }}
+        {{ state!.controlling ? (state!.action || tt('The agent is controlling this machine')) : tt('Computer use has access') }}
       </span>
       <span
         v-if="apps"
@@ -47,7 +47,7 @@ async function stop() {
       :variant="state!.controlling ? 'primary' : undefined"
       @click="stop"
     >
-      {{ state!.controlling ? 'Stop' : 'Revoke' }}
+      {{ state!.controlling ? tt('Stop') : tt('Revoke') }}
     </HBtn>
   </div>
 </template>

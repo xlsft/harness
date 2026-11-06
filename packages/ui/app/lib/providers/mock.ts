@@ -45,6 +45,30 @@ const SEARXNG_OPTIONS = [RESULTS(25), SAFE]
 
 const PRESETS: PresetView[] = [
   {
+    id: 'bedrock',
+    group: 'llm',
+    name: 'Amazon Bedrock',
+    description: 'Claude through Bedrock, signed with AWS credentials.',
+    type: 'anthropic',
+    baseUrl: 'https://bedrock-mantle.{region}.api.aws/anthropic',
+    fields: [
+      { name: 'api_key', label: 'Secret access key', required: true, placeholder: '', modes: ['keys'] },
+      { name: 'api_key', label: 'Bedrock API key', required: true, placeholder: '', modes: ['bearer'] }
+    ],
+    docsUrl: '',
+    keyUrl: '',
+    defaultModels: [],
+    icon: 'BR',
+    discoversModels: false,
+    local: false,
+    cloud: 'aws',
+    options: [
+      { name: 'credential_mode', label: 'Credentials', kind: 'select', required: true, defaultValue: 'keys', placeholder: '', min: 0, max: 0, choices: [{ value: 'keys', label: 'Access key (SigV4)' }, { value: 'bearer', label: 'Bedrock API key' }, { value: 'ambient', label: 'This server\'s AWS identity', globalOnly: true }] },
+      { name: 'region', label: 'Region', kind: 'text', required: true, defaultValue: '', placeholder: 'us-east-1', min: 0, max: 0, choices: [] },
+      { name: 'access_key_id', label: 'Access key id', kind: 'text', required: true, defaultValue: '', placeholder: 'AKIA...', min: 0, max: 0, choices: [], modes: ['keys'] }
+    ]
+  },
+  {
     id: 'openrouter',
     group: 'llm',
     name: 'OpenRouter',
@@ -334,7 +358,7 @@ export class MockProvidersApi implements ProvidersApi {
     if (preset?.builtin) throw new Error(`${preset.name} is built in: there is nothing to connect`)
     const group = preset?.group ?? d.group ?? 'llm'
     if (group === 'classifier' && d.scope !== 'global') throw new Error('Classifier providers are server-wide: only admins add them, globally')
-    if (preset?.fields.some(f => f.name === 'api_key' && f.required) && !d.apiKey) throw new Error(`${preset.name} needs an API key`)
+    if (!preset?.cloud && preset?.fields.some(f => f.name === 'api_key' && f.required) && !d.apiKey) throw new Error(`${preset.name} needs an API key`)
     const baseUrl = (preset && !preset.fields.some(f => f.name === 'base_url') ? preset.baseUrl : d.baseUrl || preset?.baseUrl || '').replace(/\/+$/, '')
     if (!baseUrl) throw new Error('base_url is required')
     if (d.scope === 'personal' && /localhost|127\.0\.0\.1/.test(baseUrl)) throw new Error('Personal providers cannot reach private networks')

@@ -1,11 +1,15 @@
-Shows a self-contained HTML document in the conversation: a chart, a diagram, a comparison table with controls, a small calculator or simulation. The user sees it rendered under your message and can open it full screen. It runs nothing on this machine and needs no approval.
+Shows a self-contained HTML document in the conversation: a chart, a diagram, a comparison table with controls, a small calculator or simulation. The user sees it rendered under your message and can open it in a side pane. It runs nothing on this machine and needs no approval.
 
 How it is rendered:
 - in a sandboxed frame with scripts allowed and no access to the app, its cookies or this machine;
 - network access is limited to scripts, styles and fonts from cdnjs.cloudflare.com, cdn.jsdelivr.net and unpkg.com; fetch and XHR are blocked, so put the data in the document;
 - the frame grows to the height of the content, up to the window height; design for a width of 600-800 px that also works at 360 px.
 
-Follow the app's look. The document receives the app's theme as CSS variables and base styles in that look, so plain HTML already matches; build on them instead of inventing a style:
+Decide by where the thing lives and who it's for:
+- **Part of this conversation, for the user working here:** a chart, a diagram, a comparison, a calculator, an explanation of the work at hand. Use Visual, in the app's look.
+- **Stands on its own, or is for other people:** a website, landing page, game, poster, presentation, or a report to pass on. Use ArtifactPublish, designed for its subject and audience.
+
+The document receives the app's theme as CSS variables and base styles in that look, so plain HTML already matches; build on them instead of inventing a style. When the user asks for a particular look, theirs wins:
 - colours: `--bg` (page), `--surface` (cards, panels), `--hover`, `--raised` (inputs, chips), `--line` and `--line-strong` (borders), `--text`, `--text-strong` (headings, values), `--muted` and `--dimmed` (labels, secondary text), `--accent` and `--accent-hover`, `--on-accent` (text on accent), `--ok`, `--warn`, `--error`, `--cyan`, `--violet`, `--pink`, `--orange`;
 - chart series in this order: `--chart-1` ... `--chart-5` (checked for colour-blind separation; fold more series into "Other" in `--dimmed`); gridlines and axes in `--line` and `--muted`;
 - shape and type: `--radius` for controls and `--radius-box` for cards (the theme's corners; 0 in square themes: use the variables, never fixed radii), `--border` (1px), `--font` and `--mono` (one monospace family; do not load other fonts), sizes `--text-xs` 11px, `--text-sm` 12px, `--text-md` 13px (body), `--text-lg` 15px, `--text-xl` 18px, `--leading` 1.6;
@@ -24,6 +28,7 @@ When it helps:
 - a choice between options the user should see side by side.
 
 When not to use it:
+- for anything that stands on its own or is for other people: publish it with ArtifactPublish;
 - for plain text, code, or a short table: write it in your reply;
 - for files that belong in the project: write them with Write; Visual does not save anything;
 - instead of a reply: still say in text what the visual shows and what follows from it.

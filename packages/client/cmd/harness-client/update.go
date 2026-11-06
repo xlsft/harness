@@ -8,12 +8,14 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
 
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/selfupdate"
+	"github.com/xlsft/harness/packages/client/sshhost"
 )
 
 const releaseRepo = "xlsft/harness"
@@ -72,4 +74,31 @@ func runUpdate(ctx context.Context, args []string) int {
 	}
 	fmt.Printf("Updated harness-client %s → %s. A running `harness-client serve` keeps the old version until it restarts.\n", config.Version, tag)
 	return 0
+}
+
+// sshBinaries finds a client to upload to an SSH host: this very program on the same platform, else the signed release of this
+// version for the host's platform, verified like an update. A development build has no release to take.
+func sshBinaries(ctx context.Context, goos, goarch string) (string, func(), error) {
+	if goos == runtime.GOOS && goarch == runtime.GOARCH {
+		return sshhost.OwnBinary(ctx, goos, goarch)
+	}
+	if selfupdate.IsDevBuild(config.Version) {
+		return "", nil, fmt.Errorf("a development build has no release to upload for %s/%s", goos, goarch)
+	}
+	dir, err := os.MkdirTemp("", "harness-client-upload-*")
+	if err != nil {
+		return "", nil, err
+	}
+	done := func() { _ = os.RemoveAll(dir) }
+	exe := filepath.Join(dir, "harness-client")
+	if err := os.WriteFile(exe, nil, 0o755); err != nil {
+		done()
+		return "", nil, err
+	}
+	u := selfupdate.Updater{Web: releasesWeb, Repo: releaseRepo, PublicKey: selfupdate.PublicKey, HTTP: &http.Client{Timeout: 10 * time.Minute}, OS: goos, Arch: goarch}
+	if err := u.Install(ctx, "v"+strings.TrimPrefix(config.Version, "v"), exe); err != nil {
+		done()
+		return "", nil, err
+	}
+	return exe, done, nil
 }

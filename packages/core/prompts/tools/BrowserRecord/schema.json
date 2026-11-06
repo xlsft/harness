@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["start", "stop"],
+      "description": "Start a recording, or stop the one running and save it"
+    }
+  },
+  "required": ["action"],
+  "additionalProperties": false
+}

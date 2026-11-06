@@ -1,5 +1,6 @@
 // The Scheduled screen's view of schedules. The client decides what runs and when; this only words what it reports and
 // turns the form's fields into a message.
+import { tt } from '~/utils/i18n'
 import { create } from '@bufbuild/protobuf'
 import {
   ScheduleOrigin,
@@ -41,11 +42,11 @@ const CHOICE_KIND: Record<TriggerChoice, ScheduleTriggerKind> = {
 }
 
 export const TRIGGER_OPTIONS: { value: TriggerChoice, label: string }[] = [
-  { value: 'once', label: 'Once' },
-  { value: 'interval', label: 'Every…' },
-  { value: 'cron', label: 'Cron' },
-  { value: 'file', label: 'When files change' },
-  { value: 'webhook', label: 'When a webhook arrives' }
+  { value: 'once', label: tt('Once') },
+  { value: 'interval', label: tt('Every…') },
+  { value: 'cron', label: tt('Cron') },
+  { value: 'file', label: tt('When files change') },
+  { value: 'webhook', label: tt('When a webhook arrives') }
 ]
 
 // What the form edits: text as typed, so the client's own checks answer for what is wrong.

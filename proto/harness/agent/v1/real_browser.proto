@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// The session's browser in the user's real Chrome, and recordings of it. See packages/client/browser/attach.go.
+//
+// A session's browser normally is a headless Chromium with a profile of its own (browser.proto). With
+// UseRealChrome it opens tabs in the Chrome the user has running instead, with the user's sign-ins: Chrome must have remote
+// debugging on (chrome://inspect/#remote-debugging), and asks its user before it lets the client in. Only tabs opened by
+// the client are ever driven, and the agent reaches a site only with the user's grant: a navigation to any other host
+// stops and a BrowserSiteRequested event asks. Grants for good are device-local, never synced.
+service RealBrowserService {
+  // Whether a Chrome can be attached to now, whether this session is, and the sites allowed for good on this device.
+  rpc GetRealChrome(GetRealChromeRequest) returns (GetRealChromeResponse);
+  // Moves the session's browser to the user's Chrome or back to its own profile; open tabs do not carry over.
+  // FAILED_PRECONDITION when no Chrome can be attached to.
+  rpc UseRealChrome(UseRealChromeRequest) returns (UseRealChromeResponse);
+  // The user's answer to a BrowserSiteRequested. NOT_FOUND when nothing waits for it any more.
+  rpc RespondToBrowserSite(RespondToBrowserSiteRequest) returns (RespondToBrowserSiteResponse);
+  // Takes back a site allowed for good.
+  rpc RevokeBrowserSite(RevokeBrowserSiteRequest) returns (RevokeBrowserSiteResponse);
+  // Starts or stops a recording of the session's browser as a GIF. Stopping answers with where it was saved.
+  rpc RecordBrowser(RecordBrowserRequest) returns (RecordBrowserResponse);
+}
+
+message GetRealChromeRequest {
+  // Optional: also say whether this session uses it.
+  string session_id = 1;
+}
+
+message GetRealChromeResponse {
+  bool available = 1;
+  bool in_use = 2;
+  // Allowed for good on this device, by host.
+  repeated string allowed_sites = 3;
+}
+
+message UseRealChromeRequest {
+  string session_id = 1;
+  bool on = 2;
+}
+
+message UseRealChromeResponse {}
+
+// The agent wants a site in the user's Chrome. It waits for RespondToBrowserSite, or until the turn stops.
+message BrowserSiteRequested {
+  string request_id = 1;
+  // The host: subdomains are separate sites.
+  string site = 2;
+  string url = 3;
+}
+
+// The question was answered, by this or another viewer.
+message BrowserSiteResolved {
+  string request_id = 1;
+  BrowserSiteDecision decision = 2;
+}
+
+enum BrowserSiteDecision {
+  BROWSER_SITE_DECISION_UNSPECIFIED = 0;
+  BROWSER_SITE_DECISION_DENY = 1;
+  // For this session.
+  BROWSER_SITE_DECISION_ALLOW_SESSION = 2;
+  // For good, on this device.
+  BROWSER_SITE_DECISION_ALLOW_ALWAYS = 3;
+}
+
+message RespondToBrowserSiteRequest {
+  string session_id = 1;
+  string request_id = 2;
+  BrowserSiteDecision decision = 3;
+}
+
+message RespondToBrowserSiteResponse {}
+
+message RevokeBrowserSiteRequest {
+  string site = 1;
+}
+
+message RevokeBrowserSiteResponse {
+  repeated string allowed_sites = 1;
+}
+
+message RecordBrowserRequest {
+  string session_id = 1;
+  bool on = 2;
+}
+
+message RecordBrowserResponse {
+  // When stopping: the GIF, on the session's machine.
+  string path = 1;
+  int64 size_bytes = 2;
+  int32 frames = 3;
+}

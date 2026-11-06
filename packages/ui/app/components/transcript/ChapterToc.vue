@@ -18,7 +18,7 @@ async function jump(id: string) {
   <div class="absolute top-3 right-3 z-10 flex flex-col items-end gap-1">
     <HIconBtn
       icon="list"
-      label="Chapters"
+      :label="tt('Chapters')"
       :size="28"
       :icon-size="14"
       :aria-expanded="open"
@@ -26,7 +26,7 @@ async function jump(id: string) {
     />
     <nav
       v-if="open"
-      aria-label="Chapters"
+      :aria-label="tt('Chapters')"
       class="flex max-h-[60vh] w-64 flex-col overflow-y-auto border border-default bg-surface py-1"
     >
       <button

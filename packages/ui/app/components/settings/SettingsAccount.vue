@@ -69,7 +69,7 @@ async function onPick(e: Event) {
   try {
     await update({ image: await avatarDataUrl(file, AVATAR_MAX_SIDE, AVATAR_MAX_BYTES) })
   } catch (err) {
-    toast.add({ title: 'Could not set the picture', description: message(err), color: 'error' })
+    toast.add({ title: tt('Could not set the picture'), description: message(err), color: 'error' })
   } finally {
     busy.value = false
   }
@@ -79,7 +79,7 @@ async function removeAvatar() {
   try {
     await update({ image: '' })
   } catch (err) {
-    toast.add({ title: 'Could not remove the picture', description: message(err), color: 'error' })
+    toast.add({ title: tt('Could not remove the picture'), description: message(err), color: 'error' })
   } finally {
     busy.value = false
   }
@@ -102,7 +102,7 @@ async function saveName() {
     await update({ name: v })
     editing.value = false
   } catch (err) {
-    toast.add({ title: 'Could not rename', description: message(err), color: 'error' })
+    toast.add({ title: tt('Could not rename'), description: message(err), color: 'error' })
   }
 }
 
@@ -118,7 +118,7 @@ async function changePassword() {
     await store.transport.account().changePassword(pw.current, pw.next, pw.others)
     Object.assign(pw, { current: '', next: '', confirm: '', others: false })
     pwError.value = ''
-    toast.add({ title: 'Password changed', color: 'neutral' })
+    toast.add({ title: tt('Password changed'), color: 'neutral' })
     loadDevices()
   } catch (err) {
     pwError.value = message(err)
@@ -141,7 +141,7 @@ async function revoke(d: AccountDevice) {
     await store.transport.account().revokeDevice(d.id)
     devices.value = devices.value.filter(x => x.id !== d.id)
   } catch (err) {
-    toast.add({ title: 'Could not sign the device out', description: message(err), color: 'error' })
+    toast.add({ title: tt('Could not sign the device out'), description: message(err), color: 'error' })
   }
 }
 
@@ -157,10 +157,10 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
 
 <template>
   <h2 class="set-h">
-    Account
+    {{ tt('Account') }}
   </h2>
   <p class="set-sub">
-    Who you are on {{ host || 'this server' }}.
+    {{ tt('Who you are on {0}.', [host || 'this server']) }}
   </p>
   <p
     v-if="error"
@@ -173,7 +173,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
     <button
       type="button"
       class="group relative size-16 shrink-0 overflow-hidden rounded-box border border-line outline-none focus-visible:border-accent"
-      :aria-label="profile?.image ? 'Change picture' : 'Add a picture'"
+      :aria-label="profile?.image ? tt('Change picture') : tt('Add a picture')"
       :disabled="busy"
       @click="picker?.click()"
     >
@@ -208,7 +208,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
       >
         <input
           v-model="name"
-          aria-label="Display name"
+          :aria-label="tt('Display name')"
           autocapitalize="off"
           autocorrect="off"
           spellcheck="false"
@@ -223,14 +223,14 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
           size="md"
           @click="saveName"
         >
-          Save
+          {{ tt('Save') }}
         </HBtn>
         <HBtn
           size="md"
           tone="muted"
           @click="editing = false"
         >
-          Cancel
+          {{ tt('Cancel') }}
         </HBtn>
       </div>
       <div
@@ -241,7 +241,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
         <button
           v-if="profile && !ldap"
           type="button"
-          aria-label="Edit name"
+          :aria-label="tt('Edit name')"
           class="text-muted hover:text-strong"
           @click="editName"
         >
@@ -259,11 +259,11 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
           v-if="profile"
           class="border px-1.5"
           :class="profile.role === 'admin' ? 'border-accent text-accent' : 'border-line text-muted'"
-        >{{ ROLE_NAME[profile.role] ?? 'Member' }}</span>
+        >{{ ROLE_NAME[profile.role] ?? tt('Member') }}</span>
         <span
           v-if="ldap"
           class="border border-line px-1.5 text-muted"
-        >Directory account</span>
+        >{{ tt('Directory account') }}</span>
       </span>
     </div>
     <HBtn
@@ -273,25 +273,25 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
       :disabled="busy"
       @click="removeAvatar"
     >
-      Remove picture
+      {{ tt('Remove picture') }}
     </HBtn>
   </div>
   <div class="set-row">
     <div class="set-label">
-      <span>Signs in with</span>
-      <span class="set-desc">{{ managedBy ? `${managedBy} manages your name and password.` : profile?.source === 'scim' ? 'Provisioned by your organization. You sign in through SSO.' : 'A password stored on this server.' }}</span>
+      <span>{{ tt('Signs in with') }}</span>
+      <span class="set-desc">{{ managedBy ? `${managedBy} manages your name and password.` : profile?.source === 'scim' ? tt('Provisioned by your organization. You sign in through SSO.') : tt('A password stored on this server.') }}</span>
     </div>
     <span class="text-[12.5px] text-strong">{{ signInLabel }}</span>
   </div>
   <div class="set-row">
     <div class="set-label">
-      <span>Member since</span>
+      <span>{{ tt('Member since') }}</span>
     </div>
     <span class="text-[12.5px] text-strong">{{ date(profile?.createdAt ?? '') }}</span>
   </div>
   <div class="set-row">
     <div class="set-label">
-      <span>Last sign-in</span>
+      <span>{{ tt('Last sign-in') }}</span>
     </div>
     <span class="text-[12.5px] text-strong">{{ ago(profile?.lastSignInAt ?? '') }}</span>
   </div>
@@ -300,10 +300,10 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
 
   <template v-if="profile && !ldap && profile.source !== 'sso' && profile.source !== 'scim'">
     <h2 class="set-h mt-8">
-      Password
+      {{ tt('Password') }}
     </h2>
     <p class="set-sub">
-      At least 8 characters.
+      {{ tt('At least 8 characters.') }}
     </p>
     <form
       class="set-row flex-col !items-stretch gap-2.5"
@@ -314,24 +314,24 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
           v-model="pw.current"
           type="password"
           autocomplete="current-password"
-          placeholder="Current password"
-          aria-label="Current password"
+          :placeholder="tt('Current password')"
+          :aria-label="tt('Current password')"
           :class="input"
         >
         <input
           v-model="pw.next"
           type="password"
           autocomplete="new-password"
-          placeholder="New password"
-          aria-label="New password"
+          :placeholder="tt('New password')"
+          :aria-label="tt('New password')"
           :class="input"
         >
         <input
           v-model="pw.confirm"
           type="password"
           autocomplete="new-password"
-          placeholder="Repeat new password"
-          aria-label="Repeat new password"
+          :placeholder="tt('Repeat new password')"
+          :aria-label="tt('Repeat new password')"
           :class="[input, mismatch ? '!border-bad' : '']"
         >
       </div>
@@ -341,29 +341,29 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
             v-model="pw.others"
             type="checkbox"
             class="accent-(--color-accent)"
-          >Sign out everywhere else
+          >{{ tt('Sign out everywhere else') }}
         </label>
         <span
           v-if="pwError || mismatch"
           class="text-[12px] text-bad"
-        >{{ mismatch ? 'The passwords differ.' : pwError }}</span>
+        >{{ mismatch ? tt('The passwords differ.') : pwError }}</span>
         <HBtn
           type="submit"
           variant="primary"
           size="md"
           :disabled="!pwReady || pwBusy"
         >
-          Change password
+          {{ tt('Change password') }}
         </HBtn>
       </div>
     </form>
   </template>
 
   <h2 class="set-h mt-8">
-    Devices
+    {{ tt('Devices') }}
   </h2>
   <p class="set-sub">
-    Computers signed in to your account. Signing one out stops its agent from reaching the server.
+    {{ tt('Computers signed in to your account. Signing one out stops its agent from reaching the server.') }}
   </p>
   <p
     v-if="devicesError"
@@ -382,13 +382,13 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
     />
     <div class="set-label min-w-0 flex-1">
       <span class="flex items-center gap-2">
-        <span class="truncate">{{ d.name || 'Unnamed device' }}</span>
+        <span class="truncate">{{ d.name || tt('Unnamed device') }}</span>
         <span
           v-if="d.current"
           class="border border-accent px-1.5 text-[11px] text-accent"
-        >this device</span>
+        >{{ tt('this device') }}</span>
       </span>
-      <span class="set-desc">{{ [d.os && `${d.os}/${d.arch}`, d.clientName].filter(Boolean).join(' · ') || 'Unknown client' }} · signed in {{ date(d.createdAt) }} · seen {{ ago(d.lastSeenAt) }}</span>
+      <span class="set-desc">{{ tt('{0} · signed in {1} · seen {2}', [[d.os && `${d.os}/${d.arch}`, d.clientName].filter(Boolean).join(' · ') || tt('Unknown client'), date(d.createdAt), ago(d.lastSeenAt)]) }}</span>
     </div>
     <button
       v-if="!d.current"
@@ -397,7 +397,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
       @click="revoke(d)"
       @blur="confirmRevoke = ''"
     >
-      {{ confirmRevoke === d.id ? 'Sign out?' : 'Sign out' }}
+      {{ confirmRevoke === d.id ? tt('Sign out?') : tt('Sign out') }}
     </button>
   </div>
 
@@ -406,15 +406,15 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
     class="set-row mt-8"
   >
     <div class="set-label">
-      <span>Sign out of this computer</span>
-      <span class="set-desc">Stops the agent here and forgets its credentials.</span>
+      <span>{{ tt('Sign out of this computer') }}</span>
+      <span class="set-desc">{{ tt('Stops the agent here and forgets its credentials.') }}</span>
     </div>
     <button
       type="button"
       :class="danger"
       @click="signOut"
     >
-      Sign out
+      {{ tt('Sign out') }}
     </button>
   </div>
 </template>

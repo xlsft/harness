@@ -9,10 +9,10 @@ const store = useSessionStore()
 const access = useAccess()
 
 const RANGES = [
-  { value: '1', label: 'Last 24 hours' },
-  { value: '7', label: 'Last 7 days' },
-  { value: '30', label: 'Last 30 days' },
-  { value: '90', label: 'Last 90 days' }
+  { value: '1', label: tt('Last 24 hours') },
+  { value: '7', label: tt('Last 7 days') },
+  { value: '30', label: tt('Last 30 days') },
+  { value: '90', label: tt('Last 90 days') }
 ]
 const range = ref('30')
 
@@ -98,8 +98,8 @@ onMounted(async () => {
 watch([range, scope], load)
 
 const scopes = computed(() => [
-  { value: 'me', label: 'Only me' },
-  { value: 'all', label: 'Everyone' },
+  { value: 'me', label: tt('Only me') },
+  { value: 'all', label: tt('Everyone') },
   ...knownUsers.value.map(u => ({ value: u.userId, label: u.name || u.username || u.email, hint: u.username ? `@${u.username}` : undefined, group: 'Users' }))
 ])
 
@@ -193,10 +193,10 @@ function ago(iso: string) {
 
 <template>
   <h2 class="set-h">
-    Usage
+    {{ tt('Usage') }}
   </h2>
   <p class="set-sub">
-    Tokens and spend of {{ scope === 'me' ? 'your' : scope === 'all' ? 'everyone\'s' : 'this user\'s' }} requests. Money counts only for pay-as-you-go models with a price; subscriptions and unpriced models show tokens.
+    {{ tt('Tokens and spend of {0} requests. Money counts only for pay-as-you-go models with a price; subscriptions and unpriced models show tokens.', [scope === 'me' ? 'your' : scope === 'all' ? 'everyone\'s' : 'this user\'s']) }}
   </p>
 
   <div class="mb-4 flex flex-wrap items-center gap-2">
@@ -204,7 +204,7 @@ function ago(iso: string) {
       <HSelect
         v-model="range"
         :options="RANGES"
-        aria-label="Range"
+        :aria-label="tt('Range')"
       />
     </div>
     <div
@@ -214,7 +214,7 @@ function ago(iso: string) {
       <HSelect
         v-model="scope"
         :options="scopes"
-        aria-label="Whose usage"
+        :aria-label="tt('Whose usage')"
       />
     </div>
     <HBtn
@@ -225,12 +225,12 @@ function ago(iso: string) {
       <HIcon
         name="download"
         :size="12"
-      />Export CSV
+      />{{ tt('Export CSV') }}
     </HBtn>
     <div
       v-if="anyCost"
       role="radiogroup"
-      aria-label="Chart shows"
+      :aria-label="tt('Chart shows')"
       class="ml-auto flex border border-line text-[12px]"
     >
       <button
@@ -243,7 +243,7 @@ function ago(iso: string) {
         :class="metric === m ? 'bg-raised text-strong' : 'text-muted hover:text-strong'"
         @click="metric = m"
       >
-        {{ m === 'tokens' ? 'Tokens' : 'Cost' }}
+        {{ m === 'tokens' ? tt('Tokens') : tt('Cost') }}
       </button>
     </div>
     <HIcon
@@ -264,22 +264,22 @@ function ago(iso: string) {
   <template v-if="report">
     <div class="grid grid-cols-4 border border-line max-md:grid-cols-2">
       <div class="flex flex-col gap-1 border-r border-line p-3 max-md:border-b">
-        <span class="text-[11.5px] text-muted">Tokens</span>
+        <span class="text-[11.5px] text-muted">{{ tt('Tokens') }}</span>
         <span class="text-[20px] font-semibold text-strong">{{ tokens(report.totals.totalTokens) }}</span>
-        <span class="text-[11px] text-dimmed">{{ tokens(report.totals.inputTokens) }} in · {{ tokens(report.totals.outputTokens) }} out</span>
+        <span class="text-[11px] text-dimmed">{{ tt('{0} in · {1} out', [tokens(report.totals.inputTokens), tokens(report.totals.outputTokens)]) }}</span>
       </div>
       <div class="flex flex-col gap-1 border-r border-line p-3 max-md:border-r-0 max-md:border-b">
-        <span class="text-[11.5px] text-muted">Cached</span>
+        <span class="text-[11.5px] text-muted">{{ tt('Cached') }}</span>
         <span class="text-[20px] font-semibold text-strong">{{ tokens(report.totals.cacheReadTokens) }}</span>
-        <span class="text-[11px] text-dimmed">{{ tokens(report.totals.cacheWriteTokens) }} written</span>
+        <span class="text-[11px] text-dimmed">{{ tt('{0} written', [tokens(report.totals.cacheWriteTokens)]) }}</span>
       </div>
       <div class="flex flex-col gap-1 border-r border-line p-3">
-        <span class="text-[11.5px] text-muted">Requests</span>
+        <span class="text-[11.5px] text-muted">{{ tt('Requests') }}</span>
         <span class="text-[20px] font-semibold text-strong">{{ report.totals.requests.toLocaleString() }}</span>
         <span class="text-[11px] text-dimmed">{{ report.models.length }} {{ report.models.length === 1 ? 'model' : 'models' }}</span>
       </div>
       <div class="flex flex-col gap-1 p-3">
-        <span class="text-[11.5px] text-muted">Spend</span>
+        <span class="text-[11.5px] text-muted">{{ tt('Spend') }}</span>
         <span class="text-[20px] font-semibold text-strong">{{ anyCost ? money(report.totals.costUsd) : '—' }}</span>
         <span class="text-[11px] text-dimmed">{{ report.totals.unpricedTokens ? `${tokens(report.totals.unpricedTokens)} tokens not priced` : 'all priced' }}</span>
       </div>
@@ -359,35 +359,35 @@ function ago(iso: string) {
           /><span class="flex-1 truncate">{{ p.name }}</span><span class="text-strong">{{ axisLabel(p.v) }}</span>
         </div>
         <div class="mt-1 flex justify-between border-t border-line pt-1 text-muted">
-          <span>{{ hovered.b.totals.requests }} requests</span><span class="text-strong">{{ metric === 'cost' ? cost(hovered.b.totals) : tokens(hovered.b.totals.totalTokens) }}</span>
+          <span>{{ tt('{0} requests', [hovered.b.totals.requests]) }}</span><span class="text-strong">{{ metric === 'cost' ? cost(hovered.b.totals) : tokens(hovered.b.totals.totalTokens) }}</span>
         </div>
       </div>
       <p
         v-if="!report.totals.requests"
         class="absolute inset-0 m-0 flex items-center justify-center text-[12px] text-muted"
       >
-        No requests in this range.
+        {{ tt('No requests in this range.') }}
       </p>
     </div>
 
     <template v-if="report.models.length">
       <h3 class="set-h mt-6 !text-[13px]">
-        By model
+        {{ tt('By model') }}
       </h3>
       <table class="mt-2 w-full border-collapse text-[12px]">
         <thead>
           <tr class="text-left text-[11.5px] text-muted">
             <th class="py-1.5 font-normal">
-              Model
+              {{ tt('Model') }}
             </th>
             <th class="py-1.5 text-right font-normal">
-              Requests
+              {{ tt('Requests') }}
             </th>
             <th class="py-1.5 text-right font-normal">
-              Tokens
+              {{ tt('Tokens') }}
             </th>
             <th class="py-1.5 text-right font-normal">
-              Cost
+              {{ tt('Cost') }}
             </th>
           </tr>
         </thead>
@@ -415,7 +415,7 @@ function ago(iso: string) {
             </td>
             <td
               class="py-2 text-right"
-              :title="m.priced ? (m.totals.unpricedTokens ? 'Part of these tokens has no price' : '') : 'No price, or a subscription: tokens only'"
+              :title="m.priced ? (m.totals.unpricedTokens ? tt('Part of these tokens has no price') : '') : tt('No price, or a subscription: tokens only')"
             >
               {{ m.priced ? cost(m.totals) : 'tokens only' }}
             </td>
@@ -424,7 +424,7 @@ function ago(iso: string) {
       </table>
 
       <h3 class="set-h mt-6 !text-[13px]">
-        By kind of request
+        {{ tt('By kind of request') }}
       </h3>
       <div class="mt-2 flex flex-col gap-2">
         <div
@@ -444,25 +444,25 @@ function ago(iso: string) {
 
     <template v-if="users.length">
       <h3 class="set-h mt-6 !text-[13px]">
-        By user
+        {{ tt('By user') }}
       </h3>
       <table class="mt-2 w-full border-collapse text-[12px]">
         <thead>
           <tr class="text-left text-[11.5px] text-muted">
             <th class="py-1.5 font-normal">
-              User
+              {{ tt('User') }}
             </th>
             <th class="py-1.5 text-right font-normal">
-              Requests
+              {{ tt('Requests') }}
             </th>
             <th class="py-1.5 text-right font-normal">
-              Tokens
+              {{ tt('Tokens') }}
             </th>
             <th class="py-1.5 text-right font-normal">
-              Cost
+              {{ tt('Cost') }}
             </th>
             <th class="py-1.5 text-right font-normal">
-              Last active
+              {{ tt('Last active') }}
             </th>
           </tr>
         </thead>

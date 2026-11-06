@@ -19,7 +19,7 @@ async function run(it: RowMenuItem) {
   try {
     await it.run()
   } catch (e) {
-    toast.add({ title: `Could not ${it.label.replace(/…$/, '').toLowerCase()}`, description: e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e), color: 'error' })
+    toast.add({ title: tt('Could not {0}', [it.label.replace(/…$/, '').toLowerCase()]), description: e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e), color: 'error' })
   }
 }
 </script>
