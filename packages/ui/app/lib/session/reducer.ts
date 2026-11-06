@@ -8,6 +8,7 @@
 //   (kept aside until the item exists when it comes first);
 // - PermissionRequest / Question / PlanProposed cards are resolved by the matching *Resolved event.
 
+import { goalVM, taskNodeVM } from './teamwork'
 import { SessionProposal_State } from '~/gen/harness/agent/v1/session_links_pb'
 import { HookRun_Status } from '~/gen/harness/agent/v1/hooks_pb'
 import { sessionNoteOf } from './links'
@@ -121,6 +122,8 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     workflows: {},
     workflowOrder: [],
     todos: [],
+    goal: null,
+    taskGraph: [],
     proposals: {},
     queue: [],
     delivered: {},
@@ -809,6 +812,16 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       break
     }
 
+    case 'goalUpdated': {
+      s.goal = e.value.goal ? goalVM(e.value.goal) : null
+      break
+    }
+
+    case 'taskGraphUpdated': {
+      s.taskGraph = e.value.tasks.map(taskNodeVM)
+      break
+    }
+
     case 'subagentUpdated': {
       const a = e.value.agent && subagentVM(e.value.agent)
       if (!a) break
@@ -1080,6 +1093,7 @@ export function subagentVM(a: SubagentInfo): SubagentVM {
     parentId: a.parentId,
     toolUseId: a.toolUseId,
     name: a.name,
+    team: a.team,
     type: a.type,
     model: a.model,
     state: SUBAGENT_STATES[a.state],

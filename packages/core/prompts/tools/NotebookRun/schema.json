@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "notebook_path": {
+      "type": "string",
+      "description": "Absolute path of the .ipynb file"
+    },
+    "cell_id": {
+      "type": "string",
+      "description": "Run from the first cell through this one, by id"
+    },
+    "cell_index": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Run from the first cell through this one, by 0-based index, for cells without ids"
+    },
+    "python": {
+      "type": "string",
+      "description": "The interpreter to use. Default: .venv or venv in the working directory, else python3"
+    },
+    "timeout": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1800000,
+      "description": "How long the whole run may take, in milliseconds. Default 300000"
+    },
+    "run_outside_sandbox": {
+      "type": "boolean",
+      "description": "Ask the user to run it outside the OS sandbox. Only after the sandbox refused it"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
+    }
+  },
+  "required": ["notebook_path", "description"],
+  "additionalProperties": false
+}

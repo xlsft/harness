@@ -41,6 +41,8 @@ enum ObjectKind {
   OBJECT_KIND_IMAGE = 5;
   // A file of a SendUserFile call.
   OBJECT_KIND_SENT_FILE = 6;
+  // A version of an artifact (harness.library.v1.ArtifactService). Belongs to no session: it outlives the one that made it.
+  OBJECT_KIND_ARTIFACT = 17;
 }
 
 // One use of an object.

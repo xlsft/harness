@@ -268,7 +268,7 @@ func (x VcsEvent_Kind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use VcsEvent_Kind.Descriptor instead.
 func (VcsEvent_Kind) EnumDescriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{57, 0}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{60, 0}
 }
 
 type DeviceProvider struct {
@@ -1598,6 +1598,198 @@ func (*RevokeUserAuthResponse) Descriptor() ([]byte, []int) {
 	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{23}
 }
 
+type ListUserConnectionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUserConnectionsRequest) Reset() {
+	*x = ListUserConnectionsRequest{}
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUserConnectionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUserConnectionsRequest) ProtoMessage() {}
+
+func (x *ListUserConnectionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUserConnectionsRequest.ProtoReflect.Descriptor instead.
+func (*ListUserConnectionsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{24}
+}
+
+type ListUserConnectionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Connections   []*UserConnection      `protobuf:"bytes,1,rep,name=connections,proto3" json:"connections,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUserConnectionsResponse) Reset() {
+	*x = ListUserConnectionsResponse{}
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUserConnectionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUserConnectionsResponse) ProtoMessage() {}
+
+func (x *ListUserConnectionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUserConnectionsResponse.ProtoReflect.Descriptor instead.
+func (*ListUserConnectionsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *ListUserConnectionsResponse) GetConnections() []*UserConnection {
+	if x != nil {
+		return x.Connections
+	}
+	return nil
+}
+
+type UserConnection struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	ConnectionId string                 `protobuf:"bytes,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
+	Type         ProviderType           `protobuf:"varint,2,opt,name=type,proto3,enum=harness.vcs.v1.ProviderType" json:"type,omitempty"`
+	DisplayName  string                 `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	BaseUrl      string                 `protobuf:"bytes,4,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
+	// Host of base_url, lowercased: the host part of repository keys.
+	Host string `protobuf:"bytes,5,opt,name=host,proto3" json:"host,omitempty"`
+	// Where users install the app (GitHub).
+	InstallUrl string                          `protobuf:"bytes,6,opt,name=install_url,json=installUrl,proto3" json:"install_url,omitempty"`
+	State      GetUserAuthStatusResponse_State `protobuf:"varint,7,opt,name=state,proto3,enum=harness.vcs.v1.GetUserAuthStatusResponse_State" json:"state,omitempty"`
+	// Login on the code host, when connected.
+	Login string `protobuf:"bytes,8,opt,name=login,proto3" json:"login,omitempty"`
+	// The server can open PRs for this user here: the user's own token, or a GitLab access token the connection holds.
+	CanWrite      bool `protobuf:"varint,9,opt,name=can_write,json=canWrite,proto3" json:"can_write,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserConnection) Reset() {
+	*x = UserConnection{}
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserConnection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserConnection) ProtoMessage() {}
+
+func (x *UserConnection) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserConnection.ProtoReflect.Descriptor instead.
+func (*UserConnection) Descriptor() ([]byte, []int) {
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *UserConnection) GetConnectionId() string {
+	if x != nil {
+		return x.ConnectionId
+	}
+	return ""
+}
+
+func (x *UserConnection) GetType() ProviderType {
+	if x != nil {
+		return x.Type
+	}
+	return ProviderType_PROVIDER_TYPE_UNSPECIFIED
+}
+
+func (x *UserConnection) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *UserConnection) GetBaseUrl() string {
+	if x != nil {
+		return x.BaseUrl
+	}
+	return ""
+}
+
+func (x *UserConnection) GetHost() string {
+	if x != nil {
+		return x.Host
+	}
+	return ""
+}
+
+func (x *UserConnection) GetInstallUrl() string {
+	if x != nil {
+		return x.InstallUrl
+	}
+	return ""
+}
+
+func (x *UserConnection) GetState() GetUserAuthStatusResponse_State {
+	if x != nil {
+		return x.State
+	}
+	return GetUserAuthStatusResponse_STATE_UNSPECIFIED
+}
+
+func (x *UserConnection) GetLogin() string {
+	if x != nil {
+		return x.Login
+	}
+	return ""
+}
+
+func (x *UserConnection) GetCanWrite() bool {
+	if x != nil {
+		return x.CanWrite
+	}
+	return false
+}
+
 type Repository struct {
 	state        protoimpl.MessageState `protogen:"open.v1"`
 	ConnectionId string                 `protobuf:"bytes,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
@@ -1613,7 +1805,7 @@ type Repository struct {
 
 func (x *Repository) Reset() {
 	*x = Repository{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[24]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1625,7 +1817,7 @@ func (x *Repository) String() string {
 func (*Repository) ProtoMessage() {}
 
 func (x *Repository) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[24]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1638,7 +1830,7 @@ func (x *Repository) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Repository.ProtoReflect.Descriptor instead.
 func (*Repository) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{24}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *Repository) GetConnectionId() string {
@@ -1694,7 +1886,7 @@ type ListRepositoriesRequest struct {
 
 func (x *ListRepositoriesRequest) Reset() {
 	*x = ListRepositoriesRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[25]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1706,7 +1898,7 @@ func (x *ListRepositoriesRequest) String() string {
 func (*ListRepositoriesRequest) ProtoMessage() {}
 
 func (x *ListRepositoriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[25]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1719,7 +1911,7 @@ func (x *ListRepositoriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRepositoriesRequest.ProtoReflect.Descriptor instead.
 func (*ListRepositoriesRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{25}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ListRepositoriesRequest) GetConnectionId() string {
@@ -1753,7 +1945,7 @@ type ListRepositoriesResponse struct {
 
 func (x *ListRepositoriesResponse) Reset() {
 	*x = ListRepositoriesResponse{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[26]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1765,7 +1957,7 @@ func (x *ListRepositoriesResponse) String() string {
 func (*ListRepositoriesResponse) ProtoMessage() {}
 
 func (x *ListRepositoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[26]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1778,7 +1970,7 @@ func (x *ListRepositoriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRepositoriesResponse.ProtoReflect.Descriptor instead.
 func (*ListRepositoriesResponse) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{26}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *ListRepositoriesResponse) GetRepositories() []*Repository {
@@ -1808,7 +2000,7 @@ type ChecksSummary struct {
 
 func (x *ChecksSummary) Reset() {
 	*x = ChecksSummary{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[27]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1820,7 +2012,7 @@ func (x *ChecksSummary) String() string {
 func (*ChecksSummary) ProtoMessage() {}
 
 func (x *ChecksSummary) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[27]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1833,7 +2025,7 @@ func (x *ChecksSummary) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChecksSummary.ProtoReflect.Descriptor instead.
 func (*ChecksSummary) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{27}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ChecksSummary) GetState() CheckState {
@@ -1898,7 +2090,7 @@ type PullRequest struct {
 
 func (x *PullRequest) Reset() {
 	*x = PullRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[28]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1910,7 +2102,7 @@ func (x *PullRequest) String() string {
 func (*PullRequest) ProtoMessage() {}
 
 func (x *PullRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[28]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1923,7 +2115,7 @@ func (x *PullRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullRequest.ProtoReflect.Descriptor instead.
 func (*PullRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{28}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *PullRequest) GetRepositoryKey() string {
@@ -2043,7 +2235,7 @@ type ListPullRequestsRequest struct {
 
 func (x *ListPullRequestsRequest) Reset() {
 	*x = ListPullRequestsRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[29]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2055,7 +2247,7 @@ func (x *ListPullRequestsRequest) String() string {
 func (*ListPullRequestsRequest) ProtoMessage() {}
 
 func (x *ListPullRequestsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[29]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2068,7 +2260,7 @@ func (x *ListPullRequestsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPullRequestsRequest.ProtoReflect.Descriptor instead.
 func (*ListPullRequestsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{29}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *ListPullRequestsRequest) GetRepositoryKey() string {
@@ -2101,7 +2293,7 @@ type ListPullRequestsResponse struct {
 
 func (x *ListPullRequestsResponse) Reset() {
 	*x = ListPullRequestsResponse{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[30]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2113,7 +2305,7 @@ func (x *ListPullRequestsResponse) String() string {
 func (*ListPullRequestsResponse) ProtoMessage() {}
 
 func (x *ListPullRequestsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[30]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2126,7 +2318,7 @@ func (x *ListPullRequestsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPullRequestsResponse.ProtoReflect.Descriptor instead.
 func (*ListPullRequestsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{30}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ListPullRequestsResponse) GetPullRequests() []*PullRequest {
@@ -2146,7 +2338,7 @@ type GetPullRequestRequest struct {
 
 func (x *GetPullRequestRequest) Reset() {
 	*x = GetPullRequestRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[31]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2158,7 +2350,7 @@ func (x *GetPullRequestRequest) String() string {
 func (*GetPullRequestRequest) ProtoMessage() {}
 
 func (x *GetPullRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[31]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2171,7 +2363,7 @@ func (x *GetPullRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPullRequestRequest.ProtoReflect.Descriptor instead.
 func (*GetPullRequestRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{31}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *GetPullRequestRequest) GetRepositoryKey() string {
@@ -2197,7 +2389,7 @@ type GetPullRequestResponse struct {
 
 func (x *GetPullRequestResponse) Reset() {
 	*x = GetPullRequestResponse{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[32]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2209,7 +2401,7 @@ func (x *GetPullRequestResponse) String() string {
 func (*GetPullRequestResponse) ProtoMessage() {}
 
 func (x *GetPullRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[32]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2222,7 +2414,7 @@ func (x *GetPullRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPullRequestResponse.ProtoReflect.Descriptor instead.
 func (*GetPullRequestResponse) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{32}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *GetPullRequestResponse) GetPullRequest() *PullRequest {
@@ -2249,7 +2441,7 @@ type CreatePullRequestRequest struct {
 
 func (x *CreatePullRequestRequest) Reset() {
 	*x = CreatePullRequestRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[33]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2261,7 +2453,7 @@ func (x *CreatePullRequestRequest) String() string {
 func (*CreatePullRequestRequest) ProtoMessage() {}
 
 func (x *CreatePullRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[33]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2274,7 +2466,7 @@ func (x *CreatePullRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePullRequestRequest.ProtoReflect.Descriptor instead.
 func (*CreatePullRequestRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{33}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *CreatePullRequestRequest) GetRepositoryKey() string {
@@ -2335,7 +2527,7 @@ type CreatePullRequestResponse struct {
 
 func (x *CreatePullRequestResponse) Reset() {
 	*x = CreatePullRequestResponse{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[34]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2347,7 +2539,7 @@ func (x *CreatePullRequestResponse) String() string {
 func (*CreatePullRequestResponse) ProtoMessage() {}
 
 func (x *CreatePullRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[34]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2360,7 +2552,7 @@ func (x *CreatePullRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreatePullRequestResponse.ProtoReflect.Descriptor instead.
 func (*CreatePullRequestResponse) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{34}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *CreatePullRequestResponse) GetPullRequest() *PullRequest {
@@ -2382,7 +2574,7 @@ type MergePullRequestRequest struct {
 
 func (x *MergePullRequestRequest) Reset() {
 	*x = MergePullRequestRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[35]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2394,7 +2586,7 @@ func (x *MergePullRequestRequest) String() string {
 func (*MergePullRequestRequest) ProtoMessage() {}
 
 func (x *MergePullRequestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[35]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2407,7 +2599,7 @@ func (x *MergePullRequestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MergePullRequestRequest.ProtoReflect.Descriptor instead.
 func (*MergePullRequestRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{35}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *MergePullRequestRequest) GetRepositoryKey() string {
@@ -2440,7 +2632,7 @@ type MergePullRequestResponse struct {
 
 func (x *MergePullRequestResponse) Reset() {
 	*x = MergePullRequestResponse{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[36]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2452,7 +2644,7 @@ func (x *MergePullRequestResponse) String() string {
 func (*MergePullRequestResponse) ProtoMessage() {}
 
 func (x *MergePullRequestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[36]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2465,7 +2657,7 @@ func (x *MergePullRequestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MergePullRequestResponse.ProtoReflect.Descriptor instead.
 func (*MergePullRequestResponse) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{36}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *MergePullRequestResponse) GetPullRequest() *PullRequest {
@@ -2487,7 +2679,7 @@ type SetAutoMergeRequest struct {
 
 func (x *SetAutoMergeRequest) Reset() {
 	*x = SetAutoMergeRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[37]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2499,7 +2691,7 @@ func (x *SetAutoMergeRequest) String() string {
 func (*SetAutoMergeRequest) ProtoMessage() {}
 
 func (x *SetAutoMergeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[37]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2512,7 +2704,7 @@ func (x *SetAutoMergeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAutoMergeRequest.ProtoReflect.Descriptor instead.
 func (*SetAutoMergeRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{37}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *SetAutoMergeRequest) GetRepositoryKey() string {
@@ -2551,7 +2743,7 @@ type SetAutoMergeResponse struct {
 
 func (x *SetAutoMergeResponse) Reset() {
 	*x = SetAutoMergeResponse{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[38]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2563,7 +2755,7 @@ func (x *SetAutoMergeResponse) String() string {
 func (*SetAutoMergeResponse) ProtoMessage() {}
 
 func (x *SetAutoMergeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[38]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2576,7 +2768,7 @@ func (x *SetAutoMergeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAutoMergeResponse.ProtoReflect.Descriptor instead.
 func (*SetAutoMergeResponse) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{38}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{41}
 }
 
 type ReviewComment struct {
@@ -2597,7 +2789,7 @@ type ReviewComment struct {
 
 func (x *ReviewComment) Reset() {
 	*x = ReviewComment{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[39]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2609,7 +2801,7 @@ func (x *ReviewComment) String() string {
 func (*ReviewComment) ProtoMessage() {}
 
 func (x *ReviewComment) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[39]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2622,7 +2814,7 @@ func (x *ReviewComment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReviewComment.ProtoReflect.Descriptor instead.
 func (*ReviewComment) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{39}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *ReviewComment) GetId() string {
@@ -2692,7 +2884,7 @@ type ListReviewCommentsRequest struct {
 
 func (x *ListReviewCommentsRequest) Reset() {
 	*x = ListReviewCommentsRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[40]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2704,7 +2896,7 @@ func (x *ListReviewCommentsRequest) String() string {
 func (*ListReviewCommentsRequest) ProtoMessage() {}
 
 func (x *ListReviewCommentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[40]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2717,7 +2909,7 @@ func (x *ListReviewCommentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReviewCommentsRequest.ProtoReflect.Descriptor instead.
 func (*ListReviewCommentsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{40}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *ListReviewCommentsRequest) GetRepositoryKey() string {
@@ -2750,7 +2942,7 @@ type ListReviewCommentsResponse struct {
 
 func (x *ListReviewCommentsResponse) Reset() {
 	*x = ListReviewCommentsResponse{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[41]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2762,7 +2954,7 @@ func (x *ListReviewCommentsResponse) String() string {
 func (*ListReviewCommentsResponse) ProtoMessage() {}
 
 func (x *ListReviewCommentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[41]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2775,7 +2967,7 @@ func (x *ListReviewCommentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReviewCommentsResponse.ProtoReflect.Descriptor instead.
 func (*ListReviewCommentsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{41}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *ListReviewCommentsResponse) GetComments() []*ReviewComment {
@@ -2798,7 +2990,7 @@ type PostCommentRequest struct {
 
 func (x *PostCommentRequest) Reset() {
 	*x = PostCommentRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[42]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2810,7 +3002,7 @@ func (x *PostCommentRequest) String() string {
 func (*PostCommentRequest) ProtoMessage() {}
 
 func (x *PostCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[42]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2823,7 +3015,7 @@ func (x *PostCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PostCommentRequest.ProtoReflect.Descriptor instead.
 func (*PostCommentRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{42}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *PostCommentRequest) GetRepositoryKey() string {
@@ -2863,7 +3055,7 @@ type PostCommentResponse struct {
 
 func (x *PostCommentResponse) Reset() {
 	*x = PostCommentResponse{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[43]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2875,7 +3067,7 @@ func (x *PostCommentResponse) String() string {
 func (*PostCommentResponse) ProtoMessage() {}
 
 func (x *PostCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[43]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2888,7 +3080,7 @@ func (x *PostCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PostCommentResponse.ProtoReflect.Descriptor instead.
 func (*PostCommentResponse) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{43}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *PostCommentResponse) GetComment() *ReviewComment {
@@ -2915,7 +3107,7 @@ type Check struct {
 
 func (x *Check) Reset() {
 	*x = Check{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[44]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2927,7 +3119,7 @@ func (x *Check) String() string {
 func (*Check) ProtoMessage() {}
 
 func (x *Check) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[44]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2940,7 +3132,7 @@ func (x *Check) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Check.ProtoReflect.Descriptor instead.
 func (*Check) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{44}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *Check) GetId() string {
@@ -3004,7 +3196,7 @@ type ListChecksRequest struct {
 
 func (x *ListChecksRequest) Reset() {
 	*x = ListChecksRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[45]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3016,7 +3208,7 @@ func (x *ListChecksRequest) String() string {
 func (*ListChecksRequest) ProtoMessage() {}
 
 func (x *ListChecksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[45]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3029,7 +3221,7 @@ func (x *ListChecksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListChecksRequest.ProtoReflect.Descriptor instead.
 func (*ListChecksRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{45}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *ListChecksRequest) GetRepositoryKey() string {
@@ -3063,7 +3255,7 @@ type ListChecksResponse struct {
 
 func (x *ListChecksResponse) Reset() {
 	*x = ListChecksResponse{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[46]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3075,7 +3267,7 @@ func (x *ListChecksResponse) String() string {
 func (*ListChecksResponse) ProtoMessage() {}
 
 func (x *ListChecksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[46]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3088,7 +3280,7 @@ func (x *ListChecksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListChecksResponse.ProtoReflect.Descriptor instead.
 func (*ListChecksResponse) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{46}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *ListChecksResponse) GetChecks() []*Check {
@@ -3117,7 +3309,7 @@ type GetCheckLogRequest struct {
 
 func (x *GetCheckLogRequest) Reset() {
 	*x = GetCheckLogRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[47]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3129,7 +3321,7 @@ func (x *GetCheckLogRequest) String() string {
 func (*GetCheckLogRequest) ProtoMessage() {}
 
 func (x *GetCheckLogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[47]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3142,7 +3334,7 @@ func (x *GetCheckLogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCheckLogRequest.ProtoReflect.Descriptor instead.
 func (*GetCheckLogRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{47}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *GetCheckLogRequest) GetRepositoryKey() string {
@@ -3176,7 +3368,7 @@ type GetCheckLogResponse struct {
 
 func (x *GetCheckLogResponse) Reset() {
 	*x = GetCheckLogResponse{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[48]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3188,7 +3380,7 @@ func (x *GetCheckLogResponse) String() string {
 func (*GetCheckLogResponse) ProtoMessage() {}
 
 func (x *GetCheckLogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[48]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3201,7 +3393,7 @@ func (x *GetCheckLogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCheckLogResponse.ProtoReflect.Descriptor instead.
 func (*GetCheckLogResponse) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{48}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *GetCheckLogResponse) GetLog() string {
@@ -3231,7 +3423,7 @@ type LinkSessionRequest struct {
 
 func (x *LinkSessionRequest) Reset() {
 	*x = LinkSessionRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[49]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3243,7 +3435,7 @@ func (x *LinkSessionRequest) String() string {
 func (*LinkSessionRequest) ProtoMessage() {}
 
 func (x *LinkSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[49]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3256,7 +3448,7 @@ func (x *LinkSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkSessionRequest.ProtoReflect.Descriptor instead.
 func (*LinkSessionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{49}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *LinkSessionRequest) GetSessionId() string {
@@ -3297,7 +3489,7 @@ type LinkSessionResponse struct {
 
 func (x *LinkSessionResponse) Reset() {
 	*x = LinkSessionResponse{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[50]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3309,7 +3501,7 @@ func (x *LinkSessionResponse) String() string {
 func (*LinkSessionResponse) ProtoMessage() {}
 
 func (x *LinkSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[50]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3322,7 +3514,7 @@ func (x *LinkSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkSessionResponse.ProtoReflect.Descriptor instead.
 func (*LinkSessionResponse) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{50}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *LinkSessionResponse) GetPullRequest() *PullRequest {
@@ -3345,7 +3537,7 @@ type SetAutoFixRequest struct {
 
 func (x *SetAutoFixRequest) Reset() {
 	*x = SetAutoFixRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[51]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3357,7 +3549,7 @@ func (x *SetAutoFixRequest) String() string {
 func (*SetAutoFixRequest) ProtoMessage() {}
 
 func (x *SetAutoFixRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[51]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3370,7 +3562,7 @@ func (x *SetAutoFixRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAutoFixRequest.ProtoReflect.Descriptor instead.
 func (*SetAutoFixRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{51}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *SetAutoFixRequest) GetSessionId() string {
@@ -3409,7 +3601,7 @@ type SetAutoFixResponse struct {
 
 func (x *SetAutoFixResponse) Reset() {
 	*x = SetAutoFixResponse{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[52]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3421,7 +3613,7 @@ func (x *SetAutoFixResponse) String() string {
 func (*SetAutoFixResponse) ProtoMessage() {}
 
 func (x *SetAutoFixResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[52]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3434,7 +3626,7 @@ func (x *SetAutoFixResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetAutoFixResponse.ProtoReflect.Descriptor instead.
 func (*SetAutoFixResponse) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{52}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{55}
 }
 
 type WatchEventsRequest struct {
@@ -3450,7 +3642,7 @@ type WatchEventsRequest struct {
 
 func (x *WatchEventsRequest) Reset() {
 	*x = WatchEventsRequest{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[53]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3462,7 +3654,7 @@ func (x *WatchEventsRequest) String() string {
 func (*WatchEventsRequest) ProtoMessage() {}
 
 func (x *WatchEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[53]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3475,7 +3667,7 @@ func (x *WatchEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchEventsRequest.ProtoReflect.Descriptor instead.
 func (*WatchEventsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{53}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *WatchEventsRequest) GetRepositoryKeys() []string {
@@ -3513,7 +3705,7 @@ type WatchEventsResponse struct {
 
 func (x *WatchEventsResponse) Reset() {
 	*x = WatchEventsResponse{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[54]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3525,7 +3717,7 @@ func (x *WatchEventsResponse) String() string {
 func (*WatchEventsResponse) ProtoMessage() {}
 
 func (x *WatchEventsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[54]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3538,7 +3730,7 @@ func (x *WatchEventsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchEventsResponse.ProtoReflect.Descriptor instead.
 func (*WatchEventsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{54}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *WatchEventsResponse) GetEvent() isWatchEventsResponse_Event {
@@ -3606,7 +3798,7 @@ type CaughtUp struct {
 
 func (x *CaughtUp) Reset() {
 	*x = CaughtUp{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[55]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3618,7 +3810,7 @@ func (x *CaughtUp) String() string {
 func (*CaughtUp) ProtoMessage() {}
 
 func (x *CaughtUp) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[55]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3631,7 +3823,7 @@ func (x *CaughtUp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CaughtUp.ProtoReflect.Descriptor instead.
 func (*CaughtUp) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{55}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{58}
 }
 
 type Heartbeat struct {
@@ -3642,7 +3834,7 @@ type Heartbeat struct {
 
 func (x *Heartbeat) Reset() {
 	*x = Heartbeat{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[56]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3654,7 +3846,7 @@ func (x *Heartbeat) String() string {
 func (*Heartbeat) ProtoMessage() {}
 
 func (x *Heartbeat) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[56]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3667,7 +3859,7 @@ func (x *Heartbeat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Heartbeat.ProtoReflect.Descriptor instead.
 func (*Heartbeat) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{56}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{59}
 }
 
 type VcsEvent struct {
@@ -3690,7 +3882,7 @@ type VcsEvent struct {
 
 func (x *VcsEvent) Reset() {
 	*x = VcsEvent{}
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[57]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3702,7 +3894,7 @@ func (x *VcsEvent) String() string {
 func (*VcsEvent) ProtoMessage() {}
 
 func (x *VcsEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[57]
+	mi := &file_harness_vcs_v1_vcs_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3715,7 +3907,7 @@ func (x *VcsEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use VcsEvent.ProtoReflect.Descriptor instead.
 func (*VcsEvent) Descriptor() ([]byte, []int) {
-	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{57}
+	return file_harness_vcs_v1_vcs_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *VcsEvent) GetId() string {
@@ -3884,7 +4076,21 @@ const file_harness_vcs_v1_vcs_proto_rawDesc = "" +
 	"\vSTATE_ERROR\x10\x04\"<\n" +
 	"\x15RevokeUserAuthRequest\x12#\n" +
 	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\"\x18\n" +
-	"\x16RevokeUserAuthResponse\"\xb3\x01\n" +
+	"\x16RevokeUserAuthResponse\"\x1c\n" +
+	"\x1aListUserConnectionsRequest\"_\n" +
+	"\x1bListUserConnectionsResponse\x12@\n" +
+	"\vconnections\x18\x01 \x03(\v2\x1e.harness.vcs.v1.UserConnectionR\vconnections\"\xd4\x02\n" +
+	"\x0eUserConnection\x12#\n" +
+	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\x120\n" +
+	"\x04type\x18\x02 \x01(\x0e2\x1c.harness.vcs.v1.ProviderTypeR\x04type\x12!\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\x12\x19\n" +
+	"\bbase_url\x18\x04 \x01(\tR\abaseUrl\x12\x12\n" +
+	"\x04host\x18\x05 \x01(\tR\x04host\x12\x1f\n" +
+	"\vinstall_url\x18\x06 \x01(\tR\n" +
+	"installUrl\x12E\n" +
+	"\x05state\x18\a \x01(\x0e2/.harness.vcs.v1.GetUserAuthStatusResponse.StateR\x05state\x12\x14\n" +
+	"\x05login\x18\b \x01(\tR\x05login\x12\x1b\n" +
+	"\tcan_write\x18\t \x01(\bR\bcanWrite\"\xb3\x01\n" +
 	"\n" +
 	"Repository\x12#\n" +
 	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\x12\x10\n" +
@@ -4079,7 +4285,7 @@ const file_harness_vcs_v1_vcs_proto_rawDesc = "" +
 	"\x13CHECK_STATE_FAILURE\x10\x04\x12\x19\n" +
 	"\x15CHECK_STATE_CANCELLED\x10\x05\x12\x17\n" +
 	"\x13CHECK_STATE_SKIPPED\x10\x06\x12\x17\n" +
-	"\x13CHECK_STATE_NEUTRAL\x10\a2\x91\x12\n" +
+	"\x13CHECK_STATE_NEUTRAL\x10\a2\x81\x13\n" +
 	"\n" +
 	"VcsService\x12b\n" +
 	"\x0fListConnections\x12&.harness.vcs.v1.ListConnectionsRequest\x1a'.harness.vcs.v1.ListConnectionsResponse\x12q\n" +
@@ -4089,7 +4295,8 @@ const file_harness_vcs_v1_vcs_proto_rawDesc = "" +
 	"\x10DeleteConnection\x12'.harness.vcs.v1.DeleteConnectionRequest\x1a(.harness.vcs.v1.DeleteConnectionResponse\x12\\\n" +
 	"\rStartUserAuth\x12$.harness.vcs.v1.StartUserAuthRequest\x1a%.harness.vcs.v1.StartUserAuthResponse\x12h\n" +
 	"\x11GetUserAuthStatus\x12(.harness.vcs.v1.GetUserAuthStatusRequest\x1a).harness.vcs.v1.GetUserAuthStatusResponse\x12_\n" +
-	"\x0eRevokeUserAuth\x12%.harness.vcs.v1.RevokeUserAuthRequest\x1a&.harness.vcs.v1.RevokeUserAuthResponse\x12e\n" +
+	"\x0eRevokeUserAuth\x12%.harness.vcs.v1.RevokeUserAuthRequest\x1a&.harness.vcs.v1.RevokeUserAuthResponse\x12n\n" +
+	"\x13ListUserConnections\x12*.harness.vcs.v1.ListUserConnectionsRequest\x1a+.harness.vcs.v1.ListUserConnectionsResponse\x12e\n" +
 	"\x10ListRepositories\x12'.harness.vcs.v1.ListRepositoriesRequest\x1a(.harness.vcs.v1.ListRepositoriesResponse\x12e\n" +
 	"\x10ListPullRequests\x12'.harness.vcs.v1.ListPullRequestsRequest\x1a(.harness.vcs.v1.ListPullRequestsResponse\x12_\n" +
 	"\x0eGetPullRequest\x12%.harness.vcs.v1.GetPullRequestRequest\x1a&.harness.vcs.v1.GetPullRequestResponse\x12h\n" +
@@ -4122,7 +4329,7 @@ func file_harness_vcs_v1_vcs_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_vcs_v1_vcs_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_harness_vcs_v1_vcs_proto_msgTypes = make([]protoimpl.MessageInfo, 59)
+var file_harness_vcs_v1_vcs_proto_msgTypes = make([]protoimpl.MessageInfo, 62)
 var file_harness_vcs_v1_vcs_proto_goTypes = []any{
 	(ProviderType)(0),                         // 0: harness.vcs.v1.ProviderType
 	(CheckState)(0),                           // 1: harness.vcs.v1.CheckState
@@ -4152,129 +4359,137 @@ var file_harness_vcs_v1_vcs_proto_goTypes = []any{
 	(*GetUserAuthStatusResponse)(nil),         // 25: harness.vcs.v1.GetUserAuthStatusResponse
 	(*RevokeUserAuthRequest)(nil),             // 26: harness.vcs.v1.RevokeUserAuthRequest
 	(*RevokeUserAuthResponse)(nil),            // 27: harness.vcs.v1.RevokeUserAuthResponse
-	(*Repository)(nil),                        // 28: harness.vcs.v1.Repository
-	(*ListRepositoriesRequest)(nil),           // 29: harness.vcs.v1.ListRepositoriesRequest
-	(*ListRepositoriesResponse)(nil),          // 30: harness.vcs.v1.ListRepositoriesResponse
-	(*ChecksSummary)(nil),                     // 31: harness.vcs.v1.ChecksSummary
-	(*PullRequest)(nil),                       // 32: harness.vcs.v1.PullRequest
-	(*ListPullRequestsRequest)(nil),           // 33: harness.vcs.v1.ListPullRequestsRequest
-	(*ListPullRequestsResponse)(nil),          // 34: harness.vcs.v1.ListPullRequestsResponse
-	(*GetPullRequestRequest)(nil),             // 35: harness.vcs.v1.GetPullRequestRequest
-	(*GetPullRequestResponse)(nil),            // 36: harness.vcs.v1.GetPullRequestResponse
-	(*CreatePullRequestRequest)(nil),          // 37: harness.vcs.v1.CreatePullRequestRequest
-	(*CreatePullRequestResponse)(nil),         // 38: harness.vcs.v1.CreatePullRequestResponse
-	(*MergePullRequestRequest)(nil),           // 39: harness.vcs.v1.MergePullRequestRequest
-	(*MergePullRequestResponse)(nil),          // 40: harness.vcs.v1.MergePullRequestResponse
-	(*SetAutoMergeRequest)(nil),               // 41: harness.vcs.v1.SetAutoMergeRequest
-	(*SetAutoMergeResponse)(nil),              // 42: harness.vcs.v1.SetAutoMergeResponse
-	(*ReviewComment)(nil),                     // 43: harness.vcs.v1.ReviewComment
-	(*ListReviewCommentsRequest)(nil),         // 44: harness.vcs.v1.ListReviewCommentsRequest
-	(*ListReviewCommentsResponse)(nil),        // 45: harness.vcs.v1.ListReviewCommentsResponse
-	(*PostCommentRequest)(nil),                // 46: harness.vcs.v1.PostCommentRequest
-	(*PostCommentResponse)(nil),               // 47: harness.vcs.v1.PostCommentResponse
-	(*Check)(nil),                             // 48: harness.vcs.v1.Check
-	(*ListChecksRequest)(nil),                 // 49: harness.vcs.v1.ListChecksRequest
-	(*ListChecksResponse)(nil),                // 50: harness.vcs.v1.ListChecksResponse
-	(*GetCheckLogRequest)(nil),                // 51: harness.vcs.v1.GetCheckLogRequest
-	(*GetCheckLogResponse)(nil),               // 52: harness.vcs.v1.GetCheckLogResponse
-	(*LinkSessionRequest)(nil),                // 53: harness.vcs.v1.LinkSessionRequest
-	(*LinkSessionResponse)(nil),               // 54: harness.vcs.v1.LinkSessionResponse
-	(*SetAutoFixRequest)(nil),                 // 55: harness.vcs.v1.SetAutoFixRequest
-	(*SetAutoFixResponse)(nil),                // 56: harness.vcs.v1.SetAutoFixResponse
-	(*WatchEventsRequest)(nil),                // 57: harness.vcs.v1.WatchEventsRequest
-	(*WatchEventsResponse)(nil),               // 58: harness.vcs.v1.WatchEventsResponse
-	(*CaughtUp)(nil),                          // 59: harness.vcs.v1.CaughtUp
-	(*Heartbeat)(nil),                         // 60: harness.vcs.v1.Heartbeat
-	(*VcsEvent)(nil),                          // 61: harness.vcs.v1.VcsEvent
-	nil,                                       // 62: harness.vcs.v1.ReportDeviceSnapshotRequest.ChecksEntry
-	(v1.PullRequest_State)(0),                 // 63: harness.agent.v1.PullRequest.State
+	(*ListUserConnectionsRequest)(nil),        // 28: harness.vcs.v1.ListUserConnectionsRequest
+	(*ListUserConnectionsResponse)(nil),       // 29: harness.vcs.v1.ListUserConnectionsResponse
+	(*UserConnection)(nil),                    // 30: harness.vcs.v1.UserConnection
+	(*Repository)(nil),                        // 31: harness.vcs.v1.Repository
+	(*ListRepositoriesRequest)(nil),           // 32: harness.vcs.v1.ListRepositoriesRequest
+	(*ListRepositoriesResponse)(nil),          // 33: harness.vcs.v1.ListRepositoriesResponse
+	(*ChecksSummary)(nil),                     // 34: harness.vcs.v1.ChecksSummary
+	(*PullRequest)(nil),                       // 35: harness.vcs.v1.PullRequest
+	(*ListPullRequestsRequest)(nil),           // 36: harness.vcs.v1.ListPullRequestsRequest
+	(*ListPullRequestsResponse)(nil),          // 37: harness.vcs.v1.ListPullRequestsResponse
+	(*GetPullRequestRequest)(nil),             // 38: harness.vcs.v1.GetPullRequestRequest
+	(*GetPullRequestResponse)(nil),            // 39: harness.vcs.v1.GetPullRequestResponse
+	(*CreatePullRequestRequest)(nil),          // 40: harness.vcs.v1.CreatePullRequestRequest
+	(*CreatePullRequestResponse)(nil),         // 41: harness.vcs.v1.CreatePullRequestResponse
+	(*MergePullRequestRequest)(nil),           // 42: harness.vcs.v1.MergePullRequestRequest
+	(*MergePullRequestResponse)(nil),          // 43: harness.vcs.v1.MergePullRequestResponse
+	(*SetAutoMergeRequest)(nil),               // 44: harness.vcs.v1.SetAutoMergeRequest
+	(*SetAutoMergeResponse)(nil),              // 45: harness.vcs.v1.SetAutoMergeResponse
+	(*ReviewComment)(nil),                     // 46: harness.vcs.v1.ReviewComment
+	(*ListReviewCommentsRequest)(nil),         // 47: harness.vcs.v1.ListReviewCommentsRequest
+	(*ListReviewCommentsResponse)(nil),        // 48: harness.vcs.v1.ListReviewCommentsResponse
+	(*PostCommentRequest)(nil),                // 49: harness.vcs.v1.PostCommentRequest
+	(*PostCommentResponse)(nil),               // 50: harness.vcs.v1.PostCommentResponse
+	(*Check)(nil),                             // 51: harness.vcs.v1.Check
+	(*ListChecksRequest)(nil),                 // 52: harness.vcs.v1.ListChecksRequest
+	(*ListChecksResponse)(nil),                // 53: harness.vcs.v1.ListChecksResponse
+	(*GetCheckLogRequest)(nil),                // 54: harness.vcs.v1.GetCheckLogRequest
+	(*GetCheckLogResponse)(nil),               // 55: harness.vcs.v1.GetCheckLogResponse
+	(*LinkSessionRequest)(nil),                // 56: harness.vcs.v1.LinkSessionRequest
+	(*LinkSessionResponse)(nil),               // 57: harness.vcs.v1.LinkSessionResponse
+	(*SetAutoFixRequest)(nil),                 // 58: harness.vcs.v1.SetAutoFixRequest
+	(*SetAutoFixResponse)(nil),                // 59: harness.vcs.v1.SetAutoFixResponse
+	(*WatchEventsRequest)(nil),                // 60: harness.vcs.v1.WatchEventsRequest
+	(*WatchEventsResponse)(nil),               // 61: harness.vcs.v1.WatchEventsResponse
+	(*CaughtUp)(nil),                          // 62: harness.vcs.v1.CaughtUp
+	(*Heartbeat)(nil),                         // 63: harness.vcs.v1.Heartbeat
+	(*VcsEvent)(nil),                          // 64: harness.vcs.v1.VcsEvent
+	nil,                                       // 65: harness.vcs.v1.ReportDeviceSnapshotRequest.ChecksEntry
+	(v1.PullRequest_State)(0),                 // 66: harness.agent.v1.PullRequest.State
 }
 var file_harness_vcs_v1_vcs_proto_depIdxs = []int32{
 	0,  // 0: harness.vcs.v1.DeviceProvider.type:type_name -> harness.vcs.v1.ProviderType
 	5,  // 1: harness.vcs.v1.DeviceProvider.hosts:type_name -> harness.vcs.v1.DeviceProviderHost
 	4,  // 2: harness.vcs.v1.ReportDeviceProvidersRequest.providers:type_name -> harness.vcs.v1.DeviceProvider
 	0,  // 3: harness.vcs.v1.ReportDeviceSnapshotRequest.provider:type_name -> harness.vcs.v1.ProviderType
-	32, // 4: harness.vcs.v1.ReportDeviceSnapshotRequest.pull_requests:type_name -> harness.vcs.v1.PullRequest
-	62, // 5: harness.vcs.v1.ReportDeviceSnapshotRequest.checks:type_name -> harness.vcs.v1.ReportDeviceSnapshotRequest.ChecksEntry
-	48, // 6: harness.vcs.v1.ChecksList.checks:type_name -> harness.vcs.v1.Check
+	35, // 4: harness.vcs.v1.ReportDeviceSnapshotRequest.pull_requests:type_name -> harness.vcs.v1.PullRequest
+	65, // 5: harness.vcs.v1.ReportDeviceSnapshotRequest.checks:type_name -> harness.vcs.v1.ReportDeviceSnapshotRequest.ChecksEntry
+	51, // 6: harness.vcs.v1.ChecksList.checks:type_name -> harness.vcs.v1.Check
 	0,  // 7: harness.vcs.v1.Connection.type:type_name -> harness.vcs.v1.ProviderType
 	11, // 8: harness.vcs.v1.ListConnectionsResponse.connections:type_name -> harness.vcs.v1.Connection
 	11, // 9: harness.vcs.v1.CompleteGitHubAppManifestResponse.connection:type_name -> harness.vcs.v1.Connection
 	0,  // 10: harness.vcs.v1.PutConnectionRequest.type:type_name -> harness.vcs.v1.ProviderType
 	11, // 11: harness.vcs.v1.PutConnectionResponse.connection:type_name -> harness.vcs.v1.Connection
 	2,  // 12: harness.vcs.v1.GetUserAuthStatusResponse.state:type_name -> harness.vcs.v1.GetUserAuthStatusResponse.State
-	28, // 13: harness.vcs.v1.ListRepositoriesResponse.repositories:type_name -> harness.vcs.v1.Repository
-	1,  // 14: harness.vcs.v1.ChecksSummary.state:type_name -> harness.vcs.v1.CheckState
-	63, // 15: harness.vcs.v1.PullRequest.state:type_name -> harness.agent.v1.PullRequest.State
-	31, // 16: harness.vcs.v1.PullRequest.checks:type_name -> harness.vcs.v1.ChecksSummary
-	32, // 17: harness.vcs.v1.ListPullRequestsResponse.pull_requests:type_name -> harness.vcs.v1.PullRequest
-	32, // 18: harness.vcs.v1.GetPullRequestResponse.pull_request:type_name -> harness.vcs.v1.PullRequest
-	32, // 19: harness.vcs.v1.CreatePullRequestResponse.pull_request:type_name -> harness.vcs.v1.PullRequest
-	32, // 20: harness.vcs.v1.MergePullRequestResponse.pull_request:type_name -> harness.vcs.v1.PullRequest
-	43, // 21: harness.vcs.v1.ListReviewCommentsResponse.comments:type_name -> harness.vcs.v1.ReviewComment
-	43, // 22: harness.vcs.v1.PostCommentResponse.comment:type_name -> harness.vcs.v1.ReviewComment
-	1,  // 23: harness.vcs.v1.Check.state:type_name -> harness.vcs.v1.CheckState
-	48, // 24: harness.vcs.v1.ListChecksResponse.checks:type_name -> harness.vcs.v1.Check
-	31, // 25: harness.vcs.v1.ListChecksResponse.summary:type_name -> harness.vcs.v1.ChecksSummary
-	32, // 26: harness.vcs.v1.LinkSessionResponse.pull_request:type_name -> harness.vcs.v1.PullRequest
-	61, // 27: harness.vcs.v1.WatchEventsResponse.vcs_event:type_name -> harness.vcs.v1.VcsEvent
-	59, // 28: harness.vcs.v1.WatchEventsResponse.caught_up:type_name -> harness.vcs.v1.CaughtUp
-	60, // 29: harness.vcs.v1.WatchEventsResponse.heartbeat:type_name -> harness.vcs.v1.Heartbeat
-	3,  // 30: harness.vcs.v1.VcsEvent.kind:type_name -> harness.vcs.v1.VcsEvent.Kind
-	32, // 31: harness.vcs.v1.VcsEvent.pull_request:type_name -> harness.vcs.v1.PullRequest
-	0,  // 32: harness.vcs.v1.VcsEvent.source:type_name -> harness.vcs.v1.ProviderType
-	9,  // 33: harness.vcs.v1.ReportDeviceSnapshotRequest.ChecksEntry.value:type_name -> harness.vcs.v1.ChecksList
-	12, // 34: harness.vcs.v1.VcsService.ListConnections:input_type -> harness.vcs.v1.ListConnectionsRequest
-	14, // 35: harness.vcs.v1.VcsService.GetGitHubAppManifest:input_type -> harness.vcs.v1.GetGitHubAppManifestRequest
-	16, // 36: harness.vcs.v1.VcsService.CompleteGitHubAppManifest:input_type -> harness.vcs.v1.CompleteGitHubAppManifestRequest
-	18, // 37: harness.vcs.v1.VcsService.PutConnection:input_type -> harness.vcs.v1.PutConnectionRequest
-	20, // 38: harness.vcs.v1.VcsService.DeleteConnection:input_type -> harness.vcs.v1.DeleteConnectionRequest
-	22, // 39: harness.vcs.v1.VcsService.StartUserAuth:input_type -> harness.vcs.v1.StartUserAuthRequest
-	24, // 40: harness.vcs.v1.VcsService.GetUserAuthStatus:input_type -> harness.vcs.v1.GetUserAuthStatusRequest
-	26, // 41: harness.vcs.v1.VcsService.RevokeUserAuth:input_type -> harness.vcs.v1.RevokeUserAuthRequest
-	29, // 42: harness.vcs.v1.VcsService.ListRepositories:input_type -> harness.vcs.v1.ListRepositoriesRequest
-	33, // 43: harness.vcs.v1.VcsService.ListPullRequests:input_type -> harness.vcs.v1.ListPullRequestsRequest
-	35, // 44: harness.vcs.v1.VcsService.GetPullRequest:input_type -> harness.vcs.v1.GetPullRequestRequest
-	37, // 45: harness.vcs.v1.VcsService.CreatePullRequest:input_type -> harness.vcs.v1.CreatePullRequestRequest
-	39, // 46: harness.vcs.v1.VcsService.MergePullRequest:input_type -> harness.vcs.v1.MergePullRequestRequest
-	41, // 47: harness.vcs.v1.VcsService.SetAutoMerge:input_type -> harness.vcs.v1.SetAutoMergeRequest
-	44, // 48: harness.vcs.v1.VcsService.ListReviewComments:input_type -> harness.vcs.v1.ListReviewCommentsRequest
-	46, // 49: harness.vcs.v1.VcsService.PostComment:input_type -> harness.vcs.v1.PostCommentRequest
-	49, // 50: harness.vcs.v1.VcsService.ListChecks:input_type -> harness.vcs.v1.ListChecksRequest
-	51, // 51: harness.vcs.v1.VcsService.GetCheckLog:input_type -> harness.vcs.v1.GetCheckLogRequest
-	53, // 52: harness.vcs.v1.VcsService.LinkSession:input_type -> harness.vcs.v1.LinkSessionRequest
-	55, // 53: harness.vcs.v1.VcsService.SetAutoFix:input_type -> harness.vcs.v1.SetAutoFixRequest
-	57, // 54: harness.vcs.v1.VcsService.WatchEvents:input_type -> harness.vcs.v1.WatchEventsRequest
-	6,  // 55: harness.vcs.v1.VcsService.ReportDeviceProviders:input_type -> harness.vcs.v1.ReportDeviceProvidersRequest
-	8,  // 56: harness.vcs.v1.VcsService.ReportDeviceSnapshot:input_type -> harness.vcs.v1.ReportDeviceSnapshotRequest
-	13, // 57: harness.vcs.v1.VcsService.ListConnections:output_type -> harness.vcs.v1.ListConnectionsResponse
-	15, // 58: harness.vcs.v1.VcsService.GetGitHubAppManifest:output_type -> harness.vcs.v1.GetGitHubAppManifestResponse
-	17, // 59: harness.vcs.v1.VcsService.CompleteGitHubAppManifest:output_type -> harness.vcs.v1.CompleteGitHubAppManifestResponse
-	19, // 60: harness.vcs.v1.VcsService.PutConnection:output_type -> harness.vcs.v1.PutConnectionResponse
-	21, // 61: harness.vcs.v1.VcsService.DeleteConnection:output_type -> harness.vcs.v1.DeleteConnectionResponse
-	23, // 62: harness.vcs.v1.VcsService.StartUserAuth:output_type -> harness.vcs.v1.StartUserAuthResponse
-	25, // 63: harness.vcs.v1.VcsService.GetUserAuthStatus:output_type -> harness.vcs.v1.GetUserAuthStatusResponse
-	27, // 64: harness.vcs.v1.VcsService.RevokeUserAuth:output_type -> harness.vcs.v1.RevokeUserAuthResponse
-	30, // 65: harness.vcs.v1.VcsService.ListRepositories:output_type -> harness.vcs.v1.ListRepositoriesResponse
-	34, // 66: harness.vcs.v1.VcsService.ListPullRequests:output_type -> harness.vcs.v1.ListPullRequestsResponse
-	36, // 67: harness.vcs.v1.VcsService.GetPullRequest:output_type -> harness.vcs.v1.GetPullRequestResponse
-	38, // 68: harness.vcs.v1.VcsService.CreatePullRequest:output_type -> harness.vcs.v1.CreatePullRequestResponse
-	40, // 69: harness.vcs.v1.VcsService.MergePullRequest:output_type -> harness.vcs.v1.MergePullRequestResponse
-	42, // 70: harness.vcs.v1.VcsService.SetAutoMerge:output_type -> harness.vcs.v1.SetAutoMergeResponse
-	45, // 71: harness.vcs.v1.VcsService.ListReviewComments:output_type -> harness.vcs.v1.ListReviewCommentsResponse
-	47, // 72: harness.vcs.v1.VcsService.PostComment:output_type -> harness.vcs.v1.PostCommentResponse
-	50, // 73: harness.vcs.v1.VcsService.ListChecks:output_type -> harness.vcs.v1.ListChecksResponse
-	52, // 74: harness.vcs.v1.VcsService.GetCheckLog:output_type -> harness.vcs.v1.GetCheckLogResponse
-	54, // 75: harness.vcs.v1.VcsService.LinkSession:output_type -> harness.vcs.v1.LinkSessionResponse
-	56, // 76: harness.vcs.v1.VcsService.SetAutoFix:output_type -> harness.vcs.v1.SetAutoFixResponse
-	58, // 77: harness.vcs.v1.VcsService.WatchEvents:output_type -> harness.vcs.v1.WatchEventsResponse
-	7,  // 78: harness.vcs.v1.VcsService.ReportDeviceProviders:output_type -> harness.vcs.v1.ReportDeviceProvidersResponse
-	10, // 79: harness.vcs.v1.VcsService.ReportDeviceSnapshot:output_type -> harness.vcs.v1.ReportDeviceSnapshotResponse
-	57, // [57:80] is the sub-list for method output_type
-	34, // [34:57] is the sub-list for method input_type
-	34, // [34:34] is the sub-list for extension type_name
-	34, // [34:34] is the sub-list for extension extendee
-	0,  // [0:34] is the sub-list for field type_name
+	30, // 13: harness.vcs.v1.ListUserConnectionsResponse.connections:type_name -> harness.vcs.v1.UserConnection
+	0,  // 14: harness.vcs.v1.UserConnection.type:type_name -> harness.vcs.v1.ProviderType
+	2,  // 15: harness.vcs.v1.UserConnection.state:type_name -> harness.vcs.v1.GetUserAuthStatusResponse.State
+	31, // 16: harness.vcs.v1.ListRepositoriesResponse.repositories:type_name -> harness.vcs.v1.Repository
+	1,  // 17: harness.vcs.v1.ChecksSummary.state:type_name -> harness.vcs.v1.CheckState
+	66, // 18: harness.vcs.v1.PullRequest.state:type_name -> harness.agent.v1.PullRequest.State
+	34, // 19: harness.vcs.v1.PullRequest.checks:type_name -> harness.vcs.v1.ChecksSummary
+	35, // 20: harness.vcs.v1.ListPullRequestsResponse.pull_requests:type_name -> harness.vcs.v1.PullRequest
+	35, // 21: harness.vcs.v1.GetPullRequestResponse.pull_request:type_name -> harness.vcs.v1.PullRequest
+	35, // 22: harness.vcs.v1.CreatePullRequestResponse.pull_request:type_name -> harness.vcs.v1.PullRequest
+	35, // 23: harness.vcs.v1.MergePullRequestResponse.pull_request:type_name -> harness.vcs.v1.PullRequest
+	46, // 24: harness.vcs.v1.ListReviewCommentsResponse.comments:type_name -> harness.vcs.v1.ReviewComment
+	46, // 25: harness.vcs.v1.PostCommentResponse.comment:type_name -> harness.vcs.v1.ReviewComment
+	1,  // 26: harness.vcs.v1.Check.state:type_name -> harness.vcs.v1.CheckState
+	51, // 27: harness.vcs.v1.ListChecksResponse.checks:type_name -> harness.vcs.v1.Check
+	34, // 28: harness.vcs.v1.ListChecksResponse.summary:type_name -> harness.vcs.v1.ChecksSummary
+	35, // 29: harness.vcs.v1.LinkSessionResponse.pull_request:type_name -> harness.vcs.v1.PullRequest
+	64, // 30: harness.vcs.v1.WatchEventsResponse.vcs_event:type_name -> harness.vcs.v1.VcsEvent
+	62, // 31: harness.vcs.v1.WatchEventsResponse.caught_up:type_name -> harness.vcs.v1.CaughtUp
+	63, // 32: harness.vcs.v1.WatchEventsResponse.heartbeat:type_name -> harness.vcs.v1.Heartbeat
+	3,  // 33: harness.vcs.v1.VcsEvent.kind:type_name -> harness.vcs.v1.VcsEvent.Kind
+	35, // 34: harness.vcs.v1.VcsEvent.pull_request:type_name -> harness.vcs.v1.PullRequest
+	0,  // 35: harness.vcs.v1.VcsEvent.source:type_name -> harness.vcs.v1.ProviderType
+	9,  // 36: harness.vcs.v1.ReportDeviceSnapshotRequest.ChecksEntry.value:type_name -> harness.vcs.v1.ChecksList
+	12, // 37: harness.vcs.v1.VcsService.ListConnections:input_type -> harness.vcs.v1.ListConnectionsRequest
+	14, // 38: harness.vcs.v1.VcsService.GetGitHubAppManifest:input_type -> harness.vcs.v1.GetGitHubAppManifestRequest
+	16, // 39: harness.vcs.v1.VcsService.CompleteGitHubAppManifest:input_type -> harness.vcs.v1.CompleteGitHubAppManifestRequest
+	18, // 40: harness.vcs.v1.VcsService.PutConnection:input_type -> harness.vcs.v1.PutConnectionRequest
+	20, // 41: harness.vcs.v1.VcsService.DeleteConnection:input_type -> harness.vcs.v1.DeleteConnectionRequest
+	22, // 42: harness.vcs.v1.VcsService.StartUserAuth:input_type -> harness.vcs.v1.StartUserAuthRequest
+	24, // 43: harness.vcs.v1.VcsService.GetUserAuthStatus:input_type -> harness.vcs.v1.GetUserAuthStatusRequest
+	26, // 44: harness.vcs.v1.VcsService.RevokeUserAuth:input_type -> harness.vcs.v1.RevokeUserAuthRequest
+	28, // 45: harness.vcs.v1.VcsService.ListUserConnections:input_type -> harness.vcs.v1.ListUserConnectionsRequest
+	32, // 46: harness.vcs.v1.VcsService.ListRepositories:input_type -> harness.vcs.v1.ListRepositoriesRequest
+	36, // 47: harness.vcs.v1.VcsService.ListPullRequests:input_type -> harness.vcs.v1.ListPullRequestsRequest
+	38, // 48: harness.vcs.v1.VcsService.GetPullRequest:input_type -> harness.vcs.v1.GetPullRequestRequest
+	40, // 49: harness.vcs.v1.VcsService.CreatePullRequest:input_type -> harness.vcs.v1.CreatePullRequestRequest
+	42, // 50: harness.vcs.v1.VcsService.MergePullRequest:input_type -> harness.vcs.v1.MergePullRequestRequest
+	44, // 51: harness.vcs.v1.VcsService.SetAutoMerge:input_type -> harness.vcs.v1.SetAutoMergeRequest
+	47, // 52: harness.vcs.v1.VcsService.ListReviewComments:input_type -> harness.vcs.v1.ListReviewCommentsRequest
+	49, // 53: harness.vcs.v1.VcsService.PostComment:input_type -> harness.vcs.v1.PostCommentRequest
+	52, // 54: harness.vcs.v1.VcsService.ListChecks:input_type -> harness.vcs.v1.ListChecksRequest
+	54, // 55: harness.vcs.v1.VcsService.GetCheckLog:input_type -> harness.vcs.v1.GetCheckLogRequest
+	56, // 56: harness.vcs.v1.VcsService.LinkSession:input_type -> harness.vcs.v1.LinkSessionRequest
+	58, // 57: harness.vcs.v1.VcsService.SetAutoFix:input_type -> harness.vcs.v1.SetAutoFixRequest
+	60, // 58: harness.vcs.v1.VcsService.WatchEvents:input_type -> harness.vcs.v1.WatchEventsRequest
+	6,  // 59: harness.vcs.v1.VcsService.ReportDeviceProviders:input_type -> harness.vcs.v1.ReportDeviceProvidersRequest
+	8,  // 60: harness.vcs.v1.VcsService.ReportDeviceSnapshot:input_type -> harness.vcs.v1.ReportDeviceSnapshotRequest
+	13, // 61: harness.vcs.v1.VcsService.ListConnections:output_type -> harness.vcs.v1.ListConnectionsResponse
+	15, // 62: harness.vcs.v1.VcsService.GetGitHubAppManifest:output_type -> harness.vcs.v1.GetGitHubAppManifestResponse
+	17, // 63: harness.vcs.v1.VcsService.CompleteGitHubAppManifest:output_type -> harness.vcs.v1.CompleteGitHubAppManifestResponse
+	19, // 64: harness.vcs.v1.VcsService.PutConnection:output_type -> harness.vcs.v1.PutConnectionResponse
+	21, // 65: harness.vcs.v1.VcsService.DeleteConnection:output_type -> harness.vcs.v1.DeleteConnectionResponse
+	23, // 66: harness.vcs.v1.VcsService.StartUserAuth:output_type -> harness.vcs.v1.StartUserAuthResponse
+	25, // 67: harness.vcs.v1.VcsService.GetUserAuthStatus:output_type -> harness.vcs.v1.GetUserAuthStatusResponse
+	27, // 68: harness.vcs.v1.VcsService.RevokeUserAuth:output_type -> harness.vcs.v1.RevokeUserAuthResponse
+	29, // 69: harness.vcs.v1.VcsService.ListUserConnections:output_type -> harness.vcs.v1.ListUserConnectionsResponse
+	33, // 70: harness.vcs.v1.VcsService.ListRepositories:output_type -> harness.vcs.v1.ListRepositoriesResponse
+	37, // 71: harness.vcs.v1.VcsService.ListPullRequests:output_type -> harness.vcs.v1.ListPullRequestsResponse
+	39, // 72: harness.vcs.v1.VcsService.GetPullRequest:output_type -> harness.vcs.v1.GetPullRequestResponse
+	41, // 73: harness.vcs.v1.VcsService.CreatePullRequest:output_type -> harness.vcs.v1.CreatePullRequestResponse
+	43, // 74: harness.vcs.v1.VcsService.MergePullRequest:output_type -> harness.vcs.v1.MergePullRequestResponse
+	45, // 75: harness.vcs.v1.VcsService.SetAutoMerge:output_type -> harness.vcs.v1.SetAutoMergeResponse
+	48, // 76: harness.vcs.v1.VcsService.ListReviewComments:output_type -> harness.vcs.v1.ListReviewCommentsResponse
+	50, // 77: harness.vcs.v1.VcsService.PostComment:output_type -> harness.vcs.v1.PostCommentResponse
+	53, // 78: harness.vcs.v1.VcsService.ListChecks:output_type -> harness.vcs.v1.ListChecksResponse
+	55, // 79: harness.vcs.v1.VcsService.GetCheckLog:output_type -> harness.vcs.v1.GetCheckLogResponse
+	57, // 80: harness.vcs.v1.VcsService.LinkSession:output_type -> harness.vcs.v1.LinkSessionResponse
+	59, // 81: harness.vcs.v1.VcsService.SetAutoFix:output_type -> harness.vcs.v1.SetAutoFixResponse
+	61, // 82: harness.vcs.v1.VcsService.WatchEvents:output_type -> harness.vcs.v1.WatchEventsResponse
+	7,  // 83: harness.vcs.v1.VcsService.ReportDeviceProviders:output_type -> harness.vcs.v1.ReportDeviceProvidersResponse
+	10, // 84: harness.vcs.v1.VcsService.ReportDeviceSnapshot:output_type -> harness.vcs.v1.ReportDeviceSnapshotResponse
+	61, // [61:85] is the sub-list for method output_type
+	37, // [37:61] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_harness_vcs_v1_vcs_proto_init() }
@@ -4283,7 +4498,7 @@ func file_harness_vcs_v1_vcs_proto_init() {
 		return
 	}
 	file_harness_vcs_v1_vcs_proto_msgTypes[14].OneofWrappers = []any{}
-	file_harness_vcs_v1_vcs_proto_msgTypes[54].OneofWrappers = []any{
+	file_harness_vcs_v1_vcs_proto_msgTypes[57].OneofWrappers = []any{
 		(*WatchEventsResponse_VcsEvent)(nil),
 		(*WatchEventsResponse_CaughtUp)(nil),
 		(*WatchEventsResponse_Heartbeat)(nil),
@@ -4294,7 +4509,7 @@ func file_harness_vcs_v1_vcs_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_vcs_v1_vcs_proto_rawDesc), len(file_harness_vcs_v1_vcs_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   59,
+			NumMessages:   62,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

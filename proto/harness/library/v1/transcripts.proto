@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package harness.library.v1;
+
+// TranscriptSearchService is served by core: full-text search over the caller's uploaded transcripts, for sessions on any
+// of their machines. A client merges it with what it finds on its own disk (harness.agent.v1.LibraryService).
+service TranscriptSearchService {
+  rpc SearchTranscripts(SearchTranscriptsRequest) returns (SearchTranscriptsResponse);
+}
+
+message SearchTranscriptsRequest {
+  string query = 1;
+  // Default 30, at most 100. At most one hit per session.
+  int32 limit = 2;
+}
+
+message TranscriptHit {
+  string session_id = 1;
+  string title = 2;
+  // The matching text, with the surrounding words.
+  string snippet = 3;
+  // RFC 3339, the session's last activity.
+  string last_activity_at = 4;
+}
+
+message SearchTranscriptsResponse {
+  repeated TranscriptHit hits = 1;
+}

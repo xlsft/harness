@@ -69,7 +69,8 @@ const searchOpen = useState('search-open', () => false)
 const onSettings = settings.isOpen
 // A page other than the session view is open (or the new-session screen): no session row is current.
 const onExtensions = computed(() => route.path.startsWith('/extensions'))
-const onPage = computed(() => onArtifacts.value || onExtensions.value || !!route.query.new)
+const onScheduled = computed(() => route.path.startsWith('/scheduled'))
+const onPage = computed(() => onArtifacts.value || onExtensions.value || onScheduled.value || route.path.startsWith('/knowledge') || route.path.startsWith('/tracker') || !!route.query.new)
 
 function mark(s: SessionState) {
   if (s.meta.status === 'error') return { text: 'fail', cls: 'text-bad' }
@@ -123,14 +124,15 @@ const host = computed(() => {
 
 const NuxtLink = resolveComponent('NuxtLink')
 
-// `soon`: not built yet; the row shows a badge (Artifacts keeps its preview page, the others do nothing).
+// `soon`: not built yet; the row shows a badge and does nothing.
 const nav = [
-  { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts', soon: true },
-  { label: 'Scheduled', icon: 'clock' as const, soon: true },
+  { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts' },
+  { label: 'Scheduled', icon: 'clock' as const, to: '/scheduled' },
   { label: 'Extensions', icon: 'sliders' as const, to: '/extensions' },
-  { label: 'Knowledge base', icon: 'page' as const, soon: true },
-  { label: 'Task tracker', icon: 'tasks' as const, soon: true }
+  { label: 'Knowledge base', icon: 'page' as const, to: '/knowledge' },
+  { label: 'Task tracker', icon: 'tasks' as const, to: '/tracker' }
 ]
+const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
 </script>
 
 <template>
@@ -193,21 +195,15 @@ const nav = [
         <HIcon name="search" />Search<span class="flex-1" /><HKeys keys="meta+k" />
       </a>
       <component
-        :is="item.to ? NuxtLink : 'a'"
+        :is="NuxtLink"
         v-for="item in nav"
         :key="item.label"
         :to="item.to"
-        :href="item.to ? undefined : '#'"
         class="nav-row px-[9px] hover:bg-hover"
-        :aria-disabled="item.soon && !item.to ? true : undefined"
-        :class="(item.to === '/artifacts' && onArtifacts) || (item.to === '/extensions' && onExtensions) ? 'nav-row-current' : ''"
-        :aria-current="(item.to === '/artifacts' && onArtifacts) || (item.to === '/extensions' && onExtensions) ? 'page' : undefined"
-        @click="item.soon && !item.to && $event.preventDefault()"
+        :class="isCurrent(item.to) ? 'nav-row-current' : ''"
+        :aria-current="isCurrent(item.to) ? 'page' : undefined"
       >
-        <HIcon :name="item.icon" />{{ item.label }}<span
-          v-if="item.soon"
-          class="ml-auto border border-default px-1 text-[10px] leading-[14px] text-muted"
-        >soon</span>
+        <HIcon :name="item.icon" />{{ item.label }}
       </component>
     </div>
 

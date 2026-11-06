@@ -10,9 +10,11 @@ import (
 
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/gen/harness/auth/v1/authv1connect"
+	"github.com/xlsft/harness/packages/client/gen/harness/library/v1/libraryv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/llm/v1/llmv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/mcp/v1/mcpv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/speech/v1/speechv1connect"
+	"github.com/xlsft/harness/packages/client/gen/harness/vcs/v1/vcsv1connect"
 	"github.com/xlsft/harness/packages/client/rpc"
 )
 
@@ -46,6 +48,7 @@ var coreProxyServices = []string{
 	llmv1connect.ProviderServiceName, llmv1connect.UsageServiceName, authv1connect.AdminServiceName, llmv1connect.ProviderLimitsServiceName,
 	authv1connect.AuditServiceName, authv1connect.BillingServiceName, authv1connect.DirectoryServiceName, authv1connect.MfaServiceName,
 	authv1connect.PolicyServiceName, authv1connect.SsoServiceName,
+	libraryv1connect.ArtifactServiceName, libraryv1connect.KnowledgeServiceName, libraryv1connect.TrackerServiceName,
 }
 
 // coreProxyProcedures are single methods of other server services frontends may
@@ -66,6 +69,17 @@ var coreProxyProcedures = []string{
 	mcpv1connect.McpServiceGetOAuthFlowProcedure,
 	mcpv1connect.McpServiceRevokeAuthProcedure,
 	mcpv1connect.McpServiceListAuditProcedure,
+	// Settings > Code hosts: connections (the server keeps them admin-only and their secrets write-only), and the user's own
+	// authorization. Not the rest of VcsService: PRs and checks go through AgentService, where the client owns them.
+	vcsv1connect.VcsServiceListConnectionsProcedure,
+	vcsv1connect.VcsServiceGetGitHubAppManifestProcedure,
+	vcsv1connect.VcsServiceCompleteGitHubAppManifestProcedure,
+	vcsv1connect.VcsServicePutConnectionProcedure,
+	vcsv1connect.VcsServiceDeleteConnectionProcedure,
+	vcsv1connect.VcsServiceStartUserAuthProcedure,
+	vcsv1connect.VcsServiceGetUserAuthStatusProcedure,
+	vcsv1connect.VcsServiceRevokeUserAuthProcedure,
+	vcsv1connect.VcsServiceListUserConnectionsProcedure,
 }
 
 const coreProxyMaxBody = 1 << 20

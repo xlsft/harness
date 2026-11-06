@@ -4,6 +4,7 @@
 import { usePanes } from '~/composables/usePanes'
 import type { SessionState, TaskVM, WorkflowAgentVM, WorkflowVM } from '~/lib/session/types'
 import { taskPid } from '~/lib/fixtures/tasks'
+import { taskGraphCounts, taskNodeLine } from '~/lib/session/teamwork'
 
 const props = defineProps<{ session: SessionState, menu: string }>()
 
@@ -98,7 +99,7 @@ function clearFinished() {
     </div>
 
     <div
-      v-if="!running.length && !finished.length && !workflows.length"
+      v-if="!running.length && !finished.length && !workflows.length && !session.taskGraph.length"
       class="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center"
     >
       <HIcon
@@ -235,6 +236,29 @@ function clearFinished() {
         </div>
       </div>
 
+      <div
+        v-if="session.taskGraph.length"
+        data-task-graph
+        class="flex flex-col gap-1 px-3 py-2 text-[12px]"
+      >
+        <span class="text-[11.5px] font-medium text-muted">Task graph · {{ taskGraphCounts(session.taskGraph).done }} of {{ taskGraphCounts(session.taskGraph).total }} done</span>
+        <div
+          v-for="t in session.taskGraph"
+          :key="t.id"
+          class="flex items-baseline gap-2"
+          :class="(t.status === 'done' || t.status === 'cancelled') && 'opacity-60'"
+        >
+          <span class="shrink-0 text-[11px] text-muted">{{ t.id }}</span>
+          <span
+            class="min-w-0 flex-1 truncate text-toned"
+            :title="t.note || t.description"
+          >{{ t.title }}</span>
+          <span
+            class="shrink-0 text-[11px]"
+            :class="t.status === 'failed' ? 'text-bad' : t.status === 'in_progress' ? 'text-accent' : t.status === 'done' ? 'text-ok' : 'text-muted'"
+          >{{ taskNodeLine(t) }}</span>
+        </div>
+      </div>
       <template v-if="finished.length">
         <button
           type="button"

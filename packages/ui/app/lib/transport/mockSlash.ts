@@ -19,6 +19,9 @@ export function mockSlashCatalog(disabled: ReadonlySet<string>): SlashCatalog {
     builtin('effort', 'Set how hard the model thinks', '[low|medium|high|xhigh|max|auto]'),
     builtin('init', 'Write an instructions file for this repository', '[what to emphasize]'),
     builtin('code-review', 'Review the current diff for bugs and list the findings', '[range, files or focus]'),
+    builtin('goal', 'Keep working until a condition holds, with a cap on the turns', '[--max N] <condition> | stop | resume', true),
+    builtin('loop', 'Repeat a prompt or command here, on an interval or at the model\'s pace', '[interval] <prompt or /command> | stop | list', true),
+    builtin('schedule', 'Open Scheduled: tasks that run by themselves'),
     builtin('skills', 'Open Extensions: skills and commands, with their switches'),
     own('release-notes', 'Draft release notes from the commits since the last tag', SlashCommandKind.SKILL, '.harness/skills/release-notes/SKILL.md'),
     own('fe:test', 'Run the frontend tests', SlashCommandKind.COMMAND, '.harness/commands/fe/test.md')

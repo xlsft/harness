@@ -22,6 +22,8 @@ const SECTIONS = [
   { key: 'sessions', label: 'Sessions', icon: 'session', group: 'app' },
   { key: 'sandbox', label: 'Sandbox', icon: 'box', group: 'app' },
   { key: 'hooks', label: 'Hooks', icon: 'hook', group: 'app' },
+  { key: 'memory', label: 'Memory', icon: 'doc', group: 'app' },
+  { key: 'codehosts', label: 'Code hosts', icon: 'pull-request', group: 'app' },
   { key: 'import', label: 'Import', icon: 'download', group: 'app' },
   { key: 'models', label: 'Models', icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
@@ -61,7 +63,9 @@ const KEYWORDS: Record<Section, string> = {
   appearance: 'theme light dark mode system colours',
   sessions: 'permission modes ask auto plan bypass new sessions worktree defaults compact idle compaction context',
   sandbox: 'sandbox seatbelt restrict commands bash write paths network hosts proxy allowlist localhost',
+  codehosts: 'github gitlab vcs code host pull request merge request pr connect app oauth gh glab webhook',
   hooks: 'hooks pretooluse posttooluse stop sessionstart scripts automation disable trust',
+  memory: 'memory auto notes remember forget index project MEMORY.md',
   import: 'import bring claude code migrate memory skills agents commands output styles mcp sessions history',
   models: 'providers llm keys slots default model title effort',
   classifiers: 'classifier decision model rules',
@@ -160,6 +164,8 @@ const notifications = computed({
 
       <SettingsHooks v-else-if="section === 'hooks'" />
 
+      <SettingsCodeHosts v-else-if="section === 'codehosts'" />
+
       <template v-else-if="section === 'sessions'">
         <template v-if="managed?.active">
           <h2 class="set-h">
@@ -205,6 +211,8 @@ const notifications = computed({
         <SettingsPullRequests />
         <SettingsAgents />
       </template>
+
+      <SettingsMemory v-else-if="section === 'memory'" />
 
       <SettingsImport v-else-if="section === 'import'" />
 

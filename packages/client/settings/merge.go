@@ -46,6 +46,7 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 	l.includeGit = s.boolean(src, raw, "includeGitInstructions")
 	l.interruptReply = s.boolean(src, raw, "interruptReply")
 	l.compactIdle = s.boolean(src, raw, KeyCompactIdleSessions)
+	l.autoMemory = s.boolean(src, raw, KeyAutoMemoryEnabled)
 	l.lspEnabled = s.boolean(src, raw, KeyLSPEnabled)
 	l.lspDiagnostics = s.boolean(src, raw, KeyLSPDiagnostics)
 	l.lspStartServer = s.boolean(src, raw, KeyLSPDiagnosticsStartServer)
@@ -66,6 +67,10 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 	if l.subagentRunning = s.integer(src, raw, KeySubagentMaxRunning); l.subagentRunning != nil && !ValidSubagentMaxRunning(*l.subagentRunning) {
 		s.problem(src, KeySubagentMaxRunning, "must be between 1 and %d", MaxSubagentMaxRunning)
 		l.subagentRunning = nil
+	}
+	if l.goalTurns = s.integer(src, raw, KeyGoalMaxTurns); l.goalTurns != nil && !ValidGoalMaxTurns(*l.goalTurns) {
+		s.problem(src, KeyGoalMaxTurns, "must be between 1 and %d", MaxGoalMaxTurns)
+		l.goalTurns = nil
 	}
 	if l.workflowAgents = s.integer(src, raw, KeyWorkflowMaxAgents); l.workflowAgents != nil && !ValidWorkflowMaxAgents(*l.workflowAgents) {
 		s.problem(src, KeyWorkflowMaxAgents, "must be between 1 and %d", MaxWorkflowMaxAgents)
@@ -319,6 +324,7 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 				*dst = *v
 			}
 		}
+		lspSwitch(&s.AutoMemoryEnabled, l.autoMemory, KeyAutoMemoryEnabled)
 		lspSwitch(&s.LSPEnabled, l.lspEnabled, KeyLSPEnabled)
 		lspSwitch(&s.LSPDiagnostics, l.lspDiagnostics, KeyLSPDiagnostics)
 		lspSwitch(&s.LSPDiagnosticsStartServer, l.lspStartServer, KeyLSPDiagnosticsStartServer)
@@ -342,6 +348,9 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		}
 		if l.subagentRunning != nil {
 			s.SubagentMaxRunning = *l.subagentRunning
+		}
+		if l.goalTurns != nil {
+			s.GoalMaxTurns = *l.goalTurns
 		}
 		if l.workflowAgents != nil {
 			s.WorkflowMaxAgents = *l.workflowAgents

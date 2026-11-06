@@ -25,7 +25,24 @@ printf '%s\n' "$*" >> "$d/calls"
 tty=no
 [ -t 0 ] && tty=yes
 printf 'GH_PROMPT_DISABLED=%s NO_PROMPT=%s NO_COLOR=%s GH_PAGER=%s TTY=%s\n' "$GH_PROMPT_DISABLED" "$NO_PROMPT" "$NO_COLOR" "$GH_PAGER" "$tty" >> "$d/env"
+prev=""
+for a in "$@"; do
+  if [ "$prev" = "--input" ]; then __CAT__ "$a" >> "$d/inputs"; printf '\n' >> "$d/inputs"; fi
+  prev="$a"
+done
 case "$*" in
+  "pr create "*) c=pr-create ;;
+  "pr diff "*) c=pr-diff ;;
+  "api --hostname "*" -X POST "*"/reviews --input "*) c=api-review ;;
+  "api --hostname "*" -X POST "*"/replies --input "*) c=api-reply ;;
+  "api --hostname "*" -X POST "*"/issues/"*"/comments --input "*) c=api-comment ;;
+  "api --hostname "*" -X POST "*"/merge_requests -H "*) c=api-mr-create ;;
+  "api --hostname "*" -X POST "*"/discussions -H "*) c=api-discussion ;;
+  "api --hostname "*" -X POST "*"/notes -H "*) c=api-note ;;
+  "api --hostname "*"/collaborators/"*) c=api-permission ;;
+  "api --hostname "*" users?username="*) c=api-users ;;
+  "api --hostname "*"/members/all/"*) c=api-member ;;
+  "api --hostname "*"/diffs?"*) c=api-diffs ;;
   "--version") c=version ;;
   "auth status --json hosts") c=auth-json ;;
   "auth status --all") c=auth-all ;;

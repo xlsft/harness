@@ -96,6 +96,12 @@ type liveSession struct {
 	heldOnRecord bool
 	// links are the sessions linked to this one and the notes waiting for it (sessionlinks.go).
 	links linkState
+	// goal is the session's goal (goal.go; goalMu). turnSeq counts the turns started; lastResult is how the latest ended
+	// (ls.mu).
+	goalMu     sync.Mutex
+	goal       *goalRecord
+	turnSeq    atomic.Int64
+	lastResult agent.TurnResult
 
 	// drivenByRelay: the user's last message came through the relay, from another machine (controltools.go).
 	drivenByRelay atomic.Bool
@@ -262,6 +268,7 @@ func (ls *liveSession) onEvent(e agent.Event) {
 		}
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_UserMessage{UserMessage: &agentv1.UserMessage{Uuid: e.UUID, Content: pbconv.Blocks(content), ClientUuids: e.ClientUUIDs}}})
 	case agent.EventTurnStarted:
+		ls.turnSeq.Add(1)
 		ls.mu.Lock()
 		ls.idleCompacted = false
 		if u := ls.usageLimit; u.GetWrappedUp() || u.GetInterrupted() {
@@ -336,6 +343,8 @@ func (ls *liveSession) onEvent(e agent.Event) {
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SkillInvoked{SkillInvoked: skillInvokedProto(e.Skill)}})
 	case agent.EventWorkflow:
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_WorkflowUpdated{WorkflowUpdated: &agentv1.WorkflowUpdated{Workflow: workflowToProto(*e.Workflow)}}})
+	case agent.EventTaskGraph:
+		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TaskGraphUpdated{TaskGraphUpdated: taskGraphProto(e.TaskGraph)}})
 	case agent.EventHookRun:
 		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_HookRun{HookRun: hookRunToProto(*e.HookRun)}})
 	case agent.EventNotice:
@@ -384,6 +393,9 @@ func (ls *liveSession) onTask(e *tools.TaskEvent) {
 }
 
 func (ls *liveSession) onResult(res agent.TurnResult) {
+	ls.mu.Lock()
+	ls.lastResult = res
+	ls.mu.Unlock()
 	tf := &agentv1.TurnFinished{
 		NumTurns: int32(res.NumTurns), Usage: pbconv.Usage(res.Usage), CostUsd: res.CostUSD,
 		DurationMs: res.Duration.Milliseconds(), ErrorMessage: strings.Join(res.Errors, "; "),
@@ -407,6 +419,14 @@ func (ls *liveSession) onResult(res agent.TurnResult) {
 	ls.afterTurn()
 	ls.reportToParent(res)
 	ls.drainNotes()
+	ls.goalAfterTurn(res)
+	ls.srv.nudgeScheduler()
+}
+
+func (ls *liveSession) lastTurn() agent.TurnResult {
+	ls.mu.Lock()
+	defer ls.mu.Unlock()
+	return ls.lastResult
 }
 
 // refreshDiffStats measures the session's changes in the background and publishes SessionUpdated when they changed.

@@ -20,7 +20,7 @@ import { blobStore, type BlobRange } from "./blobstore.ts";
 import type { Principal } from "./devices.ts";
 import { objectQuotaFor } from "./quotas.ts";
 
-export type ObjectKindName = "attachment" | "avatar" | "scratch" | "tool_result" | "image" | "sent_file";
+export type ObjectKindName = "attachment" | "avatar" | "scratch" | "tool_result" | "image" | "sent_file" | "artifact";
 
 export interface ObjectUse {
   session_id: string;
@@ -330,6 +330,24 @@ export async function deleteOtherObjects(owner: string, kind: ObjectKindName, ke
   if (keepSha256) where.push(ne(o.sha256, keepSha256));
   const rows = await getDb().delete(o).where(and(...where)).returning({ sha256: o.sha256 });
   await dropUnreferenced(owner, rows.map((r) => r.sha256));
+}
+
+/** Keeps bytes the owner already has under one more use (an artifact version). */
+export function addObjectRecord(owner: string, sha256: string, size: number, use: ObjectUse): Promise<ObjectRow> {
+  return addRecord(owner, sha256, size, use);
+}
+
+/** Deletes the owner's records of a kind for these objects, and the bytes nothing else uses (a deleted artifact). */
+export async function deleteObjectRecords(owner: string, kind: ObjectKindName, sha256s: string[]): Promise<void> {
+  if (!sha256s.length) return;
+  const o = schema.storedObject;
+  await getDb().delete(o).where(and(eq(o.ownerId, owner), eq(o.kind, kind), inArray(o.sha256, sha256s)));
+  await dropUnreferenced(owner, sha256s);
+}
+
+/** The bytes of one of the owner's objects as a stream, for a route that sets its own headers. */
+export function openObject(owner: string, sha256: string) {
+  return blobStore().get(blobKey(owner, sha256));
 }
 
 /** A session was deleted: its records go, and the bytes no other session or avatar still uses. */

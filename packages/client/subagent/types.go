@@ -50,7 +50,7 @@ func BuiltinTypes() []Type {
 
 // leadOnlyTools talk to the user directly or change the session's own state, which belongs to its main agent. An
 // agent asks through its report instead.
-var leadOnlyTools = map[string]bool{"AskUserQuestion": true, "EnterPlanMode": true, "ExitPlanMode": true, "WrapUp": true, "Show": true, "Visual": true, "Workflow": true}
+var leadOnlyTools = map[string]bool{"AskUserQuestion": true, "EnterPlanMode": true, "ExitPlanMode": true, "WrapUp": true, "Show": true, "Visual": true, "Workflow": true, "ScheduleWakeup": true, "ScheduleList": true, "ScheduleCancel": true}
 
 // DefinitionDirs lists where custom types are looked for, later entries winning: the user's directories, then (for
 // a trusted workspace) the project's.

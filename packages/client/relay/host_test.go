@@ -771,3 +771,69 @@ func TestSessionNoteCommandIsNotAUserMessage(t *testing.T) {
 		SessionId: "other", ProposalId: "prop_1", Action: agentv1.ResolveSessionProposalRequest_ACTION_START}}})
 	r.fake.waitFor(t, "ack of the proposal", func() bool { return r.fake.ackFor("cmd_p") != nil })
 }
+
+// jobBackend is a backend that takes auto-fix jobs.
+type jobBackend struct {
+	*fakeBackend
+	mu   sync.Mutex
+	jobs []*agentv1.DeliverAutoFixJobRequest
+	fail error
+}
+
+func (b *jobBackend) DeliverAutoFixJob(_ context.Context, req *agentv1.DeliverAutoFixJobRequest) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.fail != nil {
+		return b.fail
+	}
+	b.jobs = append(b.jobs, req)
+	return nil
+}
+
+func (b *jobBackend) count() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return len(b.jobs)
+}
+
+func TestAutoFixJobReachesTheSessionOpenOrClosedAndTheAckSaysHowItWent(t *testing.T) {
+	b := &jobBackend{}
+	r := newRig(t, func(o *Options) {
+		b.fakeBackend = o.Backend.(*fakeBackend)
+		o.Backend = b
+	})
+	r.addSession("s1")
+	r.fake.waitFor(t, "registration", func() bool { return r.fake.epochs["s1"] == 1 })
+	job := func(id, session string) *relayv1.Command {
+		return &relayv1.Command{CommandId: id, SessionId: session, Epoch: 1, ExpiresAt: future(), Payload: &relayv1.Command_DeliverAutoFixJob{DeliverAutoFixJob: &agentv1.DeliverAutoFixJobRequest{
+			SessionId: "other", Job: &agentv1.AutoFixJob{Id: "afx_1", Kind: agentv1.AutoFixJob_KIND_CI_FAILURE, PrNumber: 7}}}}
+	}
+	r.send(job("cmd_j1", "s1"))
+	r.fake.waitFor(t, "ack", func() bool { return r.fake.ackFor("cmd_j1") != nil })
+	if a := r.fake.ackFor("cmd_j1"); a.GetOutcome() != relayv1.CommandAck_OUTCOME_OK {
+		t.Fatalf("ack = %v", a)
+	}
+	if b.count() != 1 || b.jobs[0].GetSessionId() != "s1" || b.jobs[0].GetJob().GetPrNumber() != 7 {
+		t.Fatalf("the command's session is the one that counts: %v", b.jobs)
+	}
+	if n := r.backend.messageCount(); n != 0 {
+		t.Fatalf("SendUserMessage ran %d times for a job", n)
+	}
+
+	// A session that is not open on this host still gets it.
+	r.send(job("cmd_j2", "closed"))
+	r.fake.waitFor(t, "ack of the closed session's job", func() bool { return r.fake.ackFor("cmd_j2") != nil })
+	if b.count() != 2 || b.jobs[1].GetSessionId() != "closed" {
+		t.Fatalf("jobs %v", b.jobs)
+	}
+
+	// What the session cannot take is reported, so the server can mark the job.
+	b.mu.Lock()
+	b.fail = errors.New("session is archived")
+	b.mu.Unlock()
+	r.send(job("cmd_j3", "s1"))
+	r.fake.waitFor(t, "ack of the refused job", func() bool { return r.fake.ackFor("cmd_j3") != nil })
+	if a := r.fake.ackFor("cmd_j3"); a.GetOutcome() != relayv1.CommandAck_OUTCOME_FAILED || a.GetErrorMessage() == "" {
+		t.Fatalf("ack = %v", a)
+	}
+}

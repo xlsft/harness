@@ -37,9 +37,23 @@ var subagentStepStatuses = map[string]agentv1.SubagentStepStatus{
 	tools.AgentStepFailed:  agentv1.SubagentStepStatus_SUBAGENT_STEP_STATUS_FAILED,
 }
 
+var taskNodeStatuses = map[string]agentv1.TaskNodeStatus{
+	tools.GraphPending: agentv1.TaskNodeStatus_TASK_NODE_STATUS_PENDING, tools.GraphInProgress: agentv1.TaskNodeStatus_TASK_NODE_STATUS_IN_PROGRESS,
+	tools.GraphDone: agentv1.TaskNodeStatus_TASK_NODE_STATUS_DONE, tools.GraphFailed: agentv1.TaskNodeStatus_TASK_NODE_STATUS_FAILED, tools.GraphCancelled: agentv1.TaskNodeStatus_TASK_NODE_STATUS_CANCELLED,
+}
+
+func taskGraphProto(list []tools.GraphTask) *agentv1.TaskGraphUpdated {
+	out := &agentv1.TaskGraphUpdated{}
+	for _, t := range list {
+		out.Tasks = append(out.Tasks, &agentv1.TaskNode{Id: t.ID, Title: strings.ToValidUTF8(t.Title, ""), Description: strings.ToValidUTF8(t.Description, ""), Status: taskNodeStatuses[t.Status],
+			Owner: t.Owner, OwnerName: t.OwnerName, BlockedBy: t.BlockedBy, WaitingFor: t.WaitingFor, Team: t.Team, Note: strings.ToValidUTF8(t.Note, ""), UpdatedAt: t.UpdatedAt})
+	}
+	return out
+}
+
 func subagentToProto(a tools.AgentInfo) *agentv1.SubagentInfo {
 	out := &agentv1.SubagentInfo{
-		Id: a.ID, ParentId: a.ParentID, ToolUseId: a.ToolUseID, Name: a.Name, Type: a.Type, Model: a.Model, State: subagentStates[a.State],
+		Id: a.ID, ParentId: a.ParentID, ToolUseId: a.ToolUseID, Name: a.Name, Team: a.Team, Type: a.Type, Model: a.Model, State: subagentStates[a.State],
 		CurrentTool: a.CurrentTool, ToolCalls: int32(a.ToolCalls), InputTokens: a.InputTokens, OutputTokens: a.OutputTokens, CostUsd: a.CostUSD,
 		StartedAt: a.StartedAt, FinishedAt: a.FinishedAt, Report: strings.ToValidUTF8(a.Report, ""), Error: strings.ToValidUTF8(a.Error, ""),
 		WorktreePath: a.WorktreePath, WorktreeBranch: a.WorktreeBranch,

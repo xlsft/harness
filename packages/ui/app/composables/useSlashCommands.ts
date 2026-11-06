@@ -59,6 +59,9 @@ export function useSlashActions() {
       case SlashCommandResult_Action.OPEN_PLUGINS:
         await navigateTo('/extensions?type=plugins')
         break
+      case SlashCommandResult_Action.OPEN_SCHEDULED:
+        await navigateTo('/scheduled')
+        break
       case SlashCommandResult_Action.OPEN_SESSION:
         await store.refreshList()
         store.open(a.newSessionId)

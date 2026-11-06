@@ -24,6 +24,10 @@
         "worktree"
       ],
       "description": "Run in a git worktree of its own"
+    },
+    "team": {
+      "type": "string",
+      "description": "Make it a member of this team: peers that message each other and share the task graph"
     }
   },
   "required": [

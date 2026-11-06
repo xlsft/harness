@@ -1,0 +1,112 @@
+syntax = "proto3";
+
+package harness.library.v1;
+
+// TrackerService is served by core: the user's own tasks across sessions and machines, as the Task tracker screen and the
+// TaskTracker tool see them. They outlive any session, unlike the todo list of one turn (TodoWrite). A task belongs to the
+// user who made it: nobody else can see it.
+service TrackerService {
+  rpc ListTrackerTasks(ListTrackerTasksRequest) returns (ListTrackerTasksResponse);
+  rpc GetTrackerTask(GetTrackerTaskRequest) returns (GetTrackerTaskResponse);
+  rpc CreateTrackerTask(CreateTrackerTaskRequest) returns (CreateTrackerTaskResponse);
+  rpc UpdateTrackerTask(UpdateTrackerTaskRequest) returns (UpdateTrackerTaskResponse);
+  rpc DeleteTrackerTask(DeleteTrackerTaskRequest) returns (DeleteTrackerTaskResponse);
+}
+
+enum TrackerStatus {
+  TRACKER_STATUS_UNSPECIFIED = 0;
+  TRACKER_STATUS_TODO = 1;
+  TRACKER_STATUS_IN_PROGRESS = 2;
+  TRACKER_STATUS_BLOCKED = 3;
+  TRACKER_STATUS_DONE = 4;
+  TRACKER_STATUS_CANCELLED = 5;
+}
+
+enum TrackerPriority {
+  TRACKER_PRIORITY_UNSPECIFIED = 0;
+  TRACKER_PRIORITY_LOW = 1;
+  TRACKER_PRIORITY_NORMAL = 2;
+  TRACKER_PRIORITY_HIGH = 3;
+}
+
+message TrackerTask {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  TrackerStatus status = 4;
+  TrackerPriority priority = 5;
+  // Free label: usually the repository or folder it belongs to.
+  string project = 6;
+  // Sessions that made or changed it, oldest first.
+  repeated string session_ids = 7;
+  // Ids of tasks that must finish first.
+  repeated string blocked_by = 8;
+  // RFC 3339.
+  string created_at = 9;
+  string updated_at = 10;
+  // Set while DONE or CANCELLED.
+  string closed_at = 11;
+}
+
+message ListTrackerTasksRequest {
+  // Empty: all.
+  repeated TrackerStatus statuses = 1;
+  string project = 2;
+  // Substring of the title or description.
+  string query = 3;
+  // Default 200, at most 500.
+  int32 limit = 4;
+}
+
+message ListTrackerTasksResponse {
+  repeated TrackerTask tasks = 1;
+}
+
+message GetTrackerTaskRequest {
+  string id = 1;
+}
+
+message GetTrackerTaskResponse {
+  TrackerTask task = 1;
+}
+
+message CreateTrackerTaskRequest {
+  string title = 1;
+  string description = 2;
+  // UNSPECIFIED: TODO.
+  TrackerStatus status = 3;
+  // UNSPECIFIED: NORMAL.
+  TrackerPriority priority = 4;
+  string project = 5;
+  // The session that makes it.
+  string session_id = 6;
+  repeated string blocked_by = 7;
+}
+
+message CreateTrackerTaskResponse {
+  TrackerTask task = 1;
+}
+
+message UpdateTrackerTaskRequest {
+  string id = 1;
+  optional string title = 2;
+  optional string description = 3;
+  optional TrackerStatus status = 4;
+  optional TrackerPriority priority = 5;
+  optional string project = 6;
+  // Added to session_ids.
+  string session_id = 7;
+  // Replaces blocked_by with the list below.
+  bool set_blocked_by = 8;
+  repeated string blocked_by = 9;
+}
+
+message UpdateTrackerTaskResponse {
+  TrackerTask task = 1;
+}
+
+message DeleteTrackerTaskRequest {
+  string id = 1;
+}
+
+message DeleteTrackerTaskResponse {}

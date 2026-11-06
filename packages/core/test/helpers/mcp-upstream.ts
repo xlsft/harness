@@ -79,10 +79,11 @@ export async function startMcpUpstream(opts: UpstreamOptions = {}): Promise<Upst
         return { content: [{ type: "text", text: `${r.action}:${JSON.stringify(r.content ?? {})}` }] };
       },
     );
-    if (opts.extras) server.registerTool("announce", { description: "Announces changed lists", inputSchema: {} }, async () => {
-      server.sendToolListChanged();
-      server.sendPromptListChanged();
-      server.sendResourceListChanged();
+    if (opts.extras) server.registerTool("announce", { description: "Announces changed lists", inputSchema: {} }, async (_args, extra) => {
+      // On the call's own stream, so they arrive before its result; the client's separate stream opens in the background.
+      await extra.sendNotification({ method: "notifications/tools/list_changed" });
+      await extra.sendNotification({ method: "notifications/prompts/list_changed" });
+      await extra.sendNotification({ method: "notifications/resources/list_changed" });
       return { content: [{ type: "text", text: "announced" }] };
     });
     server.registerTool("echo", { description: "Echo text back", inputSchema: { text: z.string() } }, async ({ text }) => ({

@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// A job of the server's auto-fix pipeline (harness.vcs.v1.VcsService.SetAutoFix), delivered to the session through the
+// relay command deliver_auto_fix_job. On the session's side it becomes the pr_activity reminder and wakes the session
+// when idle; it is never a user message, and all its text from the code host is external data.
+message AutoFixJob {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_CI_FAILURE = 1;
+    KIND_REVIEW_COMMENT = 2;
+    KIND_CONFLICT = 3;
+    // Someone with write access mentioned the bot in a comment on the session's PR.
+    KIND_MENTION = 4;
+  }
+
+  message Check {
+    string id = 1;
+    string name = 2;
+    string url = 3;
+    string summary = 4;
+    // The end of the check's log, when the server could read it.
+    string log_excerpt = 5;
+  }
+
+  message Comment {
+    string author = 1;
+    string body = 2;
+    string path = 3;
+    int32 line = 4;
+    string url = 5;
+  }
+
+  // afx_...; a job delivered twice is taken once.
+  string id = 1;
+  Kind kind = 2;
+  string repository_key = 3;
+  int64 pr_number = 4;
+  string pr_url = 5;
+  string head_branch = 6;
+  string base_branch = 7;
+  string head_sha = 8;
+  repeated Check failed_checks = 9;
+  repeated Comment comments = 10;
+}
+
+message DeliverAutoFixJobRequest {
+  string session_id = 1;
+  AutoFixJob job = 2;
+}
+
+message DeliverAutoFixJobResponse {}

@@ -12,11 +12,11 @@
  */
 import { and, eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
-import { ProviderType } from "../gen/harness/vcs/v1/vcs_pb.ts";
+import { GetUserAuthStatusResponse_State, ProviderType } from "../gen/harness/vcs/v1/vcs_pb.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { Principal, PublicUser } from "../services/devices.ts";
 import { sessionView } from "../services/sessions.ts";
-import { invalidateUserToken, onUserAuthChanged } from "./auth.ts";
+import { getUserAuthStatus, invalidateUserToken, onUserAuthChanged } from "./auth.ts";
 import { systemClient, userClient } from "./clients.ts";
 import {
   allConnections,
@@ -34,7 +34,7 @@ import { getStoredPr, linkedSessions, mergePr, prOf, savePr, sessionsOf, storedP
 import { appJwt, GH_HEADERS, githubApiBase, hasAppCredentials } from "./github-app.ts";
 import { updateBadges } from "./pipeline.ts";
 import type { CreatePrInput, PrData, RepoRef, VcsProviderClient } from "./types.ts";
-import { httpJson, httpRequest, isOpen, parseRepoKey } from "./util.ts";
+import { hostOfBaseUrl, httpJson, httpRequest, isOpen, parseRepoKey } from "./util.ts";
 
 // --- connections ---------------------------------------------------------------------------------
 
@@ -103,6 +103,40 @@ export async function listConnections(p: Principal): Promise<ConnectionView[]> {
     rows.map((r) => (!r.lastCheckedAt || Date.now() - r.lastCheckedAt.getTime() > HEALTH_TTL_MS ? checkHealth(r) : Promise.resolve(r))),
   );
   return checked.map(connectionView);
+}
+
+export interface UserConnectionView {
+  connectionId: string;
+  type: number;
+  displayName: string;
+  baseUrl: string;
+  host: string;
+  installUrl: string;
+  state: number;
+  login: string;
+  canWrite: boolean;
+}
+
+/** The connections any signed-in user can use, with where that user stands. Health and secrets stay with the admins. */
+export async function listUserConnections(p: Principal): Promise<UserConnectionView[]> {
+  const rows = await allConnections();
+  return Promise.all(
+    rows.map(async (r) => {
+      const status = await getUserAuthStatus(p, r.id, "");
+      const own = status.state === GetUserAuthStatusResponse_State.CONNECTED;
+      return {
+        connectionId: r.id,
+        type: r.type,
+        displayName: r.displayName,
+        baseUrl: r.baseUrl,
+        host: hostOfBaseUrl(r.baseUrl),
+        installUrl: installUrl(r),
+        state: status.state,
+        login: status.login,
+        canWrite: own || (r.type === ProviderType.GITLAB && !!systemClient(r)),
+      };
+    }),
+  );
 }
 
 // --- clients for a repository ----------------------------------------------------------------------

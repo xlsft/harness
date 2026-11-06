@@ -1,0 +1,35 @@
+# Copy to .github/workflows/harness-mention.yml. Answers comments that call the bot, from people with write access.
+#
+# These events run with secrets and the default branch's code whoever comments, so the filter below is only a saving: the
+# real check is in `harness-client ci mention`. The agent stays read-only unless allowed-tools says otherwise.
+name: xlsft`s harness mention
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  mention:
+    if: >-
+      contains(github.event.comment.body, '@harness') ||
+      contains(github.event.issue.body, '@harness')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Pin this to a commit of the repository, as with any action that sees secrets.
+      - uses: xlsft/harness/ci/github@main
+        with:
+          mode: mention
+          server-url: ${{ vars.HARNESS_SERVER_URL }}
+          device-token: ${{ secrets.HARNESS_DEVICE_TOKEN }}
+          max-budget-usd: "2"
