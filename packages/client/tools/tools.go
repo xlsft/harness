@@ -146,6 +146,8 @@ type Env struct {
 	AgentID string
 	// Workflows is the session's set of runs of the Workflow tool (set for the main agent only; nil disables the tool).
 	Workflows Workflows
+	// TaskGraph is the session's task graph, shared by all its agents (nil disables its tools).
+	TaskGraph *TaskGraph
 	// ReadDenied reports whether a permission rule denies reading path (nil: none does).
 	ReadDenied func(path string) bool
 	// Objects is the object store (nil without a server).

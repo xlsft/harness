@@ -265,6 +265,8 @@ func cmdServe(ctx context.Context, args []string) int {
 			sc := syncclient.NewClient(url, rpc.HTTPClient(url), tokens)
 			srv.Sync, srv.Preferences, srv.ImportTo, srv.SkillDocs = sc, sc, sc, sc
 			srv.AutoMemory, srv.Transcripts = syncclient.AutoMemoryDocs{API: sc}, sc
+			srv.CoreURL = url
+			srv.ScheduleSync = bootstrap.WatchSchedules(ctx, url, rpc.HTTPClient(url), tokens, user, log)
 			// The session list also shows the sessions of the user's other machines; the relay viewer adds their
 			// presence and drives the ones open there (HARNESS_REMOTE_CONTROL=0 turns it off with the host side).
 			if creds, err := auth.DefaultStore(config.CredentialsFile()).Load(); err == nil && creds != nil {

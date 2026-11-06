@@ -3,6 +3,7 @@
 // serves it. Every call carries `Authorization: Bearer <token>` when a token is given (see token.ts).
 
 import { ResolveSessionProposalRequest_Action } from '~/gen/harness/agent/v1/session_links_pb'
+import type { SchedulesApi } from '~/lib/schedule/types'
 import type { ComputerUseStatus } from '~/gen/harness/agent/v1/computer_use_pb'
 import { permissionVM, profileMessage, profileVM, tierName } from '~/lib/session/computer'
 import type { ComputerProfileVM, EffortName, QuestionReply } from '~/lib/session/types'
@@ -58,7 +59,7 @@ function preferencesVM(p: UserPreferences_pb | undefined): UserPreferences {
   const m = p?.managedPolicy
   return { autoMemoryEnabled: p?.autoMemoryEnabled ?? true, managedPolicy: { active: m?.active ?? false, allowRules: m?.allowRules ?? [], askRules: m?.askRules ?? [], denyRules: m?.denyRules ?? [], managedRulesOnly: m?.managedRulesOnly ?? false, sandboxRequired: m?.sandboxRequired ?? false, sandboxOutsideRefused: m?.sandboxOutsideRefused ?? false, disabledModes: m?.disabledModes ?? [], restrictProviders: m?.restrictProviders ?? false, allowedProviders: m?.allowedProviders ?? [], personalProvidersDisabled: m?.personalProvidersDisabled ?? false, restrictMcpServers: m?.restrictMcpServers ?? false, allowedMcpServers: m?.allowedMcpServers ?? [], localModelsDisabled: m?.localModelsDisabled ?? false }, compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
     sandbox: { enabled: b?.enabled ?? true, allowedWritePaths: b?.allowedWritePaths ?? [], allowedHosts: b?.allowedHosts ?? [], allowLocalhost: b?.allowLocalhost ?? false, autoAllowBash: b?.autoAllowBash ?? false, outsideWithoutPrompt: b?.outsideWithoutPrompt ?? false },
-    hooksEnabled: p?.hooksEnabled ?? true }
+    hooksEnabled: p?.hooksEnabled ?? true, schedulesEnabled: p?.schedulesEnabled ?? true, goalMaxTurns: p?.goalMaxTurns || 20 }
 }
 
 const CONFIGURED_HOOK_STATUS: Partial<Record<ConfiguredHook_Status, ConfiguredHookVM['status']>> = {
@@ -124,6 +125,26 @@ export class ConnectTransport implements SessionTransport {
   private environmentApi: ConnectEnvironmentApi
   environment() {
     return this.environmentApi
+  }
+
+  schedules(): SchedulesApi {
+    const c = this.client
+    return {
+      list: async () => c.listSchedules({}),
+      create: async s => (await c.createSchedule({ schedule: s })).schedule!,
+      update: async s => (await c.updateSchedule({ schedule: s })).schedule!,
+      remove: async (id) => {
+        await c.deleteSchedule({ id })
+      },
+      setPaused: async (id, paused) => (await c.setSchedulePaused({ id, paused })).schedule!,
+      runNow: async (id) => {
+        const res = await c.runScheduleNow({ id })
+        return { schedule: res.schedule, queued: res.queuedOnOtherDevice }
+      },
+      runs: async id => (await c.listScheduleRuns({ id })).runs,
+      trust: async id => (await c.trustSchedule({ id })).schedule!,
+      rotateWebhook: async id => (await c.rotateScheduleWebhook({ id })).schedule!
+    }
   }
 
   providers() {
@@ -365,7 +386,7 @@ export class ConnectTransport implements SessionTransport {
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
-    const res = await this.client.updateUserPreferences({ autoMemoryEnabled: patch.autoMemoryEnabled, compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled })
+    const res = await this.client.updateUserPreferences({ autoMemoryEnabled: patch.autoMemoryEnabled, compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled, schedulesEnabled: patch.schedulesEnabled, goalMaxTurns: patch.goalMaxTurns })
     return preferencesVM(res.preferences)
   }
 

@@ -68,6 +68,10 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 		s.problem(src, KeySubagentMaxRunning, "must be between 1 and %d", MaxSubagentMaxRunning)
 		l.subagentRunning = nil
 	}
+	if l.goalTurns = s.integer(src, raw, KeyGoalMaxTurns); l.goalTurns != nil && !ValidGoalMaxTurns(*l.goalTurns) {
+		s.problem(src, KeyGoalMaxTurns, "must be between 1 and %d", MaxGoalMaxTurns)
+		l.goalTurns = nil
+	}
 	if l.workflowAgents = s.integer(src, raw, KeyWorkflowMaxAgents); l.workflowAgents != nil && !ValidWorkflowMaxAgents(*l.workflowAgents) {
 		s.problem(src, KeyWorkflowMaxAgents, "must be between 1 and %d", MaxWorkflowMaxAgents)
 		l.workflowAgents = nil
@@ -344,6 +348,9 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		}
 		if l.subagentRunning != nil {
 			s.SubagentMaxRunning = *l.subagentRunning
+		}
+		if l.goalTurns != nil {
+			s.GoalMaxTurns = *l.goalTurns
 		}
 		if l.workflowAgents != nil {
 			s.WorkflowMaxAgents = *l.workflowAgents

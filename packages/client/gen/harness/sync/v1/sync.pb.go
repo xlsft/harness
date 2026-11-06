@@ -72,25 +72,38 @@ const (
 	// User scope only. key: session id. content: JSON {"notes": [{"id", "kind": "message"|"report", "fromId", "fromName",
 	// "fromTitle", "status", "text"}]}, the notes waiting for a session that is not open anywhere; the device that opens it delivers them and deletes the document.
 	DocumentKind_DOCUMENT_KIND_SESSION_NOTES DocumentKind = 13
+	// User scope only. key: schedule id (sch_...). content: JSON of a scheduled task (harness.agent.v1.Schedule's fields
+	// plus webhookSecretSha256), written by any machine of the user. Device-local schedules never come here.
+	DocumentKind_DOCUMENT_KIND_SCHEDULE DocumentKind = 140
+	// User scope only. key: schedule id. content: JSON {"runs": [...]}, the runs the schedule's machine records, newest
+	// first, at most 50.
+	DocumentKind_DOCUMENT_KIND_SCHEDULE_HISTORY DocumentKind = 141
+	// User scope only. key: request id. content: JSON {"scheduleId", "deviceId", "source": "manual"|"webhook",
+	// "receivedAt", "payload"}, a run asked of the schedule's machine; that machine runs it and deletes the document.
+	// Written by the webhook route of the server or by another machine's Run now.
+	DocumentKind_DOCUMENT_KIND_SCHEDULE_TRIGGER DocumentKind = 142
 )
 
 // Enum value maps for DocumentKind.
 var (
 	DocumentKind_name = map[int32]string{
-		0:  "DOCUMENT_KIND_UNSPECIFIED",
-		1:  "DOCUMENT_KIND_SETTINGS",
-		2:  "DOCUMENT_KIND_PERMISSION_RULES",
-		3:  "DOCUMENT_KIND_MEMORY",
-		4:  "DOCUMENT_KIND_SKILL",
-		5:  "DOCUMENT_KIND_AGENT",
-		6:  "DOCUMENT_KIND_COMMAND",
-		7:  "DOCUMENT_KIND_OUTPUT_STYLE",
-		8:  "DOCUMENT_KIND_HOOK",
-		9:  "DOCUMENT_KIND_SSH_HOST",
-		10: "DOCUMENT_KIND_MCP_SERVER",
-		11: "DOCUMENT_KIND_POLICY",
-		12: "DOCUMENT_KIND_RULE",
-		13: "DOCUMENT_KIND_SESSION_NOTES",
+		0:   "DOCUMENT_KIND_UNSPECIFIED",
+		1:   "DOCUMENT_KIND_SETTINGS",
+		2:   "DOCUMENT_KIND_PERMISSION_RULES",
+		3:   "DOCUMENT_KIND_MEMORY",
+		4:   "DOCUMENT_KIND_SKILL",
+		5:   "DOCUMENT_KIND_AGENT",
+		6:   "DOCUMENT_KIND_COMMAND",
+		7:   "DOCUMENT_KIND_OUTPUT_STYLE",
+		8:   "DOCUMENT_KIND_HOOK",
+		9:   "DOCUMENT_KIND_SSH_HOST",
+		10:  "DOCUMENT_KIND_MCP_SERVER",
+		11:  "DOCUMENT_KIND_POLICY",
+		12:  "DOCUMENT_KIND_RULE",
+		13:  "DOCUMENT_KIND_SESSION_NOTES",
+		140: "DOCUMENT_KIND_SCHEDULE",
+		141: "DOCUMENT_KIND_SCHEDULE_HISTORY",
+		142: "DOCUMENT_KIND_SCHEDULE_TRIGGER",
 	}
 	DocumentKind_value = map[string]int32{
 		"DOCUMENT_KIND_UNSPECIFIED":      0,
@@ -107,6 +120,9 @@ var (
 		"DOCUMENT_KIND_POLICY":           11,
 		"DOCUMENT_KIND_RULE":             12,
 		"DOCUMENT_KIND_SESSION_NOTES":    13,
+		"DOCUMENT_KIND_SCHEDULE":         140,
+		"DOCUMENT_KIND_SCHEDULE_HISTORY": 141,
+		"DOCUMENT_KIND_SCHEDULE_TRIGGER": 142,
 	}
 )
 
@@ -2837,7 +2853,7 @@ const file_harness_sync_v1_sync_proto_rawDesc = "" +
 	"\x14DeleteSessionRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"\x17\n" +
-	"\x15DeleteSessionResponse*\x99\x03\n" +
+	"\x15DeleteSessionResponse*\x80\x04\n" +
 	"\fDocumentKind\x12\x1d\n" +
 	"\x19DOCUMENT_KIND_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16DOCUMENT_KIND_SETTINGS\x10\x01\x12\"\n" +
@@ -2853,7 +2869,10 @@ const file_harness_sync_v1_sync_proto_rawDesc = "" +
 	"\x12\x18\n" +
 	"\x14DOCUMENT_KIND_POLICY\x10\v\x12\x16\n" +
 	"\x12DOCUMENT_KIND_RULE\x10\f\x12\x1f\n" +
-	"\x1bDOCUMENT_KIND_SESSION_NOTES\x10\r2\xa4\t\n" +
+	"\x1bDOCUMENT_KIND_SESSION_NOTES\x10\r\x12\x1b\n" +
+	"\x16DOCUMENT_KIND_SCHEDULE\x10\x8c\x01\x12#\n" +
+	"\x1eDOCUMENT_KIND_SCHEDULE_HISTORY\x10\x8d\x01\x12#\n" +
+	"\x1eDOCUMENT_KIND_SCHEDULE_TRIGGER\x10\x8e\x012\xa4\t\n" +
 	"\vSyncService\x12X\n" +
 	"\vListChanges\x12#.harness.sync.v1.ListChangesRequest\x1a$.harness.sync.v1.ListChangesResponse\x12]\n" +
 	"\fWatchChanges\x12$.harness.sync.v1.WatchChangesRequest\x1a%.harness.sync.v1.WatchChangesResponse0\x01\x12X\n" +

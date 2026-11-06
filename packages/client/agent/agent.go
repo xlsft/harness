@@ -87,6 +87,8 @@ const (
 	EventSubagent
 	// EventWorkflow carries a run of the Workflow tool as it is now (Workflow).
 	EventWorkflow
+	// EventTaskGraph carries the session's task graph as it is now (TaskGraph).
+	EventTaskGraph
 	// EventSkill reports that a skill or command started (Skill).
 	EventSkill
 	// EventHookRun carries a hook handler as it starts and as it ends (HookRun).
@@ -165,6 +167,7 @@ type Event struct {
 	UsageLimit *usagelimit.Status
 	Subagent   *tools.AgentInfo
 	Workflow   *tools.WorkflowInfo
+	TaskGraph  []tools.GraphTask
 	Skill      *session.SkillUse
 	HookRun    *hooks.Run
 }

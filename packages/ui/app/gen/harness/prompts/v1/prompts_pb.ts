@@ -148,6 +148,15 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *                         ended a turn; {{report}} is the start of its latest answer
    *   notifications_pending                        notifications wait for ReadNotifications (rides on the next model
    *                         request, or wakes an idle session)
+   *   scheduled_wakeup      {{id}} {{repeat}} {{note}}  a wake-up the model asked for came due; starts a turn when idle
+   *   schedule_trigger      {{source}} {{detail}}  what started a scheduled run from outside, marked as data
+   *   loop_self_paced       {{prompt}}             `/loop` without an interval: repeat at the model's pace
+   *   goal_started          {{condition}} {{max_turns}}  `/goal` started working
+   *   goal_continue         {{condition}} {{reason}} {{turn}} {{max_turns}}  the goal doesn't hold yet; starts the next turn
+   *   goal_check            {{condition}} {{conversation}}  not a reminder: the check after each turn of a goal
+   *   team_context          {{team}}               starts the first message of a team member
+   *   team_next_task        {{team}} {{tasks}}     a team member is told about free tasks
+   *   team_message          {{from}} {{message}}   a subagent told the main agent something
    *   side_chat            (none)                 not a reminder: the system prompt of side chats (AskSideChat)
    *   bash_background_user / bash_background_queued_message / bash_background_agent  {{task_id}} {{output_path}}
    *   bash_background_timeout  {{timeout}} {{task_id}} {{output_path}}

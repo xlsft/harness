@@ -15,3 +15,5 @@ Good uses: searches or reading that would fill your context with material you on
 - ListAgents also shows types defined for this project or user.
 
 `model` is a model id or slot name for this agent; without it, the agent uses your model and your effort. `isolation: "worktree"` gives it a git worktree on a branch of its own, so its changes stay apart from the working tree; the report tells you where they are. The agent's tool calls go through the same permission checks as yours, and the user sees which agent is asking. An agent can start agents of its own, one level further and no more, and only a limited number run at once; the others wait their turn.
+
+For work that splits into pieces that affect each other, start a team: give the agents the same `team` name and put the work in the graph with TaskGraphAdd. Members are told who is on the team, message each other directly with SendMessage, and take tasks from the graph with TaskGraphClaim; when one ends a turn with free tasks left it goes on to the next. Each still reports to you when it stops. For pieces that don't touch each other, plain agents cost less.

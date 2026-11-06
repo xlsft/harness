@@ -62,6 +62,9 @@ export const routes: RouteDef[] = [
   { route: "/api/vcs/github/setup", method: "get", handler: "./src/http/routes/vcs-github-setup.ts" },
   { route: "/api/vcs/sessions/:id/autofix-jobs", method: "get", handler: "./src/http/routes/vcs-session-autofix.ts" },
 
+  // A scheduled task's webhook (services/schedule-webhook.ts): the secret in the URL is the authentication
+  { route: "/api/schedules/webhook/:token", method: "post", handler: "./src/http/routes/schedule-webhook.ts" },
+
   // admin JSON API (web UI; not part of the client protocol)
   { route: "/api/admin/providers", handler: "./src/http/routes/admin-providers.ts" },
   { route: "/api/admin/providers/:id", handler: "./src/http/routes/admin-provider.ts" },

@@ -256,6 +256,9 @@ type sub struct {
 	stopping bool
 	// unreported: see record.
 	unreported bool
+	// nudges counts the times this team member was told about free tasks; nudgeClaims is what it had claimed at the
+	// last one. It isn't told again until it picks something up.
+	nudges, nudgeClaims int
 	// settled closes when a run ends; isSettled says it has.
 	settled   chan struct{}
 	isSettled bool
@@ -523,7 +526,7 @@ func (m *Manager) SpawnSubagent(ctx context.Context, o Options) (*Handle, error)
 	}
 	id := newID()
 	a := &sub{depth: depth, typeName: t.Name, readOnly: t.ReadOnly, cwd: m.cfg.Cwd, silent: o.Silent, schema: o.OutputSchema, resolved: resolved, isSettled: true, settled: closedChan(),
-		info: tools.AgentInfo{ID: id, ParentID: o.ParentID, ToolUseID: o.ToolUseID, Name: o.Description, Type: t.Name, Model: model, State: tools.AgentQueued, StartedAt: rfc3339(time.Now())}}
+		info: tools.AgentInfo{ID: id, ParentID: o.ParentID, ToolUseID: o.ToolUseID, Name: o.Description, Team: o.Team, Type: t.Name, Model: model, State: tools.AgentQueued, StartedAt: rfc3339(time.Now())}}
 	if o.Isolation == tools.IsolationWorktree {
 		r, err := worktree.Create(ctx, m.cfg.Cwd, worktree.Options{Name: "agent-" + id})
 		if err != nil {
@@ -544,7 +547,11 @@ func (m *Manager) SpawnSubagent(ctx context.Context, o Options) (*Handle, error)
 		}
 		return nil, err
 	}
-	input := []llm.ContentBlock{llm.TextBlock(m.contextText(a, t)), llm.TextBlock(m.wrapMessage(a, o.ParentID, withSchema(o.Prompt, o.OutputSchema)))}
+	input := []llm.ContentBlock{llm.TextBlock(m.contextText(a, t))}
+	if o.Team != "" {
+		input = append(input, llm.TextBlock(m.teamContext(a)))
+	}
+	input = append(input, llm.TextBlock(m.wrapMessage(a, o.ParentID, withSchema(o.Prompt, o.OutputSchema))))
 
 	m.mu.Lock()
 	if m.closed {
@@ -705,6 +712,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 	env.Sandbox = lead.Sandbox
 	env.SessionID, env.PlansDir, env.RipgrepPath = lead.SessionID, lead.PlansDir, lead.RipgrepPath
 	env.Agents, env.AgentID = m, id
+	env.TaskGraph = lead.TaskGraph
 	env.Edits = lead.Edits
 	env.Skills = lead.Skills
 	env.Library = lead.Library
@@ -900,6 +908,9 @@ func (m *Manager) onResult(a *sub, res agent.TurnResult) {
 			}
 		}
 	}
+	if m.teamContinuesLocked(a, res, closing) {
+		return
+	}
 	state := tools.AgentFinished
 	switch {
 	case closing:
@@ -921,6 +932,7 @@ func (m *Manager) onResult(a *sub, res agent.TurnResult) {
 	tasks := a.tasks
 	silent := a.silent
 	m.mu.Unlock()
+	m.releaseClaims(a)
 	m.publish(a)
 	if tasks != nil {
 		// The agent's background commands end with its run, which is what they were started for.
@@ -1148,6 +1160,10 @@ func (m *Manager) Send(ctx context.Context, caller, to, message string) (tools.A
 	if m.closed {
 		m.mu.Unlock()
 		return tools.AgentInfo{}, false, errors.New("the session is closing")
+	}
+	if to == tools.GraphLead && caller != "" {
+		m.mu.Unlock()
+		return m.tellLead(caller, message), true, nil
 	}
 	a, err := m.resolve(to)
 	if err != nil {

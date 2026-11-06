@@ -419,6 +419,7 @@ func (s *Server) DeleteSession(ctx context.Context, req *connect.Request[agentv1
 		s.closeLive(id, "deleted")
 	}
 	vcs.RemovePRState(bootstrap.PRStateDir(), id)
+	s.forgetSessionSchedules(id)
 	// Dropping the upload state before the server delete keeps other uploaders from re-uploading it; if the
 	// delete fails, a later open re-uploads idempotently from the start.
 	if err := syncclient.Forget("", id); err != nil {
