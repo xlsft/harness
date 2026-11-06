@@ -284,12 +284,11 @@ for (const file of files(root)) {
 const sorted = [...catalog].sort((a, b) => a.localeCompare(b, 'en'))
 const json = `${JSON.stringify(sorted, null, 2)}\n`
 if (mode === 'check') {
-  let stale = false
+  let current = ''
   try {
-    stale = readFileSync(CATALOG, 'utf8') !== json
-  } catch {
-    stale = true
-  }
+    current = readFileSync(CATALOG, 'utf8')
+  } catch { /* no catalog yet: stale */ }
+  const stale = current !== json
   if (stale) console.error('app/i18n/catalog.json is stale: run node scripts/i18n-extract.mjs')
   if (leftovers.length) console.error(`Templates with plain text:\n${leftovers.join('\n')}`)
   process.exit(stale || leftovers.length ? 1 : 0)
