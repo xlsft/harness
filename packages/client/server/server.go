@@ -317,6 +317,8 @@ func modelInfo(m llm.Model) *agentv1.ModelInfo {
 		Thinking:      m.Capabilities.Thinking,
 		Images:        m.Capabilities.Images,
 		Local:         localmodels.IsLocal(m.ID),
+		SpeedTiers:    m.Capabilities.SpeedTiers,
+		CacheTtls:     m.Capabilities.CacheTTLs,
 	}
 	for _, e := range m.Capabilities.Effort {
 		if pe := pbconv.Effort(e); pe != llmv1.Effort_EFFORT_UNSPECIFIED {

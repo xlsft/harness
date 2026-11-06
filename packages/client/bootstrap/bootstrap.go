@@ -669,6 +669,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		}
 	}
 
+	s.registerAdvisor(gw, st, disabled)
+
 	// Transcript.
 	branch := ""
 	if env.IsGit {
@@ -736,7 +738,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		ThinkingCapable: info.Capabilities.Thinking,
 		AutoCompactPct:  o.AutoCompactPct,
 		RefreshBundle:   func(ctx context.Context) (*prompts.Bundle, error) { return loader.Get(ctx, model) },
-		MaxTurns:        o.MaxTurns, Effort: o.Effort, SessionID: s.ID,
+		MaxTurns:        o.MaxTurns, Effort: o.Effort, SessionID: s.ID, Speed: settingOf(st, func(st *settings.Settings) string { return st.SpeedTier }), CacheTTL: settingOf(st, func(st *settings.Settings) string { return st.CacheTTL }),
 		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), History: conv, Todos: todos,
 		DisabledTools: disabled, OutputStyle: style, ExtraTools: s.extraTools(useBrowser),
 		DisableInterruptReply: (st != nil && !st.InterruptReply) || os.Getenv("HARNESS_NO_INTERRUPT_REPLY") == "1",

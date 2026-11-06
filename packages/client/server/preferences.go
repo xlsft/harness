@@ -110,6 +110,15 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 		set[settings.KeySandbox] = map[string]any{"enabled": b.GetEnabled(), "allowedWritePaths": nonNil(b.GetAllowedWritePaths()), "allowedHosts": nonNil(b.GetAllowedHosts()),
 			"allowLocalhost": b.GetAllowLocalhost(), "autoAllowBash": b.GetAutoAllowBash(), "outsideWithoutPrompt": b.GetOutsideWithoutPrompt()}
 	}
+	if t := req.Msg.ModelTuning; t != nil {
+		if !settings.ValidSpeedTier(t.GetSpeedTier()) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown speed tier %q", t.GetSpeedTier()))
+		}
+		if !settings.ValidCacheTTL(t.GetCacheTtl()) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown cache lifetime %q", t.GetCacheTtl()))
+		}
+		set[settings.KeySpeedTier], set[settings.KeyCacheTTL], set[settings.KeyAdvisorModel] = t.GetSpeedTier(), t.GetCacheTtl(), t.GetAdvisorModel()
+	}
 	if sw := req.Msg.SkillSwitch; sw != nil {
 		if strings.TrimSpace(sw.GetName()) == "" {
 			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("the skill's name is empty"))
@@ -206,6 +215,12 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	}
 	if v, ok := raw[settings.KeyDisableAllHooks]; ok && json.Unmarshal(v, &b) == nil {
 		p.HooksEnabled = !b
+	}
+	p.ModelTuning = &agentv1.ModelTuning{}
+	for key, dst := range map[string]*string{settings.KeySpeedTier: &p.ModelTuning.SpeedTier, settings.KeyCacheTTL: &p.ModelTuning.CacheTtl, settings.KeyAdvisorModel: &p.ModelTuning.AdvisorModel} {
+		if v, ok := raw[key]; ok {
+			_ = json.Unmarshal(v, dst)
+		}
 	}
 	var n int32
 	if v, ok := raw[settings.KeyPRMonitorWakesPerHour]; ok && json.Unmarshal(v, &n) == nil && settings.ValidPRMonitorWakesPerHour(int(n)) {

@@ -74,6 +74,9 @@ export interface ModelInfo {
   efforts?: EffortName[]
   // The level recommended for a new session, one of `efforts`.
   defaultEffort?: EffortName
+  // Speed tiers and prompt cache lifetimes the provider has for it.
+  speedTiers?: string[]
+  cacheTtls?: string[]
   thinking?: boolean
   // A model of a local provider on the client's machine (id "local:<provider>/<name>"): free, per device.
   local?: boolean
@@ -121,6 +124,17 @@ export interface UserPreferences {
   sandbox: SandboxPreferences
   // Run the hooks of settings files (settings key disableAllHooks, inverted); reaches running sessions from their next hook.
   hooksEnabled: boolean
+  // How requests use the models; sessions opened from then on follow it. An update replaces it whole.
+  modelTuning: ModelTuningPreferences
+}
+
+export interface ModelTuningPreferences {
+  // '', 'standard', 'fast' or 'flex'; a model without the tier runs as usual.
+  speedTier: string
+  // '', '5m', '1h' or '24h'; a model without the lifetime uses its own.
+  cacheTtl: string
+  // The model behind the Advisor tool; '': sessions have no such tool.
+  advisorModel: string
 }
 
 // A hook as configured (ListHooks): read-only, edited in settings files.

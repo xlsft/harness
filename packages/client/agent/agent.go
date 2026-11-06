@@ -232,6 +232,9 @@ type Config struct {
 	// MaxTurns limits tool-use round trips per turn; 0 = unlimited.
 	MaxTurns int
 	Effort   string
+	// Speed and CacheTTL are what requests ask of the model when it has them ("": the provider's default).
+	Speed    string
+	CacheTTL string
 	// Thinking overrides the thinking request; nil means adaptive thinking when the model supports it
 	// (ThinkingCapable). Models that think by default otherwise return their reasoning without text.
 	Thinking        *llm.Thinking
@@ -650,6 +653,9 @@ func (a *Agent) SetEffort(effort string) {
 	a.cfg.Effort = effort
 	a.mu.Unlock()
 }
+
+// Tuning returns the speed tier and cache lifetime the session asks for: its subagents ask for the same.
+func (a *Agent) Tuning() (speed, cacheTTL string) { return a.cfg.Speed, a.cfg.CacheTTL }
 
 // Effort returns the effort level set for the session ("" when unset).
 func (a *Agent) Effort() string {
@@ -1215,6 +1221,8 @@ func (a *Agent) buildRequest() *llm.Request {
 		Tools:     a.toolDefs(bundle),
 		Thinking:  a.thinkingFor(thinking),
 		Effort:    effort,
+		Speed:     a.cfg.Speed,
+		CacheTTL:  a.cfg.CacheTTL,
 		Stream:    true,
 		Metadata: &llm.Metadata{
 			SessionID:           a.cfg.SessionID,

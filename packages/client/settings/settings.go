@@ -151,8 +151,13 @@ func (p Problem) Error() string {
 
 // Settings is the merged result.
 type Settings struct {
-	Model                  string
-	EffortLevel            string
+	Model       string
+	EffortLevel string
+	// SpeedTier and CacheTTL are what requests ask of the model when it has them (speedTier, cacheTtl; "": the provider's
+	// default); AdvisorModel is the model behind the Advisor tool (advisorModel; "": no such tool).
+	SpeedTier              string
+	CacheTTL               string
+	AdvisorModel           string
 	OutputStyle            string
 	AutoCompactWindow      int
 	CleanupPeriodDays      int
@@ -304,6 +309,19 @@ const KeyPRMonitorWakesPerHour = "prMonitorWakesPerHour"
 // KeyInterruptReply is the settings key of Settings.InterruptReply.
 const KeyInterruptReply = "interruptReply"
 
+// The settings keys of how requests use the models.
+const (
+	KeySpeedTier    = "speedTier"
+	KeyCacheTTL     = "cacheTtl"
+	KeyAdvisorModel = "advisorModel"
+)
+
+// ValidSpeedTier reports whether s can be Settings.SpeedTier.
+func ValidSpeedTier(s string) bool { return s == "" || s == "standard" || s == "fast" || s == "flex" }
+
+// ValidCacheTTL reports whether s can be Settings.CacheTTL.
+func ValidCacheTTL(s string) bool { return s == "" || s == "5m" || s == "1h" || s == "24h" }
+
 // The settings keys of the language server settings.
 const (
 	KeyLSPEnabled                = "lspEnabled"
@@ -333,6 +351,7 @@ type layer struct {
 	raw map[string]json.RawMessage
 
 	model, effort, outputStyle, claudeMdMode, defaultMode *string
+	speedTier, cacheTTL, advisorModel                     *string
 	autoCompactWindow, cleanupPeriodDays, prWakes         *int
 	subagentDepth, subagentRunning, workflowAgents        *int
 	includeGit, interruptReply, compactIdle               *bool

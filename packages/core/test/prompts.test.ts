@@ -37,7 +37,7 @@ describe("bundle builder", () => {
     const b = buildBundle(resolvePromptFiles(PROMPTS, ["claude-sonnet"]), "claude-sonnet");
     expect(b.system.map((s) => s.id)).toEqual(["identity", "safety", "style", "doing_tasks", "tool_policy", DYNAMIC_BOUNDARY, "env"]);
     expect(Object.keys(b.tools).sort()).toEqual([
-      "Agent", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
+      "Advisor", "Agent", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait", "ChangeDirectory", "ComputerAccess", "ComputerActivate",
       "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey", "ComputerMenu", "ComputerScreenshot", "ComputerScroll",
       "ComputerType", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake", "LSP",
@@ -104,6 +104,8 @@ describe("bundle builder", () => {
       bash_background_timeout: ["timeout", "task_id", "output_path"],
       // the side chat system prompt (no placeholders: the client sends the main session as a separate block)
       side_chat: [],
+      // the system prompt of the model behind the Advisor tool (the same: the session is a separate block)
+      advisor: [],
     };
     expect(Object.keys(b.reminders).sort()).toEqual(Object.keys(reminders).sort());
     for (const [id, phs] of Object.entries(reminders)) {

@@ -54,7 +54,8 @@ function preferencesVM(p: UserPreferences_pb | undefined): UserPreferences {
   const b = p?.sandbox
   return { compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
     sandbox: { enabled: b?.enabled ?? true, allowedWritePaths: b?.allowedWritePaths ?? [], allowedHosts: b?.allowedHosts ?? [], allowLocalhost: b?.allowLocalhost ?? false, autoAllowBash: b?.autoAllowBash ?? false, outsideWithoutPrompt: b?.outsideWithoutPrompt ?? false },
-    hooksEnabled: p?.hooksEnabled ?? true }
+    hooksEnabled: p?.hooksEnabled ?? true,
+    modelTuning: { speedTier: p?.modelTuning?.speedTier ?? '', cacheTtl: p?.modelTuning?.cacheTtl ?? '', advisorModel: p?.modelTuning?.advisorModel ?? '' } }
 }
 
 const CONFIGURED_HOOK_STATUS: Partial<Record<ConfiguredHook_Status, ConfiguredHookVM['status']>> = {
@@ -353,7 +354,7 @@ export class ConnectTransport implements SessionTransport {
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
-    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled })
+    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled, modelTuning: patch.modelTuning && { speedTier: patch.modelTuning.speedTier, cacheTtl: patch.modelTuning.cacheTtl, advisorModel: patch.modelTuning.advisorModel } })
     return preferencesVM(res.preferences)
   }
 
@@ -412,6 +413,8 @@ export class ConnectTransport implements SessionTransport {
       price: m.inputPrice === undefined || m.outputPrice === undefined ? '' : m.inputPrice === 0 && m.outputPrice === 0 ? 'Free' : `${fmt(m.inputPrice)} / ${fmt(m.outputPrice)}`,
       efforts: m.efforts.map(e => EFFORT_NAME[e]).filter((e): e is EffortName => !!e),
       defaultEffort: EFFORT_NAME[m.defaultEffort],
+      speedTiers: m.speedTiers,
+      cacheTtls: m.cacheTtls,
       thinking: m.thinking,
       ...(m.local ? { local: true, price: '' } : {})
     }))

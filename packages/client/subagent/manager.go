@@ -83,9 +83,9 @@ type Config struct {
 	ProjectContext string
 	// MCPInstructions returns what MCP servers offer the model (nil: nothing).
 	MCPInstructions func() string
-	AutoCompactPct float64
-	UsageMonitor   agent.UsageMonitor
-	Skills         agent.SkillSource
+	AutoCompactPct  float64
+	UsageMonitor    agent.UsageMonitor
+	Skills          agent.SkillSource
 	// Hooks is the session's hook engine (agent.Config.Hooks; may be nil).
 	Hooks *hooks.Engine
 	// CustomTypes are the types loaded from definitions (LoadDefinitions).
@@ -740,8 +740,9 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 	if t.ReadOnly || t.Tools != nil {
 		extra = nil
 	}
+	speed, cacheTTL := m.lead.Tuning()
 	ag := agent.New(agent.Config{
-		Gateway: m.cfg.Gateway, Bundle: bundle, Tools: reg, ToolEnv: env,
+		Gateway: m.cfg.Gateway, Bundle: bundle, Tools: reg, ToolEnv: env, Speed: speed, CacheTTL: cacheTTL,
 		Permissions: &checker{m: m, id: id, name: a.info.Name, readOnly: a.readOnly},
 		Transcript:  writer,
 		Model:       model, ModelDisplayName: display, MaxTokens: maxTokens, ContextWindow: contextWindow, ThinkingCapable: thinking,

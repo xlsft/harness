@@ -133,6 +133,10 @@ const page = computed(() => ({
     </p>
 
     <template v-else>
+      <SettingsModelTuning
+        v-if="group === 'llm'"
+        :providers="page.providers"
+      />
       <SettingsSlots
         v-if="group === 'llm'"
         :providers="list.providers"
