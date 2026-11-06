@@ -232,6 +232,17 @@ func Open(ctx context.Context, o Options) (*Conn, error) {
 	return c, nil
 }
 
+// ProjectImportOffer is the one line offering to import the folder's Claude Code files, or "" when there is nothing to offer. A
+// terminal has no notice to dismiss, so being shown once counts as that: Settings > Import and the command stay open.
+func (c *Conn) ProjectImportOffer(ctx context.Context) string {
+	r, err := c.api.ScanProjectImport(ctx, connect.NewRequest(&agentv1.ScanProjectImportRequest{Path: c.opts.Cwd}))
+	if err != nil || !r.Msg.GetOffer() {
+		return ""
+	}
+	_, _ = c.api.DismissProjectImport(ctx, connect.NewRequest(&agentv1.DismissProjectImportRequest{Path: c.opts.Cwd, Dismissed: true}))
+	return "This folder has Claude Code files, which aren't read. To bring them over: harness-client import --project"
+}
+
 func sleep(ctx context.Context) {
 	select {
 	case <-ctx.Done():

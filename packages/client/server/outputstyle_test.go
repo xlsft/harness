@@ -24,7 +24,7 @@ func TestOutputStyleRPCs(t *testing.T) {
 		sys = append(sys, s)
 	}
 	h.gw.Bundle.System = sys
-	dir := filepath.Join(h.proj, ".claude", "output-styles")
+	dir := filepath.Join(h.proj, ".harness", "output-styles")
 	os.MkdirAll(dir, 0o755)
 	os.WriteFile(filepath.Join(dir, "terse.md"), []byte("---\nname: Terse\ndescription: One-line answers\n---\nAnswer in one line."), 0o644)
 

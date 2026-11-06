@@ -827,7 +827,7 @@ func TestProjectSettingsSwitchButCannotApprove(t *testing.T) {
 		t.Fatal(err)
 	}
 	cwd := t.TempDir()
-	write(t, cwd, map[string]string{".claude/settings.json": `{"enabledPlugins":{"p@local":false,"other@mk":true},"extraKnownMarketplaces":{"mk":{"source":{"source":"github","repo":"a/b"}}}}`})
+	write(t, cwd, map[string]string{".harness/settings.json": `{"enabledPlugins":{"p@local":false,"other@mk":true},"extraKnownMarketplaces":{"mk":{"source":{"source":"github","repo":"a/b"}}}}`})
 	trusted := plugins.Place{Cwd: cwd, Trusted: true}
 	list, err := m.List(trusted)
 	if err != nil {
@@ -845,7 +845,7 @@ func TestProjectSettingsSwitchButCannotApprove(t *testing.T) {
 		t.Fatalf("%+v", in)
 	}
 	// Asking for a plugin doesn't approve it.
-	write(t, cwd, map[string]string{".claude/settings.json": `{"enabledPlugins":{"p@local":true}}`})
+	write(t, cwd, map[string]string{".harness/settings.json": `{"enabledPlugins":{"p@local":true}}`})
 	in, _ = m.Find(rec.ID, trusted)
 	if in.Status != plugins.StatusNeedsApproval {
 		t.Fatal(in.Status)

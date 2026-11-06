@@ -36,6 +36,7 @@ var importSections = map[agentv1.ClaudeImportSection]importer.Section{
 	agentv1.ClaudeImportSection_CLAUDE_IMPORT_SECTION_COMMANDS:      importer.SectionCommands,
 	agentv1.ClaudeImportSection_CLAUDE_IMPORT_SECTION_OUTPUT_STYLES: importer.SectionOutputStyles,
 	agentv1.ClaudeImportSection_CLAUDE_IMPORT_SECTION_MCP_SERVERS:   importer.SectionMCP,
+	agentv1.ClaudeImportSection_CLAUDE_IMPORT_SECTION_WORKFLOWS:     importer.SectionWorkflows,
 }
 
 // claudePaths returns Claude Code's directory and the state file beside it.
@@ -81,7 +82,7 @@ func (s *Server) ScanClaudeImport(ctx context.Context, req *connect.Request[agen
 	if err != nil {
 		return nil, err
 	}
-	o := importer.ScanOptions{ClaudeHome: dir, ClaudeJSON: cj, ProjectsDir: config.ProjectsDir(),
+	o := importer.ScanOptions{ClaudeHome: dir, ClaudeJSON: cj, ProjectsDir: config.ProjectsDir(), HarnessHome: config.Home(),
 		SecretsHint: importSecretsHint, HoldSession: s.holdSession, SessionDone: sessionUploaded}
 	if s.ImportTo != nil {
 		o.Exists = func(ctx context.Context, ref *syncv1.DocumentRef) (bool, error) {
@@ -193,7 +194,7 @@ func (s *Server) RunClaudeImport(ctx context.Context, req *connect.Request[agent
 	s.refreshImportListing(ctx)
 	host, _ := os.Hostname()
 	o := importer.Options{
-		ClaudeHome: dir, ClaudeJSON: cj, ProjectsDir: config.ProjectsDir(), Sections: sections,
+		ClaudeHome: dir, ClaudeJSON: cj, ProjectsDir: config.ProjectsDir(), HarnessHome: config.Home(), Sections: sections,
 		IncludeSecrets: m.GetIncludeSecrets(), Force: m.GetForce(), Putter: s.ImportTo,
 		Queue:          syncclient.NewUploader(syncclient.UploaderOptions{API: s.ImportTo, DeviceID: s.DeviceID, DeviceName: host, Logger: s.log(), Objects: syncclient.SharedObjectQueue(s.ImportTo, s.log())}),
 		UploadSessions: true, HoldSession: s.holdSession, SessionDone: sessionUploaded,

@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+import "harness/agent/v1/import.proto";
+
+// AgentService.ScanProjectImport, RunProjectImport and DismissProjectImport: bringing a folder's Claude Code files into
+// its .harness and AGENTS.md. Nothing reads those files otherwise, and nothing takes effect until the user says so. The
+// client decides everything here; frontends show the offer and send the answer.
+
+// One thing an import brings.
+message ProjectImportItem {
+  // "instructions", "rule", "settings", "hook-script", "skill", "command", "agent", "output-style", "workflow".
+  string kind = 1;
+  // Slash paths relative to the root.
+  string source = 2;
+  string target = 3;
+  // NEW, EXISTS, SKIPPED; in a run's answer also IMPORTED and ERROR.
+  ClaudeImportStatus status = 4;
+  string note = 5;
+  // It holds hooks or allow rules, which apply only once the folder is trusted.
+  bool needs_trust = 6;
+}
+
+message ScanProjectImportRequest {
+  // The folder opened.
+  string path = 1;
+}
+
+message ScanProjectImportResponse {
+  // Where the import goes: the folder's repository root, or the folder itself.
+  string root = 1;
+  repeated ProjectImportItem items = 2;
+  // Show the notice: there is something to bring, the folder has no .harness of its own, and the offer was not dismissed.
+  bool offer = 3;
+  bool dismissed = 4;
+  // The folder is trusted. Untrusted: local settings wait, and the rest applies only after trusting it.
+  bool trusted = 5;
+}
+
+message RunProjectImportRequest {
+  // As in ScanProjectImportRequest.
+  string path = 1;
+  // Replace what differs (an earlier import, a file already in .harness). Off: it stays, and the item's note says so.
+  bool force = 2;
+}
+
+message RunProjectImportResponse {
+  string root = 1;
+  repeated ProjectImportItem items = 2;
+  int32 imported = 3;
+  int32 exists = 4;
+  int32 skipped = 5;
+  int32 errors = 6;
+}
+
+message DismissProjectImportRequest {
+  // As in ScanProjectImportRequest.
+  string path = 1;
+  // False brings the offer back.
+  bool dismissed = 2;
+}
+
+message DismissProjectImportResponse {}

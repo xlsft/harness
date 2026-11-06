@@ -43,7 +43,7 @@ func (f *fakeUsage) Check(_ context.Context, _ string, err error) (*usagelimit.S
 }
 
 func readTool(r *llm.Request, id string) fg.Reply {
-	return fg.Reply{Events: fg.Message("m_"+id, fg.ToolUse(id, "Read", map[string]any{"file_path": filepath.Join(fg.Cwd(r), "CLAUDE.md")}))}
+	return fg.Reply{Events: fg.Message("m_"+id, fg.ToolUse(id, "Read", map[string]any{"file_path": filepath.Join(fg.Cwd(r), "AGENTS.md")}))}
 }
 
 func countReminder(msgs []llm.Message) int {

@@ -147,6 +147,9 @@ func stripComments(s string) string {
 	return b.String()
 }
 
+// StripComments removes HTML comments outside code, as loading a file does.
+func StripComments(s string) string { return stripComments(s) }
+
 // importRef matches "@path" at the start of the text or after whitespace.
 // Backslash-escaped spaces are part of the path.
 var importRef = regexp.MustCompile(`(?:^|\s)@((?:\\ |[^\s])+)`)
@@ -171,6 +174,33 @@ func findImports(s string) []string {
 		}
 	}
 	return out
+}
+
+// RewriteImports replaces every import outside code: fn gets the raw path as written and returns what stands in place of
+// "@path" (possibly "@path" itself).
+func RewriteImports(s string, fn func(raw string) string) string {
+	if !strings.Contains(s, "@") {
+		return s
+	}
+	var b strings.Builder
+	for _, seg := range splitCode(s) {
+		if seg.code {
+			b.WriteString(seg.text)
+			continue
+		}
+		last := 0
+		for _, m := range importRef.FindAllStringSubmatchIndex(seg.text, -1) {
+			p := seg.text[m[2]:m[3]]
+			if p == "" || p[0] == '"' || p[0] == '\'' || p[0] == '`' || p[0] == '@' {
+				continue
+			}
+			b.WriteString(seg.text[last : m[2]-1])
+			b.WriteString(fn(strings.ReplaceAll(p, `\ `, " ")))
+			last = m[3]
+		}
+		b.WriteString(seg.text[last:])
+	}
+	return b.String()
 }
 
 // frontmatter splits a leading YAML frontmatter block ("---" lines) from

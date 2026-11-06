@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/xlsft/harness/packages/client/agent"
 	"github.com/xlsft/harness/packages/client/config"
@@ -10,7 +9,7 @@ import (
 )
 
 // OutputStyles discovers the output styles available to the session now
-// (built-ins of the current bundle, user styles from sync or ~/.claude and
+// (built-ins of the current bundle, user styles from sync and
 // ~/.harness, project styles of the git root and the cwd).
 func (s *Session) OutputStyles() *outputstyle.Catalog {
 	o := s.styleOpts
@@ -54,6 +53,5 @@ func agentStyle(st outputstyle.Style) *agent.OutputStyle {
 }
 
 func styleOptions(docs outputstyle.DocSource, gitRoot, cwd string) outputstyle.Options {
-	home, _ := os.UserHomeDir()
-	return outputstyle.Options{Docs: docs, Home: home, HarnessHome: config.Home(), ProjectDirs: []string{gitRoot, cwd}}
+	return outputstyle.Options{Docs: docs, HarnessHome: config.Home(), ProjectDirs: []string{gitRoot, cwd}}
 }

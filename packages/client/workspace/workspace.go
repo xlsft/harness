@@ -1,6 +1,6 @@
 // Package workspace gathers the machine and project context injected into
 // prompts: environment placeholders, git snapshot and project instructions
-// (CLAUDE.md / AGENTS.md, see package memory) and the project_key.
+// (AGENTS.md, see package memory) and the project_key.
 package workspace
 
 import (
@@ -171,10 +171,9 @@ type InstructionFile struct {
 // MaxInstructionBytes skips larger instruction files.
 const MaxInstructionBytes = memory.MaxFileBytes
 
-// ProjectInstructions loads the project instruction files for cwd: CLAUDE.md,
-// .claude/CLAUDE.md and CLAUDE.local.md from the filesystem root down to cwd
-// (with @imports inside cwd and rules without paths: frontmatter), or
-// AGENTS.md / .claude/AGENTS.md when none exist. It is the project-only view
+// ProjectInstructions loads the project instruction files for cwd: AGENTS.md
+// and .harness/AGENTS.md from the filesystem root down to cwd (with @imports
+// inside cwd and rules without paths: frontmatter). It is the project-only view
 // of memory.Loader; sessions should use memory.New directly to also get
 // managed files, user memory, auto memory and lazily loaded files.
 func ProjectInstructions(cwd string) []InstructionFile {

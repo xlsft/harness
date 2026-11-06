@@ -16,13 +16,17 @@ func TestAutoModeGuards(t *testing.T) {
 		root := t.TempDir()
 		cwd, home := filepath.Join(root, "p"), filepath.Join(root, "h")
 		if project != "" {
-			writeJSON(t, filepath.Join(cwd, ".claude", "settings.json"), project)
+			writeJSON(t, filepath.Join(cwd, ".harness", "settings.json"), project)
 		}
 		if local != "" {
-			writeJSON(t, filepath.Join(cwd, ".claude", "settings.local.json"), local)
+			writeJSON(t, filepath.Join(cwd, ".harness", "settings.local.json"), local)
 		}
 		if user != "" {
-			writeJSON(t, filepath.Join(home, ".claude", "settings.json"), user)
+			all := []*syncv1.Document{doc("u", commonv1.Scope_SCOPE_USER, syncv1.DocumentKind_DOCUMENT_KIND_SETTINGS, UserSettingsKey, user)}
+			if docs != nil {
+				all = append(all, docs.(*fakeDocs).docs...)
+			}
+			docs = &fakeDocs{synced: true, docs: all}
 		}
 		s, err := Load(context.Background(), Options{Cwd: cwd, Home: home, Docs: docs, Trusted: true, CLI: cli})
 		if err != nil {

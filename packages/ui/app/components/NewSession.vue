@@ -411,6 +411,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
         <span class="text-strong">{{ worktree ? 'Worktree on' : 'Turn on Worktree' }}</span>
         <span class="min-w-0 truncate text-muted">{{ worktree ? `new branch from ${baseRef || current || 'HEAD'}` : 'Session running here' }}</span>
       </button>
+      <NewProjectImport :cwd="cwd" />
     </div>
 
     <div class="shrink-0 px-5 pb-[11px]">

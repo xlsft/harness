@@ -4,7 +4,7 @@ A plugin bundles skills, custom commands, agents, output styles, hooks and MCP s
 
 ## The format
 
-A plugin is a folder. A manifest is optional and sits at `.harness-plugin/plugin.json` or `.claude-plugin/plugin.json`; the first wins when both exist. Without one the name comes from the marketplace entry or the folder.
+A plugin is a folder. A manifest is optional and sits at `.harness-plugin/plugin.json`, or at `.claude-plugin/plugin.json` in a package made for other agents; the first wins when both exist. Without one the name comes from the marketplace entry or the folder.
 
 | Component | Default place | Manifest field | Field and default |
 |---|---|---|---|

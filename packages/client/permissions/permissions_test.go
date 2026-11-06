@@ -431,8 +431,8 @@ func TestAllowAlwaysPersistsAndSuggests(t *testing.T) {
 	os.Mkdir(filepath.Join(dir, ".git"), 0o755)
 	sub := filepath.Join(dir, "pkg")
 	os.Mkdir(sub, 0o755)
-	os.MkdirAll(filepath.Join(dir, ".claude"), 0o755)
-	os.WriteFile(filepath.Join(dir, ".claude", "settings.local.json"), []byte(`{"env":{"A":"1"},"permissions":{"allow":["Read"],"deny":["Bash(rm *)"]}}`), 0o644)
+	os.MkdirAll(filepath.Join(dir, ".harness"), 0o755)
+	os.WriteFile(filepath.Join(dir, ".harness", "settings.local.json"), []byte(`{"env":{"A":"1"},"permissions":{"allow":["Read"],"deny":["Bash(rm *)"]}}`), 0o644)
 	e := New(Config{Cwd: sub, Home: t.TempDir()})
 	r := bash("npm run test -- -u && go build ./... && git status && python -m pytest -x && ./tool.sh a")
 	got := e.Suggest(r)
@@ -449,7 +449,7 @@ func TestAllowAlwaysPersistsAndSuggests(t *testing.T) {
 	if e.Evaluate(r).Behavior != Allow {
 		t.Fatal("rules apply for the rest of the session")
 	}
-	if e.LocalSettingsPath() != filepath.Join(dir, ".claude", "settings.local.json") {
+	if e.LocalSettingsPath() != filepath.Join(dir, ".harness", "settings.local.json") {
 		t.Fatalf("settings path %s", e.LocalSettingsPath())
 	}
 	var doc struct {

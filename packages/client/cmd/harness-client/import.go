@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"slices"
 	"syscall"
 
 	"github.com/spf13/pflag"
@@ -20,9 +21,12 @@ import (
 
 const importUsage = `Usage: harness-client import claude [flags]
 
-Imports the user-level Claude Code configuration (~/.claude: CLAUDE.md,
+Imports the user-level Claude Code configuration (~/.claude: CLAUDE.md, rules,
 settings.json, skills, agents, commands, output styles) into the harness
-server. MCP servers from ~/.claude.json are listed for manual setup.
+server, and workflows and hook scripts into ~/.harness. MCP servers from
+~/.claude.json are listed for manual setup. These files are not read otherwise.
+
+For a folder's files, see: harness-client import --project [folder]
 
 Flags:
 `
@@ -31,6 +35,9 @@ Flags:
 func runImport(args []string) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if slices.Contains(args, "--project") {
+		return runImportProject(slices.DeleteFunc(slices.Clone(args), func(a string) bool { return a == "claude" }))
+	}
 	if len(args) == 0 || args[0] != "claude" {
 		fmt.Fprint(os.Stderr, importUsage)
 		return 2

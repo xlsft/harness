@@ -44,7 +44,7 @@ const failedText = ref('')
 const failedFiles = ref<ComposerFile[]>([])
 const failedShell = ref(false)
 const files = ref<ComposerFile[]>(props.preset?.files ?? [])
-const memoryTarget = ref('CLAUDE.md')
+const memoryTarget = ref('AGENTS.md')
 
 const id = computed(() => props.session.meta.id)
 
@@ -304,7 +304,7 @@ function retry() {
       >
         <span>save to</span>
         <button
-          v-for="t in ['CLAUDE.md', 'user memory', '.claude/rules']"
+          v-for="t in ['AGENTS.md', 'user memory', '.harness/rules']"
           :key="t"
           type="button"
           class="border px-1.5"

@@ -123,10 +123,8 @@ func (m *Manager) NoteFile(path string) {
 			if m.nested[d] || skipPath(d, cwd) {
 				continue
 			}
-			for _, sub := range []string{filepath.Join(d, ".claude", "skills"), filepath.Join(d, ".harness", "skills")} {
-				if st, err := os.Stat(sub); err == nil && st.IsDir() {
-					m.nested[d], rescan = true, true
-				}
+			if st, err := os.Stat(filepath.Join(d, ".harness", "skills")); err == nil && st.IsDir() {
+				m.nested[d], rescan = true, true
 			}
 		}
 	}

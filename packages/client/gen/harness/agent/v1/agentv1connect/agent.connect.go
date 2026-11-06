@@ -374,6 +374,15 @@ const (
 	// AgentServiceRunClaudeImportProcedure is the fully-qualified name of the AgentService's
 	// RunClaudeImport RPC.
 	AgentServiceRunClaudeImportProcedure = "/harness.agent.v1.AgentService/RunClaudeImport"
+	// AgentServiceScanProjectImportProcedure is the fully-qualified name of the AgentService's
+	// ScanProjectImport RPC.
+	AgentServiceScanProjectImportProcedure = "/harness.agent.v1.AgentService/ScanProjectImport"
+	// AgentServiceRunProjectImportProcedure is the fully-qualified name of the AgentService's
+	// RunProjectImport RPC.
+	AgentServiceRunProjectImportProcedure = "/harness.agent.v1.AgentService/RunProjectImport"
+	// AgentServiceDismissProjectImportProcedure is the fully-qualified name of the AgentService's
+	// DismissProjectImport RPC.
+	AgentServiceDismissProjectImportProcedure = "/harness.agent.v1.AgentService/DismissProjectImport"
 	// AgentServiceListMcpServersProcedure is the fully-qualified name of the AgentService's
 	// ListMcpServers RPC.
 	AgentServiceListMcpServersProcedure = "/harness.agent.v1.AgentService/ListMcpServers"
@@ -732,6 +741,12 @@ type AgentServiceClient interface {
 	// running it again skips what is done; a session already imported is not duplicated. One run at a time:
 	// FAILED_PRECONDITION during another, without a server, or when Claude Code's directory is missing.
 	RunClaudeImport(context.Context, *connect.Request[v1.RunClaudeImportRequest]) (*connect.ServerStreamForClient[v1.RunClaudeImportResponse], error)
+	// What importing a folder's Claude Code files would bring, and whether to offer it. Never writes.
+	ScanProjectImport(context.Context, *connect.Request[v1.ScanProjectImportRequest]) (*connect.Response[v1.ScanProjectImportResponse], error)
+	// Imports them into the folder's .harness and AGENTS.md; only the user's own choice calls this.
+	RunProjectImport(context.Context, *connect.Request[v1.RunProjectImportRequest]) (*connect.Response[v1.RunProjectImportResponse], error)
+	// Remembers on this device that the offer for a folder was dismissed.
+	DismissProjectImport(context.Context, *connect.Request[v1.DismissProjectImportRequest]) (*connect.Response[v1.DismissProjectImportResponse], error)
 	// --- MCP servers (mcp.proto) -------------------------------------------------------------------------
 	// Extensions > Connectors: every server this device can use, with who manages it (this device, the account, an admin,
 	// the repository's .mcp.json).
@@ -1485,6 +1500,24 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("RunClaudeImport")),
 			connect.WithClientOptions(opts...),
 		),
+		scanProjectImport: connect.NewClient[v1.ScanProjectImportRequest, v1.ScanProjectImportResponse](
+			httpClient,
+			baseURL+AgentServiceScanProjectImportProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ScanProjectImport")),
+			connect.WithClientOptions(opts...),
+		),
+		runProjectImport: connect.NewClient[v1.RunProjectImportRequest, v1.RunProjectImportResponse](
+			httpClient,
+			baseURL+AgentServiceRunProjectImportProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("RunProjectImport")),
+			connect.WithClientOptions(opts...),
+		),
+		dismissProjectImport: connect.NewClient[v1.DismissProjectImportRequest, v1.DismissProjectImportResponse](
+			httpClient,
+			baseURL+AgentServiceDismissProjectImportProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("DismissProjectImport")),
+			connect.WithClientOptions(opts...),
+		),
 		listMcpServers: connect.NewClient[v1.ListMcpServersRequest, v1.ListMcpServersResponse](
 			httpClient,
 			baseURL+AgentServiceListMcpServersProcedure,
@@ -1722,6 +1755,9 @@ type agentServiceClient struct {
 	stopWorkflow            *connect.Client[v1.StopWorkflowRequest, v1.StopWorkflowResponse]
 	scanClaudeImport        *connect.Client[v1.ScanClaudeImportRequest, v1.ScanClaudeImportResponse]
 	runClaudeImport         *connect.Client[v1.RunClaudeImportRequest, v1.RunClaudeImportResponse]
+	scanProjectImport       *connect.Client[v1.ScanProjectImportRequest, v1.ScanProjectImportResponse]
+	runProjectImport        *connect.Client[v1.RunProjectImportRequest, v1.RunProjectImportResponse]
+	dismissProjectImport    *connect.Client[v1.DismissProjectImportRequest, v1.DismissProjectImportResponse]
 	listMcpServers          *connect.Client[v1.ListMcpServersRequest, v1.ListMcpServersResponse]
 	inspectMcpServer        *connect.Client[v1.InspectMcpServerRequest, v1.InspectMcpServerResponse]
 	createMcpServer         *connect.Client[v1.CreateMcpServerRequest, v1.CreateMcpServerResponse]
@@ -2333,6 +2369,21 @@ func (c *agentServiceClient) RunClaudeImport(ctx context.Context, req *connect.R
 	return c.runClaudeImport.CallServerStream(ctx, req)
 }
 
+// ScanProjectImport calls harness.agent.v1.AgentService.ScanProjectImport.
+func (c *agentServiceClient) ScanProjectImport(ctx context.Context, req *connect.Request[v1.ScanProjectImportRequest]) (*connect.Response[v1.ScanProjectImportResponse], error) {
+	return c.scanProjectImport.CallUnary(ctx, req)
+}
+
+// RunProjectImport calls harness.agent.v1.AgentService.RunProjectImport.
+func (c *agentServiceClient) RunProjectImport(ctx context.Context, req *connect.Request[v1.RunProjectImportRequest]) (*connect.Response[v1.RunProjectImportResponse], error) {
+	return c.runProjectImport.CallUnary(ctx, req)
+}
+
+// DismissProjectImport calls harness.agent.v1.AgentService.DismissProjectImport.
+func (c *agentServiceClient) DismissProjectImport(ctx context.Context, req *connect.Request[v1.DismissProjectImportRequest]) (*connect.Response[v1.DismissProjectImportResponse], error) {
+	return c.dismissProjectImport.CallUnary(ctx, req)
+}
+
 // ListMcpServers calls harness.agent.v1.AgentService.ListMcpServers.
 func (c *agentServiceClient) ListMcpServers(ctx context.Context, req *connect.Request[v1.ListMcpServersRequest]) (*connect.Response[v1.ListMcpServersResponse], error) {
 	return c.listMcpServers.CallUnary(ctx, req)
@@ -2727,6 +2778,12 @@ type AgentServiceHandler interface {
 	// running it again skips what is done; a session already imported is not duplicated. One run at a time:
 	// FAILED_PRECONDITION during another, without a server, or when Claude Code's directory is missing.
 	RunClaudeImport(context.Context, *connect.Request[v1.RunClaudeImportRequest], *connect.ServerStream[v1.RunClaudeImportResponse]) error
+	// What importing a folder's Claude Code files would bring, and whether to offer it. Never writes.
+	ScanProjectImport(context.Context, *connect.Request[v1.ScanProjectImportRequest]) (*connect.Response[v1.ScanProjectImportResponse], error)
+	// Imports them into the folder's .harness and AGENTS.md; only the user's own choice calls this.
+	RunProjectImport(context.Context, *connect.Request[v1.RunProjectImportRequest]) (*connect.Response[v1.RunProjectImportResponse], error)
+	// Remembers on this device that the offer for a folder was dismissed.
+	DismissProjectImport(context.Context, *connect.Request[v1.DismissProjectImportRequest]) (*connect.Response[v1.DismissProjectImportResponse], error)
 	// --- MCP servers (mcp.proto) -------------------------------------------------------------------------
 	// Extensions > Connectors: every server this device can use, with who manages it (this device, the account, an admin,
 	// the repository's .mcp.json).
@@ -3476,6 +3533,24 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("RunClaudeImport")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceScanProjectImportHandler := connect.NewUnaryHandler(
+		AgentServiceScanProjectImportProcedure,
+		svc.ScanProjectImport,
+		connect.WithSchema(agentServiceMethods.ByName("ScanProjectImport")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceRunProjectImportHandler := connect.NewUnaryHandler(
+		AgentServiceRunProjectImportProcedure,
+		svc.RunProjectImport,
+		connect.WithSchema(agentServiceMethods.ByName("RunProjectImport")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceDismissProjectImportHandler := connect.NewUnaryHandler(
+		AgentServiceDismissProjectImportProcedure,
+		svc.DismissProjectImport,
+		connect.WithSchema(agentServiceMethods.ByName("DismissProjectImport")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentServiceListMcpServersHandler := connect.NewUnaryHandler(
 		AgentServiceListMcpServersProcedure,
 		svc.ListMcpServers,
@@ -3828,6 +3903,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceScanClaudeImportHandler.ServeHTTP(w, r)
 		case AgentServiceRunClaudeImportProcedure:
 			agentServiceRunClaudeImportHandler.ServeHTTP(w, r)
+		case AgentServiceScanProjectImportProcedure:
+			agentServiceScanProjectImportHandler.ServeHTTP(w, r)
+		case AgentServiceRunProjectImportProcedure:
+			agentServiceRunProjectImportHandler.ServeHTTP(w, r)
+		case AgentServiceDismissProjectImportProcedure:
+			agentServiceDismissProjectImportHandler.ServeHTTP(w, r)
 		case AgentServiceListMcpServersProcedure:
 			agentServiceListMcpServersHandler.ServeHTTP(w, r)
 		case AgentServiceInspectMcpServerProcedure:
@@ -4345,6 +4426,18 @@ func (UnimplementedAgentServiceHandler) ScanClaudeImport(context.Context, *conne
 
 func (UnimplementedAgentServiceHandler) RunClaudeImport(context.Context, *connect.Request[v1.RunClaudeImportRequest], *connect.ServerStream[v1.RunClaudeImportResponse]) error {
 	return connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RunClaudeImport is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ScanProjectImport(context.Context, *connect.Request[v1.ScanProjectImportRequest]) (*connect.Response[v1.ScanProjectImportResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ScanProjectImport is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) RunProjectImport(context.Context, *connect.Request[v1.RunProjectImportRequest]) (*connect.Response[v1.RunProjectImportResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RunProjectImport is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) DismissProjectImport(context.Context, *connect.Request[v1.DismissProjectImportRequest]) (*connect.Response[v1.DismissProjectImportResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DismissProjectImport is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) ListMcpServers(context.Context, *connect.Request[v1.ListMcpServersRequest]) (*connect.Response[v1.ListMcpServersResponse], error) {

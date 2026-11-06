@@ -1,8 +1,6 @@
 package server_test
 
 import (
-	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -110,8 +108,8 @@ func TestIdleCompaction(t *testing.T) {
 func TestIdleCompactionTurnedOff(t *testing.T) {
 	var srv *server.Server
 	h := startHarnessSrv(t, compactingResponder(150_000), nil, nil, func(s *server.Server) { srv = s })
-	// The user's settings turn it off (here the user-level settings file used without sync).
-	writeUserSettings(t, `{"compactIdleSessions": false}`)
+	// The settings turn it off (here the folder's own file, as there is no sync).
+	writeProjectFile(t, h.proj, ".harness/settings.local.json", []byte(`{"compactIdleSessions": false}`))
 	sid, ch := h.create(&agentv1.CreateSessionRequest{})
 	h.send(sid, "hello")
 	h.until(ch, isTurnFinished)
@@ -130,19 +128,6 @@ func compactions(h *harness) []*llm.Request {
 		}
 	}
 	return out
-}
-
-// writeUserSettings writes the user-level settings file (used when settings are not synced).
-func writeUserSettings(t *testing.T, content string) {
-	t.Helper()
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	if err := os.MkdirAll(filepath.Join(home, ".claude"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(home, ".claude", "settings.json"), []byte(content), 0o644); err != nil {
-		t.Fatal(err)
-	}
 }
 
 func lastText(r *llm.Request) string {

@@ -50,7 +50,7 @@ func SkillOptions(home, cwd string, trusted bool, docs skills.DocSource, disable
 		defer cancel()
 		gitRoot = workspace.GitRoot(ctx, cwd)
 	}
-	return skills.Options{Home: home, HarnessHome: config.Home(), Cwd: cwd, GitRoot: gitRoot, Trusted: trusted, Docs: docs, Disabled: disabled, Plugins: pluginSkillSources(cwd, trusted)}
+	return skills.Options{HarnessHome: home, Cwd: cwd, GitRoot: gitRoot, Trusted: trusted, Docs: docs, Disabled: disabled, Plugins: pluginSkillSources(cwd, trusted)}
 }
 
 // DisabledSkills reads the user's switches from settings.
@@ -68,12 +68,12 @@ func DisabledSkills(st *settings.Settings) map[string]bool {
 	return out
 }
 
-// SkillHomeDir is the home folder whose .claude holds personal skills.
+// SkillHomeDir is the data directory that holds personal skills.
 func SkillHomeDir(o Options) string {
 	if o.SkillHome != "" {
 		return o.SkillHome
 	}
-	return homeDir()
+	return config.Home()
 }
 
 func (s *Session) loadSettings() *settings.Settings {
@@ -488,8 +488,8 @@ func (s *Session) promptTemplate(ctx context.Context, id string) (string, error)
 
 func (s *Session) initVars(args string) map[string]string {
 	dir := s.Dir()
-	target, existing := "CLAUDE.md", "none"
-	for _, n := range []string{"CLAUDE.md", "AGENTS.md", filepath.Join(".claude", "CLAUDE.md")} {
+	target, existing := "AGENTS.md", "none"
+	for _, n := range []string{"AGENTS.md", filepath.Join(".harness", "AGENTS.md")} {
 		if st, err := os.Stat(filepath.Join(dir, n)); err == nil && st.Mode().IsRegular() {
 			target, existing = n, n
 			break

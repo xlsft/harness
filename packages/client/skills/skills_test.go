@@ -90,26 +90,24 @@ func TestParseDefaults(t *testing.T) {
 }
 
 func TestDiscoverPrecedenceAndNamespaces(t *testing.T) {
-	home, hh, repo := t.TempDir(), t.TempDir(), t.TempDir()
+	hh, repo := t.TempDir(), t.TempDir()
 	cwd := filepath.Join(repo, "pkg", "app")
 	skill := func(dir, desc string) {
 		write(t, filepath.Join(dir, SkillFile), "---\ndescription: "+desc+"\n---\nbody of "+desc)
 	}
-	skill(filepath.Join(home, ".claude/skills/both"), "personal claude")
 	skill(filepath.Join(hh, "skills/both"), "personal harness")
-	skill(filepath.Join(cwd, ".claude/skills/both"), "project")
+	skill(filepath.Join(cwd, ".harness/skills/both"), "project")
 	skill(filepath.Join(cwd, ".harness/skills/near"), "near harness")
-	skill(filepath.Join(cwd, ".claude/skills/near"), "near claude")
-	skill(filepath.Join(repo, ".claude/skills/near"), "far")
-	skill(filepath.Join(repo, ".claude/skills/rootonly"), "from the root")
-	skill(filepath.Join(cwd, ".claude/skills/group/inner"), "grouped")
-	skill(filepath.Join(cwd, ".claude/skills/group/inner/sub/hidden"), "inside a skill")
-	write(t, filepath.Join(cwd, ".claude/commands/fe/test.md"), "---\ndescription: frontend tests\n---\nrun")
+	skill(filepath.Join(repo, ".harness/skills/near"), "far")
+	skill(filepath.Join(repo, ".harness/skills/rootonly"), "from the root")
+	skill(filepath.Join(cwd, ".harness/skills/group/inner"), "grouped")
+	skill(filepath.Join(cwd, ".harness/skills/group/inner/sub/hidden"), "inside a skill")
+	write(t, filepath.Join(cwd, ".harness/commands/fe/test.md"), "---\ndescription: frontend tests\n---\nrun")
 	write(t, filepath.Join(cwd, ".harness/commands/one.md"), "plain text one")
-	write(t, filepath.Join(cwd, ".claude/commands/near.md"), "a command named like a skill")
-	write(t, filepath.Join(cwd, ".claude/commands/notes.txt"), "not markdown")
+	write(t, filepath.Join(cwd, ".harness/commands/near.md"), "a command named like a skill")
+	write(t, filepath.Join(cwd, ".harness/commands/notes.txt"), "not markdown")
 
-	c := Discover(Options{Home: home, HarnessHome: hh, Cwd: cwd, GitRoot: repo, Trusted: true})
+	c := Discover(Options{HarnessHome: hh, Cwd: cwd, GitRoot: repo, Trusted: true})
 	want := map[string]string{"both": "personal harness", "near": "near harness", "rootonly": "from the root", "inner": "grouped", "fe:test": "frontend tests", "one": "plain text one"}
 	for name, desc := range want {
 		s, ok := c.Lookup(name)
@@ -132,15 +130,15 @@ func TestDiscoverPrecedenceAndNamespaces(t *testing.T) {
 			shadowed++
 		}
 	}
-	// both x2, near x3: the personal claude copy and the project copy, the near claude copy, the far one and the command.
-	if shadowed != 5 {
+	// The project copy of both; of near, the far one and the command.
+	if shadowed != 3 {
 		t.Fatalf("shadowed %d: %+v", shadowed, c.All)
 	}
 }
 
 func TestDiscoverKeepsAnUntrustedFolderOut(t *testing.T) {
 	cwd := t.TempDir()
-	write(t, filepath.Join(cwd, ".claude/skills/evil/SKILL.md"), "body")
+	write(t, filepath.Join(cwd, ".harness/skills/evil/SKILL.md"), "body")
 	c := Discover(Options{Cwd: cwd, Trusted: false})
 	if len(c.All) != 0 || !c.UntrustedProject {
 		t.Fatalf("%+v", c)
@@ -156,7 +154,7 @@ func TestDiscoverReadsDocumentsAndMaterializes(t *testing.T) {
 		{Id: "doc_4", Scope: commonv1.Scope_SCOPE_PROJECT, Kind: syncv1.DocumentKind_DOCUMENT_KIND_SKILL, Key: "proj", Content: "p"},
 	}
 	home := t.TempDir()
-	write(t, filepath.Join(home, ".claude/skills/imp/SKILL.md"), "---\ndescription: the local copy\n---\nlocal")
+	write(t, filepath.Join(home, "skills/imp/SKILL.md"), "---\ndescription: the local copy\n---\nlocal")
 	c := Discover(Options{Docs: docs})
 	if _, ok := c.Lookup("proj"); ok {
 		t.Fatal("a project document has no project here")
@@ -191,7 +189,7 @@ func TestDiscoverReadsDocumentsAndMaterializes(t *testing.T) {
 		t.Fatalf("again %q %v", again, err)
 	}
 	// A local personal copy wins over the imported one on this machine.
-	both := Discover(Options{Home: home, Docs: docs})
+	both := Discover(Options{HarnessHome: home, Docs: docs})
 	if w, _ := both.Lookup("imp"); w.Source != SourcePersonal {
 		t.Fatalf("%+v", w)
 	}
@@ -288,9 +286,9 @@ func manager(o Options) *Manager {
 
 func TestListingHoldsNamesAndDescriptionsOnly(t *testing.T) {
 	cwd := t.TempDir()
-	write(t, filepath.Join(cwd, ".claude/skills/a/SKILL.md"), "---\ndescription: does a\nwhen_to_use: when a\nargument-hint: <x>\n---\nSECRET BODY")
-	write(t, filepath.Join(cwd, ".claude/skills/hidden/SKILL.md"), "---\ndescription: user only\ndisable-model-invocation: true\n---\nb")
-	write(t, filepath.Join(cwd, ".claude/skills/off/SKILL.md"), "---\ndescription: turned off\n---\nb")
+	write(t, filepath.Join(cwd, ".harness/skills/a/SKILL.md"), "---\ndescription: does a\nwhen_to_use: when a\nargument-hint: <x>\n---\nSECRET BODY")
+	write(t, filepath.Join(cwd, ".harness/skills/hidden/SKILL.md"), "---\ndescription: user only\ndisable-model-invocation: true\n---\nb")
+	write(t, filepath.Join(cwd, ".harness/skills/off/SKILL.md"), "---\ndescription: turned off\n---\nb")
 	m := manager(Options{Cwd: cwd, Trusted: true, Disabled: map[string]bool{"off": true}})
 	text, rep := m.Listing(0, true)
 	if text != "- a <x>: does a when a" {
@@ -344,9 +342,9 @@ func TestListingStaysWithinItsBudget(t *testing.T) {
 
 func TestPathsAndNestedFoldersComeWithFiles(t *testing.T) {
 	cwd, _ := filepath.EvalSymlinks(t.TempDir())
-	write(t, filepath.Join(cwd, ".claude/skills/go/SKILL.md"), "---\ndescription: go work\npaths: \"**/*.go\"\n---\nb")
-	write(t, filepath.Join(cwd, "pkg/sub/.claude/skills/deep/SKILL.md"), "---\ndescription: deep work\n---\nb")
-	write(t, filepath.Join(cwd, "node_modules/x/.claude/skills/nope/SKILL.md"), "---\ndescription: from a dependency\n---\nb")
+	write(t, filepath.Join(cwd, ".harness/skills/go/SKILL.md"), "---\ndescription: go work\npaths: \"**/*.go\"\n---\nb")
+	write(t, filepath.Join(cwd, "pkg/sub/.harness/skills/deep/SKILL.md"), "---\ndescription: deep work\n---\nb")
+	write(t, filepath.Join(cwd, "node_modules/x/.harness/skills/nope/SKILL.md"), "---\ndescription: from a dependency\n---\nb")
 	m := manager(Options{Cwd: cwd, Trusted: true})
 	if text, _ := m.Listing(0, true); text != "" {
 		t.Fatalf("nothing applies yet: %q", text)
@@ -375,12 +373,30 @@ func TestPathsAndNestedFoldersComeWithFiles(t *testing.T) {
 
 func TestBodyIsReadWhenUsed(t *testing.T) {
 	cwd := t.TempDir()
-	p := filepath.Join(cwd, ".claude/skills/a/SKILL.md")
+	p := filepath.Join(cwd, ".harness/skills/a/SKILL.md")
 	write(t, p, "---\ndescription: d\n---\nfirst")
 	c := Discover(Options{Cwd: cwd, Trusted: true})
 	s, _ := c.Lookup("a")
 	write(t, p, "---\ndescription: d\n---\nsecond")
 	if b, err := s.LoadBody(); err != nil || b != "second" {
 		t.Fatalf("%q %v", b, err)
+	}
+}
+
+// What sits under .claude is not read, in any of the places it used to be.
+func TestClaudeFoldersAreNotRead(t *testing.T) {
+	home, hh, repo := t.TempDir(), t.TempDir(), t.TempDir()
+	t.Setenv("HOME", home)
+	cwd := filepath.Join(repo, "app")
+	for _, root := range []string{home, repo, cwd, filepath.Join(cwd, "sub")} {
+		write(t, filepath.Join(root, ".claude/skills/nope/SKILL.md"), "---\ndescription: no\n---\nb")
+		write(t, filepath.Join(root, ".claude/commands/nope2.md"), "no")
+	}
+	c := Discover(Options{HarnessHome: hh, Cwd: cwd, GitRoot: repo, Nested: []string{filepath.Join(cwd, "sub")}, Trusted: true})
+	if len(c.All) != 0 {
+		t.Fatalf("%+v", c.All)
+	}
+	if u := Discover(Options{HarnessHome: hh, Cwd: cwd, GitRoot: repo}); u.UntrustedProject {
+		t.Fatal(".claude folders count as project files")
 	}
 }

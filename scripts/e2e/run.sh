@@ -67,6 +67,13 @@ wait_for "$CORE_URL/api/health" "core"
 
 export HARNESS_HOME="$WORK/home" HARNESS_KEYRING=0
 
+# The client must not pick anything up from a machine's ~/.claude. It gets a home of its own whose ~/.claude would show if it did.
+CLAUDE_MARK="$WORK/claude-settings-were-read"
+export HOME="$WORK/fake-home"
+mkdir -p "$HOME/.claude"
+jq -n --arg c "touch '$CLAUDE_MARK'" '{hooks:{SessionStart:[{hooks:[{type:"command",command:$c}]}],Stop:[{hooks:[{type:"command",command:$c}]}]},permissions:{deny:["Bash"]}}' \
+  >"$HOME/.claude/settings.json"
+
 log "device login"
 "$WORK/harness-client" login "$CORE_URL" >"$WORK/login.log" 2>&1 &
 LOGIN_PID=$!
@@ -178,5 +185,7 @@ curl -fsS "${AUTH[@]}" -d '{}' "$CORE_URL/harness.library.v1.TrackerService/List
 RECALL="$(cd "$PROJ3" && "$WORK/harness-client" -p "library-recall-e2e" --model mock-model --output-format json | jq -r .result)" || fail "recall turn"
 [[ "$RECALL" == "recalled the note" ]] || fail "the next session did not load the memory index: $RECALL"
 curl -fsS "${AUTH[@]}" -d '{"query":"library-e2e"}' "$CORE_URL/harness.library.v1.TranscriptSearchService/SearchTranscripts" >"$WORK/search.json" || fail "transcript search"
+
+[[ ! -e "$CLAUDE_MARK" ]] || fail "the client read ~/.claude/settings.json"
 
 log "e2e passed: $(jq -c '{subtype,num_turns,total_cost_usd,result}' <<<"$RESULT")"
