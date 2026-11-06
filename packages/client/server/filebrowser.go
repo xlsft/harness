@@ -126,6 +126,9 @@ func (s *Server) ListFileRoots(ctx context.Context, req *connect.Request[agentv1
 		}
 		seen[d] = true
 		root := &agentv1.FileRoot{Path: d, Name: filepath.Base(d)}
+		if st, err := os.Stat(d); err != nil || !st.IsDir() {
+			root.Missing = true
+		}
 		if real, err := filepath.EvalSymlinks(d); err == nil {
 			if top := gitTopLevel(ctx, real); top != "" {
 				root.GitRoot = lexicalPath(d, real, top)

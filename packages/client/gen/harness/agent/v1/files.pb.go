@@ -145,7 +145,9 @@ type FileRoot struct {
 	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// The repository's top level when the root is inside a git repository.
-	GitRoot       string `protobuf:"bytes,3,opt,name=git_root,json=gitRoot,proto3" json:"git_root,omitempty"`
+	GitRoot string `protobuf:"bytes,3,opt,name=git_root,json=gitRoot,proto3" json:"git_root,omitempty"`
+	// The directory is not there (anymore): it was moved or deleted.
+	Missing       bool `protobuf:"varint,4,opt,name=missing,proto3" json:"missing,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -199,6 +201,13 @@ func (x *FileRoot) GetGitRoot() string {
 		return x.GitRoot
 	}
 	return ""
+}
+
+func (x *FileRoot) GetMissing() bool {
+	if x != nil {
+		return x.Missing
+	}
+	return false
 }
 
 type ListFileRootsRequest struct {
@@ -846,11 +855,12 @@ var File_harness_agent_v1_files_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_files_proto_rawDesc = "" +
 	"\n" +
-	"\x1charness/agent/v1/files.proto\x12\x10harness.agent.v1\"M\n" +
+	"\x1charness/agent/v1/files.proto\x12\x10harness.agent.v1\"g\n" +
 	"\bFileRoot\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
-	"\bgit_root\x18\x03 \x01(\tR\agitRoot\"5\n" +
+	"\bgit_root\x18\x03 \x01(\tR\agitRoot\x12\x18\n" +
+	"\amissing\x18\x04 \x01(\bR\amissing\"5\n" +
 	"\x14ListFileRootsRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\"I\n" +

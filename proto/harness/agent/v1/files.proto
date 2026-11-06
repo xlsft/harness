@@ -37,6 +37,8 @@ message FileRoot {
   string name = 2;
   // The repository's top level when the root is inside a git repository.
   string git_root = 3;
+  // The directory is not there (anymore): it was moved or deleted.
+  bool missing = 4;
 }
 
 message ListFileRootsRequest {

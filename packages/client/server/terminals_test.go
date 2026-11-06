@@ -191,3 +191,33 @@ func TestTerminalSocketOverTCP(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestTerminalOpensAtHomeWhenTheFolderIsGone(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("SHELL", "/bin/sh")
+	h := startHarness(t, fg.Sequence(), nil)
+	sid, _ := h.create(&agentv1.CreateSessionRequest{})
+	if err := os.RemoveAll(h.proj); err != nil {
+		t.Fatal(err)
+	}
+	ct, err := h.client.CreateTerminal(h.ctx, connect.NewRequest(&agentv1.CreateTerminalRequest{SessionId: sid}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := ct.Msg.GetTerminal().GetCwd(); got != home {
+		t.Fatalf("cwd %q, want home %q", got, home)
+	}
+	h.client.KillTerminal(h.ctx, connect.NewRequest(&agentv1.KillTerminalRequest{TerminalId: ct.Msg.GetTerminal().GetTerminalId()}))
+	// A folder asked for by name still has to exist.
+	if _, err := h.client.CreateTerminal(h.ctx, connect.NewRequest(&agentv1.CreateTerminalRequest{SessionId: sid, Cwd: h.proj})); err == nil {
+		t.Fatal("a missing folder asked for by name opened")
+	}
+	roots, err := h.client.ListFileRoots(h.ctx, connect.NewRequest(&agentv1.ListFileRootsRequest{SessionId: sid}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(roots.Msg.Roots) == 0 || !roots.Msg.Roots[0].GetMissing() {
+		t.Fatalf("roots: %+v", roots.Msg.Roots)
+	}
+}

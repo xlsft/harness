@@ -97,6 +97,12 @@ func (s *Server) CreateTerminal(ctx context.Context, req *connect.Request[agentv
 			}
 		}
 	}
+	// The session's folder is gone: a terminal still opens, at home. A path asked for by name is checked as usual.
+	if strings.TrimSpace(m.GetCwd()) == "" {
+		if st, err := os.Stat(defaultCwd); err != nil || !st.IsDir() {
+			defaultCwd, dirs = home, nil
+		}
+	}
 	cwd, err := terminalCwd(m.GetCwd(), defaultCwd, home, dirs)
 	if err != nil {
 		return nil, err

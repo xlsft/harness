@@ -125,7 +125,7 @@ export class ConnectFilesApi implements FilesApi {
 
   async roots(sessionId: string) {
     const res = await this.client.listFileRoots({ sessionId })
-    return res.roots.map(r => ({ path: r.path, name: r.name, gitRoot: r.gitRoot }))
+    return res.roots.map(r => ({ path: r.path, name: r.name, gitRoot: r.gitRoot, ...(r.missing ? { missing: true } : {}) }))
   }
 
   async list(sessionId: string, path: string, opts: { showIgnored?: boolean } = {}) {

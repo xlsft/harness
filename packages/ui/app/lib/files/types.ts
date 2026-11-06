@@ -26,6 +26,8 @@ export interface FileRoot {
   name: string
   // The repository's top level when the root is inside a git repository.
   gitRoot: string
+  // The directory is not there (anymore).
+  missing?: boolean
 }
 
 export interface FileEntry {

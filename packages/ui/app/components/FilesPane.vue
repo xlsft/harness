@@ -13,7 +13,7 @@ import {
   absolutePath, ancestorsToExpand, baseName, buildRows, dirName, filterPaths, isWithin, relativePath, showTargetFile,
   statusOf, writtenPaths, type TreeRow
 } from '~/lib/files/tree'
-import { isDesktop, openWithDefaultApp, revealInFolder } from '~/lib/desktop'
+import { isDesktop, openWithDefaultApp, pickFolder, revealInFolder } from '~/lib/desktop'
 
 const props = defineProps<{ session: SessionState, menu?: string }>()
 
@@ -79,6 +79,25 @@ const readErrors = ref<Record<string, string>>({})
 const reading = ref<Record<string, boolean>>({})
 
 const rows = computed(() => buildRows({ roots: roots.value, listings: listings.value, expanded: new Set(vs.value.expanded), status: status.value }))
+
+// The session's folder is gone (moved or deleted): the session can move to another one, as from the details.
+const folderGone = computed(() => !!roots.value.find(r => r.path === props.session.meta.cwd)?.missing)
+const browsing = ref(false)
+async function chooseFolder() {
+  if (isDesktop()) await folderChosen(await pickFolder(props.session.meta.cwd))
+  else browsing.value = true
+}
+async function folderChosen(path: string | null) {
+  browsing.value = false
+  if (!path || !store.transport) return
+  try {
+    store.reopen(await store.transport.environment().setSessionFolder(sid.value, path))
+    vs.value.expanded = []
+    await loadRoots()
+  } catch (e) {
+    toast.add({ title: 'Could not change the folder', description: message(e), color: 'error' })
+  }
+}
 
 async function loadRoots() {
   const a = api()
@@ -641,7 +660,34 @@ const remoteText = computed(() => {
         </div>
 
         <div
-          v-if="rootsError && !roots.length"
+          v-if="folderGone"
+          class="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center text-[12.5px]"
+        >
+          <span class="text-strong">This folder doesn't seem to exist anymore</span>
+          <span class="break-all text-muted">{{ session.meta.cwd }}</span>
+          <HBtn
+            size="md"
+            @click="chooseFolder"
+          >
+            Switch to another folder
+          </HBtn>
+          <UModal
+            :open="browsing"
+            :ui="{ content: 'w-auto max-w-none bg-transparent ring-0' }"
+            @update:open="v => !v && (browsing = false)"
+          >
+            <template #content>
+              <NewDirectoryBrowser
+                start=""
+                @pick="folderChosen"
+                @close="browsing = false"
+              />
+            </template>
+          </UModal>
+        </div>
+
+        <div
+          v-else-if="rootsError && !roots.length"
           class="p-3 text-[12px] text-muted"
           role="alert"
         >
