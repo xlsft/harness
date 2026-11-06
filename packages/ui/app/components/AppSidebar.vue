@@ -105,6 +105,7 @@ function newSession(cwd?: string) {
 }
 
 const desktop = isDesktop()
+const update = useAppUpdate()
 
 // Footer: who is signed in and on which server.
 // The profile (name, avatar) from the server; the shell's whoami until it loads.
@@ -334,6 +335,15 @@ const nav = [
         >Show more</a>
       </section>
     </div>
+    <button
+      v-if="update.phase.value !== 'idle'"
+      type="button"
+      class="flex h-8 shrink-0 items-center gap-2 border-t border-default px-3.5 text-left text-[11.5px] text-muted hover:bg-hover hover:text-strong"
+      @click="settings.open('about'); open = false"
+    >
+      <span class="size-1.5 shrink-0 bg-accent" />
+      <span class="truncate">{{ update.phase.value === 'installed' ? 'Restart to update' : 'Update available' }} · v{{ update.version.value }}</span>
+    </button>
 
     <template #footer>
       <img

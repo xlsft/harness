@@ -99,6 +99,23 @@ export async function guardQuit(check: () => string): Promise<() => void> {
   })
 }
 
+/** A native yes/no warning. */
+export async function askConfirm(message: string, title: string, okLabel: string): Promise<boolean> {
+  const { ask } = await import('@tauri-apps/plugin-dialog')
+  return ask(message, { title, kind: 'warning', okLabel, cancelLabel: 'Not now' })
+}
+
+/** What the shell's updater says about this build (src-tauri/src/update.rs). */
+export type UpdateCheck
+  = | { state: 'unavailable', reason: string, current: string }
+    | { state: 'up_to_date', current: string }
+    | { state: 'available', current: string, version: string, notes: string }
+
+export const updateCheck = () => invoke<UpdateCheck>('update_check')
+/** Downloads, verifies and installs the update the last check found; the app keeps running until updateRestart. */
+export const updateInstall = () => invoke<null>('update_install')
+export const updateRestart = () => invoke<null>('update_restart')
+
 /** The theme's ground colour as the window background (seen before the page paints and while resizing). */
 export async function setWindowGround(color: string) {
   if (!isDesktop()) return

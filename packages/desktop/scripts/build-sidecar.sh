@@ -2,12 +2,28 @@
 # Builds harness-client for the host as the Tauri sidecar: src-tauri/binaries/harness-client-<target triple>.
 # Tauri copies it next to the app executable (dev and bundle), where the shell starts it. On macOS, also the native
 # helper of computer use (packages/client/computeruse/helper), listed in tauri.macos.conf.json.
+# TAURI_TARGET_TRIPLE builds for another architecture; HARNESS_VERSION stamps a release version (the app's own, see
+# docs/release.md); the stamped Distribution makes `harness-client update` refuse, as the app updates the sidecar.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 triple="${TAURI_TARGET_TRIPLE:-$(rustc -vV | sed -n 's/^host: //p')}"
 ext=""
 [[ "$triple" == *windows* ]] && ext=".exe"
-(cd "$here/../client" && CGO_ENABLED=0 go build -trimpath -o "$here/src-tauri/binaries/harness-client-$triple$ext" ./cmd/harness-client)
+case "$triple" in
+  aarch64-*) goarch=arm64 ;;
+  x86_64-*) goarch=amd64 ;;
+  *) echo "unsupported target $triple" >&2; exit 1 ;;
+esac
+case "$triple" in
+  *apple-darwin*) goos=darwin ;;
+  *windows*) goos=windows ;;
+  *linux*) goos=linux ;;
+  *) echo "unsupported target $triple" >&2; exit 1 ;;
+esac
+module=github.com/xlsft/harness/packages/client
+ldflags="-X $module/config.Distribution=desktop"
+[[ -n "${HARNESS_VERSION:-}" ]] && ldflags="-s -w -X $module/config.Version=$HARNESS_VERSION $ldflags"
+(cd "$here/../client" && CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags "$ldflags" -o "$here/src-tauri/binaries/harness-client-$triple$ext" ./cmd/harness-client)
 echo "sidecar: src-tauri/binaries/harness-client-$triple$ext"
 helper=""
 if [[ "$triple" == *apple-darwin* ]]; then

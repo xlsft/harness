@@ -249,7 +249,8 @@ func (d *darwinDriver) Permissions(ctx context.Context) (Permissions, error) {
 		}
 		return Permissions{}, err
 	}
-	const howTo = "Turn it on for the Harness app (or the terminal that started the client) in System Settings > Privacy & Security > %s, then restart Harness."
+	// An app without a Developer ID is a new app to macOS after each update, while its old switch can still look on.
+	const howTo = "Turn it on for the Harness app (or the terminal that started the client) in System Settings > Privacy & Security > %s, then restart Harness. If it already looks on, remove the app from that list and add it again: an update can invalidate the permission."
 	return Permissions{Items: []Permission{
 		{ID: PermScreenRecording, Name: "Screen Recording", Granted: r.ScreenRecording, HowToGrant: fmt.Sprintf(howTo, "Screen & System Audio Recording")},
 		{ID: PermAccessibility, Name: "Accessibility", Granted: r.Accessibility, HowToGrant: fmt.Sprintf(howTo, "Accessibility")},

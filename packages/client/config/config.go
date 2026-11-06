@@ -12,6 +12,10 @@ import (
 // -ldflags "-X github.com/xlsft/harness/packages/client/config.Version=…".
 var Version = "0.0.0-dev"
 
+// Distribution says how this binary is delivered: "desktop" for the app's sidecar (packages/desktop/scripts/
+// build-sidecar.sh stamps it), which the app updates; empty otherwise.
+var Distribution = ""
+
 // ProtocolVersion is sent as the Harness-Protocol header.
 const ProtocolVersion = "1"
 

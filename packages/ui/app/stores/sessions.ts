@@ -125,6 +125,7 @@ export const useSessionStore = defineStore('sessions', {
     connectionLost: false,
     userEmail: '',
     clientVersion: '',
+    serverVersion: '',
     // The server's default session model (its main slot); empty when unknown.
     defaultModel: '',
     // The client's Shift+Tab cycle and the modes the server's policy disables (Initialize); disabled modes are
@@ -192,6 +193,7 @@ export const useSessionStore = defineStore('sessions', {
         const init = await this.transport.initialize()
         this.userEmail = init.userEmail
         this.clientVersion = init.clientVersion
+        this.serverVersion = init.serverVersion
         this.defaultModel = init.defaultModel
         this.applyModes(init)
         this.models = await this.transport.listModels()

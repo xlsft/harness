@@ -18,6 +18,8 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, RunEvent, State};
 use tauri_plugin_opener::OpenerExt;
 
+mod update;
+
 /// Origins the webview loads the UI from (macOS/Linux, Windows, dev server); the sidecar allows them.
 const ORIGINS: &str = "tauri://localhost,http://tauri.localhost,http://localhost:3210";
 
@@ -30,6 +32,8 @@ struct Shell {
     /// When the last quit request went to the UI (ms since the epoch): a second one within QUIT_AGAIN_MS quits
     /// anyway, so a hung or unloaded UI never keeps the app open.
     quit_asked_at: std::sync::atomic::AtomicU64,
+    /// The update the last check found, until it is installed.
+    update: Mutex<Option<tauri_plugin_updater::Update>>,
 }
 
 const QUIT_AGAIN_MS: u64 = 3000;
@@ -247,6 +251,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Shell::default())
         .setup(|app| {
             let saved = ground_file(app.handle()).and_then(|f| std::fs::read_to_string(f).ok()).and_then(|s| parse_hex(&s));
@@ -273,7 +278,18 @@ pub fn run() {
             }
             _ => {}
         })
-        .invoke_handler(tauri::generate_handler![auth_status, login, cancel_login, logout, agent_endpoint, confirm_quit, set_ground])
+        .invoke_handler(tauri::generate_handler![
+            auth_status,
+            login,
+            cancel_login,
+            logout,
+            agent_endpoint,
+            confirm_quit,
+            set_ground,
+            update::update_check,
+            update::update_install,
+            update::update_restart
+        ])
         .build(tauri::generate_context!())
         .expect("error while building the harness desktop app")
         .run(|app, event| {

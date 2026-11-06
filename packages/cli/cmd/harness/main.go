@@ -42,6 +42,7 @@ Usage:
   harness logout                  Revoke this device and delete credentials
   harness whoami                  Show the signed-in user
   harness demo                    Render the terminal identity (colors, logo, loaders)
+  harness update                  Says how this binary is updated (no release of it yet)
   harness version
 
 Flags:
@@ -66,6 +67,9 @@ func run(args []string) int {
 		case "version", "--version":
 			fmt.Println("harness " + config.Version)
 			return 0
+		case "update":
+			// Releases carry harness-client and the desktop app, not this terminal frontend (docs/release.md).
+			return fail(errors.New("harness has no release builds yet, so it can't update itself: rebuild it from source. `harness-client update` updates the client"))
 		}
 	}
 	return cmdMain(ctx, args)

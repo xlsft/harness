@@ -1,4 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import pkg from './package.json'
 import { APPEARANCE_KEY, DEFAULT_THEME, THEME_CACHE_KEY, themeById, themeVars } from './app/themes'
 
 // Runs before the app: puts the theme the last load used (or the default one of the system's kind) on <html>,
@@ -81,7 +82,9 @@ export default defineNuxtConfig({
       // parameter overrides it for the tab (kept in sessionStorage).
       agentToken: '',
       // "mock" (default) replays scripted harness.agent.v1 events; "connect" talks to agentUrl.
-      transport: 'mock'
+      transport: 'mock',
+      // This UI's version: package.json, which the release workflow stamps (scripts/release/stamp.sh).
+      version: pkg.version
     }
   },
 

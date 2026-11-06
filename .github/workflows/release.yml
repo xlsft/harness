@@ -1,0 +1,254 @@
+name: release
+
+# A pushed tag vX.Y.Z (or vX.Y.Z-rc.N) makes a release; docs/release.md is the manual. The tag is the source of truth for
+# the version. Everything is built before anything becomes visible: publish, the last job, makes a draft, and only its last
+# steps move the image's moving tags and turn the draft into a release. So a failure anywhere leaves at most a draft and an
+# image under its exact version, and "latest" keeps pointing at the previous release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  # Refuses before spending anything: a tag that doesn't parse, one that isn't on main, a commit whose CI isn't green, or no
+  # way to sign updates. Every other job needs this one.
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    permissions:
+      contents: read
+      actions: read # the CI results of the tagged commit
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+      prerelease: ${{ steps.tag.outputs.prerelease }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Parse the tag
+        id: tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: scripts/release/parse-version.sh "$TAG" >> "$GITHUB_OUTPUT"
+      - name: The tag is on main
+        run: |
+          git fetch -q origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME is not on main"
+            exit 1
+          fi
+      - name: CI is green on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Bounded: long enough for a still-running image build, and nothing missing or unfinished ever passes.
+        run: scripts/release/ci-green.sh "$GITHUB_SHA" --wait 5400
+      - name: Updates can be signed
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ "$(jq -r .plugins.updater.pubkey packages/desktop/src-tauri/tauri.conf.json)" = "" ]; then
+            echo "::error::plugins.updater.pubkey in tauri.conf.json is empty: docs/release.md says how to make the key"
+            exit 1
+          fi
+          if [ -z "$KEY" ]; then
+            echo "::error::No TAURI_SIGNING_PRIVATE_KEY secret: docs/release.md says how to make the key"
+            exit 1
+          fi
+      - name: A release locks out no client
+        run: |
+          if grep -rq HARNESS_MIN_CLIENT_VERSION deploy/Dockerfile deploy/rootfs; then
+            echo "::error::The image sets HARNESS_MIN_CLIENT_VERSION: older clients would be refused"
+            exit 1
+          fi
+
+  core:
+    needs: preflight
+    uses: ./.github/workflows/core.yml
+
+  client:
+    needs: preflight
+    uses: ./.github/workflows/client.yml
+
+  cli:
+    needs: preflight
+    uses: ./.github/workflows/cli.yml
+
+  ui:
+    needs: preflight
+    uses: ./.github/workflows/ui.yml
+
+  proto:
+    needs: preflight
+    uses: ./.github/workflows/proto.yml
+
+  e2e:
+    needs: preflight
+    uses: ./.github/workflows/e2e.yml
+
+  image:
+    needs: [preflight, core, client, cli, ui, proto, e2e]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    uses: ./.github/workflows/image.yml
+    with:
+      version: ${{ needs.preflight.outputs.version }}
+
+  desktop:
+    needs: [preflight, core, client, cli, ui, proto, e2e]
+    uses: ./.github/workflows/desktop.yml
+    with:
+      version: ${{ needs.preflight.outputs.version }}
+    secrets:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+  # The harness-client archives and their SBOMs. Goreleaser publishes nothing here (.goreleaser.yaml).
+  client-archives:
+    needs: [preflight, core, client, cli, ui, proto, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: packages/client/go.mod
+          cache-dependency-path: packages/client/go.sum
+      - uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+      - name: The key `harness-client update` will trust
+        run: echo "HARNESS_UPDATE_PUBKEY=$(jq -r .plugins.updater.pubkey packages/desktop/src-tauri/tauri.conf.json)" >> "$GITHUB_ENV"
+      - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
+        with:
+          version: "~> v2"
+          args: release --clean
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-client
+          path: |
+            dist/*.tar.gz
+            dist/*.sbom.json
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [preflight, image, desktop, client-archives]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Releases never overlap: the moving tags and "latest" have one writer at a time.
+    concurrency:
+      group: release-publish
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      packages: write # the moving image tags
+      id-token: write # keyless Sigstore signature of checksums.txt, and the provenance
+      attestations: write
+    env:
+      TAG: ${{ github.ref_name }}
+      VERSION: ${{ needs.preflight.outputs.version }}
+      PRERELEASE: ${{ needs.preflight.outputs.prerelease }}
+      IMAGE: ghcr.io/${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1
+      - uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - name: Assemble
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: scripts/release/assemble.sh "$TAG" dist "$RUNNER_TEMP"
+      - name: Sign the checksums
+        working-directory: dist
+        run: cosign sign-blob --yes --bundle checksums.txt.sigstore.json checksums.txt
+
+      # A run that failed after this point left a draft of this tag; its re-run replaces it.
+      - name: Refuse an existing release, replace an old draft
+        run: |
+          if [ "$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null || true)" = "false" ]; then
+            echo "::error::$TAG is already released"
+            exit 1
+          fi
+          gh release delete "$TAG" --yes 2>/dev/null || true
+      - name: Draft the release
+        run: |
+          prerelease=()
+          if [ "$PRERELEASE" = true ]; then prerelease=(--prerelease); fi
+          gh release create "$TAG" dist/* --draft --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md" "${prerelease[@]}"
+
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        id: attest
+        with:
+          subject-checksums: dist/checksums.txt
+      - name: Attach the provenance
+        env:
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          cp "$BUNDLE" harness.intoto.jsonl
+          gh release upload "$TAG" harness.intoto.jsonl
+
+      # From here on it goes public. A backport (v0.1.5 after v0.2.0) stays behind the newest as far as "latest" goes.
+      - name: Is this the newest stable release?
+        id: newest
+        run: |
+          newest=false
+          if [ "$PRERELEASE" != true ]; then
+            current="$(gh release view --json tagName --jq .tagName 2>/dev/null || true)"
+            if [ -z "$current" ] || [ "$(printf '%s\n%s\n' "$current" "$TAG" | sort -V | tail -n1)" = "$TAG" ]; then
+              newest=true
+            fi
+          fi
+          echo "newest=$newest" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        if: needs.preflight.outputs.prerelease != 'true'
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        if: needs.preflight.outputs.prerelease != 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # The same image: the digest, and so its signature and attestations, stay what they are.
+      - name: Move the image tags
+        if: needs.preflight.outputs.prerelease != 'true'
+        env:
+          NEWEST: ${{ steps.newest.outputs.newest }}
+        run: |
+          tags=(-t "$IMAGE:${VERSION%.*}")
+          if [ "$NEWEST" = true ]; then tags+=(-t "$IMAGE:latest"); fi
+          digest="$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{json .Manifest.Digest}}')"
+          docker buildx imagetools create "${tags[@]}" "$IMAGE:$VERSION"
+          moved="$(docker buildx imagetools inspect "$IMAGE:${VERSION%.*}" --format '{{json .Manifest.Digest}}')"
+          if [ "$digest" != "$moved" ]; then
+            echo "::error::$IMAGE:${VERSION%.*} is $moved, not $digest: the signature wouldn't cover it"
+            exit 1
+          fi
+      - name: Publish
+        env:
+          NEWEST: ${{ steps.newest.outputs.newest }}
+        run: |
+          gh release edit "$TAG" --draft=false --latest="$NEWEST"
+          {
+            echo "Released [$TAG]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG)"
+            echo "Newest stable release: $NEWEST. Signing of the app: $(cat "$RUNNER_TEMP/signing")"
+          } >> "$GITHUB_STEP_SUMMARY"

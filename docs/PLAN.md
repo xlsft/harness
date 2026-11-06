@@ -186,7 +186,7 @@ Everything runs in **one image** under the [s6-overlay](https://github.com/just-
 docker run -d --name harness -p 3000:3000 -v harness-data:/data \
   -e HARNESS_PUBLIC_URL=https://harness.example.com \
   -e HARNESS_ADMIN_EMAIL=you@example.com -e HARNESS_ADMIN_PASSWORD=... \
-  harness/server
+  ghcr.io/xlsft/harness
 ```
 
 ---

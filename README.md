@@ -72,6 +72,10 @@ Build order: `core` + `client` first, then the `cli` and `ui` frontends, deploym
 
 This is a clean-room implementation: it is compatible with Claude Code's formats and protocols but contains none of its code or prompts.
 
+## Releases
+
+Tagged releases carry the server image (`ghcr.io/xlsft/harness`), the macOS app and `harness-client`: [docs/release.md](docs/release.md).
+
 ## License
 
 [MIT](LICENSE)

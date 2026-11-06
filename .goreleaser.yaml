@@ -1,0 +1,48 @@
+version: 2
+
+# The release's harness-client binaries. The Release workflow runs this for the archives and their SBOMs only, and publishes
+# them with the desktop app in one GitHub Release, under one checksums.txt (scripts/release in the workflow's publish job).
+project_name: harness-client
+
+builds:
+  - id: harness-client
+    dir: packages/client
+    main: ./cmd/harness-client
+    binary: harness-client
+    env:
+      - CGO_ENABLED=0
+    # macOS only for now: docs/release.md.
+    goos: [darwin]
+    goarch: [arm64, amd64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w
+      - -X github.com/xlsft/harness/packages/client/config.Version={{ .Version }}
+      - -X github.com/xlsft/harness/packages/client/selfupdate.PublicKey={{ .Env.HARNESS_UPDATE_PUBKEY }}
+    # Reproducible: the same commit builds byte-identical binaries.
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: harness-client
+    # The version in the name is part of what `harness-client update` verifies (packages/client/selfupdate).
+    name_template: "harness-client_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    builds_info:
+      mtime: "{{ .CommitDate }}"
+    files:
+      - src: LICENSE
+        info:
+          mtime: "{{ .CommitDate }}"
+
+# A software bill of materials for each archive, made by syft.
+sboms:
+  - artifacts: archive
+
+checksum:
+  disable: true
+
+changelog:
+  disable: true
+
+release:
+  disable: true

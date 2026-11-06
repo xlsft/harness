@@ -1,19 +1,25 @@
 name: core
 
 on:
+  workflow_dispatch:
+  workflow_call:
   push:
+    branches: [main]
     paths: ['packages/core/**', '.github/workflows/core.yml']
   pull_request:
     paths: ['packages/core/**', '.github/workflows/core.yml']
 
+permissions:
+  contents: read
+
+concurrency:
+  group: core-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 jobs:
   ci:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-        node: [24]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     defaults:
       run:
@@ -21,17 +27,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v6
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with:
           package_json_file: packages/core/package.json
 
       - name: Install node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 24
           cache: pnpm
           cache-dependency-path: packages/core/pnpm-lock.yaml
 
@@ -41,8 +47,9 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
+      # The suite starts a server per file and is sensitive to load: few workers, patient hooks.
       - name: Test
-        run: pnpm run test
+        run: pnpm exec vitest run --maxWorkers=2 --hookTimeout=120000 --testTimeout=60000
 
       - name: Build
         run: pnpm run build
