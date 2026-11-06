@@ -112,6 +112,7 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `bash_background_agent` | `task_id`, `output_path` | not a reminder: the Bash tool_result of a `run_in_background` call |
 | `bash_background_timeout` | `timeout`, `task_id`, `output_path` | not a reminder: the Bash tool_result when a foreground command hit its timeout (e.g. "2m0s", "300ms") and was moved to the background |
 | `notifications_pending` | — | notifications wait for ReadNotifications (`tools.Notify`). Rides on the next model request of a running turn; starts a turn when the session is idle (Driver.Wake), or when the session opens with some already queued |
+| `advisor` | — | not a reminder: the system prompt of the model behind the Advisor tool. The client sends it as the first system block of a tool-less `auxiliary` request to the user's advisor model, followed by a block with a read-only rendering of the session inside `<main_session>`, then the question as the only message. Not wrapped in `<system-reminder>`. The client has a fallback text |
 | `side_chat` | — | not a reminder: the system prompt of side chats (AgentService AskSideChat). The client sends it as the first system block of a tool-less `auxiliary` request, followed by a block with a read-only rendering of the main session inside `<main_session>`, then the side chat's history and the question (with its quoted excerpt). Not wrapped in `<system-reminder>` |
 
 Each placeholder appears once per reminder (the tests compare the list of placeholders). `interrupted` must stay
@@ -125,6 +126,8 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `Read`, `Write`, `Edit`, `Glob`, `Grep` | see `schema.json` | M0 file tools |
 | `Bash` | `command`, `timeout`, `description`, `run_in_background` | background: returns a task id + output file path at once; a foreground command that hits its timeout is moved to the background; completion arrives as `background_task_done` |
 | `TaskStop` | `task_id` | stops a background task, or an agent by its id |
+| `Advisor` | `question` | asks the user's advisor model (settings key `advisorModel`) about the session, once, with no tools. Offered only when a model is chosen and available. Read-only |
+| `BrowserRecord` | `action: start\|stop` | records the browser's active tab as a GIF in the session's scratch folder; stopping returns its path. Read-only |
 | `Agent` | `description`, `prompt`, `subagent_type`, `model`, `isolation` | starts a subagent in the background and returns its id; its final message arrives as `agent_report` and wakes an idle session |
 | `SendMessage` | `to`, `message`, `description` | gives a running agent a message after its current tool calls, or continues an ended one with its context |
 | `Workflow` | `script`, `script_path`, `name`, `args`, `resume_from` | runs a script that drives many agents, in the background, once the user approved it (name, description and phases in the prompt; not in bypass mode; plan mode refuses). Returns a run id; the result arrives as `workflow_report` and wakes an idle session. TaskStop stops a run. |

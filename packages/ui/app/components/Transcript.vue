@@ -263,6 +263,10 @@ function toBottom() {
   <div class="relative flex min-h-0 flex-col">
     <div
       ref="scroller"
+      role="log"
+      aria-live="off"
+      aria-label="Conversation"
+      :aria-busy="session.meta.status !== 'idle'"
       class="flex min-h-0 flex-1 flex-col-reverse overflow-y-auto px-5 pt-[21px] pb-[144px]"
       @scroll="onScroll"
     >

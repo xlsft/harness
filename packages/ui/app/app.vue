@@ -14,6 +14,8 @@ const desktop = isDesktop()
 useTurnNotifications()
 useUserNotifications()
 useDeviceSettings()
+useScreenReader().start()
+useHead({ htmlAttrs: { lang: currentLocale() } })
 const phase = ref<'checking' | 'signin' | 'ready'>(desktop ? 'checking' : 'ready')
 
 // Quitting the desktop app warns while work is still running here: sessions in a turn, background tasks, agents.
@@ -80,6 +82,7 @@ if (desktop) {
     <HLoader v-else-if="phase === 'checking'" />
     <template v-else>
       <NuxtPage />
+      <ScreenReaderRegions />
       <SshHostBar />
       <SettingsModal />
       <SearchModal />

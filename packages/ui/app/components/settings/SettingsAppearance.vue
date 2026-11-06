@@ -26,6 +26,13 @@ const previewFont = (t: ReturnType<typeof themeById>) => {
 }
 const toast = useToast()
 
+const screenReader = useScreenReader()
+const locales = availableLocales()
+function pickLocale(v: unknown) {
+  chooseLocale(String(v))
+  window.location.reload()
+}
+
 const picker = ref<HTMLInputElement | null>(null)
 async function onPick(e: Event) {
   const input = e.target as HTMLInputElement
@@ -158,6 +165,38 @@ const KINDS: { kind: ThemeKind, title: string, desc: string }[] = [
         aria-label="Text size"
       />
     </div>
+  </div>
+
+  <h2 class="set-h mt-8">
+    Accessibility
+  </h2>
+  <p class="set-sub">
+    The color-blind themes are in the theme lists above.
+  </p>
+  <div class="set-row">
+    <div class="set-label">
+      <span>Screen reader mode</span>
+      <span class="set-desc">Says when the agent starts, finishes or needs you, and reads its answers; takes away motion and decoration. For this browser.</span>
+    </div>
+    <HToggle
+      :model-value="screenReader.enabled.value"
+      label="Screen reader mode"
+      @update:model-value="screenReader.set($event)"
+    />
+  </div>
+  <div
+    v-if="locales.length > 1"
+    class="set-row"
+  >
+    <div class="set-label">
+      <span>Language</span>
+    </div>
+    <HSelect
+      :model-value="currentLocale()"
+      :options="locales"
+      aria-label="Language"
+      @update:model-value="pickLocale"
+    />
   </div>
 
   <h2 class="set-h mt-8">
