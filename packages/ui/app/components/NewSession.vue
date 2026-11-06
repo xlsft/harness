@@ -20,6 +20,7 @@ import { fitAcpChoice, newSessionAgentEffort, newSessionChoice, type ModelScope 
 import { readAttachments } from '~/lib/session/attachments'
 import type { ComposerFile, MenuOption } from '~/utils/composer'
 import { isDesktop, pickFolder } from '~/lib/desktop'
+import { ideHost } from '~/lib/ide'
 
 const store = useSessionStore()
 const collapsed = useState('sidebar-collapsed', () => false)
@@ -46,6 +47,15 @@ const effort = ref<EffortName>('medium')
 const generalEffort = ref<EffortName>('medium')
 const mode = ref<PermissionModeName>('auto')
 const text = ref('')
+// "Add to the agent" from an editor, before a session exists: the mention goes in this draft.
+const attach = useState<string[]>('composer-attach', () => [])
+watch(attach, (paths) => {
+  if (!paths.length) return
+  const mentions = paths.map(p => `@${p}`).join(' ')
+  text.value = text.value && !text.value.endsWith(' ') ? `${text.value} ${mentions} ` : `${text.value}${mentions} `
+  attach.value = []
+  nextTick(() => box.value?.focusEnd())
+}, { deep: true, immediate: true })
 const files = ref<ComposerFile[]>([])
 const busy = ref(false)
 const error = ref('')
@@ -111,7 +121,7 @@ onMounted(async () => {
   fitStartEffort()
   mode.value = fitMode(prefs.mode ?? 'auto', store.disabledModes)
   await loadFolders()
-  const asked = newSessionFolder(route.query)
+  const asked = newSessionFolder(route.query) || (ideHost()?.folder ?? '')
   cwd.value = asked
   if (asked && !folders.value.some(f => f.path === asked)) folders.value.unshift({ path: asked, name: name(asked), exists: true } as RecentFolder)
   box.value?.focusEnd()

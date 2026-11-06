@@ -10,6 +10,7 @@
 
 import { goalVM, taskNodeVM } from './teamwork'
 import { SessionProposal_State } from '~/gen/harness/agent/v1/session_links_pb'
+import { EditorReview_State } from '~/gen/harness/agent/v1/ide_pb'
 import { HookRun_Status } from '~/gen/harness/agent/v1/hooks_pb'
 import { sessionNoteOf } from './links'
 import { blockAttachments, isFileBlock } from './attachments'
@@ -124,6 +125,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     todos: [],
     goal: null,
     taskGraph: [],
+    editorReview: null,
     proposals: {},
     queue: [],
     delivered: {},
@@ -716,6 +718,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
     }
 
     case 'turnFinished': {
+      s.editorReview = null
       s.browserAction = null
       const t = e.value
       const usage = usageOf(t.usage)
@@ -814,6 +817,11 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
 
     case 'goalUpdated': {
       s.goal = e.value.goal ? goalVM(e.value.goal) : null
+      break
+    }
+
+    case 'editorReview': {
+      s.editorReview = e.value.state === EditorReview_State.OPEN ? { path: e.value.path, editor: e.value.editor } : null
       break
     }
 

@@ -581,6 +581,8 @@ export interface SessionState {
   // The session's goal (GoalUpdated) and its task graph (TaskGraphUpdated).
   goal: GoalVM | null
   taskGraph: TaskNodeVM[]
+  /** A file tool's change waiting in the user's editor (packages/vscode); not kept across a reload. */
+  editorReview: { path: string, editor: string } | null
   // The session's runs of the Workflow tool (WorkflowUpdated), oldest first.
   workflows: Record<string, WorkflowVM>
   workflowOrder: string[]

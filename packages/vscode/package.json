@@ -1,0 +1,110 @@
+{
+  "name": "harness-vscode",
+  "displayName": "xlsft`s harness",
+  "description": "The xlsft`s harness agent in your editor: the session panel, selection context, native diffs of the agent's edits and the problems panel.",
+  "version": "0.0.0-dev",
+  "publisher": "xlsft",
+  "private": true,
+  "license": "SEE LICENSE IN LICENSE",
+  "type": "module",
+  "main": "./dist/extension.cjs",
+  "engines": {
+    "vscode": "^1.93.0",
+    "node": ">=24"
+  },
+  "extensionKind": ["workspace"],
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "The agent runs commands in the workspace."
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "commands": [
+      { "command": "harness.open", "title": "Open Panel", "category": "xlsft`s harness" },
+      { "command": "harness.newSession", "title": "New Session", "category": "xlsft`s harness" },
+      { "command": "harness.addToContext", "title": "Add Selection or File to Context", "category": "xlsft`s harness" },
+      { "command": "harness.addFile", "title": "Add File to Context", "category": "xlsft`s harness" },
+      { "command": "harness.addTerminalOutput", "title": "Add Last Terminal Command to Context", "category": "xlsft`s harness" },
+      { "command": "harness.interrupt", "title": "Stop the Current Turn", "category": "xlsft`s harness" },
+      { "command": "harness.reviewChanges", "title": "Review Session Changes", "category": "xlsft`s harness" },
+      { "command": "harness.openInTerminal", "title": "Open the Terminal Interface", "category": "xlsft`s harness" },
+      { "command": "harness.signIn", "title": "Sign In", "category": "xlsft`s harness" },
+      { "command": "harness.restartClient", "title": "Restart the Client", "category": "xlsft`s harness" },
+      { "command": "harness.showLog", "title": "Show Log", "category": "xlsft`s harness" },
+      { "command": "harness.diff.accept", "title": "Accept Edit", "category": "xlsft`s harness", "icon": "$(check)" },
+      { "command": "harness.diff.reject", "title": "Reject Edit", "category": "xlsft`s harness", "icon": "$(close)" },
+      { "command": "harness.diff.rejectWithNote", "title": "Reject Edit with a Note", "category": "xlsft`s harness", "icon": "$(comment)" },
+      { "command": "harness.review.accept", "title": "Keep These Changes", "category": "xlsft`s harness", "icon": "$(check)" },
+      { "command": "harness.review.reject", "title": "Restore the File", "category": "xlsft`s harness", "icon": "$(discard)" }
+    ],
+    "keybindings": [
+      { "command": "harness.open", "key": "ctrl+alt+h", "mac": "cmd+alt+h" },
+      { "command": "harness.addToContext", "key": "ctrl+alt+k", "mac": "cmd+alt+k", "when": "editorTextFocus" },
+      { "command": "harness.diff.accept", "key": "ctrl+enter", "mac": "cmd+enter", "when": "harness.diffActive" },
+      { "command": "harness.diff.reject", "key": "ctrl+backspace", "mac": "cmd+backspace", "when": "harness.diffActive" }
+    ],
+    "menus": {
+      "editor/title": [
+        { "command": "harness.diff.accept", "group": "navigation@1", "when": "harness.diffActive" },
+        { "command": "harness.diff.rejectWithNote", "group": "navigation@2", "when": "harness.diffActive" },
+        { "command": "harness.diff.reject", "group": "navigation@3", "when": "harness.diffActive" },
+        { "command": "harness.review.accept", "group": "navigation@1", "when": "harness.reviewActive" },
+        { "command": "harness.review.reject", "group": "navigation@2", "when": "harness.reviewActive" }
+      ],
+      "editor/context": [
+        { "command": "harness.addToContext", "group": "harness", "when": "editorTextFocus" }
+      ],
+      "explorer/context": [
+        { "command": "harness.addFile", "group": "harness", "when": "!explorerResourceIsFolder" }
+      ],
+      "editor/title/context": [
+        { "command": "harness.addFile", "group": "harness" }
+      ],
+      "commandPalette": [
+        { "command": "harness.diff.accept", "when": "harness.diffOpen" },
+        { "command": "harness.diff.reject", "when": "harness.diffOpen" },
+        { "command": "harness.diff.rejectWithNote", "when": "harness.diffOpen" },
+        { "command": "harness.review.accept", "when": "harness.reviewActive" },
+        { "command": "harness.review.reject", "when": "harness.reviewActive" },
+        { "command": "harness.addFile", "when": "false" }
+      ]
+    },
+    "configuration": {
+      "title": "xlsft`s harness",
+      "properties": {
+        "harness.clientPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Path to the harness-client binary. Empty looks on PATH, then in ~/.harness/bin."
+        },
+        "harness.agentUrl": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Use the client already listening at this address (http://127.0.0.1:<port>) instead of finding or starting one. Its token comes from the HARNESS_AGENT_TOKEN environment variable."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/unit/*.test.ts",
+    "test:editor": "node test/editor/run.mjs",
+    "build": "node scripts/build.mjs",
+    "package": "node scripts/build.mjs --ui --vsix"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/vscode": "1.93.0",
+    "@vscode/test-electron": "2.5.2",
+    "@vscode/vsce": "3.7.1",
+    "esbuild": "0.27.0",
+    "typescript": "5.9.3"
+  },
+  "packageManager": "pnpm@12.15.0"
+}

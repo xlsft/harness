@@ -13,6 +13,10 @@ var v=c&&c.kind===k&&c.vars?c.vars:d[k],r=document.documentElement;
 for(var n in v)r.style.setProperty(n,v[n]);r.classList.add(k);
 if(v['--app-zoom']&&v['--app-zoom']!=='1')r.style.zoom=v['--app-zoom'];if(v['--code-size'])r.dataset.codeSize=''}catch(e){}})()`
 
+// The build an editor extension loads in a webview (packages/vscode/scripts/build.mjs): no address bar to route on, no
+// server to read an app manifest from, and fonts stay with the page's own stack rather than a request to the web.
+const IDE_BUILD = process.env.HARNESS_UI_TARGET === 'ide'
+
 export default defineNuxtConfig({
   // The Connect transport is loaded lazily; pre-bundle its deps so the first dev load does not reload.
   modules: [
@@ -46,13 +50,17 @@ export default defineNuxtConfig({
         { name: 'theme-color', content: '#000000' }
       ],
       link: [
-        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        {
-          rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap'
-        }
+        ...(IDE_BUILD
+          ? []
+          : [
+              { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+              { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+              { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+              {
+                rel: 'stylesheet',
+                href: 'https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap'
+              }
+            ])
       ]
     }
   },
@@ -87,6 +95,8 @@ export default defineNuxtConfig({
       version: pkg.version
     }
   },
+
+  ...(IDE_BUILD ? { router: { options: { hashMode: true } }, experimental: { appManifest: false } } : {}),
 
   compatibilityDate: '2026-06-30',
   vite: {

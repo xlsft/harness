@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { isIde } from '~/lib/ide'
 // Tool call card (Tool.dc.html): bash and TaskOutput (output, running, error), read / glob / Wait rows, grep matches, web results,
 // MCP input / output, edits as diffs (DiffView) and subagents (AgentCard). Output bodies scroll past 320px.
 import { imageSrc } from '~/lib/session/objects'
@@ -99,10 +100,17 @@ const webResults = computed(() => {
   return Array.isArray(r) ? r as { title: string, url: string }[] : []
 })
 
+const FILE_TOOLS = new Set(['Read', 'Edit', 'Write', 'NotebookEdit'])
+
 // Show: what the call opened, to open it again. The terminal tools link to their tab the same way.
 const showTarget = computed(() => {
   if (t.value.status !== 'ok') return null
   if (t.value.name.startsWith('Terminal')) return terminalTargetOf(t.value.result)
+  // In an editor, the file a file tool worked on opens there, at the line it read from.
+  if (isIde() && FILE_TOOLS.has(t.value.name)) {
+    const input = (t.value.input ?? {}) as { file_path?: unknown, offset?: unknown }
+    if (typeof input.file_path === 'string') return { kind: 'file' as const, path: input.file_path, lineStart: typeof input.offset === 'number' ? input.offset : 0, lineEnd: 0 }
+  }
   return kind.value === 'show' ? showTargetOf(t.value.input, t.value.result, store.sessions[props.sessionId]?.meta.cwd ?? '') : null
 })
 const showIn = computed(() => showTarget.value ? showPaneTitle(showTarget.value.kind) : '')
@@ -236,7 +244,7 @@ const { open: openImage } = useImageViewer()
       </HBtn>
       <HBtn
         v-else-if="showTarget"
-        :title="`Open in the ${showIn} pane`"
+        :title="isIde() ? 'Open in the editor' : `Open in the ${showIn} pane`"
         @click="show(showTarget)"
       >
         Open

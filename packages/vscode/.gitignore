@@ -1,0 +1,6 @@
+# Build outputs and the editor the tests download; none of it is committed.
+dist/
+media/
+.vscode-test/
+*.vsix
+LICENSE

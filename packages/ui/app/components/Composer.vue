@@ -36,6 +36,14 @@ watch(reply, (q) => {
   reply.value = ''
   nextTick(focusEnd)
 })
+// Text an editor sends on (a terminal command and its output): the end of the draft, as it is.
+const appended = useState<string>('composer-append', () => '')
+watch(appended, (t) => {
+  if (!t) return
+  text.value = text.value.trim() ? `${text.value.replace(/\s*$/, '')}\n\n${t}` : t
+  appended.value = ''
+  nextTick(focusEnd)
+}, { immediate: true })
 const mode = ref<ComposerMode>('normal')
 
 const error = ref(props.preset?.error ?? '')
@@ -146,6 +154,7 @@ const placeholder = computed(() => {
 
 // Footer hint: text segments, each optionally led by a shortcut rendered with UKbd.
 const hint = computed<Hint>(() => {
+  if (props.session.editorReview) return [{ text: `${props.session.editorReview.path.split('/').pop()} is open for review in ${props.session.editorReview.editor}` }]
   if (mode.value === 'shell') return [{ text: 'output goes to context ·' }, { keys: 'backspace', text: 'on empty to exit' }]
   if (files.value.some(f => f.error)) return [{ text: 'remove the files that cannot be sent' }]
   if (uploading.value) return [{ text: `waiting for ${uploading.value} upload${uploading.value > 1 ? 's' : ''}` }]
