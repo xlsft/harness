@@ -18,6 +18,11 @@ import { RelayService } from "../../src/gen/harness/relay/v1/relay_pb.ts";
 import { SyncService } from "../../src/gen/harness/sync/v1/sync_pb.ts";
 import { UsageService } from "../../src/gen/harness/llm/v1/usage_pb.ts";
 import { VcsService } from "../../src/gen/harness/vcs/v1/vcs_pb.ts";
+import { ArtifactService } from "../../src/gen/harness/library/v1/artifacts_pb.ts";
+import { KnowledgeService } from "../../src/gen/harness/library/v1/knowledge_pb.ts";
+import { TrackerService } from "../../src/gen/harness/library/v1/tracker_pb.ts";
+import { TranscriptSearchService } from "../../src/gen/harness/library/v1/transcripts_pb.ts";
+import { ObjectsService } from "../../src/gen/harness/objects/v1/objects_pb.ts";
 import { createTempDatabase, type TempDatabase } from "./pg.ts";
 
 const ROOT = resolve(import.meta.dirname, "../..");
@@ -36,6 +41,11 @@ export interface TestServer {
   mcp: Client<typeof McpService>;
   relay: Client<typeof RelayService>;
   vcs: Client<typeof VcsService>;
+  artifacts: Client<typeof ArtifactService>;
+  knowledge: Client<typeof KnowledgeService>;
+  tracker: Client<typeof TrackerService>;
+  transcripts: Client<typeof TranscriptSearchService>;
+  objects: Client<typeof ObjectsService>;
   /** Connect clients authenticated with the given access token. */
   as(token: string): {
     auth: Client<typeof DeviceAuthService>;
@@ -48,6 +58,11 @@ export interface TestServer {
     mcp: Client<typeof McpService>;
     relay: Client<typeof RelayService>;
     vcs: Client<typeof VcsService>;
+    artifacts: Client<typeof ArtifactService>;
+    knowledge: Client<typeof KnowledgeService>;
+    tracker: Client<typeof TrackerService>;
+    transcripts: Client<typeof TranscriptSearchService>;
+    objects: Client<typeof ObjectsService>;
   };
   close(): Promise<void>;
 }
@@ -111,6 +126,11 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       mcp: createClient(McpService, transport),
       relay: createClient(RelayService, transport),
       vcs: createClient(VcsService, transport),
+      artifacts: createClient(ArtifactService, transport),
+      knowledge: createClient(KnowledgeService, transport),
+      tracker: createClient(TrackerService, transport),
+      transcripts: createClient(TranscriptSearchService, transport),
+      objects: createClient(ObjectsService, transport),
     };
   };
 

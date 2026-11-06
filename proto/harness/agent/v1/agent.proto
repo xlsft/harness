@@ -1509,6 +1509,9 @@ message UserPreferences {
   // The skills and custom commands the user turned off, by name (settings key disabledSkills). A name the current folder
   // doesn't have stays on the list, so a skill keeps its switch from one project and machine to the next.
   repeated string disabled_skills = 12;
+  // Let the agent keep memory files per project and load their index into new sessions (settings key autoMemoryEnabled).
+  // Default true. Off, nothing is loaded or written; what is stored stays until the user deletes it (Settings > Memory).
+  bool auto_memory_enabled = 24;
 }
 
 // One switch of the Customize screen.
@@ -1542,6 +1545,7 @@ message UpdateUserPreferencesRequest {
   optional bool hooks_enabled = 10;
   // Flips one name on UserPreferences.disabled_skills, keeping the others. INVALID_ARGUMENT for an empty name.
   optional SkillSwitch skill_switch = 12;
+  optional bool auto_memory_enabled = 24;
 }
 
 message UpdateUserPreferencesResponse {

@@ -8131,8 +8131,11 @@ type UserPreferences struct {
 	// The skills and custom commands the user turned off, by name (settings key disabledSkills). A name the current folder
 	// doesn't have stays on the list, so a skill keeps its switch from one project and machine to the next.
 	DisabledSkills []string `protobuf:"bytes,12,rep,name=disabled_skills,json=disabledSkills,proto3" json:"disabled_skills,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Let the agent keep memory files per project and load their index into new sessions (settings key autoMemoryEnabled).
+	// Default true. Off, nothing is loaded or written; what is stored stays until the user deletes it (Settings > Memory).
+	AutoMemoryEnabled bool `protobuf:"varint,24,opt,name=auto_memory_enabled,json=autoMemoryEnabled,proto3" json:"auto_memory_enabled,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *UserPreferences) Reset() {
@@ -8240,6 +8243,13 @@ func (x *UserPreferences) GetDisabledSkills() []string {
 		return x.DisabledSkills
 	}
 	return nil
+}
+
+func (x *UserPreferences) GetAutoMemoryEnabled() bool {
+	if x != nil {
+		return x.AutoMemoryEnabled
+	}
+	return false
 }
 
 // One switch of the Customize screen.
@@ -8394,9 +8404,10 @@ type UpdateUserPreferencesRequest struct {
 	Sandbox      *SandboxPreferences `protobuf:"bytes,9,opt,name=sandbox,proto3,oneof" json:"sandbox,omitempty"`
 	HooksEnabled *bool               `protobuf:"varint,10,opt,name=hooks_enabled,json=hooksEnabled,proto3,oneof" json:"hooks_enabled,omitempty"`
 	// Flips one name on UserPreferences.disabled_skills, keeping the others. INVALID_ARGUMENT for an empty name.
-	SkillSwitch   *SkillSwitch `protobuf:"bytes,12,opt,name=skill_switch,json=skillSwitch,proto3,oneof" json:"skill_switch,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	SkillSwitch       *SkillSwitch `protobuf:"bytes,12,opt,name=skill_switch,json=skillSwitch,proto3,oneof" json:"skill_switch,omitempty"`
+	AutoMemoryEnabled *bool        `protobuf:"varint,24,opt,name=auto_memory_enabled,json=autoMemoryEnabled,proto3,oneof" json:"auto_memory_enabled,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *UpdateUserPreferencesRequest) Reset() {
@@ -8504,6 +8515,13 @@ func (x *UpdateUserPreferencesRequest) GetSkillSwitch() *SkillSwitch {
 		return x.SkillSwitch
 	}
 	return nil
+}
+
+func (x *UpdateUserPreferencesRequest) GetAutoMemoryEnabled() bool {
+	if x != nil && x.AutoMemoryEnabled != nil {
+		return *x.AutoMemoryEnabled
+	}
+	return false
 }
 
 type UpdateUserPreferencesResponse struct {
@@ -11391,7 +11409,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x0fCATEGORY_SKILLS\x10\x05\x12$\n" +
 	" CATEGORY_MCP_SERVER_INSTRUCTIONS\x10\x06\x12\x1f\n" +
 	"\x1bCATEGORY_AUTOCOMPACT_BUFFER\x10\a\x12\x17\n" +
-	"\x13CATEGORY_FREE_SPACE\x10\b\"\xa8\x04\n" +
+	"\x13CATEGORY_FREE_SPACE\x10\b\"\xd8\x04\n" +
 	"\x0fUserPreferences\x122\n" +
 	"\x15compact_idle_sessions\x18\x01 \x01(\bR\x13compactIdleSessions\x128\n" +
 	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05R\x15prMonitorWakesPerHour\x12,\n" +
@@ -11405,13 +11423,14 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\asandbox\x18\t \x01(\v2$.harness.agent.v1.SandboxPreferencesR\asandbox\x12#\n" +
 	"\rhooks_enabled\x18\n" +
 	" \x01(\bR\fhooksEnabled\x12'\n" +
-	"\x0fdisabled_skills\x18\f \x03(\tR\x0edisabledSkills\";\n" +
+	"\x0fdisabled_skills\x18\f \x03(\tR\x0edisabledSkills\x12.\n" +
+	"\x13auto_memory_enabled\x18\x18 \x01(\bR\x11autoMemoryEnabled\";\n" +
 	"\vSkillSwitch\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\"\x1b\n" +
 	"\x19GetUserPreferencesRequest\"a\n" +
 	"\x1aGetUserPreferencesResponse\x12C\n" +
-	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xf9\x06\n" +
+	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xc6\a\n" +
 	"\x1cUpdateUserPreferencesRequest\x127\n" +
 	"\x15compact_idle_sessions\x18\x01 \x01(\bH\x00R\x13compactIdleSessions\x88\x01\x01\x12=\n" +
 	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05H\x01R\x15prMonitorWakesPerHour\x88\x01\x01\x121\n" +
@@ -11426,7 +11445,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\rhooks_enabled\x18\n" +
 	" \x01(\bH\tR\fhooksEnabled\x88\x01\x01\x12E\n" +
 	"\fskill_switch\x18\f \x01(\v2\x1d.harness.agent.v1.SkillSwitchH\n" +
-	"R\vskillSwitch\x88\x01\x01B\x18\n" +
+	"R\vskillSwitch\x88\x01\x01\x123\n" +
+	"\x13auto_memory_enabled\x18\x18 \x01(\bH\vR\x11autoMemoryEnabled\x88\x01\x01B\x18\n" +
 	"\x16_compact_idle_sessionsB\x1c\n" +
 	"\x1a_pr_monitor_wakes_per_hourB\x15\n" +
 	"\x13_subagent_max_depthB\x17\n" +
@@ -11438,7 +11458,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
 	"\b_sandboxB\x10\n" +
 	"\x0e_hooks_enabledB\x0f\n" +
-	"\r_skill_switch\"d\n" +
+	"\r_skill_switchB\x16\n" +
+	"\x14_auto_memory_enabled\"d\n" +
 	"\x1dUpdateUserPreferencesResponse\x12C\n" +
 	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xc9\x02\n" +
 	"\x0eBackgroundTask\x12\x17\n" +

@@ -1,0 +1,146 @@
+syntax = "proto3";
+
+package harness.library.v1;
+
+import "harness/common/v1/object.proto";
+
+// ArtifactService is served by core: pages and files published from sessions (the ArtifactPublish tool), kept apart from
+// the session that made them. The bytes live in the object store (harness.objects.v1, kind OBJECT_KIND_ARTIFACT); this
+// service keeps titles, versions and who may see them. Frontends reach it through their client (coreproxy.go).
+//
+// An artifact is private to its owner until the owner shares it with the server's other users. Bytes are read from
+// GET /api/artifacts/<id>/content[?version=N] on core (frontends: GET /artifacts/<id>?ticket=... on their client). The
+// answer always carries `Content-Security-Policy: sandbox allow-scripts` and blocks the network, so a page runs in an
+// opaque origin: it cannot reach the app's cookies, storage or API, whatever it contains.
+service ArtifactService {
+  // A new artifact, or with artifact_id a new version of one of the caller's.
+  rpc PublishArtifact(PublishArtifactRequest) returns (PublishArtifactResponse);
+  // The caller's artifacts and those shared with them, most recently updated first.
+  rpc ListArtifacts(ListArtifactsRequest) returns (ListArtifactsResponse);
+  // NOT_FOUND unless the caller owns it or it is shared.
+  rpc GetArtifact(GetArtifactRequest) returns (GetArtifactResponse);
+  // Owner only: title and visibility.
+  rpc UpdateArtifact(UpdateArtifactRequest) returns (UpdateArtifactResponse);
+  // Owner only: the artifact with all its versions.
+  rpc DeleteArtifact(DeleteArtifactRequest) returns (DeleteArtifactResponse);
+}
+
+enum ArtifactVisibility {
+  ARTIFACT_VISIBILITY_UNSPECIFIED = 0;
+  // Only its owner sees it. The default.
+  ARTIFACT_VISIBILITY_PRIVATE = 1;
+  // Every signed-in user of this server sees it under Shared and can open it.
+  ARTIFACT_VISIBILITY_SHARED = 2;
+}
+
+// How a frontend shows it, decided by core from the file's type.
+enum ArtifactKind {
+  ARTIFACT_KIND_UNSPECIFIED = 0;
+  // HTML, in a sandboxed frame.
+  ARTIFACT_KIND_PAGE = 1;
+  ARTIFACT_KIND_MARKDOWN = 2;
+  ARTIFACT_KIND_TEXT = 3;
+  ARTIFACT_KIND_IMAGE = 4;
+  ARTIFACT_KIND_PDF = 5;
+  // Offered as a download.
+  ARTIFACT_KIND_FILE = 6;
+}
+
+message ArtifactVersion {
+  // From 1.
+  int32 number = 1;
+  harness.common.v1.ObjectRef ref = 2;
+  // RFC 3339.
+  string created_at = 3;
+}
+
+message Artifact {
+  string id = 1;
+  string title = 2;
+  ArtifactKind kind = 3;
+  ArtifactVisibility visibility = 4;
+  // The caller owns it.
+  bool mine = 5;
+  // The owner's display name, for an artifact the owner shared. Empty for the caller's own.
+  string owner_name = 6;
+  // The session that first published it. Only the owner gets it.
+  string session_id = 7;
+  ArtifactVersion current = 8;
+  // RFC 3339.
+  string created_at = 9;
+  string updated_at = 10;
+}
+
+message PublishArtifactRequest {
+  // Empty: a new artifact.
+  string artifact_id = 1;
+  // Required for a new artifact; on a new version, empty keeps the title.
+  string title = 2;
+  // An object of the caller's, uploaded with kind OBJECT_KIND_ARTIFACT.
+  string sha256 = 3;
+  // File name, with the extension that says what it is.
+  string name = 4;
+  string content_type = 5;
+  string session_id = 6;
+}
+
+message PublishArtifactResponse {
+  Artifact artifact = 1;
+  // Publishing the bytes of the current version again adds no version.
+  bool unchanged = 2;
+}
+
+message ListArtifactsRequest {
+  enum Filter {
+    FILTER_UNSPECIFIED = 0;
+    // The caller's and shared ones.
+    FILTER_ALL = 1;
+    FILTER_MINE = 2;
+    // Others' shared ones.
+    FILTER_SHARED = 3;
+  }
+  Filter filter = 1;
+  // Substring of the title.
+  string query = 2;
+  // Only what this session of the caller's published.
+  string session_id = 3;
+  // Default 50, at most 200.
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListArtifactsResponse {
+  repeated Artifact artifacts = 1;
+  string next_page_token = 2;
+}
+
+message GetArtifactRequest {
+  string id = 1;
+  // 0: the current one. Which version `text` holds.
+  int32 version = 2;
+}
+
+message GetArtifactResponse {
+  Artifact artifact = 1;
+  // Newest first.
+  repeated ArtifactVersion versions = 2;
+  // The file itself when it is Markdown or plain text of at most 512 KiB.
+  string text = 3;
+}
+
+message UpdateArtifactRequest {
+  string id = 1;
+  optional string title = 2;
+  // UNSPECIFIED is refused.
+  optional ArtifactVisibility visibility = 3;
+}
+
+message UpdateArtifactResponse {
+  Artifact artifact = 1;
+}
+
+message DeleteArtifactRequest {
+  string id = 1;
+}
+
+message DeleteArtifactResponse {}
