@@ -12,10 +12,12 @@ import { eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { config } from "../env.ts";
 import { anthropicAdapter } from "../gateway/adapters/anthropic.ts";
+import { bedrockInvokeAdapter, vertexAnthropicAdapter } from "../gateway/adapters/cloud-anthropic.ts";
 import { openaiChatAdapter } from "../gateway/adapters/openai-chat.ts";
 import { openaiResponsesAdapter } from "../gateway/adapters/openai-responses.ts";
 import type { Adapter, AdapterTarget, UpstreamRequest } from "../gateway/adapters/types.ts";
 import { billedPricing, computeCost, emptyUsage, estimateTokens, mergeUsage } from "../gateway/cost.ts";
+import { authorize, CloudAuthError, forgetCloudToken } from "../gateway/cloud/credentials.ts";
 import { classifyHttpFailure, networkFailure } from "../gateway/errors.ts";
 import { computeFeatures, normalizeRequest } from "../gateway/features.ts";
 import type { CanonicalRequest, GatewayEvent, StopReason, UpstreamFailure, Usage } from "../gateway/types.ts";
@@ -26,6 +28,7 @@ import { guardedFetch } from "../lib/ssrf.ts";
 import { captureRateLimits } from "../limits/headers.ts";
 import type { Principal } from "./devices.ts";
 import { disableFeature, getDisabledFeatures, resolveModelForUser, type ModelEntry } from "./models.ts";
+import { modelTiers, tieredPricing, type BilledTier } from "./model-tiers.ts";
 import { billingOf } from "./presets.ts";
 import { loadProviderRuntime, redactSecrets, type ProviderType } from "./providers.ts";
 import { enforceQuotas } from "./quotas.ts";
@@ -34,6 +37,8 @@ const ADAPTERS: Record<ProviderType, Adapter> = {
   anthropic: anthropicAdapter,
   "openai-chat": openaiChatAdapter,
   "openai-responses": openaiResponsesAdapter,
+  "bedrock-invoke": bedrockInvokeAdapter,
+  "vertex-anthropic": vertexAnthropicAdapter,
 };
 
 /** Retry-after values above this are surfaced to the client instead of waited out. */
@@ -116,6 +121,7 @@ export async function* runMessages(
   let status: "ok" | "error" | "aborted" = "error";
   let stopReason: StopReason | null = null;
   let errorType: string | undefined;
+  let billedTier: BilledTier | undefined;
 
   /** One upstream attempt; yields client events, returns the outcome. */
   async function* attempt(model: ModelEntry): AsyncGenerator<GatewayEvent, AttemptResult> {
@@ -126,6 +132,15 @@ export async function* runMessages(
     const sent = adapter.buildRequest(req, target);
     usage = emptyUsage();
     debugUpstream(sent.url, sent.body);
+    const payload = JSON.stringify(sent.body);
+    // The price of the tier that was actually asked for: negotiation may have dropped it.
+    billedTier =
+      features.speed || features.cacheTtl
+        ? {
+            multiplier: features.speed && modelTiers({ presetId: provider.presetId ?? null, type: provider.type, upstreamModel: model.upstreamModel, promptCache: model.capabilities.prompt_cache }).speed_multipliers[features.speed],
+            cacheTtl: features.cacheTtl,
+          }
+        : undefined;
 
     // The client's keepalive pings must not keep a stalled upstream alive: an upstream silent for
     // upstreamIdleTimeoutMs (before the headers or between body chunks) fails the attempt, which is retried
@@ -147,16 +162,20 @@ export async function* runMessages(
     try {
       let res;
       try {
+        const headers = provider.cloud ? await authorize(provider.cloud, { method: "POST", url: sent.url, headers: sent.headers, body: payload }) : sent.headers;
         res = await guardedFetch(sent.url, {
           method: "POST",
-          headers: sent.headers,
-          body: JSON.stringify(sent.body),
+          headers,
+          body: payload,
           signal: signal ? AbortSignal.any([signal, idle.signal]) : idle.signal,
           allowPrivateNetwork: provider.allowPrivateNetwork,
         });
       } catch (err) {
         if (signal?.aborted) throw err;
         if (idle.signal.aborted) return stalled();
+        if (err instanceof CloudAuthError) {
+          return { ok: false, failure: { type: err.retryable ? "upstream" : "permission", message: err.message, retryable: err.retryable }, committed: false, sent, target };
+        }
         if (err instanceof ApiError) {
           return { ok: false, failure: { type: "upstream", message: err.message, retryable: false }, committed: false, sent, target };
         }
@@ -165,6 +184,8 @@ export async function* runMessages(
       // Rate-limit windows ride on every response, a 429 included (limits/headers.ts).
       captureRateLimits(provider.id, res.headers);
       if (!res.ok || !res.body) {
+        // A token the upstream refuses may have been revoked: the next request gets a new one.
+        if (provider.cloud && (res.status === 401 || res.status === 403)) forgetCloudToken(provider.cloud);
         const text = await res.text().catch(() => "");
         return { ok: false, failure: classifyHttpFailure(res.status, res.headers, text), committed: false, sent, target };
       }
@@ -219,7 +240,7 @@ export async function* runMessages(
               if (ev.stop_reason === "stop_sequence" && ev.stop_sequence) delta.stop_sequence = ev.stop_sequence;
               yield { event: "message_delta", data: { type: "message_delta", delta, usage: { ...usage } } };
               const harness: Record<string, unknown> = {
-                cost_usd: computeCost(usage, billedPricing(model.pricing, provider.billing)),
+                cost_usd: computeCost(usage, tieredPricing(billedPricing(model.pricing, provider.billing), billedTier)),
                 upstream_model: model.upstreamModel,
                 retries,
                 // Catalog alias that answered; differs from req.model after a fallback.
@@ -321,6 +342,7 @@ export async function* runMessages(
       stopReason,
       errorType: status === "ok" ? undefined : errorType,
       durationMs: Date.now() - startedAt,
+      tier: billedTier,
     }).catch((e) => console.error("[harness] failed to record usage", e));
   }
 }
@@ -348,11 +370,12 @@ async function recordUsage(r: {
   stopReason: StopReason | null;
   errorType?: string;
   durationMs: number;
+  tier?: BilledTier;
 }) {
   await ensureDb();
   // A subscription / coding plan provider's requests count tokens only (services/presets.ts billing).
   const provider = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, r.model.providerId) });
-  const pricing = billedPricing(r.model.pricing, provider ? billingOf(provider) : "metered");
+  const pricing = tieredPricing(billedPricing(r.model.pricing, provider ? billingOf(provider) : "metered"), r.tier);
   await getDb()
     .insert(schema.usageRecord)
     .values({
@@ -391,10 +414,11 @@ export async function countTokens(principal: Principal, body: unknown): Promise<
   if (adapter.buildCountTokens) {
     const up = adapter.buildCountTokens(req, target);
     try {
+      const countBody = JSON.stringify(up.body);
       const res = await guardedFetch(up.url, {
         method: "POST",
-        headers: up.headers,
-        body: JSON.stringify(up.body),
+        headers: provider.cloud ? await authorize(provider.cloud, { method: "POST", url: up.url, headers: up.headers, body: countBody }) : up.headers,
+        body: countBody,
         allowPrivateNetwork: provider.allowPrivateNetwork,
         signal: AbortSignal.timeout(30_000),
       });

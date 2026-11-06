@@ -176,6 +176,7 @@ export function toOpenAIBody(req: CanonicalRequest, target: AdapterTarget): Reco
     }
   }
   if (f.effort) body.reasoning_effort = f.effort;
+  if (f.speed) body.service_tier = f.speed === "fast" ? "priority" : f.speed;
   if (req.temperature !== undefined) body.temperature = req.temperature;
   if (req.top_p !== undefined) body.top_p = req.top_p;
   if (req.stop_sequences?.length) body.stop = req.stop_sequences;
@@ -432,6 +433,7 @@ export const openaiChatAdapter: Adapter = {
     const msgs = (sent.body.messages as OAMessage[]) ?? [];
     if (/reasoning_content/i.test(m) && msgs.some((x) => x.role === "assistant" && x.reasoning_content)) return "thinking";
     if (sent.body.reasoning_effort && /reasoning|effort/i.test(m)) return "effort";
+    if (sent.body.service_tier && /service.?tier/i.test(m)) return "speed";
     if (sent.body.stream_options && /stream_options|include_usage/i.test(m)) return "stream_usage";
     if (sent.body.max_tokens !== undefined && /max_completion_tokens/i.test(m)) return "max_tokens_param";
     if (sent.body.parallel_tool_calls !== undefined && /parallel_tool_calls/i.test(m)) return "parallel_tool_calls";

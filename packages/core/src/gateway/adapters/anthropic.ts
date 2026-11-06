@@ -12,6 +12,7 @@ import { joinUrl, type Adapter, type AdapterTarget, type UpstreamRequest } from 
 
 export const ANTHROPIC_VERSION = "2023-06-01";
 const MAX_CACHE_BREAKPOINTS = 4;
+const FAST_MODE_BETA = "fast-mode-2026-02-01";
 
 const IMAGE_OMITTED = "[image omitted: the selected model does not accept images]";
 const PDF_OMITTED = "[document omitted: the selected model does not accept PDF documents]";
@@ -32,7 +33,8 @@ export function toAnthropicBody(req: CanonicalRequest, target: AdapterTarget): R
   const cacheMark = (cache: unknown): Record<string, unknown> => {
     if (cache === true && f.cache && breakpoints < MAX_CACHE_BREAKPOINTS) {
       breakpoints++;
-      return { cache_control: { type: "ephemeral" } };
+      // Five minutes is the default and is left unsaid, so a request with no choice stays byte for byte what it was.
+      return { cache_control: { type: "ephemeral", ...(f.cacheTtl === "1h" && { ttl: "1h" }) } };
     }
     return {};
   };
@@ -106,6 +108,7 @@ export function toAnthropicBody(req: CanonicalRequest, target: AdapterTarget): R
   if (req.tool_choice && tools && tools.length) body.tool_choice = req.tool_choice;
   if (f.thinking && req.thinking && req.thinking.type !== "disabled") body.thinking = req.thinking;
   if (f.effort) body.output_config = { effort: f.effort };
+  if (f.speed === "fast") body.speed = "fast";
   if (req.temperature !== undefined) body.temperature = req.temperature;
   if (req.top_p !== undefined) body.top_p = req.top_p;
   if (req.top_k !== undefined) body.top_k = req.top_k;
@@ -119,6 +122,7 @@ function headers(target: AdapterTarget): Record<string, string> {
     "content-type": "application/json",
     accept: "text/event-stream",
     "anthropic-version": ANTHROPIC_VERSION,
+    ...(target.features.speed === "fast" && { "anthropic-beta": FAST_MODE_BETA }),
   };
   if (target.provider.apiKey) h["x-api-key"] = target.provider.apiKey;
   return { ...h, ...target.provider.headers };
@@ -197,6 +201,8 @@ export const anthropicAdapter: Adapter = {
     if (/signature/i.test(m)) return undefined; // bad thinking signature in history: not a capability issue
     if (sent.body.thinking && /thinking/i.test(m)) return "thinking";
     if (sent.body.output_config && /effort|output_config/i.test(m)) return "effort";
+    if (sent.body.speed && /speed|fast/i.test(m)) return "speed";
+    if (features.cacheTtl && /\bttl\b/i.test(m)) return "cache_ttl";
     if (features.cache && /cache_control/i.test(m)) return "cache_control";
     if (Array.isArray(sent.body.system) && /system/i.test(m)) return "system_blocks";
     return undefined;

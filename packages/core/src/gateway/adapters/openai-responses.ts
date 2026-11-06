@@ -160,6 +160,8 @@ export function toResponsesBody(req: CanonicalRequest, target: AdapterTarget): R
     if (Object.keys(reasoning).length) body.reasoning = reasoning;
   }
   if (f.thinking && f.include) body.include = ["reasoning.encrypted_content"];
+  if (f.speed) body.service_tier = f.speed === "fast" ? "priority" : f.speed;
+  if (f.cacheTtl === "24h") body.prompt_cache_retention = "24h";
 
   if (req.tools?.length) {
     body.tools = req.tools.map((t) => ({
@@ -390,6 +392,8 @@ export const openaiResponsesAdapter: Adapter = {
     const reasoning = sent.body.reasoning as Record<string, unknown> | undefined;
     if (sent.body.include && /include|encrypted_content/i.test(m)) return "include";
     if (reasoning?.effort && /effort/i.test(m)) return "effort";
+    if (sent.body.service_tier && /service.?tier/i.test(m)) return "speed";
+    if (sent.body.prompt_cache_retention && /retention/i.test(m)) return "cache_ttl";
     if (reasoning && /reasoning|summary/i.test(m)) return "reasoning";
     if (sent.body.parallel_tool_calls !== undefined && /parallel_tool_calls/i.test(m)) return "parallel_tool_calls";
     return undefined;
