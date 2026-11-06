@@ -117,7 +117,7 @@ const notifications = computed({
       aria-label="Settings sections"
       class="flex w-[200px] shrink-0 flex-col gap-[2px] overflow-y-auto border-r border-line p-3 max-md:w-full max-md:flex-row max-md:flex-wrap max-md:border-r-0 max-md:border-b"
     >
-      <label class="mb-2 flex h-8 items-center gap-2 border border-line px-2.5 text-muted focus-within:border-accent max-md:w-full">
+      <label class="mb-2 flex h-9 items-center gap-2 border border-line px-2.5 text-muted focus-within:border-accent max-md:w-full">
         <HIcon
           name="search"
           :size="13"
