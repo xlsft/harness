@@ -583,6 +583,7 @@ func TestDiagnoseLinuxWordings(t *testing.T) {
 		{"no route", bwrap, "curl: (7) Failed to connect to 1.1.1.1 port 443: Network is unreachable", "direct network"},
 		{"no name", bwrap, "curl: (6) Could not resolve host: example.com", "direct network"},
 		{"own loopback", bwrap, "curl: (7) Failed to connect to localhost port 3000: Connection refused", "loopback of its own"},
+		{"over a mount", bwrap, "mv: cannot move 'x' to '" + filepath.Join(work, ".git", "config") + "': Device or resource busy", "programs run"},
 		{"landlock file", landlock, "sh: 1: cannot create " + outside + ": Permission denied", outside},
 		{"landlock port", landlock, "dial tcp 1.2.3.4:443: connect: permission denied", "direct network"},
 		{"landlock local port", landlock, "dial tcp 127.0.0.1:80: connect: permission denied", "local port"},

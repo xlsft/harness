@@ -3492,6 +3492,9 @@ func rawFallback(src string) []hit {
 var gitInternalRe = jsRe(`(^|\/)\.git\/(hooks|config)(\/|$)`)
 
 func evaluateTool(tool string, input map[string]any, ctx *rulesCtx, facts RulesFacts, adminAllowed bool) RulesResult {
+	if tool == "PowerShell" && !adminAllowed {
+		return ask("Runs a PowerShell command, which these rules do not read", "ask.powershell")
+	}
 	if tool == "Workflow" {
 		return ask("Starts a script that runs many agents", "ask.workflow")
 	}

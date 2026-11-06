@@ -13,7 +13,8 @@ import (
 // answer. A "Permission denied" on a path the policy allows is the file's own mode, and no business of the sandbox.
 //
 // On Linux the kernel words it differently, which the same reading covers: a read-only bind mount gives EROFS, Landlock
-// gives EACCES, a masked store is missing or unreadable, and a network namespace has no route.
+// gives EACCES, renaming over a mounted file gives EBUSY, a masked store is missing or unreadable, and a network namespace has
+// no route.
 
 // BlockedHosts are the hosts the proxy refused since this command started.
 func (w *Wrapped) BlockedHosts() []string {
@@ -25,6 +26,8 @@ func (w *Wrapped) BlockedHosts() []string {
 
 var (
 	refusedRe = regexp.MustCompile(`(?i)operation not permitted|\bEPERM\b|permission denied|\bEACCES\b|read-only file system|\bEROFS\b`)
+	// Renaming over a file that a bind mount protects. Elsewhere it is a file in use, and no business of the sandbox.
+	busyRe = regexp.MustCompile(`(?i)device or resource busy|\bEBUSY\b`)
 	// What a masked credential store looks like, once the path is known to be one.
 	missingRe = regexp.MustCompile(`(?i)no such file or directory|\bENOENT\b|not a directory`)
 	// Landlock's refused connect.
@@ -168,13 +171,14 @@ func (w *Wrapped) readLines(d *Denial, output, cwd string) {
 			}
 			continue
 		}
-		if !refusedRe.MatchString(line) {
+		busy := w.Policy.GuardNames && busyRe.MatchString(line)
+		if !refusedRe.MatchString(line) && !busy {
 			w.readMasked(d, line, cwd)
 			continue
 		}
 		lower := strings.ToLower(line)
 		// What only the sandbox says for writes. Under Landlock its refusal is also the file's own mode's, so the policy decides.
-		eperm := strings.Contains(lower, "not permitted") || strings.Contains(line, "EPERM") || strings.Contains(lower, "read-only file system") || strings.Contains(line, "EROFS") || w.Policy.FilesByPermission
+		eperm := strings.Contains(lower, "not permitted") || strings.Contains(line, "EPERM") || strings.Contains(lower, "read-only file system") || strings.Contains(line, "EROFS") || w.Policy.FilesByPermission || busy
 		named := false
 		for _, m := range pathWordRe.FindAllStringSubmatch(line, -1) {
 			p := m[1]
@@ -197,7 +201,7 @@ func (w *Wrapped) readLines(d *Denial, output, cwd string) {
 			}
 			named = true
 		}
-		refused = refused || (eperm && !named)
+		refused = refused || (eperm && !named && !busy)
 	}
 	d.Unnamed = refused && len(d.Paths) == 0 && !d.Network && !d.Local && !d.SSH
 	if d.Unnamed {

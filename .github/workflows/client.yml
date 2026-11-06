@@ -42,6 +42,78 @@ jobs:
       - name: Test
         run: go test -race ./...
 
+  # The Linux command sandbox against a real kernel, under each backend. HARNESS_SANDBOX_REQUIRE makes a backend that does not
+  # work here a failure, where a machine without one only skips.
+  sandbox-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        working-directory: packages/client
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: packages/client/go.mod
+          cache-dependency-path: packages/client/go.sum
+
+      # Ubuntu's AppArmor refuses unprivileged user namespaces to programs without a profile, bwrap among them.
+      - name: Let bubblewrap make its namespaces
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bubblewrap
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: What this machine allows
+        run: |
+          uname -r
+          cat /sys/kernel/security/lsm || true
+          bwrap --version
+
+      - name: Test both backends on the machine
+        env:
+          HARNESS_SANDBOX_REQUIRE: bubblewrap,landlock
+        run: go test -race -count=1 -v -run 'Linux' ./sandbox ./tools
+
+      # Where it will mostly run: a default container refuses new namespaces, which leaves Landlock, and nothing there was
+      # set up for the sandbox.
+      - name: Test in a default container
+        run: |
+          CGO_ENABLED=0 go test -c -o "$RUNNER_TEMP/sandbox.test" ./sandbox
+          docker run --rm -v "$RUNNER_TEMP/sandbox.test:/sandbox.test:ro" -e HARNESS_SANDBOX_REQUIRE=landlock ubuntu:24.04 sh -c '
+            apt-get update -qq && apt-get install -y -qq curl python3 git procps >/dev/null &&
+            /sandbox.test -test.count=1 -test.v -test.run Linux'
+
+  # The PowerShell tool against real PowerShell, and everything of the client compiling and vetting on Windows.
+  powershell-windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        working-directory: packages/client
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: packages/client/go.mod
+          cache-dependency-path: packages/client/go.sum
+
+      - name: Vet
+        run: go vet ./sandbox ./tools
+
+      - name: Test
+        run: go test -count=1 -v -run 'PowerShell|Stub' ./tools ./sandbox
+
   # Keeps every platform compiling. Only macOS goes out in a release, through .goreleaser.yaml.
   build:
     needs: ci

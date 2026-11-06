@@ -35,6 +35,7 @@ What the bundle covers today, and what it deliberately leaves out.
 | MCP: ToolSearch, the per-server authenticate tool (`McpAuthenticate`) | `tools/ToolSearch/`, `tools/McpAuthenticate/` | written |
 | Web: WebSearch, WebFetch | `tools/WebSearch/`, `tools/WebFetch/` | written |
 | Library: Memory, ArtifactPublish, KnowledgeSearch, KnowledgeRead, TaskTracker, NotebookRun | `tools/<Name>/` | written |
+| PowerShell | `tools/PowerShell/` | written |
 | Computer use: ComputerApps, ComputerAccess, ComputerScreenshot, ComputerClick, ComputerDrag, ComputerScroll, ComputerType, ComputerKey, ComputerActivate, ComputerFind, ComputerMenu, ComputerBatch | `tools/Computer*/` | written |
 | Terminal: TerminalList, TerminalRead, TerminalRun, TerminalOpen, TerminalStop | `tools/Terminal*/` | written |
 | Browser: BrowserNavigate, BrowserSnapshot, BrowserClick, BrowserType, BrowserKey, BrowserScroll, BrowserScreenshot, BrowserEval, BrowserTabs, BrowserConsole, BrowserNetwork, BrowserWait | `tools/Browser*/` | written |
@@ -237,6 +238,12 @@ Parameter names and schemas stay compatible with the client (`packages/client/to
 1. NBRUN-1. Fresh kernel each run; with a cell, runs from the start through it. Why: there is no long-lived kernel to hold state between calls.
 2. NBRUN-2. Goes through the permission check and sandbox as Bash. Why: it is arbitrary code.
 3. NBRUN-3. Ask before installing missing Jupyter packages. Why: it changes the user's environment.
+
+### 3.7h PowerShell
+
+1. PWSH-1. Offered only where Bash is not the shell. Why: on Windows, without it, a model has no native way to run a command.
+2. PWSH-2. Says it is a new process each call, with the working directory carrying over, and that the time limits and background rules are Bash's. Why: the same `Shell` runs it.
+3. PWSH-3. Says every call asks unless a rule names PowerShell. Why: the Bash rules read POSIX shell, so they cannot approve this.
 
 ### 3.8 TodoWrite
 

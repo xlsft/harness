@@ -651,7 +651,7 @@ func (e *Engine) IsDisabled(tool string) bool {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	for _, r := range e.deny {
-		if r.Spec == "" && r.toolMatches(tool, false) {
+		if r.Spec == "" && (r.toolMatches(tool, false) || (r.Tool == "Bash" && tool == "PowerShell")) {
 			return true
 		}
 	}

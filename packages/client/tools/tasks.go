@@ -138,22 +138,22 @@ func (m *TaskManager) outputFile(id string) (*os.File, string, error) {
 // Start runs command in the background through the session shell (its cwd
 // and snapshot; cwd changes made by the command do not persist).
 func (m *TaskManager) Start(sh *Shell, command, description, toolUseID string, timeout time.Duration) (TaskInfo, error) {
-	return m.start(sh, command, description, toolUseID, timeout, confineCommand)
+	return m.start(sh, command, description, toolUseID, timeout, confineCommand, "")
 }
 
 // StartOutside is Start outside the OS sandbox, for a call whose permission check approved that.
 func (m *TaskManager) StartOutside(sh *Shell, command, description, toolUseID string, timeout time.Duration) (TaskInfo, error) {
-	return m.start(sh, command, description, toolUseID, timeout, unconfined)
+	return m.start(sh, command, description, toolUseID, timeout, unconfined, "")
 }
 
-func (m *TaskManager) start(sh *Shell, command, description, toolUseID string, timeout time.Duration, how confinement) (TaskInfo, error) {
+func (m *TaskManager) start(sh *Shell, command, description, toolUseID string, timeout time.Duration, how confinement, interpreter string) (TaskInfo, error) {
 	id := newTaskID()
 	f, path, err := m.outputFile(id)
 	if err != nil {
 		return TaskInfo{}, err
 	}
 	cwd := sh.Cwd()
-	cmd, wrapped := sh.command(command, "", cwd, how)
+	cmd, wrapped := sh.command(command, "", cwd, how, interpreter)
 	cmd.Stdout, cmd.Stderr = f, f
 	if err := cmd.Start(); err != nil {
 		f.Close()

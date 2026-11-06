@@ -588,10 +588,10 @@ func toolSummary(name string, input []byte, cwd string) string {
 	switch name {
 	case "Read", "Write", "Edit":
 		return name + " " + rel(tools.FilePath(input))
-	case "Bash":
+	case "Bash", tools.PowerShellToolName:
 		c := tools.BashCommand(input)
 		c = truncateRunes(c, 80)
-		return "Bash " + c
+		return name + " " + c
 	case "Glob", "Grep":
 		return name + " " + jsonField(input, "pattern")
 	case "Agent":

@@ -173,6 +173,8 @@ type ExecOptions struct {
 	OnOutput func(stream int, p []byte)
 	// Confine runs the command in the session's OS sandbox: what the model chose. What the user typed does not.
 	Confine bool
+	// Interpreter runs the command in PowerShell, at this path, and not in the session's shell.
+	Interpreter string
 }
 
 // switchWriter captures stdout/stderr in memory until the command is moved
@@ -285,7 +287,7 @@ func (s *Shell) BackgroundToolCall(toolUseID, reason string) bool {
 // it (same shell, PATH and environment), as the leader of a new process group, under the sandbox's policy for servers. The
 // caller owns the process.
 func (s *Shell) Command(command, cwd string) *exec.Cmd {
-	cmd, _ := s.command(command, "", cwd, confineServer)
+	cmd, _ := s.command(command, "", cwd, confineServer, "")
 	return cmd
 }
 
@@ -301,19 +303,25 @@ const (
 // command builds the shell process for a command line (not started). With a sandbox that applies, it also returns what
 // explains the command's failures. A sandbox that should apply and cannot means the process does nothing but say so: the
 // command must not run without it, and every caller already shows what a failed command printed.
-func (s *Shell) command(command, cwdFile, cwd string, how confinement) (*exec.Cmd, *sandbox.Wrapped) {
-	snap := s.snapshot()
-	var script strings.Builder
-	if snap != "" {
-		script.WriteString(". " + shellQuote(snap) + " >/dev/null 2>&1\n")
+func (s *Shell) command(command, cwdFile, cwd string, how confinement, interpreter string) (*exec.Cmd, *sandbox.Wrapped) {
+	var argv []string
+	if interpreter != "" {
+		argv = powerShellArgv(interpreter)
+	} else {
+		snap := s.snapshot()
+		var script strings.Builder
+		if snap != "" {
+			script.WriteString(". " + shellQuote(snap) + " >/dev/null 2>&1\n")
+		}
+		if s.kind == "bash" {
+			script.WriteString("shopt -s expand_aliases 2>/dev/null\n")
+		}
+		script.WriteString(`__harness_cmd=$__HARNESS_CMD; __harness_cwd=$__HARNESS_CWD_FILE; unset __HARNESS_CMD __HARNESS_CWD_FILE` + "\n")
+		script.WriteString(`if [ -n "$__harness_cwd" ]; then trap 'pwd -P > "$__harness_cwd" 2>/dev/null' EXIT; fi` + "\n")
+		script.WriteString(`eval "$__harness_cmd"` + "\n")
+		argv = []string{s.path, "-c", script.String()}
 	}
-	if s.kind == "bash" {
-		script.WriteString("shopt -s expand_aliases 2>/dev/null\n")
-	}
-	script.WriteString(`__harness_cmd=$__HARNESS_CMD; __harness_cwd=$__HARNESS_CWD_FILE; unset __HARNESS_CMD __HARNESS_CWD_FILE` + "\n")
-	script.WriteString(`if [ -n "$__harness_cwd" ]; then trap 'pwd -P > "$__harness_cwd" 2>/dev/null' EXIT; fi` + "\n")
-	script.WriteString(`eval "$__harness_cmd"` + "\n")
-	argv := []string{s.path, "-c", script.String()}
+	refused := ""
 	var wrapped *sandbox.Wrapped
 	if how != unconfined {
 		kind := sandbox.KindCommand
@@ -322,6 +330,8 @@ func (s *Shell) command(command, cwdFile, cwd string, how confinement) (*exec.Cm
 		}
 		w, err := s.env.Sandbox.Wrap(sandbox.Request{Kind: kind, WorkDirs: s.env.WorkingDirs(), ScratchDir: s.env.ScratchDir}, argv)
 		switch {
+		case err != nil && interpreter != "":
+			argv, refused = powerShellRefusal(interpreter), err.Error()
 		case err != nil:
 			argv = []string{s.path, "-c", `printf 'harness: %s\n' "$1" >&2; exit 126`, "sh", err.Error()}
 		case w != nil:
@@ -342,6 +352,9 @@ func (s *Shell) command(command, cwdFile, cwd string, how confinement) (*exec.Cm
 		"HARNESS=1",
 		"GIT_EDITOR=true",
 	)
+	if refused != "" {
+		cmd.Env = append(cmd.Env, "__HARNESS_REFUSED="+refused)
+	}
 	setProcessGroup(cmd)
 	cmd.WaitDelay = 2 * time.Second
 	return cmd, wrapped
@@ -385,7 +398,7 @@ func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecRes
 	if o.Confine {
 		how = confineCommand
 	}
-	cmd, wrapped := s.command(command, cwdFile, cwd, how)
+	cmd, wrapped := s.command(command, cwdFile, cwd, how, o.Interpreter)
 	sw := &switchWriter{onOutput: o.OnOutput}
 	cmd.Stdout, cmd.Stderr = swStream{sw, 0}, swStream{sw, 1}
 	if err := cmd.Start(); err != nil {
@@ -655,29 +668,55 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 	if strings.TrimSpace(in.Description) == "" {
 		return ErrorResult("InputValidationError: description is required: a noun phrase of 2 to 6 words naming what the command works on or produces")
 	}
+	timeout, requested := shellTimeout(in.Timeout)
+	return runShellTool(ctx, env, call, shellRun{Command: in.Command, Description: in.Description, Timeout: timeout, Requested: requested,
+		Background: in.RunInBackground, Outside: in.RunOutsideSandbox, TrackReads: true})
+}
+
+// shellTimeout returns the time limit of a call and what the call asked for (0: nothing).
+func shellTimeout(ms *float64) (timeout, requested time.Duration) {
 	maxT := envDuration("BASH_MAX_TIMEOUT_MS", BashMaxTimeout)
 	defT := envDuration("BASH_DEFAULT_TIMEOUT_MS", BashDefaultTimeout)
 	if defT > maxT {
 		maxT = defT
 	}
-	timeout := defT
-	var requested time.Duration
-	if in.Timeout != nil && *in.Timeout > 0 {
-		requested = time.Duration(*in.Timeout) * time.Millisecond
+	timeout = defT
+	if ms != nil && *ms > 0 {
+		requested = time.Duration(*ms) * time.Millisecond
 		timeout = requested
 	}
 	if timeout > maxT {
 		timeout = maxT
 	}
-	if in.RunInBackground {
+	return timeout, requested
+}
+
+// shellRun is a validated call of a shell tool.
+type shellRun struct {
+	Command, Description string
+	Timeout, Requested   time.Duration
+	Background, Outside  bool
+	// TrackReads counts `cat` and the like as reads: it parses POSIX shell.
+	TrackReads bool
+	// Interpreter is ExecOptions'.
+	Interpreter string
+}
+
+// runShellTool runs a call of Bash or PowerShell and words its result.
+func runShellTool(ctx context.Context, env *Env, call Call, in shellRun) Result {
+	timeout := in.Timeout
+	if in.Background {
 		if env.Tasks == nil {
 			return ErrorResult("Background commands are not available in this session. Run the command in the foreground.")
 		}
-		start := env.Tasks.Start
-		if in.RunOutsideSandbox {
-			start = env.Tasks.StartOutside
+		start := func(sh *Shell, command, description, toolUseID string, timeout time.Duration) (TaskInfo, error) {
+			how := confineCommand
+			if in.Outside {
+				how = unconfined
+			}
+			return env.Tasks.start(sh, command, description, toolUseID, timeout, how, in.Interpreter)
 		}
-		info, err := start(env.Shell, in.Command, in.Description, call.ID, requested)
+		info, err := start(env.Shell, in.Command, in.Description, call.ID, in.Requested)
 		if err != nil {
 			return ErrorResult("failed to start background command: %v", err)
 		}
@@ -686,12 +725,12 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 			msg += "\n" + backgroundCwdNote(env.Shell.Cwd())
 		}
 		structured := map[string]any{"stdout": "", "stderr": "", "interrupted": false, "backgroundTaskId": info.ID, "outputFile": info.OutputPath, "backgroundReason": BackgroundAgent}
-		markOutsideSandbox(env, in.RunOutsideSandbox, structured)
+		markOutsideSandbox(env, in.Outside, structured)
 		r := TextResult(msg, structured)
 		r.Summary = "Started background task " + info.ID
 		return r
 	}
-	res, err := env.Shell.Run(ctx, in.Command, ExecOptions{Timeout: timeout, Tasks: env.Tasks, AutoBackground: true, Description: in.Description, ToolUseID: call.ID, Confine: !in.RunOutsideSandbox})
+	res, err := env.Shell.Run(ctx, in.Command, ExecOptions{Timeout: timeout, Tasks: env.Tasks, AutoBackground: true, Description: in.Description, ToolUseID: call.ID, Confine: !in.Outside, Interpreter: in.Interpreter})
 	if err != nil {
 		return ErrorResult("failed to run command: %v", err)
 	}
@@ -701,7 +740,7 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 			msg += "\n" + backgroundCwdNote(res.StartCwd)
 		}
 		structured := map[string]any{"stdout": res.Stdout, "stderr": res.Stderr, "interrupted": false, "backgroundTaskId": bg.ID, "outputFile": bg.OutputPath, "backgroundReason": res.BackgroundReason}
-		markOutsideSandbox(env, in.RunOutsideSandbox, structured)
+		markOutsideSandbox(env, in.Outside, structured)
 		r := TextResult(msg, structured)
 		r.Summary = "Moved to background task " + bg.ID
 		return r
@@ -710,7 +749,7 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 		"stdout": res.Stdout, "stderr": res.Stderr, "interrupted": res.Interrupted,
 		"exitCode": res.ExitCode,
 	}
-	markOutsideSandbox(env, in.RunOutsideSandbox, structured)
+	markOutsideSandbox(env, in.Outside, structured)
 
 	out := strings.TrimRight(res.Stdout, "\n")
 	if e := strings.TrimRight(res.Stderr, "\n"); e != "" {
@@ -734,7 +773,7 @@ func (*Bash) Run(ctx context.Context, env *Env, call Call) Result {
 			notes = append(notes, fmt.Sprintf("Exit code %d", res.ExitCode))
 		}
 	}
-	if !isErr && res.ExitCode == 0 {
+	if in.TrackReads && !isErr && res.ExitCode == 0 {
 		trackBashReads(env, res.StartCwd, in.Command)
 	}
 	if res.Truncated {

@@ -406,6 +406,7 @@ func TestLinuxExitCodeAndArgs(t *testing.T) {
 
 // The driver of a tool kills the process group, and nothing it started may stay, in the namespace or out of it.
 func TestLinuxKillLeavesNothing(t *testing.T) {
+	need(t, "pgrep")
 	forBackends(t, func(t *testing.T, b *lbox) {
 		mark := "31" + strconv.Itoa(os.Getpid())
 		c := b.cmd(KindCommand, "sleep "+mark+" & sleep "+mark+"; wait")

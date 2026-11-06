@@ -80,7 +80,7 @@ Nothing here changes the workflow yet. What it takes (#5):
 
 1. **`.goreleaser.yaml`:** add `linux` and `windows` to `goos`. Keep `CGO_ENABLED=0`: the sandbox helper uses no cgo, and the static binary is also what runs inside `bwrap`, whatever libc the image has. Windows archives are `.zip` (`format_overrides`).
 2. **`client-archives` in `release.yml`:** its artifact paths name `dist/*.tar.gz`; add `dist/*.zip`. `.sbom.json` already follows the archives.
-3. **`scripts/release/assemble.sh` and `harness-client update`:** the updater looks for a darwin archive by name. It needs the platform in that lookup, a way to replace a running `.exe` (rename it aside first), and `checksums.txt` covering the new files.
+3. **`scripts/release/assemble.sh` and `harness-client update`:** `selfupdate.ArchiveName` already has the platform in it, and `.tar.gz` fixed: Windows needs its `.zip` there and in the unpacking, and a way to replace a running `.exe` (rename it aside first). `checksums.txt` has to cover the new files.
 4. **`docs/release.md`:** the table of platforms, and that the Linux sandbox wants `bubblewrap` (a package dependency in `.deb`/`.rpm`, a note for tar archives).
 5. **The terminal frontend (`packages/cli`)** has no goreleaser entry on any platform; it is a separate decision.
 6. **Desktop (`desktop.yml`):** Tauri bundles for Linux and Windows have config but no job. They need runners of those platforms and Windows code signing, which has no secret yet. The sidecar client it bundles has to be built per target.

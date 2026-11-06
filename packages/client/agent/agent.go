@@ -1402,6 +1402,9 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 						return req, hinted, fmt.Sprintf("%s cannot run a command in this session: Bash is disabled.", u.Name)
 					}
 				}
+				if u.Name == tools.PowerShellToolName && a.cfg.DisabledTools["Bash"] {
+					return req, hinted, u.Name + " cannot run a command in this session: Bash is disabled."
+				}
 				if u.Name == "Bash" {
 					req.Command = tools.BashCommand(input)
 					req.OutsideSandbox = tools.WantsOutsideSandbox(input)
