@@ -60,12 +60,12 @@ const shortTags = computed(() => compactTags(props.tags ?? []))
     <span class="w-[64px] shrink-0 text-right text-[11.5px] text-muted max-sm:hidden">{{ date }}</span>
     <RowMenu
       :items="items"
-      :label="`Actions for ${name}`"
+      :label="tt('Actions for {0}', [name])"
       align="end"
     >
       <button
         type="button"
-        :aria-label="`Actions for ${name}`"
+        :aria-label="tt('Actions for {0}', [name])"
         class="flex size-7 shrink-0 cursor-pointer items-center justify-center text-muted hover:text-strong"
       >
         <HIcon

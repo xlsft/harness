@@ -13,6 +13,7 @@
 // - sessions on ACP agents (engine 'acp:<id>', ~/lib/acp/mock.ts) stream a reply with an Edit tool call behind a
 //   permission request; a claude-acp session waits for a sign-in first, codex reports subscription limits.
 
+import { MockSshApi } from '~/lib/ssh'
 import { MockVcsApi } from '~/lib/vcs/mock'
 import { SlashCommandResult_Action } from '~/gen/harness/agent/v1/slash_commands_pb'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
@@ -175,7 +176,7 @@ export class MockTransport implements SessionTransport {
   private disabledSkills = new Set<string>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
-  private preferences: UserPreferences = { autoMemoryEnabled: true, compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: true, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20 }
+  private preferences: UserPreferences = { autoMemoryEnabled: true, compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: true, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20, modelTuning: { speedTier: '', cacheTtl: '', advisorModel: '' } }
   private hookTrusted = false
   private deviceSettings: DeviceSettings = { theme: '', notifications: true }
   private tick: number
@@ -425,6 +426,11 @@ export class MockTransport implements SessionTransport {
   private terminalsApi = new MockTerminalsApi({ sessionCwd: id => this.sessions.get(id)?.info.cwd })
   terminals() {
     return this.terminalsApi
+  }
+
+  private sshApi = new MockSshApi()
+  ssh() {
+    return this.sshApi
   }
 
   private browserApi = new MockBrowserApi()

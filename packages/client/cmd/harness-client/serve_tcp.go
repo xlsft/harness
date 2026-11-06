@@ -90,6 +90,7 @@ func serveListeners(ctx context.Context, srv *server.Server, socket string, t *t
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	exitWithParent(ctx, cancel)
+	exitWithStdin(ctx, cancel)
 	var (
 		wg       sync.WaitGroup
 		mu       sync.Mutex

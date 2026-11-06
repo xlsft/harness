@@ -31,7 +31,7 @@ const blocked = computed(() => !!props.item.refusal)
       <span class="truncate text-[12.5px] text-strong">{{ item.name }}</span>
       <span class="line-clamp-2 text-[12px] leading-[1.45] text-muted">{{ item.refusal || item.description || item.problem }}</span>
       <span class="mt-auto flex flex-wrap items-center gap-x-2 pt-1 text-[11.5px] text-muted">
-        <span v-if="item.publisher">by {{ item.publisher }}</span>
+        <span v-if="item.publisher">{{ tt('by {0}', [item.publisher]) }}</span>
         <span v-if="installs">{{ installs }}</span>
         <span
           v-if="audit"
@@ -55,7 +55,7 @@ const blocked = computed(() => !!props.item.refusal)
       type="button"
       class="flex size-7 shrink-0 items-center justify-center border border-default text-strong hover:bg-raised disabled:cursor-not-allowed disabled:text-disabled"
       :class="!blocked && 'cursor-pointer'"
-      :aria-label="`Add ${item.name}`"
+      :aria-label="tt('Add {0}', [item.name])"
       :disabled="blocked"
       @click.stop="emit('add')"
     >

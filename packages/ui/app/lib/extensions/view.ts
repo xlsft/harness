@@ -1,5 +1,6 @@
 // How the Extensions screen narrows and words what the client sent. Nothing here decides what exists or what may run.
 
+import { tt } from '~/utils/i18n'
 import type { SkillAudit } from '~/gen/harness/skills/v1/search_pb'
 import { SlashCommandKind } from '~/gen/harness/agent/v1/slash_commands_pb'
 import { ConnectorStatus, type ExtensionConnector, type ExtensionPluginGroupVM, type ExtensionPluginVM, type ExtensionSkill, type ExtensionSkillGroup, type ExtensionType, type ExtensionView } from './types'
@@ -12,15 +13,15 @@ export interface StatusView {
 }
 
 const STATUS: Record<ConnectorStatus, StatusView> = {
-  [ConnectorStatus.UNSPECIFIED]: { label: 'Unknown', tone: 'muted' },
-  [ConnectorStatus.CONNECTED]: { label: 'Connected', tone: 'ok' },
-  [ConnectorStatus.NEEDS_SIGN_IN]: { label: 'Needs sign-in', tone: 'warn' },
-  [ConnectorStatus.IN_SESSIONS]: { label: 'Connects in sessions', tone: 'muted' },
-  [ConnectorStatus.NEEDS_APPROVAL]: { label: 'Needs approval', tone: 'warn' },
-  [ConnectorStatus.NEEDS_TRUST]: { label: 'Folder not trusted', tone: 'muted' },
-  [ConnectorStatus.OFF]: { label: 'Off', tone: 'muted' },
-  [ConnectorStatus.BLOCKED]: { label: 'Blocked by policy', tone: 'muted' },
-  [ConnectorStatus.ERROR]: { label: 'Error', tone: 'bad' }
+  [ConnectorStatus.UNSPECIFIED]: { label: tt('Unknown'), tone: 'muted' },
+  [ConnectorStatus.CONNECTED]: { label: tt('Connected'), tone: 'ok' },
+  [ConnectorStatus.NEEDS_SIGN_IN]: { label: tt('Needs sign-in'), tone: 'warn' },
+  [ConnectorStatus.IN_SESSIONS]: { label: tt('Connects in sessions'), tone: 'muted' },
+  [ConnectorStatus.NEEDS_APPROVAL]: { label: tt('Needs approval'), tone: 'warn' },
+  [ConnectorStatus.NEEDS_TRUST]: { label: tt('Folder not trusted'), tone: 'muted' },
+  [ConnectorStatus.OFF]: { label: tt('Off'), tone: 'muted' },
+  [ConnectorStatus.BLOCKED]: { label: tt('Blocked by policy'), tone: 'muted' },
+  [ConnectorStatus.ERROR]: { label: tt('Error'), tone: 'bad' }
 }
 
 export function connectorStatus(s: ConnectorStatus): StatusView {
@@ -50,10 +51,8 @@ export function shortDate(iso: string, now = new Date()): string {
 export function installsLabel(n: bigint | number): string {
   const v = Number(n)
   if (!v) return ''
-  const unit = v === 1 ? 'install' : 'installs'
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1).replace(/\.0$/, '')}M ${unit}`
-  if (v >= 1000) return `${(v / 1000).toFixed(1).replace(/\.0$/, '')}K ${unit}`
-  return `${v} ${unit}`
+  const count = v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1).replace(/\.0$/, '')}M` : v >= 1000 ? `${(v / 1000).toFixed(1).replace(/\.0$/, '')}K` : String(v)
+  return v === 1 ? tt('{0} install', [count]) : tt('{0} installs', [count])
 }
 
 const AUDIT_RANK: Record<string, number> = { fail: 0, warn: 1, pass: 2 }
@@ -62,7 +61,7 @@ const AUDIT_RANK: Record<string, number> = { fail: 0, warn: 1, pass: 2 }
 export function auditSummary(audits: readonly Pick<SkillAudit, 'status'>[]): StatusView | null {
   if (!audits.length) return null
   const worst = [...audits].map(a => a.status.toLowerCase()).sort((a, b) => (AUDIT_RANK[a] ?? 1) - (AUDIT_RANK[b] ?? 1))[0]!
-  return { label: `Audit: ${worst}`, tone: worst === 'pass' ? 'ok' : worst === 'fail' ? 'bad' : 'warn' }
+  return { label: tt('Audit: {0}', [worst]), tone: worst === 'pass' ? 'ok' : worst === 'fail' ? 'bad' : 'warn' }
 }
 
 export function auditTone(status: string): Tone {
@@ -154,8 +153,8 @@ export function narrowConnectors(list: readonly ExtensionConnector[], f: Connect
 export function providedBy(c: Pick<ExtensionConnector, 'providers'>): string {
   const names = [...new Set(c.providers.map(p => p.pluginName))]
   if (!names.length) return ''
-  if (names.length === 1) return `Provided by the ${names[0]} plugin`
-  return `Provided by the ${names.slice(0, -1).join(', ')} and ${names.at(-1)} plugins`
+  if (names.length === 1) return tt('Provided by the {0} plugin', [names[0]])
+  return tt('Provided by the {0} and {1} plugins', [names.slice(0, -1).join(', '), names.at(-1)])
 }
 
 /** First tag, and how many more: rows stay one line. */

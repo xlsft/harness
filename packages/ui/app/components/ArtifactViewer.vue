@@ -24,7 +24,7 @@ const draftTitle = ref('')
 const kind = computed(() => artifact.value?.kind ?? ArtifactKind.UNSPECIFIED)
 const view = computed(() => ARTIFACT_VIEW[kind.value])
 const shared = computed(() => artifact.value?.visibility === ArtifactVisibility.SHARED)
-const versionOptions = computed(() => versions.value.map(v => ({ value: String(v.number), label: `Version ${v.number}`, hint: timeAgo(v.createdAt) })))
+const versionOptions = computed(() => versions.value.map(v => ({ value: String(v.number), label: tt('Version {0}', [v.number]), hint: timeAgo(v.createdAt) })))
 
 function clearBlob() {
   if (blobUrl.value) URL.revokeObjectURL(blobUrl.value)
@@ -117,13 +117,13 @@ const remove = () => act(async () => {
 
 <template>
   <section
-    aria-label="Artifact"
+    :aria-label="tt('Artifact')"
     class="flex h-full min-h-0 flex-col bg-default"
   >
     <div class="flex min-h-[44px] shrink-0 flex-wrap items-center gap-2 border-b border-line px-3.5 py-1.5">
       <PaneBtn
         icon="arrow-left"
-        label="Back"
+        :label="tt('Back')"
         @click="emit('close')"
       />
       <span
@@ -143,7 +143,7 @@ const remove = () => act(async () => {
       >
         <input
           v-model="draftTitle"
-          aria-label="Title"
+          :aria-label="tt('Title')"
           class="min-w-0 flex-1 border border-line bg-transparent px-2 py-0.5 text-[13px] text-strong outline-none focus:border-accent"
         >
         <HBtn
@@ -151,47 +151,47 @@ const remove = () => act(async () => {
           variant="primary"
           type="submit"
         >
-          Save
+          {{ tt('Save') }}
         </HBtn>
         <HBtn
           size="sm"
           variant="ghost"
           @click="renaming = false"
         >
-          Cancel
+          {{ tt('Cancel') }}
         </HBtn>
       </form>
       <span
         v-else
         class="min-w-0 flex-1 truncate font-display text-[13.5px] text-strong"
       >
-        {{ artifact?.title ?? 'Artifact' }}
+        {{ artifact?.title ?? tt('Artifact') }}
         <span
           v-if="artifact && !artifact.mine"
           class="ml-1 text-[11.5px] text-muted"
-        >by {{ artifact.ownerName || 'someone else' }}</span>
+        >{{ tt('by {0}', [artifact.ownerName || 'someone else']) }}</span>
       </span>
       <HSelect
         v-if="versions.length > 1"
         v-model="shownVersion"
         class="w-[150px]"
         :options="versionOptions"
-        aria-label="Version"
+        :aria-label="tt('Version')"
       />
       <template v-if="artifact?.mine && !renaming">
         <HBtn
           size="sm"
           @click="startRename"
         >
-          Rename
+          {{ tt('Rename') }}
         </HBtn>
         <label class="flex items-center gap-1.5 text-[12px] text-toned">
           <HToggle
             :model-value="shared"
-            label="Share with everyone on this server"
+            :label="tt('Share with everyone on this server')"
             @update:model-value="toggleShared"
           />
-          {{ shared ? 'Shared on this server' : 'Private' }}
+          {{ shared ? tt('Shared on this server') : tt('Private') }}
         </label>
       </template>
       <HBtn
@@ -199,7 +199,7 @@ const remove = () => act(async () => {
         size="sm"
         @click="download"
       >
-        Download
+        {{ tt('Download') }}
       </HBtn>
       <HBtn
         v-if="artifact?.mine"
@@ -207,7 +207,7 @@ const remove = () => act(async () => {
         tone="danger"
         @click="remove"
       >
-        {{ confirming ? 'Delete for good' : 'Delete' }}
+        {{ confirming ? tt('Delete for good') : tt('Delete') }}
       </HBtn>
     </div>
 
@@ -223,7 +223,7 @@ const remove = () => act(async () => {
       v-if="!artifact"
       class="flex flex-1 items-center justify-center text-[12.5px] text-muted"
     >
-      {{ error ? '' : 'Loading' }}
+      {{ error ? '' : tt('Loading') }}
     </div>
     <iframe
       v-else-if="kind === ArtifactKind.PAGE && url"
@@ -265,7 +265,7 @@ const remove = () => act(async () => {
       class="flex flex-1 flex-col items-center justify-center gap-2 text-[12.5px] text-muted"
     >
       <span>{{ artifact.current?.ref?.name }} · {{ formatSize(artifact.current?.ref?.size ?? 0n) }}</span>
-      <span>This file is not shown here. Download it to open it.</span>
+      <span>{{ tt('This file is not shown here. Download it to open it.') }}</span>
     </div>
   </section>
 </template>

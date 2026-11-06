@@ -126,11 +126,11 @@ const NuxtLink = resolveComponent('NuxtLink')
 
 // `soon`: not built yet; the row shows a badge and does nothing.
 const nav = [
-  { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts' },
-  { label: 'Scheduled', icon: 'clock' as const, to: '/scheduled' },
-  { label: 'Extensions', icon: 'sliders' as const, to: '/extensions' },
-  { label: 'Knowledge base', icon: 'page' as const, to: '/knowledge' },
-  { label: 'Task tracker', icon: 'tasks' as const, to: '/tracker' }
+  { label: tt('Artifacts'), icon: 'copy' as const, to: '/artifacts' },
+  { label: tt('Scheduled'), icon: 'clock' as const, to: '/scheduled' },
+  { label: tt('Extensions'), icon: 'sliders' as const, to: '/extensions' },
+  { label: tt('Knowledge base'), icon: 'page' as const, to: '/knowledge' },
+  { label: tt('Task tracker'), icon: 'tasks' as const, to: '/tracker' }
 ]
 const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
 </script>
@@ -159,7 +159,7 @@ const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
       // The border is the divider; the handle only widens the grab area and lights up while used.
       handle: 'relative z-10 -ml-px w-px bg-transparent transition-colors hover:bg-primary data-[dragging=true]:bg-primary'
     }"
-    aria-label="Sessions"
+    :aria-label="tt('Sessions')"
   >
     <!-- Top row: drags the window in the desktop app, and leaves room for the macOS window buttons there. -->
     <div
@@ -173,7 +173,7 @@ const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
       />
       <HIconBtn
         icon="sidebar"
-        label="Toggle sidebar"
+        :label="tt('Toggle sidebar')"
         kbd="meta+b"
         @click="collapsed = !collapsed; open = false"
       />
@@ -185,14 +185,14 @@ const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
         class="nav-row px-[9px] hover:bg-hover text-strong"
         @click.prevent="newSession()"
       >
-        <HIcon name="plus" />New session<span class="flex-1" /><HKeys keys="meta+n" />
+        <HIcon name="plus" />{{ tt('New session') }}<span class="flex-1" /><HKeys keys="meta+n" />
       </a>
       <a
         href="#"
         class="nav-row px-[9px] hover:bg-hover text-strong"
         @click.prevent="searchOpen = true; open = false"
       >
-        <HIcon name="search" />Search<span class="flex-1" /><HKeys keys="meta+k" />
+        <HIcon name="search" />{{ tt('Search') }}<span class="flex-1" /><HKeys keys="meta+k" />
       </a>
       <component
         :is="NuxtLink"
@@ -231,8 +231,8 @@ const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
           <button
             v-if="g.cwd || g.chats"
             type="button"
-            :aria-label="g.chats ? 'New session without a folder' : `New session in ${g.name}`"
-            :title="g.chats ? 'New session without a folder' : `New session in ${g.cwd}`"
+            :aria-label="g.chats ? tt('New session without a folder') : tt('New session in {0}', [g.name])"
+            :title="g.chats ? tt('New session without a folder') : tt('New session in {0}', [g.cwd])"
             class="flex size-5 shrink-0 items-center justify-center text-muted hover:bg-hover hover:text-strong"
             @click="newSession(g.cwd || undefined)"
           >
@@ -250,7 +250,7 @@ const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
             v-if="renaming === s.meta.id"
             v-model="draft"
             data-rename
-            aria-label="Session title"
+            :aria-label="tt('Session title')"
             class="mx-[2px] h-7 border border-accent bg-default px-[7px] text-[12.5px] text-strong outline-none"
             :style="depth ? { marginLeft: `${2 + depth * STEP}px` } : undefined"
             @keydown.enter.prevent="finishRename(true)"
@@ -278,7 +278,7 @@ const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
             <button
               v-if="children"
               type="button"
-              :aria-label="isFolded ? `Show ${children} sub-sessions` : `Hide ${children} sub-sessions`"
+              :aria-label="isFolded ? tt('Show {0} sub-sessions', [children]) : tt('Hide {0} sub-sessions', [children])"
               :aria-expanded="!isFolded"
               class="-ml-[3px] flex size-4 shrink-0 items-center justify-center text-muted hover:text-strong"
               @click.stop.prevent="toggleFold(s.meta.id)"
@@ -331,7 +331,7 @@ const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
           href="#"
           class="nav-row px-[9px] hover:bg-hover text-[11px] text-muted"
           @click.prevent="expanded[g.key] = true"
-        >Show more</a>
+        >{{ tt('Show more') }}</a>
       </section>
     </div>
     <button
@@ -341,7 +341,7 @@ const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
       @click="settings.open('about'); open = false"
     >
       <span class="size-1.5 shrink-0 bg-accent" />
-      <span class="truncate">{{ update.phase.value === 'installed' ? 'Restart to update' : 'Update available' }} · v{{ update.version.value }}</span>
+      <span class="truncate">{{ tt('{0} · v{1}', [update.phase.value === 'installed' ? tt('Restart to update') : tt('Update available'), update.version.value]) }}</span>
     </button>
 
     <template #footer>
@@ -369,7 +369,7 @@ const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
       <span class="flex-1" />
       <HIconBtn
         icon="settings"
-        label="Settings"
+        :label="tt('Settings')"
         kbd="meta+,"
         :pressed="onSettings"
         @click="settings.open(); open = false"

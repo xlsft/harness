@@ -13,7 +13,7 @@ const noun = computed(() => ({ skills: 'skills', plugins: 'plugins', connectors:
     data-project-row
   >
     <h2 class="m-0 text-[13px] font-medium text-strong">
-      In this project
+      {{ tt('In this project') }}
     </h2>
     <button
       v-if="!cwd"
@@ -28,8 +28,8 @@ const noun = computed(() => ({ skills: 'skills', plugins: 'plugins', connectors:
         />
       </span>
       <span class="flex min-w-0 flex-col gap-0.5">
-        <span class="text-[12.5px] text-strong">Open folder…</span>
-        <span class="truncate text-[12px] text-muted">Choose the folder you work in to see its {{ noun }}.</span>
+        <span class="text-[12.5px] text-strong">{{ tt('Open folder…') }}</span>
+        <span class="truncate text-[12px] text-muted">{{ tt('Choose the folder you work in to see its {0}.', [noun]) }}</span>
       </span>
     </button>
     <div
@@ -48,27 +48,27 @@ const noun = computed(() => ({ skills: 'skills', plugins: 'plugins', connectors:
       <span
         v-if="!trusted"
         class="text-warn"
-      >{{ waiting ? `Not trusted: its ${noun} wait for that` : 'Not trusted' }}</span>
+      >{{ waiting ? tt('Not trusted: its {0} wait for that', [noun]) : tt('Not trusted') }}</span>
       <HBtn
         v-if="!trusted"
         size="xs"
         @click="emit('trust')"
       >
-        Trust this folder
+        {{ tt('Trust this folder') }}
       </HBtn>
       <HBtn
         size="xs"
         tone="muted"
         @click="emit('open')"
       >
-        Change
+        {{ tt('Change') }}
       </HBtn>
       <HBtn
         size="xs"
         tone="muted"
         @click="emit('close')"
       >
-        Close
+        {{ tt('Close') }}
       </HBtn>
     </div>
   </div>

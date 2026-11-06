@@ -68,6 +68,11 @@ func resetsIn(d time.Duration) string { return time.Now().Add(d).UTC().Format(ti
 
 const farReset = "2099-01-01T00:00:00Z"
 
+// holdReset is when a limit resets in the tests that wait for it. It must lie past what a test does first (reach the limit, set
+// a switch, queue a message), or the reset is probed while the fake provider still refuses and the retry comes after the test gave
+// up. Two seconds was too near on a loaded machine with the race detector on.
+const holdReset = 6 * time.Second
+
 func startHold(t *testing.T, limits func(string) *llmv1.ProviderLimits, tune func(*holdRig), srvmods ...func(*server.Server)) *holdRig {
 	t.Helper()
 	rig := &holdRig{limits: &modelLimits{limits: limits}}
@@ -300,7 +305,7 @@ func TestModelSwitchToProviderAlsoRefusing(t *testing.T) {
 }
 
 func TestHeldReleasedAtResetWithoutAutoContinue(t *testing.T) {
-	resets := resetsIn(2 * time.Second)
+	resets := resetsIn(holdReset)
 	rig := startHold(t, func(string) *llmv1.ProviderLimits { return window("a", 100, resets) }, nil)
 	sid, ch := rig.reach(t)
 	if u := rig.info(sid).GetUsageLimit(); u.GetResetsAt() != resets || u.GetAutoContinue() {
@@ -328,7 +333,7 @@ func TestHeldReleasedAtResetWithoutAutoContinue(t *testing.T) {
 }
 
 func TestResetOffDoesNothingButClear(t *testing.T) {
-	resets := resetsIn(2 * time.Second)
+	resets := resetsIn(holdReset)
 	rig := startHold(t, func(string) *llmv1.ProviderLimits { return window("a", 100, resets) }, nil)
 	sid, ch := rig.reach(t)
 	rig.refuse.Store(false)
@@ -341,7 +346,7 @@ func TestResetOffDoesNothingButClear(t *testing.T) {
 }
 
 func TestAutoContinueInterrupted(t *testing.T) {
-	resets := resetsIn(2 * time.Second)
+	resets := resetsIn(holdReset)
 	rig := startHold(t, func(string) *llmv1.ProviderLimits { return window("a", 100, resets) }, nil)
 	sid, ch := rig.reach(t)
 	rig.setAuto(sid, true)
@@ -368,7 +373,7 @@ func TestAutoContinueInterrupted(t *testing.T) {
 }
 
 func TestAutoContinueWithHeldMessages(t *testing.T) {
-	resets := resetsIn(2 * time.Second)
+	resets := resetsIn(holdReset)
 	rig := startHold(t, func(string) *llmv1.ProviderLimits { return window("a", 100, resets) }, nil)
 	sid, ch := rig.reach(t)
 	rig.setAuto(sid, true)
@@ -453,7 +458,7 @@ func TestSendNowOnHeldMessage(t *testing.T) {
 }
 
 func TestResetStillRefusedStaysHeld(t *testing.T) {
-	resets := resetsIn(2 * time.Second)
+	resets := resetsIn(holdReset)
 	rig := startHold(t, func(string) *llmv1.ProviderLimits { return window("a", 100, resets) }, nil, tunedWatch(100*time.Millisecond))
 	sid, ch := rig.reach(t)
 	rig.sendID(sid, "m2", "second", agentv1.SendUserMessageRequest_DELIVERY_QUEUE)

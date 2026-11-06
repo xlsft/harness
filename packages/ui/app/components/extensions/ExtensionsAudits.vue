@@ -15,7 +15,7 @@ defineProps<{ audits: readonly SkillAudit[] }>()
       v-if="!audits.length"
       class="m-0 text-warn"
     >
-      The source has no audit of this skill. That isn't a pass.
+      {{ tt('The source has no audit of this skill. That isn\'t a pass.') }}
     </p>
     <div
       v-for="a in audits"

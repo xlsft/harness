@@ -38,12 +38,12 @@ async function loadMore(cursor: string, key: string) {
       v-if="data?.registryProblem"
       class="m-0 flex items-center gap-2 border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-[12.5px] text-toned"
     >
-      <span class="flex-1">{{ data.registryProblem }} What you see is what was saved.</span>
+      <span class="flex-1">{{ tt('{0} What you see is what was saved.', [data.registryProblem]) }}</span>
       <HBtn
         size="xs"
         @click="emit('refresh')"
       >
-        Try again
+        {{ tt('Try again') }}
       </HBtn>
     </p>
     <p
@@ -56,7 +56,7 @@ async function loadMore(cursor: string, key: string) {
       v-if="data?.externalBlockedByPolicy && type === 'skills'"
       class="m-0 border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-[12.5px] text-toned"
     >
-      Your administrator turned external skill search off.
+      {{ tt('Your administrator turned external skill search off.') }}
     </p>
 
     <div
@@ -71,7 +71,7 @@ async function loadMore(cursor: string, key: string) {
           name="arrow-left"
           :size="11"
         />
-        All
+        {{ tt('All') }}
       </HBtn>
       <span
         v-if="category"
@@ -82,12 +82,12 @@ async function loadMore(cursor: string, key: string) {
     <!-- A flat band in the accent's colour: no picture, no gradient. -->
     <section
       v-if="data?.featured"
-      aria-label="Featured"
+      :aria-label="tt('Featured')"
       class="flex flex-wrap items-center gap-x-6 gap-y-3 bg-accent/15 px-5 py-5"
       data-featured
     >
       <div class="flex min-w-0 flex-1 basis-[320px] flex-col gap-1">
-        <span class="text-[11.5px] text-accent">{{ data.featured.sourceLabel === 'Default catalog' ? 'From the default catalog' : 'From the catalog' }}</span>
+        <span class="text-[11.5px] text-accent">{{ data.featured.sourceLabel === 'Default catalog' ? tt('From the default catalog') : tt('From the catalog') }}</span>
         <h2 class="m-0 text-[18px] font-semibold text-strong">
           {{ data.featured.name }}
         </h2>
@@ -100,7 +100,7 @@ async function loadMore(cursor: string, key: string) {
         size="md"
         @click="emit('add', data.featured)"
       >
-        Add
+        {{ tt('Add') }}
       </HBtn>
     </section>
 
@@ -121,7 +121,7 @@ async function loadMore(cursor: string, key: string) {
         <span
           v-if="s.key === 'registry' && fetched"
           class="text-[11px] text-muted"
-        >fetched {{ fetched }}</span>
+        >{{ tt('fetched {0}', [fetched]) }}</span>
         <span class="flex-1" />
         <button
           v-if="!section && !query && s.key !== 'results' && (s.total > s.items.length || s.nextCursor)"
@@ -129,7 +129,7 @@ async function loadMore(cursor: string, key: string) {
           class="flex cursor-pointer items-center gap-1 text-[12px] text-muted hover:text-strong"
           @click="emit('section', s.key)"
         >
-          Show all
+          {{ tt('Show all') }}
           <HIcon
             name="arrow-right"
             :size="12"
@@ -154,7 +154,7 @@ async function loadMore(cursor: string, key: string) {
           :disabled="more === s.key"
           @click="loadMore(s.nextCursor, s.key)"
         >
-          Show more
+          {{ tt('Show more') }}
         </HBtn>
       </div>
     </section>
@@ -166,7 +166,7 @@ async function loadMore(cursor: string, key: string) {
     >
       <div class="flex items-center">
         <h2 class="m-0 flex-1 text-[13px] font-medium text-strong">
-          Categories
+          {{ tt('Categories') }}
         </h2>
         <button
           v-if="data.categories.length > CATEGORY_ROWS"
@@ -175,7 +175,7 @@ async function loadMore(cursor: string, key: string) {
           :aria-expanded="allCategories"
           @click="allCategories = !allCategories"
         >
-          {{ allCategories ? 'Show fewer' : `Show all ${data.categories.length}` }}
+          {{ allCategories ? tt('Show fewer') : tt('Show all {0}', [data.categories.length]) }}
           <HIcon
             :name="allCategories ? 'up' : 'down'"
             :size="12"
@@ -200,7 +200,7 @@ async function loadMore(cursor: string, key: string) {
       v-if="nothing"
       class="m-0 text-[12.5px] text-muted"
     >
-      {{ query || category ? 'Nothing matches.' : 'Nothing to show here yet. Add a marketplace to see what it offers.' }}
+      {{ query || category ? tt('Nothing matches.') : tt('Nothing to show here yet. Add a marketplace to see what it offers.') }}
     </p>
     <HLoader
       v-if="loading"

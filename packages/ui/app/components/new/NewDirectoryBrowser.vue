@@ -47,7 +47,7 @@ const join = (dir: string, name: string) => dir === '/' ? `/${name}` : `${dir}/$
       <input
         v-model="typed"
         spellcheck="false"
-        aria-label="Path"
+        :aria-label="tt('Path')"
         class="min-w-0 flex-1 bg-transparent text-strong outline-none"
       >
       <HKeys keys="enter" />
@@ -80,7 +80,7 @@ const join = (dir: string, name: string) => dir === '/' ? `/${name}` : `${dir}/$
         v-if="listing && !listing.entries.length"
         class="px-2.5 py-1.5 text-muted"
       >
-        No subfolders
+        {{ tt('No subfolders') }}
       </div>
       <div
         v-if="error"
@@ -96,7 +96,7 @@ const join = (dir: string, name: string) => dir === '/' ? `/${name}` : `${dir}/$
         class="h-7 border border-default px-2.5 text-toned hover:text-strong"
         @click="emit('close')"
       >
-        Cancel
+        {{ tt('Cancel') }}
       </button>
       <button
         type="button"
@@ -104,7 +104,7 @@ const join = (dir: string, name: string) => dir === '/' ? `/${name}` : `${dir}/$
         class="h-7 bg-accent px-2.5 text-on-accent disabled:opacity-50"
         @click="emit('pick', listing?.path ?? typed.trim())"
       >
-        Use this folder
+        {{ tt('Use this folder') }}
       </button>
     </div>
   </div>

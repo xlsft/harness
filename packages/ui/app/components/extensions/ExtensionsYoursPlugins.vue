@@ -22,7 +22,7 @@ function statusOf(p: PluginVM): StatusView | null {
   switch (p.status) {
     case 'active': return null
     case 'disabled': return { label: statusLabel(p.status), tone: 'muted' }
-    case 'blocked_by_policy': return { label: 'Blocked by your administrator', tone: 'muted' }
+    case 'blocked_by_policy': return { label: tt('Blocked by your administrator'), tone: 'muted' }
     case 'broken':
     case 'changed_on_disk': return { label: statusLabel(p.status), tone: 'bad' }
     default: return { label: statusLabel(p.status), tone: 'warn' }
@@ -32,21 +32,21 @@ function statusOf(p: PluginVM): StatusView | null {
 function menu(row: ExtensionPluginVM): (RowMenuItem | null)[] {
   const p = row.plugin
   if (p.status === 'not_installed') {
-    return [{ label: 'Open', run: () => emit('open', row) }, { label: 'Install', run: () => props.act(() => api().install(p.id, props.cwd), `Installed ${p.id}. Nothing of it runs until you approve it.`) }]
+    return [{ label: tt('Open'), run: () => emit('open', row) }, { label: tt('Install'), run: () => props.act(() => api().install(p.id, props.cwd), tt('Installed {0}. Nothing of it runs until you approve it.', [p.id])) }]
   }
   const items: (RowMenuItem | null)[] = [
-    { label: p.approved ? 'Open' : 'Open and approve', run: () => emit('open', row) },
-    { label: p.enabled ? 'Turn off' : 'Turn on', disabled: p.managed, run: () => props.act(() => api().setEnabled(p.id, !p.enabled)) },
-    { label: 'Update', run: () => props.act(async () => {
+    { label: p.approved ? tt('Open') : tt('Open and approve'), run: () => emit('open', row) },
+    { label: p.enabled ? tt('Turn off') : tt('Turn on'), disabled: p.managed, run: () => props.act(() => api().setEnabled(p.id, !p.enabled)) },
+    { label: tt('Update'), run: () => props.act(async () => {
       const res = await api().update(p.id, props.cwd)
       return res.changed ? `${p.id} is now ${res.plugin?.version}. Read what it holds and approve it again.` : res.note
     }) },
-    { label: p.pinned ? 'Unpin' : 'Pin this version', run: () => props.act(() => api().setPinned(p.id, !p.pinned)) }
+    { label: p.pinned ? tt('Unpin') : tt('Pin this version'), run: () => props.act(() => api().setPinned(p.id, !p.pinned)) }
   ]
-  if (row.folder && isDesktop()) items.push({ label: 'Show in folder', run: () => revealInFolder(row.folder) })
+  if (row.folder && isDesktop()) items.push({ label: tt('Show in folder'), run: () => revealInFolder(row.folder) })
   if (!p.managed) {
-    items.push(null, { label: 'Remove', run: () => {
-      if (window.confirm(`Remove ${p.id} and its data folder?`)) return props.act(() => api().remove(p.id, false))
+    items.push(null, { label: tt('Remove'), run: () => {
+      if (window.confirm(tt('Remove {0} and its data folder?', [p.id]))) return props.act(() => api().remove(p.id, false))
     } })
   }
   return items
@@ -54,12 +54,12 @@ function menu(row: ExtensionPluginVM): (RowMenuItem | null)[] {
 
 function marketMenu(m: ExtensionMarketplace): (RowMenuItem | null)[] {
   const items: (RowMenuItem | null)[] = [
-    { label: 'Open', run: () => emit('open-marketplace', m) },
-    { label: 'Update', disabled: m.builtin, run: () => props.act(() => api().updateMarketplace(m.name), `${m.name} is up to date.`) }
+    { label: tt('Open'), run: () => emit('open-marketplace', m) },
+    { label: tt('Update'), disabled: m.builtin, run: () => props.act(() => api().updateMarketplace(m.name), `${m.name} is up to date.`) }
   ]
   if (!m.managed && !m.builtin) {
-    items.push(null, { label: 'Remove', run: () => {
-      if (window.confirm(`Remove the marketplace ${m.name} and the plugins installed from it?`)) return props.act(() => api().removeMarketplace(m.name))
+    items.push(null, { label: tt('Remove'), run: () => {
+      if (window.confirm(tt('Remove the marketplace {0} and the plugins installed from it?', [m.name]))) return props.act(() => api().removeMarketplace(m.name))
     } })
   }
   return items
@@ -83,7 +83,7 @@ const hasMarkets = computed(() => props.marketplaces.length + suggestedRows.valu
       icon="box"
       :name="row.plugin.displayName || row.plugin.name"
       :tags="[...(row.category ? [row.category] : []), ...row.tags]"
-      :source="row.publisher ? `from ${row.publisher}` : `from ${g.title}`"
+      :source="row.publisher ? tt('from {0}', [row.publisher]) : tt('from {0}', [g.title])"
       :description="row.plugin.description"
       :date="shortDate(row.plugin.installedAt ?? '')"
       :status="statusOf(row.plugin)"
@@ -95,7 +95,7 @@ const hasMarkets = computed(() => props.marketplaces.length + suggestedRows.valu
 
   <ExtensionsGroup
     v-if="hasMarkets"
-    title="Marketplaces"
+    :title="tt('Marketplaces')"
     :count="hasMarkets"
     data-group="marketplaces"
   >
@@ -106,8 +106,8 @@ const hasMarkets = computed(() => props.marketplaces.length + suggestedRows.valu
       :name="name"
       :tags="['This project asks for it']"
       :source="source"
-      :items="[{ label: 'Add', run: () => act(() => api().addMarketplace(source), `Added ${name}. Nothing was installed.`) }]"
-      @open="act(() => api().addMarketplace(source), `Added ${name}. Nothing was installed.`)"
+      :items="[{ label: 'Add', run: () => act(() => api().addMarketplace(source), tt('Added {0}. Nothing was installed.', [name])) }]"
+      @open="act(() => api().addMarketplace(source), tt('Added {0}. Nothing was installed.', [name]))"
     />
     <ExtensionsRow
       v-for="m in marketplaces"

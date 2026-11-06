@@ -34,7 +34,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
         <button
           ref="closeBtn"
           type="button"
-          aria-label="Close"
+          :aria-label="tt('Close')"
           class="flex size-7 shrink-0 cursor-pointer items-center justify-center text-muted hover:text-strong"
           @click="emit('close')"
         >

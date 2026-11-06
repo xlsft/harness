@@ -289,6 +289,11 @@ type Capabilities struct {
 	// The level recommended for a new session, one of `effort`: from the upstream's model list or set by hand.
 	// UNSPECIFIED: none.
 	DefaultEffort Effort `protobuf:"varint,7,opt,name=default_effort,json=defaultEffort,proto3,enum=harness.llm.v1.Effort" json:"default_effort,omitempty"`
+	// Speed tiers the provider has for the model: "standard", "fast" (faster at a higher price), "flex" (slower and cheaper).
+	// Empty: it has no such choice.
+	SpeedTiers []string `protobuf:"bytes,8,rep,name=speed_tiers,json=speedTiers,proto3" json:"speed_tiers,omitempty"`
+	// Lifetimes the prompt cache can be asked for: "5m", "1h", "24h". Empty: no choice.
+	CacheTtls     []string `protobuf:"bytes,9,rep,name=cache_ttls,json=cacheTtls,proto3" json:"cache_ttls,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -370,6 +375,20 @@ func (x *Capabilities) GetDefaultEffort() Effort {
 		return x.DefaultEffort
 	}
 	return Effort_EFFORT_UNSPECIFIED
+}
+
+func (x *Capabilities) GetSpeedTiers() []string {
+	if x != nil {
+		return x.SpeedTiers
+	}
+	return nil
+}
+
+func (x *Capabilities) GetCacheTtls() []string {
+	if x != nil {
+		return x.CacheTtls
+	}
+	return nil
 }
 
 // USD per 1M tokens. A zero cache price means "same as input".
@@ -606,6 +625,10 @@ type StreamMessageRequest struct {
 	StopSequences []string         `protobuf:"bytes,9,rep,name=stop_sequences,json=stopSequences,proto3" json:"stop_sequences,omitempty"`
 	Temperature   *float64         `protobuf:"fixed64,10,opt,name=temperature,proto3,oneof" json:"temperature,omitempty"`
 	Metadata      *RequestMetadata `protobuf:"bytes,11,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	// A tier of Capabilities.speed_tiers; empty: the provider's default. A tier the model does not have is dropped.
+	Speed string `protobuf:"bytes,12,opt,name=speed,proto3" json:"speed,omitempty"`
+	// A lifetime of Capabilities.cache_ttls; empty: the provider's default. One the model does not have is dropped.
+	CacheTtl      string `protobuf:"bytes,13,opt,name=cache_ttl,json=cacheTtl,proto3" json:"cache_ttl,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -715,6 +738,20 @@ func (x *StreamMessageRequest) GetMetadata() *RequestMetadata {
 		return x.Metadata
 	}
 	return nil
+}
+
+func (x *StreamMessageRequest) GetSpeed() string {
+	if x != nil {
+		return x.Speed
+	}
+	return ""
+}
+
+func (x *StreamMessageRequest) GetCacheTtl() string {
+	if x != nil {
+		return x.CacheTtl
+	}
+	return ""
 }
 
 type StreamMessageResponse struct {
@@ -1553,7 +1590,7 @@ const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\n" +
 	"display_id\x18\t \x01(\tR\tdisplayIdB\n" +
 	"\n" +
-	"\b_pricing\"\x96\x02\n" +
+	"\b_pricing\"\xd6\x02\n" +
 	"\fCapabilities\x12\x1a\n" +
 	"\bthinking\x18\x01 \x01(\bR\bthinking\x12.\n" +
 	"\x06effort\x18\x02 \x03(\x0e2\x16.harness.llm.v1.EffortR\x06effort\x12\x16\n" +
@@ -1561,7 +1598,11 @@ const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\x03pdf\x18\x04 \x01(\bR\x03pdf\x12.\n" +
 	"\x13parallel_tool_calls\x18\x05 \x01(\bR\x11parallelToolCalls\x12!\n" +
 	"\fprompt_cache\x18\x06 \x01(\bR\vpromptCache\x12=\n" +
-	"\x0edefault_effort\x18\a \x01(\x0e2\x16.harness.llm.v1.EffortR\rdefaultEffort\"w\n" +
+	"\x0edefault_effort\x18\a \x01(\x0e2\x16.harness.llm.v1.EffortR\rdefaultEffort\x12\x1f\n" +
+	"\vspeed_tiers\x18\b \x03(\tR\n" +
+	"speedTiers\x12\x1d\n" +
+	"\n" +
+	"cache_ttls\x18\t \x03(\tR\tcacheTtls\"w\n" +
 	"\aPricing\x12\x14\n" +
 	"\x05input\x18\x01 \x01(\x01R\x05input\x12\x16\n" +
 	"\x06output\x18\x02 \x01(\x01R\x06output\x12\x1d\n" +
@@ -1580,7 +1621,7 @@ const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\rrequest_class\x18\x02 \x01(\x0e2\x1c.harness.llm.v1.RequestClassR\frequestClass\x12\x19\n" +
 	"\bagent_id\x18\x03 \x01(\tR\aagentId\x122\n" +
 	"\x15prompt_bundle_version\x18\x04 \x01(\tR\x13promptBundleVersion\x12,\n" +
-	"\x12session_budget_usd\x18\x05 \x01(\x01R\x10sessionBudgetUsd\"\x9d\x04\n" +
+	"\x12session_budget_usd\x18\x05 \x01(\x01R\x10sessionBudgetUsd\"\xd0\x04\n" +
 	"\x14StreamMessageRequest\x12\x14\n" +
 	"\x05model\x18\x01 \x01(\tR\x05model\x12\x1d\n" +
 	"\n" +
@@ -1595,7 +1636,9 @@ const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\x0estop_sequences\x18\t \x03(\tR\rstopSequences\x12%\n" +
 	"\vtemperature\x18\n" +
 	" \x01(\x01H\x00R\vtemperature\x88\x01\x01\x12;\n" +
-	"\bmetadata\x18\v \x01(\v2\x1f.harness.llm.v1.RequestMetadataR\bmetadataB\x0e\n" +
+	"\bmetadata\x18\v \x01(\v2\x1f.harness.llm.v1.RequestMetadataR\bmetadata\x12\x14\n" +
+	"\x05speed\x18\f \x01(\tR\x05speed\x12\x1b\n" +
+	"\tcache_ttl\x18\r \x01(\tR\bcacheTtlB\x0e\n" +
 	"\f_temperature\"\xc3\x04\n" +
 	"\x15StreamMessageResponse\x12C\n" +
 	"\rmessage_start\x18\x01 \x01(\v2\x1c.harness.llm.v1.MessageStartH\x00R\fmessageStart\x12S\n" +

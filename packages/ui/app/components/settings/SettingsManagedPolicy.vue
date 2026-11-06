@@ -98,10 +98,10 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
 <template>
   <div class="flex flex-col">
     <h2 class="set-h">
-      Managed policy
+      {{ tt('Managed policy') }}
     </h2>
     <p class="set-sub">
-      Set by an administrator for everyone on this server. It comes first: clients obey it and nothing in user, project or local settings can override it. The server itself refuses providers and MCP servers it does not allow.
+      {{ tt('Set by an administrator for everyone on this server. It comes first: clients obey it and nothing in user, project or local settings can override it. The server itself refuses providers and MCP servers it does not allow.') }}
     </p>
     <p
       v-if="error"
@@ -114,17 +114,17 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
     <form
       v-if="state"
       class="flex flex-col gap-3"
-      aria-label="Managed policy"
+      :aria-label="tt('Managed policy')"
       @submit.prevent="save"
     >
       <h3 class="m-0 mt-2 text-[12.5px] font-semibold text-strong">
-        Permission rules
+        {{ tt('Permission rules') }}
       </h3>
       <p class="m-0 text-[12px] text-muted">
-        One per line, in the settings syntax: <code>Bash(rm:*)</code>, <code>Read</code>, <code>WebFetch(domain:example.com)</code>. Deny beats ask beats allow.
+        {{ tt('One per line, in the settings syntax:') }} <code>Bash(rm:*)</code>, <code>Read</code>, <code>WebFetch(domain:example.com)</code>{{ tt('. Deny beats ask beats allow.') }}
       </p>
       <div class="grid grid-cols-3 gap-3 max-md:grid-cols-1">
-        <label :class="label">Deny
+        <label :class="label">{{ tt('Deny') }}
           <textarea
             v-model="deny"
             :disabled="!writable"
@@ -132,7 +132,7 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
             :class="area"
           />
         </label>
-        <label :class="label">Ask
+        <label :class="label">{{ tt('Ask') }}
           <textarea
             v-model="ask"
             :disabled="!writable"
@@ -140,7 +140,7 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
             :class="area"
           />
         </label>
-        <label :class="label">Allow
+        <label :class="label">{{ tt('Allow') }}
           <textarea
             v-model="allow"
             :disabled="!writable"
@@ -151,60 +151,60 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
       </div>
       <div class="set-row">
         <div class="set-label">
-          <span>Only these rules</span>
-          <span class="set-desc">Rules in user, project and local settings are ignored.</span>
+          <span>{{ tt('Only these rules') }}</span>
+          <span class="set-desc">{{ tt('Rules in user, project and local settings are ignored.') }}</span>
         </div>
         <HToggle
           v-model="policy.managedRulesOnly"
           :disabled="!writable"
-          label="Only managed permission rules"
+          :label="tt('Only managed permission rules')"
         />
       </div>
 
       <h3 class="m-0 mt-2 text-[12.5px] font-semibold text-strong">
-        Sandbox
+        {{ tt('Sandbox') }}
       </h3>
       <div class="set-row">
         <div class="set-label">
-          <span>Require the sandbox</span>
-          <span class="set-desc">Nobody can turn it off. On a platform without a sandbox yet, commands are refused.</span>
+          <span>{{ tt('Require the sandbox') }}</span>
+          <span class="set-desc">{{ tt('Nobody can turn it off. On a platform without a sandbox yet, commands are refused.') }}</span>
         </div>
         <HToggle
           v-model="policy.sandboxRequired"
           :disabled="!writable"
-          label="Require the sandbox"
+          :label="tt('Require the sandbox')"
         />
       </div>
       <div class="set-row">
         <div class="set-label">
-          <span>Never outside it</span>
-          <span class="set-desc">The way to run one command outside the sandbox is taken away.</span>
+          <span>{{ tt('Never outside it') }}</span>
+          <span class="set-desc">{{ tt('The way to run one command outside the sandbox is taken away.') }}</span>
         </div>
         <HToggle
           v-model="policy.sandboxOutsideRefused"
           :disabled="!writable"
-          label="Refuse running outside the sandbox"
+          :label="tt('Refuse running outside the sandbox')"
         />
       </div>
 
       <h3 class="m-0 mt-2 text-[12.5px] font-semibold text-strong">
-        Providers
+        {{ tt('Providers') }}
       </h3>
       <div class="set-row">
         <div class="set-label">
-          <span>Only allowed providers</span>
-          <span class="set-desc">Provider or preset ids, one per line. On clients, <code>local</code> allows local models and <code>acp</code> or <code>acp:&lt;id&gt;</code> external agents. An empty list allows none.</span>
+          <span>{{ tt('Only allowed providers') }}</span>
+          <span class="set-desc">{{ tt('Provider or preset ids, one per line. On clients,') }} <code>local</code> {{ tt('allows local models and') }} <code>acp</code> {{ tt('or') }} <code>acp:&lt;id&gt;</code> {{ tt('external agents. An empty list allows none.') }}</span>
         </div>
         <HToggle
           v-model="policy.restrictProviders"
           :disabled="!writable"
-          label="Only allowed providers"
+          :label="tt('Only allowed providers')"
         />
       </div>
       <template v-if="policy.restrictProviders">
         <textarea
           v-model="providers"
-          aria-label="Allowed providers"
+          :aria-label="tt('Allowed providers')"
           :disabled="!writable"
           spellcheck="false"
           :class="area"
@@ -225,34 +225,34 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
       </template>
       <div class="set-row">
         <div class="set-label">
-          <span>No personal providers</span>
-          <span class="set-desc">People cannot add or use their own.</span>
+          <span>{{ tt('No personal providers') }}</span>
+          <span class="set-desc">{{ tt('People cannot add or use their own.') }}</span>
         </div>
         <HToggle
           v-model="policy.personalProvidersDisabled"
           :disabled="!writable"
-          label="No personal providers"
+          :label="tt('No personal providers')"
         />
       </div>
 
       <h3 class="m-0 mt-2 text-[12.5px] font-semibold text-strong">
-        MCP servers
+        {{ tt('MCP servers') }}
       </h3>
       <div class="set-row">
         <div class="set-label">
-          <span>Only allowed servers</span>
-          <span class="set-desc">Names, one per line, at any scope, a repository's <code>.mcp.json</code> included. An empty list allows none.</span>
+          <span>{{ tt('Only allowed servers') }}</span>
+          <span class="set-desc">{{ tt('Names, one per line, at any scope, a repository\'s') }} <code>.mcp.json</code> {{ tt('included. An empty list allows none.') }}</span>
         </div>
         <HToggle
           v-model="policy.restrictMcpServers"
           :disabled="!writable"
-          label="Only allowed MCP servers"
+          :label="tt('Only allowed MCP servers')"
         />
       </div>
       <template v-if="policy.restrictMcpServers">
         <textarea
           v-model="servers"
-          aria-label="Allowed MCP servers"
+          :aria-label="tt('Allowed MCP servers')"
           :disabled="!writable"
           spellcheck="false"
           :class="area"
@@ -273,63 +273,63 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
       </template>
       <div class="set-row">
         <div class="set-label">
-          <span>Plugins only from allowed sources</span>
-          <span class="set-desc">One per line: <code>owner/repo</code>, <code>owner/*</code>, a git or <code>marketplace.json</code> URL, an absolute path, <code>host:regexp</code> or <code>path:regexp</code>. An empty list allows none. Clients check before a download and again when a plugin would load.</span>
+          <span>{{ tt('Plugins only from allowed sources') }}</span>
+          <span class="set-desc">{{ tt('One per line:') }} <code>owner/repo</code>, <code>owner/*</code>{{ tt(', a git or') }} <code>marketplace.json</code> {{ tt('URL, an absolute path,') }} <code>host:regexp</code> {{ tt('or') }} <code>path:regexp</code>{{ tt('. An empty list allows none. Clients check before a download and again when a plugin would load.') }}</span>
         </div>
         <HToggle
           v-model="policy.restrictPluginSources"
           :disabled="!writable"
-          label="Plugins only from allowed sources"
+          :label="tt('Plugins only from allowed sources')"
         />
       </div>
       <textarea
         v-if="policy.restrictPluginSources"
         v-model="pluginAllowed"
-        aria-label="Allowed plugin sources"
+        :aria-label="tt('Allowed plugin sources')"
         :disabled="!writable"
         spellcheck="false"
         :class="area"
       />
       <div class="set-label mt-2">
-        <span>Blocked plugin sources</span>
-        <span class="set-desc">The same forms, checked first.</span>
+        <span>{{ tt('Blocked plugin sources') }}</span>
+        <span class="set-desc">{{ tt('The same forms, checked first.') }}</span>
       </div>
       <textarea
         v-model="pluginBlocked"
-        aria-label="Blocked plugin sources"
+        :aria-label="tt('Blocked plugin sources')"
         :disabled="!writable"
         spellcheck="false"
         :class="area"
       />
       <div class="set-label mt-2">
-        <span>Distributed marketplaces</span>
-        <span class="set-desc"><code>name=source</code>, one per line: registered on every device.</span>
+        <span>{{ tt('Distributed marketplaces') }}</span>
+        <span class="set-desc"><code>name=source</code>{{ tt(', one per line: registered on every device.') }}</span>
       </div>
       <textarea
         v-model="pluginMarkets"
-        aria-label="Distributed marketplaces"
+        :aria-label="tt('Distributed marketplaces')"
         :disabled="!writable"
         spellcheck="false"
         :class="area"
       />
       <div class="set-label mt-2">
-        <span>Distributed plugins</span>
-        <span class="set-desc"><code>name@marketplace</code>, one per line: fetched on every device and kept on. Each device still approves what runs on it.</span>
+        <span>{{ tt('Distributed plugins') }}</span>
+        <span class="set-desc"><code>name@marketplace</code>{{ tt(', one per line: fetched on every device and kept on. Each device still approves what runs on it.') }}</span>
       </div>
       <textarea
         v-model="pluginsOn"
-        aria-label="Distributed plugins"
+        :aria-label="tt('Distributed plugins')"
         :disabled="!writable"
         spellcheck="false"
         :class="area"
       />
       <div class="set-label mt-2">
-        <span>Blocked plugins</span>
-        <span class="set-desc"><code>name@marketplace</code>, one per line.</span>
+        <span>{{ tt('Blocked plugins') }}</span>
+        <span class="set-desc"><code>name@marketplace</code>{{ tt(', one per line.') }}</span>
       </div>
       <textarea
         v-model="pluginsOff"
-        aria-label="Blocked plugins"
+        :aria-label="tt('Blocked plugins')"
         :disabled="!writable"
         spellcheck="false"
         :class="area"
@@ -337,43 +337,43 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
 
       <div class="flex items-center justify-between gap-4">
         <div class="set-label">
-          <span>Only these skills</span>
-          <span class="set-desc">One name per line; <code>kit:*</code> names all of a plugin. An empty list allows none. Built-in commands aren't skills. Clients enforce it and show it as set by you.</span>
+          <span>{{ tt('Only these skills') }}</span>
+          <span class="set-desc">{{ tt('One name per line;') }} <code>kit:*</code> {{ tt('names all of a plugin. An empty list allows none. Built-in commands aren\'t skills. Clients enforce it and show it as set by you.') }}</span>
         </div>
         <HToggle
           v-model="policy.restrictSkills"
           :disabled="!writable"
-          label="Only these skills"
+          :label="tt('Only these skills')"
         />
       </div>
       <textarea
         v-if="policy.restrictSkills"
         v-model="skillsAllowed"
-        aria-label="Allowed skills"
+        :aria-label="tt('Allowed skills')"
         :disabled="!writable"
         spellcheck="false"
         :class="area"
       />
       <div class="set-label mt-2">
-        <span>Blocked skills</span>
-        <span class="set-desc">The same forms, checked first.</span>
+        <span>{{ tt('Blocked skills') }}</span>
+        <span class="set-desc">{{ tt('The same forms, checked first.') }}</span>
       </div>
       <textarea
         v-model="skillsBlocked"
-        aria-label="Blocked skills"
+        :aria-label="tt('Blocked skills')"
         :disabled="!writable"
         spellcheck="false"
         :class="area"
       />
       <div class="flex items-center justify-between gap-4">
         <div class="set-label">
-          <span>Turn off external skill search</span>
-          <span class="set-desc">No search of public skill directories, on the server or on clients. Skills already installed from it stay until you block them.</span>
+          <span>{{ tt('Turn off external skill search') }}</span>
+          <span class="set-desc">{{ tt('No search of public skill directories, on the server or on clients. Skills already installed from it stay until you block them.') }}</span>
         </div>
         <HToggle
           v-model="policy.externalSkillSearchDisabled"
           :disabled="!writable"
-          label="Turn off external skill search"
+          :label="tt('Turn off external skill search')"
         />
       </div>
 
@@ -385,13 +385,13 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
           v-if="saved"
           role="status"
           class="text-[12px] text-ok"
-        >Saved. Clients pick it up from their sync feed; sessions already open apply rules from their next start.</span>
+        >{{ tt('Saved. Clients pick it up from their sync feed; sessions already open apply rules from their next start.') }}</span>
         <HBtn
           size="md"
           variant="primary"
           type="submit"
         >
-          Save
+          {{ tt('Save') }}
         </HBtn>
       </div>
     </form>
@@ -404,7 +404,7 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
       v-else-if="!error"
       class="m-0 py-4 text-[12.5px] text-muted"
     >
-      Loading…
+      {{ tt('Loading…') }}
     </p>
   </div>
 </template>

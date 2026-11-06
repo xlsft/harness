@@ -2,19 +2,20 @@
 // what a scan found on this computer, and what the user picked from it. Scanning writes nothing; importing uploads to
 // the user's own server.
 
+import { tt } from '~/utils/i18n'
 import type { ImportHandle, ImportHandlers, ImportItem, ImportStatus } from './types'
 
 export type ClaudeSection = 'memory' | 'settings' | 'skills' | 'agents' | 'commands' | 'output-styles' | 'workflows' | 'mcp' | 'sessions'
 
 // The kinds with a checkbox, in order. MCP servers are only listed: they are set up by hand.
 export const CLAUDE_SECTIONS: { key: ClaudeSection, label: string }[] = [
-  { key: 'memory', label: 'Memory' },
-  { key: 'settings', label: 'Settings' },
-  { key: 'skills', label: 'Skills' },
-  { key: 'agents', label: 'Agents' },
-  { key: 'commands', label: 'Commands' },
-  { key: 'output-styles', label: 'Output styles' },
-  { key: 'workflows', label: 'Workflows' }
+  { key: 'memory', label: tt('Memory') },
+  { key: 'settings', label: tt('Settings') },
+  { key: 'skills', label: tt('Skills') },
+  { key: 'agents', label: tt('Agents') },
+  { key: 'commands', label: tt('Commands') },
+  { key: 'output-styles', label: tt('Output styles') },
+  { key: 'workflows', label: tt('Workflows') }
 ]
 
 export interface ClaudeImportSession {

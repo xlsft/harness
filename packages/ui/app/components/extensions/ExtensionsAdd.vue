@@ -32,13 +32,13 @@ async function submit() {
   try {
     if (props.mode === 'skill') {
       const where = await store.transport!.extensions().createSkill({ name: name.value.trim(), description: description.value.trim(), body: body.value, cwd: inProject.value ? props.cwd : '' })
-      emit('done', `Created ${where}.`)
+      emit('done', tt('Created {0}.', [where]))
     } else if (props.mode === 'install') {
       const p = await store.transport!.plugins().install(spec.value.trim(), props.cwd)
-      emit('done', `Installed ${p.id}. Nothing of it runs until you approve it.`)
+      emit('done', tt('Installed {0}. Nothing of it runs until you approve it.', [p.id]))
     } else if (props.mode === 'marketplace') {
       const n = await store.transport!.plugins().addMarketplace(source.value.trim())
-      emit('done', `Added ${n}. Nothing was installed.`)
+      emit('done', tt('Added {0}. Nothing was installed.', [n]))
     } else if (props.mode === 'folder') {
       emit('folder', path.value.trim())
     }
@@ -93,7 +93,7 @@ const canSubmit = computed(() => {
 
       <template v-if="mode === 'skill'">
         <label class="flex flex-col gap-1">
-          <span class="text-muted">Name</span>
+          <span class="text-muted">{{ tt('Name') }}</span>
           <input
             v-model="name"
             :class="field"
@@ -102,14 +102,14 @@ const canSubmit = computed(() => {
           >
         </label>
         <label class="flex flex-col gap-1">
-          <span class="text-muted">What it's for, and when the agent should use it</span>
+          <span class="text-muted">{{ tt('What it\'s for, and when the agent should use it') }}</span>
           <input
             v-model="description"
             :class="field"
           >
         </label>
         <label class="flex flex-col gap-1">
-          <span class="text-muted">Instructions</span>
+          <span class="text-muted">{{ tt('Instructions') }}</span>
           <textarea
             v-model="body"
             :class="area"
@@ -123,16 +123,16 @@ const canSubmit = computed(() => {
             v-model="inProject"
             type="checkbox"
           >
-          <span class="text-toned">In this project, so it travels with the repository</span>
+          <span class="text-toned">{{ tt('In this project, so it travels with the repository') }}</span>
         </label>
         <p class="m-0 text-[12px] text-muted">
-          {{ inProject ? `Written to ${cwd}/.harness/skills.` : 'Written to your personal skills, ~/.harness/skills.' }}
+          {{ inProject ? tt('Written to {0}/.harness/skills.', [cwd]) : 'Written to your personal skills, ~/.harness/skills.' }}
         </p>
       </template>
 
       <template v-else-if="mode === 'install'">
         <label class="flex flex-col gap-1">
-          <span class="text-muted">name@marketplace, a folder or a repository</span>
+          <span class="text-muted">{{ tt('name@marketplace, a folder or a repository') }}</span>
           <input
             v-model="spec"
             :class="field"
@@ -141,13 +141,13 @@ const canSubmit = computed(() => {
           >
         </label>
         <p class="m-0 text-[12px] text-muted">
-          It stays on this device. Nothing of it runs until you read what it holds and approve exactly that.
+          {{ tt('It stays on this device. Nothing of it runs until you read what it holds and approve exactly that.') }}
         </p>
       </template>
 
       <template v-else-if="mode === 'marketplace'">
         <label class="flex flex-col gap-1">
-          <span class="text-muted">owner/repo, a git URL, a URL of a marketplace.json, or a folder</span>
+          <span class="text-muted">{{ tt('owner/repo, a git URL, a URL of a marketplace.json, or a folder') }}</span>
           <input
             v-model="source"
             :class="field"
@@ -156,13 +156,13 @@ const canSubmit = computed(() => {
           >
         </label>
         <p class="m-0 text-[12px] text-muted">
-          Adding one fetches its catalog. Nothing is installed.
+          {{ tt('Adding one fetches its catalog. Nothing is installed.') }}
         </p>
       </template>
 
       <template v-else>
         <label class="flex flex-col gap-1">
-          <span class="text-muted">Path on this device</span>
+          <span class="text-muted">{{ tt('Path on this device') }}</span>
           <input
             v-model="path"
             :class="field"
@@ -173,7 +173,7 @@ const canSubmit = computed(() => {
           v-if="folders.length"
           class="flex flex-col"
         >
-          <span class="pb-1 text-muted">Recent</span>
+          <span class="pb-1 text-muted">{{ tt('Recent') }}</span>
           <button
             v-for="f in folders"
             :key="f"
@@ -194,13 +194,13 @@ const canSubmit = computed(() => {
           size="md"
           :disabled="!canSubmit || busy"
         >
-          {{ mode === 'skill' ? 'Create' : mode === 'install' ? 'Install' : mode === 'marketplace' ? 'Add' : 'Open' }}
+          {{ mode === 'skill' ? tt('Create') : mode === 'install' ? tt('Install') : mode === 'marketplace' ? tt('Add') : tt('Open') }}
         </HBtn>
         <HBtn
           size="md"
           @click="emit('close')"
         >
-          Cancel
+          {{ tt('Cancel') }}
         </HBtn>
       </div>
     </form>

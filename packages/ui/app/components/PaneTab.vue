@@ -34,7 +34,7 @@ const emit = defineEmits<{ select: [], close: [] }>()
     <button
       v-if="closable"
       type="button"
-      aria-label="Close tab"
+      :aria-label="tt('Close tab')"
       class="flex shrink-0 items-center justify-center hover:text-strong"
       :class="selected ? 'text-muted' : 'text-transparent group-hover:text-muted'"
       @click.stop="emit('close')"

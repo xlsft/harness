@@ -12,53 +12,53 @@ defineProps<{ contents: PluginContentsVM }>()
   >
     <template v-if="contents.skills.length">
       <dt class="text-muted">
-        Skills
+        {{ tt('Skills') }}
       </dt><dd class="m-0 text-toned">
         {{ contents.skills.join(', ') }}
       </dd>
     </template>
     <template v-if="contents.commands.length">
       <dt class="text-muted">
-        Commands
+        {{ tt('Commands') }}
       </dt><dd class="m-0 text-toned">
         {{ contents.commands.join(', ') }}
       </dd>
     </template>
     <template v-if="contents.agents.length">
       <dt class="text-muted">
-        Agents
+        {{ tt('Agents') }}
       </dt><dd class="m-0 text-toned">
         {{ contents.agents.join(', ') }}
       </dd>
     </template>
     <template v-if="contents.outputStyles.length">
       <dt class="text-muted">
-        Output styles
+        {{ tt('Output styles') }}
       </dt><dd class="m-0 text-toned">
         {{ contents.outputStyles.join(', ') }}
       </dd>
     </template>
     <template v-if="contents.allowedTools.length">
       <dt class="text-muted">
-        Tools without asking
+        {{ tt('Tools without asking') }}
       </dt><dd class="m-0 text-warn">
         {{ contents.allowedTools.join(', ') }}
       </dd>
     </template>
     <template v-if="contents.hooks.length">
       <dt class="text-muted">
-        Hooks
+        {{ tt('Hooks') }}
       </dt><dd class="m-0 flex flex-col gap-1">
         <span
           v-for="(h, i) in contents.hooks"
           :key="i"
           class="break-all text-warn"
-        >{{ h.event }}<template v-if="h.matcher"> ({{ h.matcher }})</template><template v-if="h.fromSkill">, while {{ h.fromSkill }} runs</template>: <code>{{ h.command }}</code></span>
+        >{{ h.event }}<template v-if="h.matcher"> ({{ h.matcher }})</template><template v-if="h.fromSkill">{{ tt(', while {0} runs', [h.fromSkill]) }}</template>: <code>{{ h.command }}</code></span>
       </dd>
     </template>
     <template v-if="contents.mcpServers.length">
       <dt class="text-muted">
-        Connectors
+        {{ tt('Connectors') }}
       </dt><dd class="m-0 flex flex-col gap-1">
         <span
           v-for="m in contents.mcpServers"
@@ -69,7 +69,7 @@ defineProps<{ contents: PluginContentsVM }>()
     </template>
     <template v-if="contents.skipped.length">
       <dt class="text-muted">
-        Not acted on
+        {{ tt('Not acted on') }}
       </dt><dd class="m-0 text-muted">
         {{ contents.skipped.join(', ') }}
       </dd>

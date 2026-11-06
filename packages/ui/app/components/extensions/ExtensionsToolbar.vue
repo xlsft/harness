@@ -21,8 +21,8 @@ const emit = defineEmits<{ 'update:type': [ExtensionType], 'update:view': [Exten
 const query = defineModel<string>('query', { default: '' })
 const sort = defineModel<string>('sort', { default: '' })
 
-const TYPES: { value: ExtensionType, label: string }[] = [{ value: 'skills', label: 'Skills' }, { value: 'connectors', label: 'Connectors' }, { value: 'plugins', label: 'Plugins' }]
-const VIEWS: { value: ExtensionView, label: string }[] = [{ value: 'yours', label: 'Yours' }, { value: 'discover', label: 'Discover' }]
+const TYPES: { value: ExtensionType, label: string }[] = [{ value: 'skills', label: tt('Skills') }, { value: 'connectors', label: tt('Connectors') }, { value: 'plugins', label: tt('Plugins') }]
+const VIEWS: { value: ExtensionView, label: string }[] = [{ value: 'yours', label: tt('Yours') }, { value: 'discover', label: tt('Discover') }]
 
 const active = computed(() => props.filters.filter(f => props.filterValues[f.key]).length)
 </script>
@@ -35,7 +35,7 @@ const active = computed(() => props.filters.filter(f => props.filterValues[f.key
     <div class="mx-auto flex w-full max-w-[1040px] flex-wrap items-center gap-x-2 gap-y-2 px-10 py-2.5 max-sm:px-4">
       <div
         role="tablist"
-        aria-label="What to show"
+        :aria-label="tt('What to show')"
         class="flex items-center"
       >
         <button
@@ -54,7 +54,7 @@ const active = computed(() => props.filters.filter(f => props.filterValues[f.key
       <span class="mx-1 h-4 w-px bg-line max-sm:hidden" />
       <div
         role="group"
-        aria-label="Yours or Discover"
+        :aria-label="tt('Yours or Discover')"
         class="flex items-center border border-default"
       >
         <button
@@ -80,8 +80,8 @@ const active = computed(() => props.filters.filter(f => props.filterValues[f.key
           <input
             v-model="query"
             type="search"
-            aria-label="Search"
-            placeholder="Search"
+            :aria-label="tt('Search')"
+            :placeholder="tt('Search')"
             spellcheck="false"
             class="min-w-0 flex-1 border-0 bg-transparent text-[12.5px] text-strong outline-none"
           >
@@ -93,7 +93,7 @@ const active = computed(() => props.filters.filter(f => props.filterValues[f.key
         >
           <button
             type="button"
-            aria-label="Filter"
+            :aria-label="tt('Filter')"
             class="relative flex size-7 cursor-pointer items-center justify-center text-muted hover:text-strong"
             :class="active > 0 && 'text-accent'"
           >
@@ -109,7 +109,7 @@ const active = computed(() => props.filters.filter(f => props.filterValues[f.key
           <template #content>
             <div
               role="menu"
-              aria-label="Filter"
+              :aria-label="tt('Filter')"
               class="min-w-[200px] border border-accented bg-hover py-1 text-[12.5px]"
             >
               <template
@@ -144,7 +144,7 @@ const active = computed(() => props.filters.filter(f => props.filterValues[f.key
         >
           <button
             type="button"
-            aria-label="Sort"
+            :aria-label="tt('Sort')"
             class="flex size-7 cursor-pointer items-center justify-center text-muted hover:text-strong"
             :class="sort && 'text-accent'"
           >
@@ -156,7 +156,7 @@ const active = computed(() => props.filters.filter(f => props.filterValues[f.key
           <template #content>
             <div
               role="menu"
-              aria-label="Sort"
+              :aria-label="tt('Sort')"
               class="min-w-[180px] border border-accented bg-hover py-1 text-[12.5px]"
             >
               <PaneMenuItem
@@ -175,19 +175,19 @@ const active = computed(() => props.filters.filter(f => props.filterValues[f.key
 
         <RowMenu
           :items="addItems"
-          label="Add"
+          :label="tt('Add')"
           align="end"
         >
           <HBtn
             variant="primary"
             size="md"
-            aria-label="Add"
+            :aria-label="tt('Add')"
           >
             <HIcon
               name="plus"
               :size="13"
             />
-            Add
+            {{ tt('Add') }}
             <HIcon
               name="down"
               :size="11"

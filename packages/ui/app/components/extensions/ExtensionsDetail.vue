@@ -121,7 +121,7 @@ function updatePlugin(row: ExtensionPluginVM) {
   })
 }
 function removePlugin(row: ExtensionPluginVM) {
-  if (!window.confirm(`Remove ${row.plugin.id} and its data folder?`)) return
+  if (!window.confirm(tt('Remove {0} and its data folder?', [row.plugin.id]))) return
   return run(async () => {
     await plugins().remove(row.plugin.id, false)
     emit('close')
@@ -139,7 +139,7 @@ function toggleSkill(row: ExtensionSkill) {
 }
 function removeSkill(row: ExtensionSkill) {
   const c = row.command
-  if (!c || !window.confirm(`Delete ${c.name} from this device? Its files go too.`)) return
+  if (!c || !window.confirm(tt('Delete {0} from this device? Its files go too.', [c.name]))) return
   return run(async () => {
     await extensions().removeSkill(c.name, c.path, props.cwd)
     emit('close')
@@ -162,7 +162,7 @@ function approveExternal(e: InstalledExternalSkill, approved: boolean) {
   }, approved ? 'Approved on this device.' : 'It no longer loads here.')
 }
 function removeExternal(e: InstalledExternalSkill) {
-  if (!window.confirm(`Delete ${e.name} from this device? Its files go too.`)) return
+  if (!window.confirm(tt('Delete {0} from this device? Its files go too.', [e.name]))) return
   return run(async () => {
     await extensions().removeExternal(e.name)
     emit('close')
@@ -171,7 +171,7 @@ function removeExternal(e: InstalledExternalSkill) {
 
 // ---- marketplaces ----
 function removeMarket(m: ExtensionMarketplace) {
-  if (!window.confirm(`Remove the marketplace ${m.name} and the plugins installed from it?`)) return
+  if (!window.confirm(tt('Remove the marketplace {0} and the plugins installed from it?', [m.name]))) return
   return run(async () => {
     await plugins().removeMarketplace(m.name)
     emit('close')
@@ -248,7 +248,7 @@ const hasActions = computed(() => {
           v-if="target.row.blockedByPolicy"
           class="m-0 border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-toned"
         >
-          Set by your administrator: this skill can't run.
+          {{ tt('Set by your administrator: this skill can\'t run.') }}
         </p>
 
         <template v-if="stored">
@@ -257,53 +257,53 @@ const hasActions = computed(() => {
             data-approval
           >
             <h3 class="m-0 text-[12.5px] text-strong">
-              Approval on this device
+              {{ tt('Approval on this device') }}
             </h3>
             <p
               class="m-0 text-[12px]"
               :class="stored.approved ? 'text-ok' : 'text-warn'"
             >
-              {{ stored.approved ? 'Approved as it is now.' : stored.changedOnDisk ? 'Its files no longer match what was stored. Install it again.' : 'It doesn\'t load until you approve exactly these files.' }}
+              {{ stored.approved ? tt('Approved as it is now.') : stored.changedOnDisk ? tt('Its files no longer match what was stored. Install it again.') : tt('It doesn\'t load until you approve exactly these files.') }}
             </p>
             <ExtensionsAudits :audits="stored.audits" />
           </section>
           <dl class="m-0 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[12px] max-sm:grid-cols-1">
             <dt class="text-muted">
-              Source
+              {{ tt('Source') }}
             </dt><dd class="m-0 break-all text-toned">
-              skills.sh · {{ stored.id }}
+              {{ tt('skills.sh · {0}', [stored.id]) }}
             </dd>
             <template v-if="installsLabel(stored.installs)">
               <dt class="text-muted">
-                Installs
+                {{ tt('Installs') }}
               </dt><dd class="m-0 text-toned">
-                {{ installsLabel(stored.installs) }}, as the source counts
+                {{ tt('{0}, as the source counts', [installsLabel(stored.installs)]) }}
               </dd>
             </template>
             <template v-if="stored.license">
               <dt class="text-muted">
-                License
+                {{ tt('License') }}
               </dt><dd class="m-0 text-toned">
                 {{ stored.license }}
               </dd>
             </template>
             <dt class="text-muted">
-              Pinned to
+              {{ tt('Pinned to') }}
             </dt><dd class="m-0 break-all text-toned">
               {{ stored.pinnedHash }}
             </dd>
             <dt class="text-muted">
-              On disk
+              {{ tt('On disk') }}
             </dt><dd class="m-0 break-all text-toned">
               {{ stored.contentHash }}
             </dd>
             <dt class="text-muted">
-              Folder
+              {{ tt('Folder') }}
             </dt><dd class="m-0 break-all text-toned">
               {{ stored.folder }}
             </dd>
             <dt class="text-muted">
-              Files
+              {{ tt('Files') }}
             </dt><dd class="m-0 break-all text-toned">
               {{ stored.files.join(', ') }}
             </dd>
@@ -315,41 +315,41 @@ const hasActions = computed(() => {
           class="m-0 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[12px] max-sm:grid-cols-1"
         >
           <dt class="text-muted">
-            Source
+            {{ tt('Source') }}
           </dt><dd class="m-0 text-toned">
             {{ sourceLabel(target.row.command.source) }}
           </dd>
           <template v-if="target.row.command.path && !stored">
             <dt class="text-muted">
-              File
+              {{ tt('File') }}
             </dt><dd class="m-0 break-all text-toned">
               {{ target.row.command.path }}
             </dd>
           </template>
           <template v-if="target.row.updatedAt">
             <dt class="text-muted">
-              Changed
+              {{ tt('Changed') }}
             </dt><dd class="m-0 text-toned">
               {{ shortDate(target.row.updatedAt) }}
             </dd>
           </template>
           <template v-if="commandFacts(target.row.command).length">
             <dt class="text-muted">
-              What it may do
+              {{ tt('What it may do') }}
             </dt><dd class="m-0 text-toned">
               {{ commandFacts(target.row.command).join(' · ') }}
             </dd>
           </template>
           <template v-if="target.row.command.argumentHint">
             <dt class="text-muted">
-              Arguments
+              {{ tt('Arguments') }}
             </dt><dd class="m-0 text-toned">
               {{ target.row.command.argumentHint }}
             </dd>
           </template>
           <template v-if="target.row.command.skippedFields.length">
             <dt class="text-muted">
-              Ignored
+              {{ tt('Ignored') }}
             </dt><dd class="m-0 text-muted">
               {{ target.row.command.skippedFields.join(', ') }}
             </dd>
@@ -368,7 +368,7 @@ const hasActions = computed(() => {
           class="flex flex-col gap-1"
         >
           <h3 class="m-0 text-[12px] font-normal text-muted">
-            Files
+            {{ tt('Files') }}
           </h3>
           <p class="m-0 break-all text-[12px] text-toned">
             {{ skillDetail.files.join(', ') }}
@@ -379,7 +379,7 @@ const hasActions = computed(() => {
           class="flex flex-col gap-1"
         >
           <h3 class="m-0 text-[12px] font-normal text-muted">
-            Instructions
+            {{ tt('Instructions') }}
           </h3>
           <pre class="m-0 max-h-[320px] overflow-auto border border-default p-2.5 text-[12px] break-words whitespace-pre-wrap text-toned">{{ skillDetail.body }}<template v-if="skillDetail.truncated">…</template></pre>
         </section>
@@ -403,62 +403,62 @@ const hasActions = computed(() => {
           v-if="target.row.plugin.managed"
           class="m-0 border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-toned"
         >
-          Set by your administrator: it stays on, and each device still approves what runs.
+          {{ tt('Set by your administrator: it stays on, and each device still approves what runs.') }}
         </p>
         <section class="flex flex-col gap-1.5">
           <h3 class="m-0 text-[12px] font-normal text-muted">
-            What it holds
+            {{ tt('What it holds') }}
           </h3>
           <ExtensionsContents :contents="target.row.plugin.contents" />
         </section>
         <dl class="m-0 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[12px] max-sm:grid-cols-1">
           <template v-if="target.row.publisher">
             <dt class="text-muted">
-              Publisher
+              {{ tt('Publisher') }}
             </dt><dd class="m-0 text-toned">
               {{ target.row.publisher }}
             </dd>
           </template>
           <dt class="text-muted">
-            Source
+            {{ tt('Source') }}
           </dt><dd class="m-0 break-all text-toned">
             {{ target.row.plugin.source || target.row.plugin.marketplace }}
           </dd>
           <template v-if="target.row.plugin.version">
             <dt class="text-muted">
-              Version
+              {{ tt('Version') }}
             </dt><dd class="m-0 text-toned">
               {{ target.row.plugin.version }}<template v-if="target.row.plugin.pinned">
-                , pinned
+                {{ tt(', pinned') }}
               </template>
             </dd>
           </template>
           <template v-if="target.row.plugin.contentHash">
             <dt class="text-muted">
-              Content
+              {{ tt('Content') }}
             </dt><dd class="m-0 break-all text-toned">
               <template v-if="target.row.plugin.commit">
-                commit {{ target.row.plugin.commit }},
+                {{ tt('commit {0},', [target.row.plugin.commit]) }}
               </template>{{ target.row.plugin.contentHash }}
             </dd>
           </template>
           <template v-if="target.row.license">
             <dt class="text-muted">
-              License
+              {{ tt('License') }}
             </dt><dd class="m-0 text-toned">
               {{ target.row.license }}
             </dd>
           </template>
           <template v-if="target.row.plugin.suggestedBy">
             <dt class="text-muted">
-              Asked for by
+              {{ tt('Asked for by') }}
             </dt><dd class="m-0 break-all text-toned">
               {{ target.row.plugin.suggestedBy }}
             </dd>
           </template>
           <template v-if="target.row.homepage">
             <dt class="text-muted">
-              Homepage
+              {{ tt('Homepage') }}
             </dt><dd class="m-0">
               <SettingsLink :href="target.row.homepage">
                 {{ target.row.homepage }}
@@ -485,14 +485,14 @@ const hasActions = computed(() => {
         </p>
         <dl class="m-0 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[12px] max-sm:grid-cols-1">
           <dt class="text-muted">
-            Type
+            {{ tt('Type') }}
           </dt><dd class="m-0 text-toned">
-            {{ target.row.remote ? 'Remote' : 'Local' }} ({{ target.row.transport }})<template v-if="target.row.badges.length">
+            {{ target.row.remote ? tt('Remote') : tt('Local') }} ({{ target.row.transport }})<template v-if="target.row.badges.length">
               · {{ target.row.badges.join(', ') }}
             </template>
           </dd>
           <dt class="text-muted">
-            {{ target.row.remote ? 'URL' : 'Runs' }}
+            {{ target.row.remote ? 'URL' : tt('Runs') }}
           </dt><dd class="m-0 break-all text-toned">
             <code>{{ target.row.endpoint }}</code>
           </dd>
@@ -515,14 +515,14 @@ const hasActions = computed(() => {
               size="xs"
               @click="emit('open-plugin', p.pluginId)"
             >
-              Open {{ p.pluginName }}
+              {{ tt('Open {0}', [p.pluginName]) }}
             </HBtn>
           </div>
           <p
             v-if="!entry"
             class="m-0 text-[12px] text-muted"
           >
-            It comes with its plugins: approve or turn it off there.
+            {{ tt('It comes with its plugins: approve or turn it off there.') }}
           </p>
         </section>
 
@@ -553,7 +553,7 @@ const hasActions = computed(() => {
           v-if="target.item.refusal"
           class="m-0 border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-toned"
         >
-          Set by your administrator: {{ target.item.refusal }}
+          {{ tt('Set by your administrator: {0}', [target.item.refusal]) }}
         </p>
         <p
           v-if="target.item.problem"
@@ -572,7 +572,7 @@ const hasActions = computed(() => {
           class="flex flex-col gap-1.5"
         >
           <h3 class="m-0 text-[12px] font-normal text-muted">
-            Audits, as the source gives them
+            {{ tt('Audits, as the source gives them') }}
           </h3>
           <ExtensionsAudits :audits="external?.audits ?? target.item.audits" />
         </section>
@@ -581,21 +581,21 @@ const hasActions = computed(() => {
           class="flex flex-col gap-1.5"
         >
           <h3 class="m-0 text-[12px] font-normal text-muted">
-            What it holds
+            {{ tt('What it holds') }}
           </h3>
           <ExtensionsContents :contents="discoverContents(target.item)!" />
           <p
             v-if="runsPrograms(discoverContents(target.item)!)"
             class="m-0 text-[12px] text-warn"
           >
-            It can run programs with your rights, once you approve it.
+            {{ tt('It can run programs with your rights, once you approve it.') }}
           </p>
         </section>
         <p
           v-else-if="target.item.pluginId"
           class="m-0 text-[12px] text-muted"
         >
-          Its files aren't on this device yet, so what it holds is shown after installing, before anything of it runs.
+          {{ tt('Its files aren\'t on this device yet, so what it holds is shown after installing, before anything of it runs.') }}
         </p>
         <section
           v-for="o in target.item.options"
@@ -612,7 +612,7 @@ const hasActions = computed(() => {
               :disabled="!!target.item.refusal || target.item.installed"
               @click="emit('add-connector', o)"
             >
-              Set up
+              {{ tt('Set up') }}
             </HBtn>
           </div>
           <code class="break-all text-[12px] text-toned">{{ o.remote ? o.server?.remote?.url : [o.server?.stdio?.command, ...(o.server?.stdio?.args ?? [])].join(' ') }}</code>
@@ -621,7 +621,7 @@ const hasActions = computed(() => {
             :key="r.name"
             class="m-0 text-[12px] text-muted"
           >
-            Needs {{ r.name }}<template v-if="r.description">
+            {{ tt('Needs {0}', [r.name]) }}<template v-if="r.description">
               : {{ r.description }}
             </template>
           </p>
@@ -629,13 +629,13 @@ const hasActions = computed(() => {
         <dl class="m-0 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[12px] max-sm:grid-cols-1">
           <template v-if="target.item.publisher">
             <dt class="text-muted">
-              Publisher
+              {{ tt('Publisher') }}
             </dt><dd class="m-0 text-toned">
               {{ target.item.publisher }}
             </dd>
           </template>
           <dt class="text-muted">
-            Source
+            {{ tt('Source') }}
           </dt><dd class="m-0 break-all text-toned">
             {{ target.item.sourceLabel }}<template v-if="target.item.externalId">
               : {{ target.item.externalId }}
@@ -643,49 +643,49 @@ const hasActions = computed(() => {
           </dd>
           <template v-if="target.item.version">
             <dt class="text-muted">
-              Version
+              {{ tt('Version') }}
             </dt><dd class="m-0 text-toned">
               {{ target.item.version }}
             </dd>
           </template>
           <template v-if="installsLabel(external?.installs ?? target.item.installs)">
             <dt class="text-muted">
-              Installs
+              {{ tt('Installs') }}
             </dt><dd class="m-0 text-toned">
-              {{ installsLabel(external?.installs ?? target.item.installs) }}, as the source counts
+              {{ tt('{0}, as the source counts', [installsLabel(external?.installs ?? target.item.installs)]) }}
             </dd>
           </template>
           <template v-if="external?.license || target.item.license">
             <dt class="text-muted">
-              License
+              {{ tt('License') }}
             </dt><dd class="m-0 text-toned">
               {{ external?.license || target.item.license }}
             </dd>
           </template>
           <template v-if="target.item.category">
             <dt class="text-muted">
-              Category
+              {{ tt('Category') }}
             </dt><dd class="m-0 text-toned">
               {{ target.item.category }}
             </dd>
           </template>
           <template v-if="target.item.updatedAt">
             <dt class="text-muted">
-              Updated
+              {{ tt('Updated') }}
             </dt><dd class="m-0 text-toned">
               {{ shortDate(target.item.updatedAt) }}
             </dd>
           </template>
           <template v-if="external?.hash">
             <dt class="text-muted">
-              Would pin
+              {{ tt('Would pin') }}
             </dt><dd class="m-0 break-all text-toned">
               {{ external.hash }}
             </dd>
           </template>
           <template v-if="target.item.homepage">
             <dt class="text-muted">
-              Homepage
+              {{ tt('Homepage') }}
             </dt><dd class="m-0">
               <SettingsLink :href="target.item.homepage">
                 {{ target.item.homepage }}
@@ -698,7 +698,7 @@ const hasActions = computed(() => {
           class="flex flex-col gap-1"
         >
           <h3 class="m-0 text-[12px] font-normal text-muted">
-            Files
+            {{ tt('Files') }}
           </h3>
           <div
             v-for="f in external.files"
@@ -730,28 +730,28 @@ const hasActions = computed(() => {
         </p>
         <dl class="m-0 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[12px] max-sm:grid-cols-1">
           <dt class="text-muted">
-            Source
+            {{ tt('Source') }}
           </dt><dd class="m-0 break-all text-toned">
-            {{ target.market.builtin ? 'Ships with this client' : target.market.source }}
+            {{ target.market.builtin ? tt('Ships with this client') : target.market.source }}
           </dd>
           <template v-if="target.market.commit">
             <dt class="text-muted">
-              Commit
+              {{ tt('Commit') }}
             </dt><dd class="m-0 break-all text-toned">
               {{ target.market.commit }}
             </dd>
           </template>
           <template v-if="target.market.updatedAt">
             <dt class="text-muted">
-              Fetched
+              {{ tt('Fetched') }}
             </dt><dd class="m-0 text-toned">
               {{ shortDate(target.market.updatedAt) }}
             </dd>
           </template>
           <dt class="text-muted">
-            Plugins
+            {{ tt('Plugins') }}
           </dt><dd class="m-0 text-toned">
-            {{ target.market.pluginCount }}, {{ target.market.installedCount }} installed
+            {{ tt('{0}, {1} installed', [target.market.pluginCount, target.market.installedCount]) }}
           </dd>
         </dl>
       </template>
@@ -767,7 +767,7 @@ const hasActions = computed(() => {
             :disabled="busy"
             @click="approveExternal(stored, true)"
           >
-            Approve on this device
+            {{ tt('Approve on this device') }}
           </HBtn>
           <HBtn
             v-else-if="stored.approved"
@@ -775,7 +775,7 @@ const hasActions = computed(() => {
             :disabled="busy"
             @click="approveExternal(stored, false)"
           >
-            Take back approval
+            {{ tt('Take back approval') }}
           </HBtn>
         </template>
         <HBtn
@@ -784,21 +784,21 @@ const hasActions = computed(() => {
           :disabled="busy || !!target.row.command.shadowedBy"
           @click="toggleSkill(target.row)"
         >
-          {{ target.row.command.enabled ? 'Turn off' : 'Turn on' }}
+          {{ target.row.command.enabled ? tt('Turn off') : tt('Turn on') }}
         </HBtn>
         <HBtn
           v-if="target.row.pluginId"
           size="md"
           @click="emit('open-plugin', target.row.pluginId)"
         >
-          Open its plugin
+          {{ tt('Open its plugin') }}
         </HBtn>
         <HBtn
           v-if="target.row.folder && desktop"
           size="md"
           @click="reveal(target.row.folder)"
         >
-          Show in folder
+          {{ tt('Show in folder') }}
         </HBtn>
         <span class="flex-1" />
         <HBtn
@@ -808,7 +808,7 @@ const hasActions = computed(() => {
           :disabled="busy"
           @click="removeExternal(stored)"
         >
-          Remove
+          {{ tt('Remove') }}
         </HBtn>
         <HBtn
           v-else-if="target.row.canRemove"
@@ -817,7 +817,7 @@ const hasActions = computed(() => {
           :disabled="busy"
           @click="removeSkill(target.row)"
         >
-          Remove
+          {{ tt('Remove') }}
         </HBtn>
       </template>
 
@@ -829,7 +829,7 @@ const hasActions = computed(() => {
           :disabled="busy"
           @click="pluginChange(target.row, () => plugins().install(target.kind === 'plugin' ? target.row.plugin.id : '', cwd))"
         >
-          Install
+          {{ tt('Install') }}
         </HBtn>
         <template v-else>
           <HBtn
@@ -839,7 +839,7 @@ const hasActions = computed(() => {
             :disabled="busy"
             @click="pluginChange(target.row, () => plugins().setApproval(target.kind === 'plugin' ? target.row.plugin.id : '', true, target.kind === 'plugin' ? target.row.plugin.contentHash : ''), 'Approved on this device.')"
           >
-            {{ runsPrograms(target.row.plugin.contents) ? 'Approve: let these run with my rights' : 'Approve on this device' }}
+            {{ runsPrograms(target.row.plugin.contents) ? tt('Approve: let these run with my rights') : tt('Approve on this device') }}
           </HBtn>
           <HBtn
             v-else
@@ -847,28 +847,28 @@ const hasActions = computed(() => {
             :disabled="busy"
             @click="pluginChange(target.row, () => plugins().setApproval(target.kind === 'plugin' ? target.row.plugin.id : '', false, ''))"
           >
-            Take back approval
+            {{ tt('Take back approval') }}
           </HBtn>
           <HBtn
             size="md"
             :disabled="busy || target.row.plugin.managed"
             @click="pluginChange(target.row, () => plugins().setEnabled(target.kind === 'plugin' ? target.row.plugin.id : '', target.kind === 'plugin' && !target.row.plugin.enabled))"
           >
-            {{ target.row.plugin.enabled ? 'Turn off' : 'Turn on' }}
+            {{ target.row.plugin.enabled ? tt('Turn off') : tt('Turn on') }}
           </HBtn>
           <HBtn
             size="md"
             :disabled="busy"
             @click="updatePlugin(target.row)"
           >
-            Update
+            {{ tt('Update') }}
           </HBtn>
           <HBtn
             size="md"
             :disabled="busy"
             @click="pluginChange(target.row, () => plugins().setPinned(target.kind === 'plugin' ? target.row.plugin.id : '', target.kind === 'plugin' && !target.row.plugin.pinned))"
           >
-            {{ target.row.plugin.pinned ? 'Unpin' : 'Pin' }}
+            {{ target.row.plugin.pinned ? tt('Unpin') : tt('Pin') }}
           </HBtn>
           <span class="flex-1" />
           <HBtn
@@ -878,7 +878,7 @@ const hasActions = computed(() => {
             :disabled="busy"
             @click="removePlugin(target.row)"
           >
-            Remove
+            {{ tt('Remove') }}
           </HBtn>
         </template>
       </template>
@@ -891,7 +891,7 @@ const hasActions = computed(() => {
           :disabled="busy || !external || !external.hash || external.installed"
           @click="installExternal(target.item)"
         >
-          {{ external?.installed ? 'Stored' : 'Store, pinned to this hash' }}
+          {{ external?.installed ? tt('Stored') : tt('Store, pinned to this hash') }}
         </HBtn>
         <HBtn
           v-else-if="target.item.pluginId"
@@ -900,7 +900,7 @@ const hasActions = computed(() => {
           :disabled="busy || target.item.installed || !!target.item.refusal"
           @click="installListing(target.item)"
         >
-          {{ target.item.installed ? 'Installed' : target.item.kind === 1 ? 'Install the plugin that holds it' : 'Install' }}
+          {{ target.item.installed ? tt('Installed') : target.item.kind === 1 ? tt('Install the plugin that holds it') : tt('Install') }}
         </HBtn>
       </template>
 
@@ -911,7 +911,7 @@ const hasActions = computed(() => {
           :disabled="busy"
           @click="run(() => plugins().updateMarketplace(target.kind === 'marketplace' ? target.market.name : ''), 'Up to date.')"
         >
-          Update
+          {{ tt('Update') }}
         </HBtn>
         <span class="flex-1" />
         <HBtn
@@ -921,7 +921,7 @@ const hasActions = computed(() => {
           :disabled="busy"
           @click="removeMarket(target.market)"
         >
-          Remove
+          {{ tt('Remove') }}
         </HBtn>
       </template>
     </template>

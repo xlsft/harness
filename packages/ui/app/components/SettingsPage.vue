@@ -16,27 +16,28 @@ const access = useAccess()
 
 // Grouped like the nav shows them: you, this app, the AI services, the server (admins), the product.
 const SECTIONS = [
-  { key: 'account', label: 'Account', icon: 'lock', group: 'you' },
-  { key: 'usage', label: 'Usage', icon: 'chart', group: 'you' },
-  { key: 'appearance', label: 'Appearance', icon: 'palette', group: 'app' },
-  { key: 'sessions', label: 'Sessions', icon: 'session', group: 'app' },
-  { key: 'sandbox', label: 'Sandbox', icon: 'box', group: 'app' },
-  { key: 'hooks', label: 'Hooks', icon: 'hook', group: 'app' },
-  { key: 'memory', label: 'Memory', icon: 'doc', group: 'app' },
-  { key: 'codehosts', label: 'Code hosts', icon: 'pull-request', group: 'app' },
-  { key: 'import', label: 'Import', icon: 'download', group: 'app' },
-  { key: 'models', label: 'Models', icon: 'ai', group: 'ai' },
-  { key: 'classifiers', label: 'Classifiers', icon: 'filter', group: 'ai' },
-  { key: 'search', label: 'Search', icon: 'search', group: 'ai' },
-  { key: 'speech', label: 'Speech', icon: 'mic', group: 'ai' },
-  { key: 'computer', label: 'Computer use', icon: 'monitor', group: 'ai' },
-  { key: 'users', label: 'Users', icon: 'list', group: 'server' },
+  { key: 'account', label: tt('Account'), icon: 'lock', group: 'you' },
+  { key: 'usage', label: tt('Usage'), icon: 'chart', group: 'you' },
+  { key: 'appearance', label: tt('Appearance'), icon: 'palette', group: 'app' },
+  { key: 'sessions', label: tt('Sessions'), icon: 'session', group: 'app' },
+  { key: 'sandbox', label: tt('Sandbox'), icon: 'box', group: 'app' },
+  { key: 'hooks', label: tt('Hooks'), icon: 'hook', group: 'app' },
+  { key: 'memory', label: tt('Memory'), icon: 'doc', group: 'app' },
+  { key: 'codehosts', label: tt('Code hosts'), icon: 'pull-request', group: 'app' },
+  { key: 'import', label: tt('Import'), icon: 'download', group: 'app' },
+  { key: 'models', label: tt('Models'), icon: 'ai', group: 'ai' },
+  { key: 'classifiers', label: tt('Classifiers'), icon: 'filter', group: 'ai' },
+  { key: 'search', label: tt('Search'), icon: 'search', group: 'ai' },
+  { key: 'speech', label: tt('Speech'), icon: 'mic', group: 'ai' },
+  { key: 'computer', label: tt('Computer use'), icon: 'monitor', group: 'ai' },
+  { key: 'ssh', label: tt('SSH hosts'), icon: 'terminal', group: 'ai' },
+  { key: 'users', label: tt('Users'), icon: 'list', group: 'server' },
   { key: 'ldap', label: 'LDAP', icon: 'branch', group: 'server' },
   { key: 'sso', label: 'SSO', icon: 'globe', group: 'server' },
-  { key: 'provisioning', label: 'Provisioning', icon: 'refresh', group: 'server' },
-  { key: 'audit', label: 'Audit log', icon: 'history', group: 'server' },
-  { key: 'policy', label: 'Managed policy', icon: 'flag', group: 'server' },
-  { key: 'about', label: 'About', icon: 'info', group: 'product' }
+  { key: 'provisioning', label: tt('Provisioning'), icon: 'refresh', group: 'server' },
+  { key: 'audit', label: tt('Audit log'), icon: 'history', group: 'server' },
+  { key: 'policy', label: tt('Managed policy'), icon: 'flag', group: 'server' },
+  { key: 'about', label: tt('About'), icon: 'info', group: 'product' }
 ] as const
 type Section = typeof SECTIONS[number]['key']
 
@@ -71,7 +72,8 @@ const KEYWORDS: Record<Section, string> = {
   classifiers: 'classifier decision model rules',
   search: 'web search providers searxng brave tavily exa kagi perplexity',
   speech: 'voice dictation microphone read aloud stt tts parakeet whisper piper elevenlabs openai deepgram minimax',
-  computer: 'computer use desktop apps control screen recording accessibility permissions click type',
+  computer: 'computer use desktop apps control screen recording accessibility permissions click type your chrome real browser sites',
+  ssh: 'ssh hosts remote machine server tunnel known hosts key',
   account: 'sign out server user',
   users: 'admin users roles passwords quotas limits spend budget groups auditor billing',
   ldap: 'ldap directory active directory sign in bind',
@@ -114,7 +116,7 @@ const notifications = computed({
 <template>
   <div class="flex min-h-0 flex-1 max-md:flex-col">
     <nav
-      aria-label="Settings sections"
+      :aria-label="tt('Settings sections')"
       class="flex w-[200px] shrink-0 flex-col gap-[2px] overflow-y-auto border-r border-line p-3 max-md:w-full max-md:flex-row max-md:flex-wrap max-md:border-r-0 max-md:border-b"
     >
       <label class="mb-2 flex h-9 items-center gap-2 border border-line px-2.5 text-muted focus-within:border-accent max-md:w-full">
@@ -124,8 +126,8 @@ const notifications = computed({
         />
         <input
           v-model="query"
-          placeholder="Search"
-          aria-label="Search settings"
+          :placeholder="tt('Search')"
+          :aria-label="tt('Search settings')"
           class="min-w-0 flex-1 bg-transparent text-[12.5px] text-strong outline-none placeholder:text-muted"
         >
       </label>
@@ -151,7 +153,7 @@ const notifications = computed({
         v-if="!sections.length"
         class="m-0 px-[9px] py-2 text-[12px] text-muted"
       >
-        Nothing matches.
+        {{ tt('Nothing matches.') }}
       </p>
     </nav>
 
@@ -169,10 +171,10 @@ const notifications = computed({
       <template v-else-if="section === 'sessions'">
         <template v-if="managed?.active">
           <h2 class="set-h">
-            Set by your administrator
+            {{ tt('Set by your administrator') }}
           </h2>
           <p class="set-sub">
-            This comes first. Nothing here or in a project's settings can change it.
+            {{ tt('This comes first. Nothing here or in a project\'s settings can change it.') }}
           </p>
           <SettingsManagedNotice
             :policy="managed"
@@ -181,29 +183,29 @@ const notifications = computed({
         </template>
         <SettingsModes />
         <h2 class="set-h">
-          New sessions
+          {{ tt('New sessions') }}
         </h2>
         <p class="set-sub">
-          What the new-session screen starts with. Changing a chip there updates these too.
+          {{ tt('What the new-session screen starts with. Changing a chip there updates these too.') }}
         </p>
         <div class="set-row">
           <div class="set-label">
-            <span>Worktree</span>
-            <span class="set-desc">Run each new session in its own git worktree.</span>
+            <span>{{ tt('Worktree') }}</span>
+            <span class="set-desc">{{ tt('Run each new session in its own git worktree.') }}</span>
           </div>
           <HToggle
             v-model="worktree"
-            label="Worktree by default"
+            :label="tt('Worktree by default')"
           />
         </div>
         <div class="set-row">
           <div class="set-label">
-            <span>Notifications</span>
-            <span class="set-desc">Tell this device when a session finishes or needs you. Not synced.</span>
+            <span>{{ tt('Notifications') }}</span>
+            <span class="set-desc">{{ tt('Tell this device when a session finishes or needs you. Not synced.') }}</span>
           </div>
           <HToggle
             v-model="notifications"
-            label="Notifications"
+            :label="tt('Notifications')"
           />
         </div>
         <SettingsCompaction />
@@ -223,12 +225,12 @@ const notifications = computed({
           role="status"
           class="m-0 mb-4 border border-default px-3 py-2 text-[12px] text-toned"
         >
-          Set by your administrator:
+          {{ tt('Set by your administrator:') }}
           <template v-if="managed?.restrictProviders">
-            only {{ managed.allowedProviders.join(', ') || 'no providers' }} may be used.
+            {{ tt('only {0} may be used.', [managed.allowedProviders.join(', ') || 'no providers']) }}
           </template>
           <template v-if="managed?.personalProvidersDisabled">
-            Personal providers are not allowed.
+            {{ tt('Personal providers are not allowed.') }}
           </template>
         </p>
         <SettingsProviders
@@ -244,6 +246,7 @@ const notifications = computed({
       <SettingsSearch v-else-if="section === 'search'" />
       <SettingsSpeech v-else-if="section === 'speech'" />
       <SettingsComputerUse v-else-if="section === 'computer'" />
+      <SettingsSshHosts v-else-if="section === 'ssh'" />
 
       <SettingsUsers v-else-if="section === 'users'" />
 

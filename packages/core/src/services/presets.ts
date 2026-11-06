@@ -29,12 +29,13 @@
  */
 
 import type { ModelPricing } from "./models.ts";
+import { CLOUD_PRESETS } from "./presets-cloud.ts";
 
 export type ProviderGroup = "llm" | "classifier" | "search";
 /** How an LLM provider charges: "metered" (pay as you go) or "plan" (flat-rate subscription / coding plan). */
 export type Billing = "metered" | "plan";
 
-export const LLM_TYPES = ["anthropic", "openai-chat", "openai-responses"] as const;
+export const LLM_TYPES = ["anthropic", "openai-chat", "openai-responses", "bedrock-invoke", "vertex-anthropic"] as const;
 export const CLASSIFIER_TYPES = ["decision-model", "decision-http"] as const;
 export const SEARCH_TYPES = ["searxng", "brave", "tavily", "exa", "kagi", "perplexity"] as const;
 export type SearchType = (typeof SEARCH_TYPES)[number];
@@ -46,6 +47,10 @@ export interface PresetField {
   label: string;
   required: boolean;
   placeholder?: string;
+  /** Cloud presets: only with these credential modes (empty: always). */
+  modes?: string[];
+  /** Pasted text of several lines (a service account file). */
+  multiline?: boolean;
 }
 
 export interface PresetModel {
@@ -58,16 +63,29 @@ export interface PresetModel {
 }
 
 export type SearchOptionName = "max_results" | "safe_search" | "country" | "language";
+/** The plain settings of a cloud provider's credentials and endpoint. Secrets are never among them. */
+export type CloudOptionName = "credential_mode" | "region" | "access_key_id" | "project" | "location" | "resource" | "tenant_id" | "client_id";
 
 export interface PresetOption {
-  name: SearchOptionName;
+  name: SearchOptionName | CloudOptionName;
   label: string;
   kind: "number" | "select" | "text";
-  choices?: { value: string; label: string }[];
+  /** `global_only`: not offered for a personal provider (the server's own cloud identity). */
+  choices?: { value: string; label: string; global_only?: boolean }[];
   default_value?: string;
   placeholder?: string;
   min?: number;
   max?: number;
+  /** Cloud presets: only with these credential modes (empty: always). */
+  modes?: string[];
+  required?: boolean;
+}
+
+/** How a cloud preset's requests are authorized (gateway/cloud/credentials.ts). */
+export interface PresetCloud {
+  kind: "aws" | "gcp" | "azure";
+  /** SigV4 service name (aws); the API route, which says where a key goes (azure: "anthropic" or "openai"). */
+  service?: string;
 }
 
 export interface ProviderPreset {
@@ -88,6 +106,8 @@ export interface ProviderPreset {
   builtin?: boolean;
   /** Default "metered". */
   billing?: Billing;
+  /** A cloud preset: `base_url` is a template over `options`, and requests carry native credentials. */
+  cloud?: PresetCloud;
 }
 
 export interface ProviderProtocol {
@@ -141,7 +161,7 @@ const KIMI_PLATFORM_PRICES: Record<string, ModelPricing> = {
   "kimi-k3": { input: 3, output: 15, cache_read: 0.3, cache_write: 3 },
 };
 
-export const PRESETS: readonly ProviderPreset[] = [
+const LOCAL_AND_API_PRESETS: readonly ProviderPreset[] = [
   // --- LLM models -----------------------------------------------------------------------------
   {
     id: "openrouter",
@@ -535,6 +555,13 @@ export const PRESETS: readonly ProviderPreset[] = [
     discovers_models: false,
     options: [resultsOption(20), COUNTRY, LANGUAGE],
   },
+];
+
+/** In display order: LLM presets first, the cloud platforms after the other LLM services. */
+export const PRESETS: readonly ProviderPreset[] = [
+  ...LOCAL_AND_API_PRESETS.filter((p) => p.group === "llm"),
+  ...CLOUD_PRESETS,
+  ...LOCAL_AND_API_PRESETS.filter((p) => p.group !== "llm"),
 ];
 
 export const PROTOCOLS: readonly ProviderProtocol[] = [

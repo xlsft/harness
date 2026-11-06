@@ -49,12 +49,17 @@ type Manager struct {
 	Logger *slog.Logger
 	// Executable overrides discovery (tests).
 	Executable *Executable
+	// OnSiteRequest asks the user to allow a site in their real Chrome (attach.go). Nil: the answer is no.
+	OnSiteRequest func(sessionID string, r SiteRequest)
+	// ChromeDirs overrides the profile folders searched for a Chrome to attach to (tests).
+	ChromeDirs []string
 
 	mu       sync.Mutex
 	browsers map[string]*Browser
 	tickets  map[[32]byte]ticket
 	inst     installer
 	closed   bool
+	grants   *SiteGrants
 }
 
 type ticket struct {

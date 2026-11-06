@@ -11,14 +11,14 @@ const store = useSessionStore()
 const mcp = () => store.transport!.mcp()
 
 function menu(c: ExtensionConnector): (RowMenuItem | null)[] {
-  const items: (RowMenuItem | null)[] = [{ label: 'Open', run: () => emit('open', c) }]
+  const items: (RowMenuItem | null)[] = [{ label: tt('Open'), run: () => emit('open', c) }]
   const e = c.entry
   const s = e?.server
   if (e && s) {
-    if (e.canEdit) items.push({ label: s.enabled ? 'Turn off' : 'Turn on', run: () => props.act(() => mcp().update({ ...s, enabled: !s.enabled }, { set: {}, remove: [] }, s.version)) })
+    if (e.canEdit) items.push({ label: s.enabled ? tt('Turn off') : tt('Turn on'), run: () => props.act(() => mcp().update({ ...s, enabled: !s.enabled }, { set: {}, remove: [] }, s.version)) })
     if (e.canRemove) {
-      items.push(null, { label: 'Remove', run: () => {
-        if (window.confirm(`Remove the connector ${s.name}?`)) return props.act(() => mcp().remove(s.id))
+      items.push(null, { label: tt('Remove'), run: () => {
+        if (window.confirm(tt('Remove the connector {0}?', [s.name]))) return props.act(() => mcp().remove(s.id))
       } })
     }
   }
@@ -29,22 +29,22 @@ function menu(c: ExtensionConnector): (RowMenuItem | null)[] {
 <template>
   <table
     v-if="rows.length"
-    aria-label="Connectors"
+    :aria-label="tt('Connectors')"
     class="w-full border-collapse text-[12.5px]"
   >
     <thead>
       <tr class="border-b border-default text-left text-[12px] font-normal text-muted">
         <th class="py-1.5 pr-3 font-normal">
-          Connector
+          {{ tt('Connector') }}
         </th>
         <th class="w-[220px] px-3 py-1.5 font-normal max-md:hidden">
-          Type
+          {{ tt('Type') }}
         </th>
         <th class="w-[170px] px-3 py-1.5 font-normal max-md:w-[118px] max-md:px-2">
-          Status
+          {{ tt('Status') }}
         </th>
         <th class="w-8 p-0">
-          <span class="sr-only">Actions</span>
+          <span class="sr-only">{{ tt('Actions') }}</span>
         </th>
       </tr>
     </thead>
@@ -74,13 +74,13 @@ function menu(c: ExtensionConnector): (RowMenuItem | null)[] {
                 v-if="c.providers.length"
                 class="truncate text-[12px] text-muted"
               >{{ providedBy(c) }}</span>
-              <span class="hidden truncate text-[11px] text-muted max-md:block">{{ c.remote ? 'Remote' : 'Local' }}<template v-if="c.badges.length"> · {{ c.badges.join(', ') }}</template></span>
+              <span class="hidden truncate text-[11px] text-muted max-md:block">{{ c.remote ? tt('Remote') : tt('Local') }}<template v-if="c.badges.length"> · {{ c.badges.join(', ') }}</template></span>
             </span>
           </button>
         </td>
         <td class="px-3 py-2 max-md:hidden">
           <span class="flex flex-wrap items-center gap-1.5 text-toned">
-            {{ c.remote ? 'Remote' : 'Local' }}
+            {{ c.remote ? tt('Remote') : tt('Local') }}
             <span
               v-for="b in c.badges"
               :key="b"
@@ -108,12 +108,12 @@ function menu(c: ExtensionConnector): (RowMenuItem | null)[] {
         >
           <RowMenu
             :items="menu(c)"
-            :label="`Actions for ${c.name}`"
+            :label="tt('Actions for {0}', [c.name])"
             align="end"
           >
             <button
               type="button"
-              :aria-label="`Actions for ${c.name}`"
+              :aria-label="tt('Actions for {0}', [c.name])"
               class="flex size-7 cursor-pointer items-center justify-center text-muted hover:text-strong"
             >
               <HIcon

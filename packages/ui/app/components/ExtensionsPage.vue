@@ -163,31 +163,31 @@ const shownMarketplaces = computed(() => {
   return (filter.source || filter.state) ? [] : (plugins.value?.marketplaces ?? []).filter(m => !q || `${m.name} ${m.source} ${m.description}`.toLowerCase().includes(q))
 })
 
-const stateOptions = [{ value: '', label: 'Any state' }, { value: 'on', label: 'On' }, { value: 'off', label: 'Off' }, { value: 'attention', label: 'Needs attention' }]
+const stateOptions = [{ value: '', label: tt('Any state') }, { value: 'on', label: tt('On') }, { value: 'off', label: tt('Off') }, { value: 'attention', label: tt('Needs attention') }]
 const filters = computed<FilterMenu[]>(() => {
   if (view.value === 'discover') {
     const out: FilterMenu[] = []
-    if (discover.value?.sources.length) out.push({ key: 'source', title: 'Source', options: [{ value: '', label: 'Any source' }, ...discover.value.sources.map(s => ({ value: s, label: s }))] })
-    if (type.value === 'connectors') out.push({ key: 'connectorType', title: 'Type', options: [{ value: '', label: 'Any type' }, { value: 'local', label: 'Local' }, { value: 'remote', label: 'Remote' }] })
-    out.push({ key: 'hideInstalled', title: 'Added', options: [{ value: '', label: 'Show all' }, { value: 'yes', label: 'Hide what I have' }] })
+    if (discover.value?.sources.length) out.push({ key: 'source', title: tt('Source'), options: [{ value: '', label: tt('Any source') }, ...discover.value.sources.map(s => ({ value: s, label: s }))] })
+    if (type.value === 'connectors') out.push({ key: 'connectorType', title: tt('Type'), options: [{ value: '', label: tt('Any type') }, { value: 'local', label: tt('Local') }, { value: 'remote', label: tt('Remote') }] })
+    out.push({ key: 'hideInstalled', title: tt('Added'), options: [{ value: '', label: tt('Show all') }, { value: 'yes', label: tt('Hide what I have') }] })
     return out
   }
   if (type.value === 'connectors') {
     return [
-      { key: 'manager', title: 'Managed by', options: [{ value: '', label: 'Anyone' }, { value: 'Device', label: 'This device' }, { value: 'Account', label: 'My account' }, { value: 'Admin', label: 'Admin' }, { value: 'Repository', label: 'Repository' }, { value: 'Plugin', label: 'A plugin' }] },
-      { key: 'connectorType', title: 'Type', options: [{ value: '', label: 'Any type' }, { value: 'local', label: 'Local' }, { value: 'remote', label: 'Remote' }] },
-      { key: 'status', title: 'Status', options: [{ value: '', label: 'Any status' }, { value: 'connected', label: 'Connected' }, { value: 'attention', label: 'Needs attention' }] }
+      { key: 'manager', title: tt('Managed by'), options: [{ value: '', label: tt('Anyone') }, { value: 'Device', label: tt('This device') }, { value: 'Account', label: tt('My account') }, { value: 'Admin', label: tt('Admin') }, { value: 'Repository', label: tt('Repository') }, { value: 'Plugin', label: tt('A plugin') }] },
+      { key: 'connectorType', title: tt('Type'), options: [{ value: '', label: tt('Any type') }, { value: 'local', label: tt('Local') }, { value: 'remote', label: tt('Remote') }] },
+      { key: 'status', title: tt('Status'), options: [{ value: '', label: tt('Any status') }, { value: 'connected', label: tt('Connected') }, { value: 'attention', label: tt('Needs attention') }] }
     ]
   }
   const groups = type.value === 'skills' ? allSkillGroups.value.map(g => ({ key: g.key, title: g.title })) : (plugins.value?.groups ?? []).map(g => ({ key: g.key, title: g.title }))
   return [
-    { key: 'source', title: 'Source', options: [{ value: '', label: 'Any source' }, ...groups.map(g => ({ value: g.key, label: g.title }))] },
-    { key: 'state', title: 'State', options: stateOptions }
+    { key: 'source', title: tt('Source'), options: [{ value: '', label: tt('Any source') }, ...groups.map(g => ({ value: g.key, label: g.title }))] },
+    { key: 'state', title: tt('State'), options: stateOptions }
   ]
 })
 const sortOptions = computed(() => {
-  if (view.value === 'discover') return type.value === 'connectors' ? [{ value: '', label: 'As listed' }, { value: 'name', label: 'Name' }, { value: 'updated', label: 'Recently updated' }] : [{ value: '', label: 'As listed' }, { value: 'name', label: 'Name' }]
-  return type.value === 'connectors' ? [] : [{ value: '', label: 'As listed' }, { value: 'name', label: 'Name' }, { value: 'recent', label: 'Recently added' }]
+  if (view.value === 'discover') return type.value === 'connectors' ? [{ value: '', label: tt('As listed') }, { value: 'name', label: tt('Name') }, { value: 'updated', label: tt('Recently updated') }] : [{ value: '', label: tt('As listed') }, { value: 'name', label: tt('Name') }]
+  return type.value === 'connectors' ? [] : [{ value: '', label: tt('As listed') }, { value: 'name', label: tt('Name') }, { value: 'recent', label: tt('Recently added') }]
 })
 const filterValues = computed<Record<string, string>>(() => ({ ...filter }))
 function setFilter(key: string, value: string) {
@@ -195,12 +195,12 @@ function setFilter(key: string, value: string) {
 }
 
 const addItems = computed(() => [
-  { label: 'Create a skill…', run: () => { addMode.value = 'skill' } },
-  { label: 'Install from a folder or URL…', run: () => { addMode.value = 'install' } },
-  { label: 'Add a connector…', run: () => addConnector(null) },
-  { label: 'Add a marketplace…', run: () => { addMode.value = 'marketplace' } },
+  { label: tt('Create a skill…'), run: () => { addMode.value = 'skill' } },
+  { label: tt('Install from a folder or URL…'), run: () => { addMode.value = 'install' } },
+  { label: tt('Add a connector…'), run: () => addConnector(null) },
+  { label: tt('Add a marketplace…'), run: () => { addMode.value = 'marketplace' } },
   null,
-  { label: 'Import from Claude Code…', run: () => settingsModal.open('import') }
+  { label: tt('Import from Claude Code…'), run: () => settingsModal.open('import') }
 ])
 function addConnector(option: ConnectorOption | null) {
   addOption.value = option
@@ -216,7 +216,7 @@ async function addFromDiscover(it: DiscoverItem) {
   await quietly(async () => {
     const p = await store.transport!.plugins().install(it.pluginId, cwd.value)
     detail.value = { kind: 'plugin', row: { plugin: p, category: it.category, tags: it.tags, publisher: it.publisher, homepage: it.homepage, license: it.license, folder: '' } }
-    return `Installed ${p.id}. Nothing of it runs until you approve it.`
+    return tt('Installed {0}. Nothing of it runs until you approve it.', [p.id])
   })
 }
 
@@ -272,12 +272,12 @@ function added(said: string) {
 
 <template>
   <section
-    aria-label="Extensions"
+    :aria-label="tt('Extensions')"
     class="overflow-y-auto bg-default"
   >
     <div class="mx-auto w-full max-w-[1040px] px-10 max-sm:px-4">
       <h1 class="m-0 pt-3 pb-4 font-display text-[26px] font-bold text-strong">
-        Extensions
+        {{ tt('Extensions') }}
       </h1>
     </div>
 
@@ -322,13 +322,13 @@ function added(said: string) {
           v-if="type === 'plugins' && plugins?.sourcesRestricted"
           class="m-0 border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-[12.5px] text-toned"
         >
-          Your administrator allows plugins only from the sources they list.
+          {{ tt('Your administrator allows plugins only from the sources they list.') }}
         </p>
         <p
           v-if="type === 'connectors' && connectors?.registryError"
           class="m-0 border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-[12.5px] text-toned"
         >
-          Connectors from your account and your admin can't be listed: {{ connectors.registryError }}
+          {{ tt('Connectors from your account and your admin can\'t be listed: {0}', [connectors.registryError]) }}
         </p>
         <p
           v-if="type === 'connectors' && connectors?.projectError"

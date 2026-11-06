@@ -1,5 +1,6 @@
 // What the client reports for the slash menu and the Extensions screen, as these show it. The client decides what exists,
 // what wins a name and what is on; here it only becomes rows.
+import { tt } from '~/utils/i18n'
 import { SlashCommandKind, SlashCommandResult_Action, type ListSlashCommandsResponse, type SlashCommand } from '~/gen/harness/agent/v1/slash_commands_pb'
 import { fuzzyScore } from '~/lib/files/tree'
 import type { MenuOption } from '~/utils/composer'

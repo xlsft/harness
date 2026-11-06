@@ -4,6 +4,12 @@ import { flushPromises, mount } from '@vue/test-utils'
 import * as vue from 'vue'
 import { defineComponent, h, reactive, ref } from 'vue'
 import { vi } from 'vitest'
+import { tt } from '~/utils/i18n'
+
+// Components call it at load as well as when they render.
+;
+
+(globalThis as Record<string, unknown>).tt = tt
 
 export function stubNuxtGlobals(services: { transport: unknown, query: Record<string, string>, openSettings: (s: string) => void }) {
   for (const name of ['ref', 'computed', 'reactive', 'watch', 'onMounted', 'onBeforeUnmount', 'defineModel', 'nextTick', 'toRef', 'watchEffect'] as const) {
@@ -62,7 +68,7 @@ export async function mountExtensions() {
   const page = registered.ExtensionsPage as never
   const wrapper = mount(page, {
     attachTo: document.body,
-    global: { components: { ...registered, UPopover: PopoverStub } as never, stubs: { teleport: true } }
+    global: { components: { ...registered, UPopover: PopoverStub } as never, stubs: { teleport: true }, mocks: { tt } }
   })
   await settle()
   return wrapper
