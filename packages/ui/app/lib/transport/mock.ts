@@ -58,6 +58,7 @@ import { diffVersion, type DiffBaseChoice, type DiffBases, type SessionDiff, typ
 import { MockSpeechApi } from '~/lib/speech/mock'
 import { ACP_SWITCH_REFUSAL, acpUnsupported, MockAcpApi } from '~/lib/acp/mock'
 import { MockMcpApi } from '~/lib/mcp/mock'
+import { MockSchedulesApi } from '~/lib/schedule/mock'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import { MockClaudeImportApi, type MockImportedSession } from '~/lib/import/mock'
@@ -166,7 +167,7 @@ export class MockTransport implements SessionTransport {
   private disabledSkills = new Set<string>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
-  private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: false, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true }
+  private preferences: UserPreferences = { compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: false, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20 }
   private hookTrusted = false
   private deviceSettings: DeviceSettings = { theme: '', notifications: true }
   private tick: number
@@ -361,6 +362,11 @@ export class MockTransport implements SessionTransport {
   }
 
   private providersApi = new MockProvidersApi()
+  private schedulesApi = new MockSchedulesApi()
+  schedules() {
+    return this.schedulesApi
+  }
+
   providers() {
     return this.providersApi
   }
@@ -1238,6 +1244,9 @@ export class MockTransport implements SessionTransport {
       case 'skills':
         result({ action: SlashCommandResult_Action.OPEN_CUSTOMIZE })
         return true
+      case 'schedule':
+        result({ action: SlashCommandResult_Action.OPEN_SCHEDULED })
+        return true
     }
     return false
   }
@@ -1292,6 +1301,7 @@ export class MockTransport implements SessionTransport {
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>) {
+    if (patch.schedulesEnabled !== undefined) this.schedulesApi.enabled = patch.schedulesEnabled
     const n = patch.prMonitorWakesPerHour
     if (n !== undefined && (!Number.isInteger(n) || n < 1 || n > 240)) throw new Error('[invalid_argument] wakes per hour must be between 1 and 240')
     const d = patch.subagentMaxDepth

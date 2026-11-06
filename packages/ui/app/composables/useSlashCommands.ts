@@ -56,6 +56,9 @@ export function useSlashActions() {
       case SlashCommandResult_Action.OPEN_CUSTOMIZE:
         await navigateTo('/customize')
         break
+      case SlashCommandResult_Action.OPEN_SCHEDULED:
+        await navigateTo('/scheduled')
+        break
       case SlashCommandResult_Action.OPEN_SESSION:
         await store.refreshList()
         store.open(a.newSessionId)

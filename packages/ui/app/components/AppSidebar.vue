@@ -69,7 +69,8 @@ const searchOpen = useState('search-open', () => false)
 const onSettings = settings.isOpen
 // A page other than the session view is open (or the new-session screen): no session row is current.
 const onCustomize = computed(() => route.path.startsWith('/customize'))
-const onPage = computed(() => onArtifacts.value || onCustomize.value || !!route.query.new)
+const onScheduled = computed(() => route.path.startsWith('/scheduled'))
+const onPage = computed(() => onArtifacts.value || onCustomize.value || onScheduled.value || !!route.query.new)
 
 function mark(s: SessionState) {
   if (s.meta.status === 'error') return { text: 'fail', cls: 'text-bad' }
@@ -126,7 +127,7 @@ const NuxtLink = resolveComponent('NuxtLink')
 // `soon`: not built yet; the row shows a badge (Artifacts keeps its preview page, the others do nothing).
 const nav = [
   { label: 'Artifacts', icon: 'copy' as const, to: '/artifacts', soon: true },
-  { label: 'Scheduled', icon: 'clock' as const, soon: true },
+  { label: 'Scheduled', icon: 'clock' as const, to: '/scheduled' },
   { label: 'Customize', icon: 'sliders' as const, to: '/customize' },
   { label: 'Knowledge base', icon: 'page' as const, soon: true },
   { label: 'Task tracker', icon: 'tasks' as const, soon: true }

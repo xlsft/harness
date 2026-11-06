@@ -302,9 +302,7 @@ func (ls *liveSession) checkGoal(condition string, seq int64) {
 		ls.remindGoal(g, reason)
 		ls.driver.Wake()
 	}
-	if ls.srv.sched != nil {
-		ls.srv.sched.runner.Nudge()
-	}
+	ls.srv.nudgeScheduler()
 }
 
 // requestGoalCheck asks the small model whether the condition holds.

@@ -107,10 +107,29 @@ func (r *Runner) Run(ctx context.Context) {
 		}
 		select {
 		case <-ctx.Done():
+			r.releaseLease()
 			return
 		case <-t.C:
 		case <-r.nudge:
 		}
+	}
+}
+
+// releaseLease lets the next client start at once after a clean exit; after a crash it waits for the lease to run out.
+func (r *Runner) releaseLease() {
+	if !r.holding.Load() {
+		return
+	}
+	if st, err := r.Store.View(); err != nil || len(st.Records) == 0 || st.Lease.Owner != r.id {
+		return
+	}
+	if err := r.Store.Update(func(st *State) error {
+		if st.Lease.Owner == r.id {
+			st.Lease = Lease{}
+		}
+		return nil
+	}); err != nil {
+		r.log().Debug("schedules: releasing the lease failed", "err", err)
 	}
 }
 

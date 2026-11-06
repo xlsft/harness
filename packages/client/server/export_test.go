@@ -12,4 +12,12 @@ func (s *Server) CheckIdleAt(now time.Time) { s.checkIdle(now) }
 func (s *Server) ResumePRWatches() { s.resumePRWatches() }
 
 // SchedulerStarted reports whether the scheduler's loop runs (tests in package server_test).
-func (s *Server) SchedulerStarted() bool { return s.sched != nil && s.sched.done != nil }
+func (s *Server) SchedulerStarted() bool {
+	h := s.sched.Load()
+	if h == nil {
+		return false
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.stop != nil
+}

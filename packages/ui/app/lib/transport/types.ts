@@ -38,6 +38,7 @@ import type { AcpApi } from '~/lib/acp/types'
 import type { McpApi } from '~/lib/mcp/types'
 import type { BrowserApi } from '~/lib/browser/types'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
+import type { SchedulesApi } from '~/lib/schedule/types'
 
 // Computer use on this device (GetComputerUseStatus).
 export interface ComputerUseStatusVM {
@@ -121,6 +122,10 @@ export interface UserPreferences {
   sandbox: SandboxPreferences
   // Run the hooks of settings files (settings key disableAllHooks, inverted); reaches running sessions from their next hook.
   hooksEnabled: boolean
+  // Schedules of this machine run on their own (settings key schedulesEnabled); Run now works either way.
+  schedulesEnabled: boolean
+  // How many turns /goal may take when it names no cap (1 to 200).
+  goalMaxTurns: number
 }
 
 // A hook as configured (ListHooks): read-only, edited in settings files.
@@ -293,6 +298,9 @@ export interface SessionTransport {
   updateDeviceSettings(patch: Partial<DeviceSettings>): Promise<DeviceSettings>
   // "Keep computer awake" for a session; SessionInfo.keep_awake reports it.
   setKeepAwake(sessionId: string, enabled: boolean): Promise<void>
+
+  // Scheduled tasks (the Scheduled screen).
+  schedules(): SchedulesApi
 
   // LLM providers and the auto-mode classifier for the settings screens (harness.llm.v1.ProviderService,
   // forwarded to the server by the client).

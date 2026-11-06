@@ -101,35 +101,46 @@ func (s *Server) scheduler() *scheduleHost {
 	s.schedOnce.Do(func() {
 		host, _ := os.Hostname()
 		h := &scheduleHost{s: s, store: schedule.Open(filepath.Join(config.Home(), "schedules")), active: map[string]*activeRun{}}
+		h.done = make(chan struct{})
 		h.runner = &schedule.Runner{Store: h.store, DeviceID: s.DeviceID, DeviceName: host, Start: h.start, Enabled: h.enabled, Every: s.ScheduleEvery, FilePoll: s.ScheduleFilePoll, Logger: s.log(), Clock: s.now, OnTick: h.onTick}
-		s.sched = h
+		s.sched.Store(h)
 	})
-	return s.sched
+	return s.sched.Load()
 }
 
 // startScheduler runs the host until the server stops.
 func (s *Server) startScheduler() {
-	h := s.scheduler()
-	ctx, cancel := context.WithCancel(s.ctx)
-	h.stop = cancel
-	h.done = make(chan struct{})
-	if s.ScheduleSync != nil {
-		h.syncDirty.Store(true)
-		s.ScheduleSync.Cache().Subscribe(func(syncclient.Event) {
+	s.schedStart.Do(func() {
+		h := s.scheduler()
+		ctx, cancel := context.WithCancel(s.ctx)
+		h.mu.Lock()
+		h.stop = cancel
+		h.mu.Unlock()
+		if s.ScheduleSync != nil {
 			h.syncDirty.Store(true)
-			h.runner.Nudge()
-		})
-	}
-	go func() {
-		defer close(h.done)
-		h.runner.Run(ctx)
-	}()
+			s.ScheduleSync.Cache().Subscribe(func(syncclient.Event) {
+				h.syncDirty.Store(true)
+				h.runner.Nudge()
+			})
+		}
+		go func() {
+			defer close(h.done)
+			h.runner.Run(ctx)
+		}()
+	})
 }
 
 // StopScheduler ends the host's loop and waits for it.
 func (s *Server) StopScheduler() {
-	if h := s.sched; h != nil && h.stop != nil {
-		h.stop()
+	h := s.sched.Load()
+	if h == nil {
+		return
+	}
+	h.mu.Lock()
+	stop := h.stop
+	h.mu.Unlock()
+	if stop != nil {
+		stop()
 		<-h.done
 	}
 }
@@ -295,9 +306,11 @@ func (h *scheduleHost) continueSession(ctx context.Context, f schedule.Fire) {
 			repeat = "repeating"
 		}
 		ls.sess.Agent.Remind(agent.ReminderScheduledWakeup, map[string]string{"id": f.Task.ID, "repeat": repeat, "note": escapeTrigger(f.Task.Prompt)})
+		// With a turn running the note rides on its next request and may start no turn of its own: the run is over when
+		// the session is idle again.
 		busy := ls.driver.Busy()
 		ls.driver.Wake()
-		if !busy && !ls.driver.Busy() && !ls.driver.Held() {
+		if busy || (!ls.driver.Busy() && !ls.driver.Held()) {
 			h.mu.Lock()
 			run.noTurn = true
 			h.mu.Unlock()
@@ -422,14 +435,14 @@ func (h *scheduleHost) settle(run *activeRun, status schedule.Status, summary, w
 	}
 }
 
-// settleSession is told a session's turn ended: the sweep looks now rather than at the next tick.
+// nudgeScheduler is told a session's turn ended: the sweep looks now rather than at the next tick.
 func (s *Server) nudgeScheduler() {
-	if h := s.sched; h != nil {
+	if h := s.sched.Load(); h != nil {
 		h.runner.Nudge()
 	}
 }
 
-// forgetSession drops what is tied to a session that was deleted.
+// forgetSessionSchedules drops what is tied to a session that was deleted.
 func (s *Server) forgetSessionSchedules(id string) {
 	h := s.scheduler()
 	if err := h.store.Update(func(st *schedule.State) error {

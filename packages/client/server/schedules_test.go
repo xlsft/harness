@@ -364,6 +364,43 @@ func TestWakeupToolContinuesTheSessionOneOffAndRepeating(t *testing.T) {
 	}
 }
 
+// A wake-up that comes due during a turn rides on that turn's next request; its run ends with the turn.
+func TestWakeupDuringATurnSettles(t *testing.T) {
+	gate := make(chan struct{})
+	var calls atomic.Int32
+	var carried atomic.Bool
+	h, clock := startScheduling(t, func(_ int, r *llm.Request) fg.Reply {
+		switch calls.Add(1) {
+		case 1:
+			return toolCall("w", "ScheduleWakeup", map[string]any{"delay_seconds": 600, "note": "look again"})
+		case 2:
+			return answer("later")
+		case 3:
+			<-gate
+			return toolCall("l", "ScheduleList", map[string]any{})
+		default:
+			carried.Store(carried.Load() || strings.Contains(allRequestText(r), "look again"))
+			return answer("done")
+		}
+	}, nil)
+	sid, ch := h.create(&agentv1.CreateSessionRequest{PermissionMode: agentv1.PermissionMode_PERMISSION_MODE_BYPASS_PERMISSIONS})
+	h.send(sid, "go")
+	h.waitTurn(ch)
+	id := h.schedules()[0].GetId()
+	h.send(sid, "a long job")
+	h.until(ch, func(ev *agentv1.SessionEvent) bool { return ev.GetTurnStarted() != nil })
+	clock.advance(11 * time.Minute)
+	waitFor(t, "the run to start", func() bool { return len(h.runs(id)) == 1 })
+	close(gate)
+	run := settledRun(h, id)
+	if run.GetStatus() != agentv1.ScheduleRunStatus_SCHEDULE_RUN_STATUS_SUCCEEDED {
+		t.Fatalf("run: %+v", run)
+	}
+	if !carried.Load() {
+		t.Fatal("the note did not reach the model")
+	}
+}
+
 func TestWakeupIsRefusedTooSoonAndCanBeCancelled(t *testing.T) {
 	var calls atomic.Int32
 	results := map[string]string{}

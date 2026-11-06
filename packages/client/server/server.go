@@ -176,8 +176,8 @@ type Server struct {
 	// ScheduleEvery and ScheduleFilePoll tune the scheduler's loop; ScheduleClock replaces its clock (tests).
 	ScheduleEvery, ScheduleFilePoll time.Duration
 	ScheduleClock                   func() time.Time
-	schedOnce                       sync.Once
-	sched                           *scheduleHost
+	schedOnce, schedStart           sync.Once
+	sched                           atomic.Pointer[scheduleHost]
 }
 
 var _ agentv1connect.AgentServiceHandler = (*Server)(nil)
@@ -210,6 +210,7 @@ func (s *Server) Handler() (string, http.Handler) {
 // Close interrupts all sessions and releases them.
 func (s *Server) Close() {
 	s.cancel()
+	s.StopScheduler()
 	s.mu.Lock()
 	live := s.live
 	s.live = map[string]*liveSession{}
