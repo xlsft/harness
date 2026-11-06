@@ -600,6 +600,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 	s.Tools = tools.Default()
 	tools.RegisterSessionTools(s.Tools)
+	tools.RegisterWakeupTools(s.Tools)
+	tools.RegisterGraphTools(s.Tools)
+	s.ToolEnv.TaskGraph = tools.NewTaskGraph(graphPath(path, o.NoPersistence))
 	s.openSkills(o)
 	s.registerWebTools(o)
 	s.LSP = lsp.New(lsp.Options{Config: s.lspConfig, Trusted: s.lspTrusted, ReadDenied: func(p string) bool { return s.ToolEnv.ReadDenied != nil && s.ToolEnv.ReadDenied(p) }, Logger: log})
@@ -770,6 +773,10 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	})
 	s.Subagents.Attach(s.Agent)
 	s.ToolEnv.Agents = s.Subagents
+	s.ToolEnv.TaskGraph.SetOnChange(func(list []tools.GraphTask) {
+		s.Agent.Emit(agent.Event{Kind: agent.EventTaskGraph, TaskGraph: list})
+		s.Subagents.KickTeams()
+	})
 	s.Workflows = workflow.New(workflow.Config{
 		Dir: filepath.Join(strings.TrimSuffix(path, ".jsonl"), "workflows"), NoPersistence: o.NoPersistence,
 		LeadTranscript: s.Transcript, Agents: s.Subagents, Env: s.ToolEnv, MaxAgents: s.workflowMaxAgents,

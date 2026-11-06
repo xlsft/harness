@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "The task"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "done",
+        "failed",
+        "cancelled"
+      ],
+      "description": "Its new status"
+    },
+    "note": {
+      "type": "string",
+      "description": "What became of it"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "add_blocked_by": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "More tasks that must be done first"
+    }
+  },
+  "required": [
+    "id"
+  ],
+  "additionalProperties": false
+}

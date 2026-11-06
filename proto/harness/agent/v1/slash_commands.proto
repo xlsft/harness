@@ -89,6 +89,7 @@ message SlashCommandResult {
     // Open the session in new_session_id.
     ACTION_OPEN_SESSION = 3;
     ACTION_OPEN_CUSTOMIZE = 4;
+    ACTION_OPEN_SCHEDULED = 140;
   }
   // The client-generated id of the message (SendUserMessageRequest.uuid).
   string uuid = 1;

@@ -147,3 +147,16 @@ func (s *Session) watchPRCommands(next func(agent.Event)) func(agent.Event) {
 		}
 	}
 }
+
+// GoalMaxTurns reads how many turns `/goal` may take when it names no cap, like subagentLimits.
+func (s *Session) GoalMaxTurns() int {
+	var docs settings.DocSource
+	if s.Sync != nil {
+		docs = s.Sync.Cache()
+	}
+	st, err := settings.Load(context.Background(), settings.Options{Cwd: s.Dir(), Docs: docs, Trusted: s.Trusted})
+	if err != nil {
+		return settings.DefaultGoalMaxTurns
+	}
+	return st.GoalMaxTurns
+}

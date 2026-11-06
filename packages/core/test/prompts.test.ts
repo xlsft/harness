@@ -43,9 +43,9 @@ describe("bundle builder", () => {
       "ComputerType", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake", "LSP",
       "ListAgents", "ListMcpResources", "MarkChapter", "McpAuthenticate", "Monitor", "NotebookEdit", "OpenInEditor", "PrAutoMerge", "PrBind", "PrMonitor",
       "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop", "ProposeBranch", "PushNotification", "Read",
-      "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff",
+      "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "ScheduleCancel", "ScheduleList", "ScheduleWakeup", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff",
       "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet", "SettingsSet",
-      "Show", "Skill", "SyncWithBase", "TaskOutput", "TaskStop", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
+      "Show", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskOutput", "TaskStop", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
       "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "Workflow", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
@@ -95,6 +95,16 @@ describe("bundle builder", () => {
       terminal_command_done: ["tab_id", "title", "command", "status", "tail"],
       lsp_diagnostics: ["diagnostics"],
       hook_context: ["event", "content"],
+      scheduled_wakeup: ["id", "repeat", "note"],
+      schedule_trigger: ["source", "detail"],
+      loop_self_paced: ["prompt"],
+      goal_started: ["condition", "max_turns"],
+      goal_continue: ["condition", "reason", "turn", "max_turns"],
+      // the check after each turn of a goal, filled by the client for the small-slot model
+      goal_check: ["condition", "conversation"],
+      team_context: ["team"],
+      team_next_task: ["team", "tasks"],
+      team_message: ["from", "message"],
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
       // Bash tool_result notes about a command that runs in the background, by reason

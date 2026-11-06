@@ -168,6 +168,16 @@ type Server struct {
 	prResume sync.Once
 	// UsageWatch tunes the watch over sessions whose provider is out of usage (usagelimit.go).
 	UsageWatch UsageWatchTimings
+
+	// ScheduleSync follows and writes the schedule documents (schedules.go); nil: schedules stay on this machine.
+	ScheduleSync *syncclient.Syncer
+	// CoreURL is the signed-in server, for the URL of a webhook.
+	CoreURL string
+	// ScheduleEvery and ScheduleFilePoll tune the scheduler's loop; ScheduleClock replaces its clock (tests).
+	ScheduleEvery, ScheduleFilePoll time.Duration
+	ScheduleClock                   func() time.Time
+	schedOnce                       sync.Once
+	sched                           *scheduleHost
 }
 
 var _ agentv1connect.AgentServiceHandler = (*Server)(nil)
@@ -259,6 +269,7 @@ func (s *Server) mux() *http.ServeMux {
 func (s *Server) serveHandler(ctx context.Context, ln net.Listener, h http.Handler) error {
 	sweepFolderBaselines()
 	go s.prResume.Do(s.resumePRWatches)
+	s.startScheduler()
 	p := new(http.Protocols)
 	p.SetHTTP1(true)
 	p.SetUnencryptedHTTP2(true)
@@ -480,6 +491,13 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		// Track (at open) replaced the synced metadata; restore what the transcript knows.
 		if t := ls.info().Title; t != "" {
 			ls.syncMeta(func(m *syncclient.SessionMeta) { m.Title = t })
+		}
+	}
+	if sess.Resumed && !m.GetFork() {
+		ls.loadGoal()
+		if list := sess.ToolEnv.TaskGraph.List(); len(list) > 0 {
+			ls.hub.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TaskGraphUpdated{TaskGraphUpdated: taskGraphProto(list)}})
+			ls.history++
 		}
 	}
 	if sess.Resumed {
