@@ -121,6 +121,9 @@ type replayer struct {
 	// toolTitles are the recorded tool-title entries by tool use id (the
 	// last one wins), emitted after the call's ToolCallStarted.
 	toolTitles map[string]string
+	// todos is the list of the last replayed TodoWrite, todoLinks the links on record.
+	todos     []tools.Todo
+	todoLinks session.TodoLinkFold
 }
 
 func entryTime(e session.Entry) time.Time {
@@ -209,6 +212,13 @@ func (r *replayer) entry(e session.Entry) {
 		case session.SubtypeHookRun:
 			if e.HookRun != nil {
 				r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_HookRun{HookRun: hookRunToProto(*e.HookRun)}})
+			}
+		case session.SubtypeTodoLink:
+			if e.TodoLink != nil {
+				r.todoLinks.Add(*e.TodoLink)
+				if r.todos != nil {
+					r.emitTodos(at)
+				}
 			}
 		case session.SubtypeUsageLimit:
 			if e.UsageLimit != nil {
@@ -350,6 +360,15 @@ func (r *replayer) flushAssistant() {
 			continue
 		}
 		r.pending[b.ID] = &pendingTool{name: b.Name, input: b.Input, at: at}
+		if b.Name == "TodoWrite" {
+			// At the call, not its result: links made while the calls of this message run are recorded before the results.
+			var in struct {
+				Todos json.RawMessage `json:"todos"`
+			}
+			if json.Unmarshal(b.Input, &in) == nil && len(in.Todos) > 0 {
+				r.todoLinks.Replace(in.Todos)
+			}
+		}
 		r.pendingOrder = append(r.pendingOrder, b.ID)
 		r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_ToolCallStarted{ToolCallStarted: &agentv1.ToolCallStarted{
 			ToolUseId: b.ID, Name: b.Name, InputJson: string(b.Input), Summary: toolSummary(b.Name, b.Input, r.o.Cwd),
@@ -394,9 +413,16 @@ func (r *replayer) toolResult(b llm.ContentBlock, structured any, at time.Time) 
 	r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_ToolCallFinished{ToolCallFinished: fin}})
 	if pt.name == "TodoWrite" && !b.IsError && !interrupted {
 		if todos, err := tools.ParseTodos(pt.input); err == nil {
-			r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_TodosUpdated{TodosUpdated: &agentv1.TodosUpdated{Todos: todosToProto(todos)}}})
+			r.todos = todos
+			r.emitTodos(at)
 		}
 	}
+}
+
+// emitTodos replays the list as it stands, with the links on record.
+func (r *replayer) emitTodos(at time.Time) {
+	todos := tools.AttachTodoLinks(r.todos, r.todoLinks.Links())
+	r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_TodosUpdated{TodosUpdated: &agentv1.TodosUpdated{Todos: todosToProto(todos)}}})
 }
 
 // cards replays the answered question / plan cards that replace the

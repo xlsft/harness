@@ -5,7 +5,7 @@ One container, four processes under [s6-overlay](https://github.com/just-contain
 
 | Process | What | Listens on | Runs as |
 |---|---|---|---|
-| `core` | Nitro server from `packages/core` (Node 24) | `:3000` (public) | `harness` |
+| `core` | Nitro server from `packages/core` (Node 24), and the web UI from `packages/ui` as static files | `:3000` (public) | `harness` |
 | `postgres` | Postgres 17, data in `/data/postgres` | unix socket `/run/postgresql` only | `postgres` |
 | `searxng` | SearXNG (pinned upstream commit) under granian | `127.0.0.1:8888` only | `harness` |
 | `objects` | [Garage](https://garagehq.deuxfleurs.fr/) (S3 object store, pinned release), data in `/data/objects` | `127.0.0.1:3900` (S3), `127.0.0.1:3901` (its RPC) only | `harness` |
@@ -62,6 +62,7 @@ Defaults baked into the image:
 | `DATABASE_URL` | `postgres://harness@/harness?host=/run/postgresql` | internal Postgres over its unix socket |
 | `HARNESS_SEARXNG_URL` | `http://127.0.0.1:8888` | internal SearXNG |
 | `HARNESS_PROMPTS_DIR` | `/app/prompts` | prompt files shipped in the image |
+| `HARNESS_WEB_DIR` | `/app/web` | the built web UI; empty: the server serves no pages but `/device` |
 | `HARNESS_VERSION` | the release's version | set by the image build; `/api/health` reports it |
 | `PGHOST` | `/run/postgresql` | so `psql` / `pg_dump` in `docker exec` find the socket |
 | `HARNESS_S3_ENDPOINT` | `http://127.0.0.1:3900` | internal object store; see "Object store" |
@@ -88,10 +89,38 @@ mirror of the same document, which may be on your private network. See [the gate
 > `file:/data/core/harness.db`) and ignores `DATABASE_URL`. The internal Postgres runs anyway, so
 > the same image and volume keep working when core moves to Postgres.
 
+## Web UI
+
+The image serves the web interface at `/`, so people reach xlsft`s harness from a browser with nothing installed. Set
+`HARNESS_PUBLIC_URL` to the address they use: the session cookie and its same-origin check depend on it.
+
+What it can do depends on whether a client is connected, because the server never runs code: sessions, tools and files live
+on a client.
+
+| | Without a client | With a client |
+|---|---|---|
+| Sign in (password, LDAP, SSO, second factor) | Yes | Yes |
+| Account, second factor, own usage | Yes | Yes |
+| By role: users, groups and quotas, LDAP, SSO, provisioning, audit log, managed policy, providers, usage of everyone | Yes | Yes |
+| Agent sessions, tools, terminal, files, history on that machine, sandbox, local models and everything else on the device | **No** | Yes |
+
+To connect one, run it on your machine, or anywhere the browser can reach it, with the page's address allowed:
+
+```bash
+harness-client login https://harness.example.com
+harness-client serve --listen 127.0.0.1:7801 --cors-origin https://harness.example.com
+```
+
+and enter its address and the token it prints on the page. The browser talks to that client directly and the server never sees
+the token; the choice lasts as long as the tab. For another machine add `--allow-non-loopback` to the client and read the
+warning it prints: the connection is plain HTTP, and browsers refuse a plain HTTP address from an HTTPS page unless it is
+loopback, so put TLS in front of it. Safari is stricter and may refuse plain HTTP to loopback from an HTTPS page too; use another browser, or the
+desktop app.
+
 ## Users and LDAP
 
-Admins manage accounts in the app: **Settings → Users** (the section is shown to admins only; the
-server refuses everyone else, `harness.auth.v1.AdminService`).
+Admins manage accounts in the app: **Settings → Users** (the section is shown by role; the server decides what each role may
+do, `packages/core/src/auth/roles.ts`, and refuses the rest).
 
 - **Add a user**: name, optional username, email, role, and either a password or "generate a
   password and show it once" (copy it then; it is never shown again). "Signs in through LDAP"
@@ -121,6 +150,7 @@ as it is, before saving), then enable and save.
 | Attributes | username / email / display name: `uid` / `mail` / `cn` (AD: `sAMAccountName` / `mail` / `displayName`) |
 | Allowed group | only members may sign in (checked via `memberOf`, else the group's `member`, `uniqueMember` or `memberUid`) |
 | Admin group | members become admins and everyone else users, re-checked at every sign-in (the last admin is never demoted). Empty: roles are managed in Users |
+| Group to role rules | group DN to role, in order, first match wins and no match is a plain user; the admin group is checked first. Re-checked at every sign-in. Directories without `memberOf` work too: mapped groups are looked at one by one |
 | Create accounts | on first sign-in (default on). Off: add directory users under Users first ("Signs in through LDAP") |
 | Local accounts | **Everyone, when the directory refuses**: LDAP first, then local passwords. **Only the break-glass admins**: local passwords only for the listed usernames / emails (they still work while the directory is down); everyone else signs in through LDAP only |
 
@@ -137,6 +167,120 @@ proxy so the address is the client's. Passwords are never logged.
 
 Before switching to break-glass mode, add your own admin login to the list, or keep a local admin
 created with `HARNESS_ADMIN_EMAIL` / `HARNESS_ADMIN_PASSWORD` listed there.
+
+### Roles
+
+| Role | May |
+|---|---|
+| Admin | Everything. |
+| Auditor | Read users, devices, the audit log, usage, quotas, policy and sign-in settings. Change nothing. Secrets stay write-only for them as for everyone. |
+| Billing | Read usage and the user and group lists, set quotas. No sign-in settings, policy or audit log. |
+| User | No administration. |
+
+Every role uses the product the same way. The JSON API under `/api/admin` and every RPC go through the same table.
+
+### Single sign-on (OIDC, SAML)
+
+**Settings → SSO**, next to LDAP. Add a provider, and **Test** checks the form before anything is saved: OIDC discovery, the
+code flow and signing keys, or the SAML sign-in URL and certificate. Save, register what it shows at your identity provider
+(redirect URI, or ACS URL, entity ID and metadata URL), and Test again for a link that runs one real sign-in and shows what the
+provider sent and the role that gives, creating nothing.
+
+Enabled providers become buttons on the sign-in page. That page is the one the desktop app and the CLI open for their device
+flow, so no client needs anything else; `/device?return=/` brings the web UI back to itself.
+
+- **OIDC**: authorization code with PKCE. ID tokens are checked against the provider's keys (issuer, audience, nonce, expiry;
+  asymmetric signatures only). With a client secret it is sent by `client_secret_basic` if the provider offers it. Issuers must
+  be HTTPS (HTTP only for localhost).
+- **SAML**: HTTP-Redirect out, HTTP-POST back. The assertion must be signed by the certificate you gave and answer a request
+  from here; provider-initiated sign-in is refused and a response works once. Requests are not signed and assertions cannot be
+  encrypted. Replace the certificate here when your provider rolls its key.
+- **Accounts**: created at first sign-in unless turned off, then linked by the provider's subject. An account with the same email
+  is linked only if it has no local password (one an admin or SCIM made for this); one with a password is refused, never taken
+  over. Disabled users stay disabled.
+- **Group to role rules** are re-checked at every sign-in; the last active admin is never demoted. Groups the provider reports
+  become groups here, so quotas can be set on them. Claim and attribute names can be changed; the groups claim may be a dotted path
+  (`realm_access.roles`).
+- **Require SSO** refuses local passwords and LDAP except for the break-glass logins you list. It needs an enabled provider and
+  at least one login.
+
+### Second factor
+
+Everyone can turn on an authenticator app (TOTP) in **Settings → Account**, and gets ten one-time recovery codes. The secret is
+encrypted at rest and the codes are stored hashed. It is asked for on the sign-in page after any way of signing in, so approving a
+device needs it too.
+
+**Settings → SSO → Two-factor sign-in** requires it, for everyone or by role. People without one enroll at their next sign-in, and
+their connected devices stop refreshing tokens (within an hour) until they did. Turn it on for your own account first: the server
+refuses a requirement that would lock out the admin setting it. "Trust the identity provider" does not ask people who come in
+through SSO. **Settings → Users** resets someone's factor when they lost it. Wrong codes count like wrong passwords
+(`HARNESS_LOGIN_FAILURES_PER_15MIN`, per user).
+
+### SCIM
+
+**Settings → Provisioning** gives the base URL (`$HARNESS_PUBLIC_URL/scim/v2`) and bearer tokens, shown once and stored hashed.
+Users and groups: create, replace, patch, delete, with `eq` filters on `userName`, `externalId`, `emails.value` and `displayName`.
+PATCH takes both dialects Okta and Azure AD use. Setting `active` to false disables the account and signs it out everywhere;
+delete removes it with everything it owns. The last admin is refused. Provisioned accounts have no password and sign in through
+SSO, which links them by email; an account that already has the address is adopted. Groups from SCIM can carry quotas, and rules
+map their names to roles as membership changes. Bulk and sorting are not offered, and ServiceProviderConfig says so.
+
+### Quotas
+
+**Settings → Users**: spend limits per user (open a user), per group and per role, and a budget for one session. For a user, their
+own limit applies, else the strictest of their groups', else their role's. Admins and billing set them, auditors read them;
+`/api/admin/quotas` remains for scripts. A user's personal providers are a different thing: their spend counts towards no quota,
+and neither their limits nor what they used them for is shown to anyone else.
+
+## Audit log and telemetry
+
+**Settings → Audit log** (admins and auditors) lists sign-ins and failed ones, device approvals, changes to users, roles, groups,
+quotas, policy, sign-in settings and SCIM, provider key changes and provisioning, with filters and CSV export. It says that a key or
+password changed, never what to: only named fields go in, and whatever looks like a credential is removed on the way. Events are kept
+until `HARNESS_AUDIT_RETENTION_DAYS` (unset: forever).
+
+For scripts, with an access token and a role that may read them:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN" "https://harness.example.com/api/admin/audit.csv?action=policy&from=2026-11-01T00:00:00Z"
+curl -H "Authorization: Bearer $TOKEN" "https://harness.example.com/api/admin/usage.csv?from=2026-11-01T00:00:00Z"
+```
+
+An export stops at 50,000 rows or 12 MB and says so (`x-harness-truncated`, and on the screens). Usage CSV is also in **Settings →
+Usage** and per user. Someone's records on their personal provider appear for others with tokens only, without model, session or cost.
+
+| Variable | Notes |
+|---|---|
+| `HARNESS_AUDIT_WEBHOOK_URL` | POST each batch of events as a JSON array; retried until delivered |
+| `HARNESS_AUDIT_WEBHOOK_SECRET` | Signs the body: `x-harness-signature: sha256=<HMAC-SHA256 hex>` |
+| `HARNESS_AUDIT_SYSLOG_URL` | `udp://host:514`, `tcp://host:601` or `tls://host:6514`: RFC 5424, one message per event, facility local0, octet counting over TCP and TLS |
+| `HARNESS_AUDIT_RETENTION_DAYS` | Delete older events daily |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Turns on OpenTelemetry over OTLP/HTTP. Also `_TRACES_ENDPOINT`, `_METRICS_ENDPOINT`, `_HEADERS`, `_PROTOCOL` (`http/json` or `http/protobuf`) |
+| `OTEL_SERVICE_NAME`, `OTEL_METRIC_EXPORT_INTERVAL` | Standard meanings; default service `harness-core`, 60 s |
+| `OTEL_TRACES_EXPORTER=none`, `OTEL_METRICS_EXPORTER=none`, `OTEL_SDK_DISABLED=true` | Turn parts off |
+
+Forwarding reads the audit table with a stored position per sink, so what is written while a collector is down, or across a restart,
+goes out afterwards; a consumer dedupes by `id`. It starts at the current end of the log when first turned on.
+
+Traces: a span per RPC, continuing a caller's `traceparent`. Metrics: `harness.rpc.duration`, `harness.llm.requests`, `.tokens`, `.cost`,
+`.duration`, `harness.auth.sign_ins`, `harness.audit.events`. Attributes are names and outcomes: never prompts, keys or email
+addresses, and a personal provider shows as `personal`.
+
+## Managed policy
+
+**Settings → Managed policy**: what an admin sets for everyone, above every user, project and local setting. It is stored in the
+org POLICY document `default`, so clients get it through their sync feed and keep the last one offline. People see what applies to
+them, marked as set by their administrator, in the same section and under Sessions, Models and Sandbox.
+
+| Setting | Enforced by |
+|---|---|
+| Permission rules: deny, ask, allow; "only these rules" | The client: commands run there |
+| Sandbox required; never outside it | The client. On a platform without a sandbox, required means commands are refused |
+| Allowed providers (id or preset), no personal providers | The server: the catalog and the gateway. On the client, `local` allows local models and `acp` or `acp:<id>` external agents |
+| Allowed MCP servers | The server: the catalog, proxy and stdio launches; the client will not register others from a repository's `.mcp.json` |
+
+A modified client can ignore what only a client can enforce. Rules and the sandbox take effect at a session's next start; modes
+switch live.
 
 ## Volumes
 
@@ -295,7 +439,7 @@ Upgrade by dump and restore: `pg_dump` with the old image, start the new image o
   security updates, glibc suits the prebuilt Python wheels and Node's native modules (libsql), and
   Node is copied from the official `node:24-trixie-slim` image.
 - Multi-stage: core is built with pnpm in a Node stage (only `.output`, which carries its traced
-  `node_modules`, and `prompts/` are copied); SearXNG's venv is built in a separate stage from
+  `node_modules`, and `prompts/` are copied); the web UI is generated in another (only its static files are copied, about 14 MB); SearXNG's venv is built in a separate stage from
   wheels only; s6-overlay tarballs are checksum-verified.
 - Pinned versions are build args: `NODE_VERSION`, `PNPM_VERSION`, `SEARXNG_COMMIT` (SearXNG has no
   release tags), `S6_OVERLAY_VERSION` and `GARAGE_VERSION` with their checksums, `PG_MAJOR`.

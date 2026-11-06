@@ -5,7 +5,12 @@
  */
 import { defineHandler, type H3Event } from "h3";
 import { hasUsers } from "../../auth/better-auth.ts";
+import { getAuth } from "../../auth/better-auth.ts";
 import { getLdapSettings } from "../../auth/ldap-config.ts";
+import { hasFactor } from "../../auth/mfa.ts";
+import { getSsoSettings, ssoButtons } from "../../auth/sso-config.ts";
+import { safeReturnTo } from "../../auth/sso-sign-in.ts";
+import { record } from "../../audit/log.ts";
 import { config } from "../../env.ts";
 import { decideDeviceAuthorization, findPendingByUserCode } from "../../services/devices.ts";
 import { getPrincipal } from "../util.ts";
@@ -53,6 +58,14 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--o
 .code.small{font-size:15px;padding:8px}
 dl{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0;font-size:12px}dt{color:var(--muted)}dd{margin:0;color:var(--white)}
 .err{color:var(--bad)}.err:empty{display:none}
+.sso{display:flex;flex-direction:column;gap:8px}
+a.btn{display:flex;align-items:center;justify-content:center;height:36px;border:1px solid var(--line-strong);color:var(--white);text-decoration:none;font-size:12.5px}
+a.btn:hover{border-color:var(--accent)}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:11.5px}.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+details summary{cursor:pointer;color:var(--muted);font-size:12px;margin-bottom:12px}
+.qr{display:flex;justify-content:center;padding:12px;background:#fff}.qr svg{width:180px;height:180px}
+.secret{font-size:12px;overflow-wrap:anywhere;color:var(--white);text-align:center}
+ul.codes{list-style:none;margin:0;padding:12px;border:1px solid var(--line-strong);display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:12.5px;color:var(--white)}
 footer{display:flex;justify-content:center;gap:16px;padding:16px 0;font-size:11.5px}
 footer a{color:var(--muted);text-decoration:none}footer a:hover{color:var(--white)}
 </style></head><body><main><div class="col"><div class="head">${WORDMARK_SVG}<div class="title"><h1>${parts.heading}</h1><p>${parts.text}</p></div></div>${parts.body ?? ""}</div></main>
@@ -64,15 +77,78 @@ footer a{color:var(--muted);text-decoration:none}footer a:hover{color:var(--whit
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store",
       "x-frame-options": "DENY",
-      "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'",
+      "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src data:",
     },
   });
 }
 
 const SIGN_IN = { heading: "Sign in to connect a device", text: "A device asked to join your harness account. Sign in, then confirm it." };
+const SIGN_IN_WEB = { heading: "Sign in", text: "Use your account on this server." };
+
+/** Where this page goes after signing in: the web UI when it came from there, else this page with the device's code. */
+function afterSignIn(code: string, returnTo: string): string {
+  if (returnTo) return returnTo;
+  return "/device" + (code ? `?code=${encodeURIComponent(code)}` : "");
+}
+
+/** The identity providers' buttons; with SSO required the password form folds away for the break-glass admins. */
+function ssoBlock(buttons: { id: string; name: string }[], next: string): string {
+  if (!buttons.length) return "";
+  const links = buttons.map((b) => `<a class="btn" href="/api/sso/${encodeURIComponent(b.id)}/start?return=${encodeURIComponent(next)}">Sign in with ${esc(b.name)}</a>`).join("");
+  return `<div class="sso">${links}</div>`;
+}
+
+async function signInBody(code: string, returnTo: string): Promise<string> {
+  const [ldap, buttons, sso] = await Promise.all([getLdapSettings(), ssoButtons(), getSsoSettings()]);
+  const next = afterSignIn(code, returnTo);
+  const form = signInForm(code, ldap.enabled, next);
+  const block = ssoBlock(buttons, next);
+  if (!block) return form;
+  if (sso.require_sso) return `${block}<details><summary>Administrator sign-in</summary>${form}</details>`;
+  return `${block}<div class="or">or</div>${form}`;
+}
+
+/** A session that owes its second factor: a code, or setting one up first. */
+function mfaForm(next: string, enrolled: boolean): string {
+  const nextJs = JSON.stringify(next);
+  if (enrolled) {
+    return `<form id="f"><label>Code from your authenticator, or a recovery code<input name="code" autocomplete="one-time-code" autocapitalize="none" spellcheck="false" autofocus required></label>
+<p class="err" id="err"></p><button class="primary">Continue</button></form>
+<script>
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const r = await fetch('/api/auth/mfa/verify', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({code: String(new FormData(e.target).get('code')).trim()})});
+  if (r.ok) location.href = ${nextJs};
+  else document.getElementById('err').textContent = (await r.json().catch(() => ({}))).message || 'That code is not right';
+});
+</script>`;
+  }
+  return `<div id="setup"><p class="err" id="err"></p></div>
+<script>
+(async () => {
+  const box = document.getElementById('setup');
+  const fail = (m) => { document.getElementById('err').textContent = m; };
+  const r = await fetch('/api/auth/mfa/enroll/start', {method:'POST'});
+  if (!r.ok) return fail('Could not start the setup. Reload the page to try again.');
+  const s = await r.json();
+  box.innerHTML = '<div class="qr">' + s.qr_svg + '</div><p class="secret"></p><form id="f"><label>Code from your authenticator<input name="code" inputmode="numeric" autocomplete="one-time-code" required></label><p class="err" id="err"></p><button class="primary">Turn on</button></form>';
+  box.querySelector('.secret').textContent = s.secret;
+  document.getElementById('f').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const c = await fetch('/api/auth/mfa/enroll/confirm', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({code: String(new FormData(e.target).get('code')).trim()})});
+    const body = await c.json().catch(() => ({}));
+    if (!c.ok) return fail(body.message || 'That code is not right');
+    box.innerHTML = '<p>Keep these recovery codes somewhere safe. Each works once if you lose your authenticator, and they are not shown again.</p><ul class="codes"></ul><button class="primary" id="go" style="width:100%">Continue</button>';
+    const ul = box.querySelector('.codes');
+    for (const code of body.recovery_codes) { const li = document.createElement('li'); li.textContent = code; ul.appendChild(li); }
+    document.getElementById('go').addEventListener('click', () => { location.href = ${nextJs}; });
+  });
+})();
+</script>`;
+}
 
 /** `ldap`: LDAP sign-in is enabled; the server then decides between the directory and local accounts. */
-function signInForm(code: string, ldap = false): string {
+function signInForm(code: string, ldap = false, next = afterSignIn(code, "")): string {
   return `${code ? `<div class="code small">${esc(code)}</div>` : ""}
 <form id="f"><label>Email or username<input name="login" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
 <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
@@ -86,7 +162,7 @@ document.getElementById('f').addEventListener('submit', async (e) => {
   const r = ${ldap} ? await fetch('/api/auth/sign-in/ldap', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({login, password})})
     : await fetch(byEmail ? '/api/auth/sign-in/email' : '/api/auth/sign-in/username', {method:'POST', headers:{'content-type':'application/json'},
     body: JSON.stringify(byEmail ? {email: login, password} : {username: login, password})});
-  if (r.ok) location.href = '/device' + (${JSON.stringify(code)} ? '?code=' + encodeURIComponent(${JSON.stringify(code)}) : '');
+  if (r.ok) location.href = ${JSON.stringify(next)};
   else document.getElementById('err').textContent = r.status === 429 || r.status === 403 || r.status === 503
     ? (await r.json().catch(() => ({}))).message || 'Sign-in failed' : 'Sign-in failed';
 });
@@ -135,15 +211,30 @@ function sameOrigin(event: H3Event): boolean {
 export default defineHandler(async (event) => {
   const principal = await getPrincipal(event);
   const session = principal?.via === "session" ? principal : undefined;
+  const queryCode = event.url.searchParams.get("code") ?? "";
+  const rawReturn = event.url.searchParams.get("return");
+  // Only the web UI's root: signing in from it goes back to it, everything else stays on this page.
+  const returnTo = rawReturn && safeReturnTo(rawReturn) === rawReturn && !rawReturn.startsWith("/device") ? rawReturn : "";
+
+  // Signed in, but the second factor is owed: nothing else on this page until it is given.
+  if (!session && event.req.headers.get("cookie")) {
+    const pending = await getAuth().api.getSession({ headers: event.req.headers }).catch(() => null);
+    if (pending?.user && (pending.session as { mfaPending?: boolean }).mfaPending) {
+      const enrolled = await hasFactor(pending.user.id);
+      const text = enrolled ? "Enter the code from your authenticator app." : "Your organization requires a second factor. Scan this with an authenticator app, or type the key under the code into it.";
+      return page("Two-factor sign-in", { heading: enrolled ? "Two-factor sign-in" : "Set up two-factor sign-in", text, body: mfaForm(afterSignIn(queryCode, returnTo), enrolled) });
+    }
+  }
 
   if (event.req.method === "POST") {
-    if (!session) return page("Sign in", { ...SIGN_IN, body: signInForm("", (await getLdapSettings()).enabled) }, 401);
+    if (!session) return page("Sign in", { ...SIGN_IN, body: await signInBody("", "") }, 401);
     if (!sameOrigin(event)) return page("Error", { heading: "Request rejected", text: "Cross-origin form submission." }, 403);
     const form = new URLSearchParams(await event.req.text());
     const code = form.get("code") ?? "";
     const approve = form.get("action") === "approve";
     const ok = await decideDeviceAuthorization(code, session.user.id, approve);
     if (!ok) return page("Expired", { ...CONNECT, body: codeForm("This code is invalid or has expired.") }, 400);
+    await record({ action: approve ? "device.approve" : "device.deny", actor: { id: session.user.id, label: session.user.email }, target: { type: "device" } });
     return page(
       approve ? "Approved" : "Denied",
       approve
@@ -152,9 +243,10 @@ export default defineHandler(async (event) => {
     );
   }
 
-  const code = event.url.searchParams.get("code") ?? "";
+  const code = queryCode;
   if (!session && !(await hasUsers())) return page("Set up", { ...SETUP, body: setupForm(code) });
-  if (!session) return page("Sign in", { ...SIGN_IN, body: signInForm(code, (await getLdapSettings()).enabled) });
+  if (!session) return page("Sign in", { ...(returnTo ? SIGN_IN_WEB : SIGN_IN), body: await signInBody(code, returnTo) });
+  if (returnTo) return new Response(null, { status: 303, headers: { location: returnTo, "cache-control": "no-store" } });
   if (!code) return page("Connect a device", { ...CONNECT, body: codeForm() });
   const pending = await findPendingByUserCode(code);
   if (!pending) return page("Expired", { ...CONNECT, body: codeForm("This code is invalid or has expired.") }, 400);

@@ -15,7 +15,7 @@ import (
 	"github.com/xlsft/harness/packages/client/rpc"
 )
 
-// ServerProvider reaches code hosts through the harness server's connections (VcsService): the token stays on the
+// ServerProvider reaches code hosts through the server's connections (VcsService): the token stays on the
 // server. As a Tracker provider it goes before gh and glab: "when a server provider and a device provider cover the same
 // repository, the server provider wins". It only claims the hosts where the server can act for this user.
 type ServerProvider struct {
@@ -58,7 +58,7 @@ func (p *ServerProvider) Type() vcsv1.ProviderType {
 // Detect lists the hosts where the server can act for this user. A server without the RPC, or a user who is signed
 // out, simply covers nothing, so the CLIs take over.
 func (p *ServerProvider) Detect(ctx context.Context) (*vcsv1.DeviceProvider, error) {
-	d := &vcsv1.DeviceProvider{Type: p.Type(), Version: "harness server"}
+	d := &vcsv1.DeviceProvider{Type: p.Type(), Version: "server"}
 	res, err := unary(ctx, p.c, &vcsv1.ListUserConnectionsRequest{}, p.c.rpc.ListUserConnections)
 	if err != nil {
 		return d, nil
@@ -156,7 +156,7 @@ func (p *ServerProvider) CreatePR(ctx context.Context, repo Repo, in PRInput) (*
 		if strings.Contains(err.Error(), "already exists") {
 			return nil, ErrPRExists
 		}
-		return nil, fmt.Errorf("the harness server could not open the pull request: %w", err)
+		return nil, fmt.Errorf("the server could not open the pull request: %w", err)
 	}
 	return res.GetPullRequest(), nil
 }

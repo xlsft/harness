@@ -30,7 +30,8 @@ import { getPromptBundle } from "../services/prompts.ts";
 import { checkClientVersion, rateLimitByIp, requirePrincipal } from "./context.ts";
 import { bundleToProto, eventToProto, messagesFromProto, modelsToProto, streamRequestToCanonical, toolsFromProto } from "./convert.ts";
 import { guard, toConnectError } from "./errors.ts";
-import { registerAdminService } from "./admin.ts";
+import { registerAdminService, roleToProto } from "./admin.ts";
+import { registerEnterpriseServices } from "./enterprise.ts";
 import { registerDecisionService } from "./decision.ts";
 import { registerMcpService } from "./mcp.ts";
 import { registerProviderService } from "./providers.ts";
@@ -65,7 +66,7 @@ function deviceToProto(d: DeviceInfo) {
 }
 
 function userToProto(u: PublicUser) {
-  return { id: u.id, email: u.email, name: u.name, role: u.role === "admin" ? User_Role.ADMIN : User_Role.USER };
+  return { id: u.id, email: u.email, name: u.name, role: roleToProto(u.role) };
 }
 
 function profileToProto(p: Profile) {
@@ -74,7 +75,7 @@ function profileToProto(p: Profile) {
     username: p.username,
     image: p.image,
     imageObject: p.image_object ? { sha256: p.image_object.sha256, size: BigInt(p.image_object.size), mediaType: p.image_object.media_type } : undefined,
-    source: p.source === "ldap" ? UserSource.LDAP : UserSource.LOCAL,
+    source: { ldap: UserSource.LDAP, sso: UserSource.SSO, scim: UserSource.SCIM, local: UserSource.LOCAL }[p.source] ?? UserSource.LOCAL,
     createdAt: p.created_at,
     lastSignInAt: p.last_sign_in_at,
   };
@@ -242,6 +243,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   registerObjectsService(router);
   registerUsageService(router);
   registerAdminService(router);
+  registerEnterpriseServices(router);
   registerSyncService(router);
   registerSearchService(router);
   registerSpeechService(router);

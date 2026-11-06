@@ -6,7 +6,7 @@ xlsft\`s harness runs on a CI runner through `harness-client`, headless. Three t
 - **@mention trigger.** `harness-client ci mention` answers a comment that calls the bot, from someone with write access.
 - **Any prompt.** `harness-client -p` with the flags in [protocol/headless.md](protocol/headless.md).
 
-The model calls go through your harness server, as everywhere else: providers and keys stay there.
+The model calls go through your server of xlsft\`s harness, as everywhere else: providers and keys stay there.
 
 ## Credentials
 

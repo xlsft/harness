@@ -17,6 +17,7 @@ on:
     paths:
       - 'deploy/**'
       - 'packages/core/**'
+      - 'packages/ui/**'
       - '.dockerignore'
       - 'scripts/e2e/image-smoke.sh'
       - '.github/workflows/image.yml'
@@ -24,6 +25,7 @@ on:
     paths:
       - 'deploy/**'
       - 'packages/core/**'
+      - 'packages/ui/**'
       - '.dockerignore'
       - 'scripts/e2e/image-smoke.sh'
       - '.github/workflows/image.yml'

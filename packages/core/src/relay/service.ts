@@ -937,7 +937,9 @@ async function outcomeOf(row: CommandRow, waitUntil: number | undefined): Promis
     const ack = await waitForAck(row.id, Math.min(waitUntil, expiresAt));
     if (ack) return { commandId: row.id, delivery: DeliveryState.ACKED, ack };
   }
-  return { commandId: row.id, delivery: Date.now() >= expiresAt ? DeliveryState.EXPIRED : DeliveryState.QUEUED };
+  // A timer can fire a moment early, so a wait that ran to the expiry counts as expired.
+  const expired = Date.now() >= expiresAt || (waitUntil !== undefined && waitUntil >= expiresAt);
+  return { commandId: row.id, delivery: expired ? DeliveryState.EXPIRED : DeliveryState.QUEUED };
 }
 
 /**

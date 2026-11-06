@@ -32,7 +32,7 @@ message DraftPullRequestResponse {
   // False when the model could not write the draft and the text comes from the commit messages; `note` says why.
   bool drafted = 10;
   string note = 11;
-  // Who would open the PR: "server" (a connection on the harness server), "gh" or "glab". Empty when nothing can;
+  // Who would open the PR: "server" (a connection on the server), "gh" or "glab". Empty when nothing can;
   // `note` says what to do about it.
   string provider = 12;
 }

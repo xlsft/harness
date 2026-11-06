@@ -63,6 +63,7 @@ type ModePolicy struct {
 	subID    int
 	// The same documents can require the command sandbox and refuse running outside it (settings.PolicySandbox).
 	sandboxRequired, outsideRefused bool
+	managed                         ManagedPolicy
 }
 
 // SetSandbox records what the policy documents say of the command sandbox.

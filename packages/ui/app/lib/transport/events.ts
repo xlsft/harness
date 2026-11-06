@@ -264,9 +264,9 @@ export class EventBuilder {
     return this.emit({ case: 'rewound', value: { checkpointId, mode, restoredPrompt, filesRestored, filesSkipped: 0 } as never })
   }
 
-  todos(list: { content: string, activeForm: string, status: 'pending' | 'in_progress' | 'completed' }[]) {
+  todos(list: { content: string, activeForm: string, status: 'pending' | 'in_progress' | 'completed', agentIds?: string[], taskIds?: string[] }[]) {
     const st = { pending: Todo_Status.PENDING, in_progress: Todo_Status.IN_PROGRESS, completed: Todo_Status.COMPLETED }
-    return this.emit({ case: 'todosUpdated', value: { todos: list.map(t => ({ content: t.content, activeForm: t.activeForm, status: st[t.status] })) } as never })
+    return this.emit({ case: 'todosUpdated', value: { todos: list.map(t => ({ content: t.content, activeForm: t.activeForm, status: st[t.status], agentIds: t.agentIds ?? [], taskIds: t.taskIds ?? [] })) } as never })
   }
 
   turnFinished(result: 'success' | 'interrupted' | 'error', o: { durationMs?: number, costUsd?: number, usage?: UsageInit, numTurns?: number, error?: string } = {}) {

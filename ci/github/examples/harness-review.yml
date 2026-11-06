@@ -1,7 +1,7 @@
 # Copy to .github/workflows/harness-review.yml. Reviews every pull request from this repository.
 #
 # Keep the trigger pull_request. pull_request_target would run with secrets on code a fork controls.
-name: harness review
+name: xlsft`s harness review
 
 on:
   pull_request:

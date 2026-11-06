@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// The organization's managed policy as this client merged it from its POLICY documents (harness.sync.v1), for frontends
+// to show what is set by an administrator and cannot be changed here. The client enforces it whether or not it is shown.
+message ManagedPolicyView {
+  // Any part of the policy is in force.
+  bool active = 1;
+  repeated string allow_rules = 2;
+  repeated string ask_rules = 3;
+  repeated string deny_rules = 4;
+  // Permission rules of user, project and local settings are ignored; only these count.
+  bool managed_rules_only = 5;
+  bool sandbox_required = 6;
+  bool sandbox_outside_refused = 7;
+  // Settings spelling (acceptEdits, plan, ...).
+  repeated string disabled_modes = 8;
+  // Only these providers (id or preset) may be used. Meaningful when restrict_providers is set.
+  bool restrict_providers = 9;
+  repeated string allowed_providers = 10;
+  bool personal_providers_disabled = 11;
+  // Only these MCP servers (by name) may be used. Meaningful when restrict_mcp_servers is set.
+  bool restrict_mcp_servers = 12;
+  repeated string allowed_mcp_servers = 13;
+  bool local_models_disabled = 14;
+}

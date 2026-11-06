@@ -48,6 +48,7 @@ import type { OutgoingAttachment } from '~/lib/session/attachments'
 import { runMockShell } from './mockShell'
 import { MockProvidersApi } from '~/lib/providers/mock'
 import { MockUsersApi } from '~/lib/users/mock'
+import { MockEnterpriseApi } from '~/lib/enterprise/mock'
 import { MockAccountApi } from '~/lib/account/mock'
 import { MockUsageApi } from '~/lib/usage/mock'
 import { MockLimitsApi } from '~/lib/limits/mock'
@@ -366,6 +367,11 @@ export class MockTransport implements SessionTransport {
   private providersApi = new MockProvidersApi()
   providers() {
     return this.providersApi
+  }
+
+  private enterpriseApi = new MockEnterpriseApi()
+  enterprise() {
+    return this.enterpriseApi
   }
 
   private usersApi = new MockUsersApi()

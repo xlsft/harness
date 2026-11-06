@@ -10,7 +10,7 @@ inputs:
     description: "review (post findings as review comments), mention (answer a comment that calls the bot) or run (one prompt, headless)"
     required: true
   server-url:
-    description: The harness server URL.
+    description: "The URL of your server of xlsft`s harness."
     required: true
   device-token:
     description: "A device token from `harness-client ci login`, from a secret."
@@ -110,10 +110,10 @@ runs:
           review)
             [ -n "$INPUT_PROMPT" ] && args+=(--prompt "$INPUT_PROMPT")
             [ -n "$INPUT_FAIL_ON" ] && args+=(--fail-on "$INPUT_FAIL_ON")
-            "$bin" ci review "${args[@]}" "${tools[@]}" >"$out" || status=$?
+            "$bin" ci review "${args[@]}" ${tools[@]+"${tools[@]}"} >"$out" || status=$?
             ;;
           mention)
-            "$bin" ci mention --trigger "$INPUT_TRIGGER" "${args[@]}" "${tools[@]}" >"$out" || status=$?
+            "$bin" ci mention --trigger "$INPUT_TRIGGER" "${args[@]}" ${tools[@]+"${tools[@]}"} >"$out" || status=$?
             ;;
           run)
             if [ -z "$INPUT_PROMPT" ]; then
@@ -121,7 +121,7 @@ runs:
               exit 2
             fi
             [ -n "$INPUT_SCHEMA" ] && args+=(--json-schema "$INPUT_SCHEMA")
-            printf '%s' "$INPUT_PROMPT" | "$bin" -p --permission-mode dontAsk --output-format json "${args[@]}" "${tools[@]}" >"$out" || status=$?
+            printf '%s' "$INPUT_PROMPT" | "$bin" -p --permission-mode dontAsk --output-format json "${args[@]}" ${tools[@]+"${tools[@]}"} >"$out" || status=$?
             ;;
           *)
             echo "::error::mode must be review, mention or run"

@@ -47,7 +47,7 @@ func newCIFlags() *ciFlags {
 	fs := pflag.NewFlagSet("harness-client ci", pflag.ContinueOnError)
 	return &ciFlags{
 		fs:            fs,
-		server:        fs.String("server", "", "harness server URL (default: HARNESS_SERVER_URL or stored credentials)"),
+		server:        fs.String("server", "", "server URL (default: HARNESS_SERVER_URL or stored credentials)"),
 		model:         fs.String("model", "", "model id (default: the server's main slot)"),
 		effort:        fs.String("effort", "", "low | medium | high | xhigh | max"),
 		maxTurns:      fs.Int("max-turns", 0, "maximum tool-use round trips (0 = unlimited)"),

@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package harness.auth.v1;
+
+// PolicyService is the organization's managed policy: a settings layer set by admins that clients obey and users cannot
+// override. It is stored in the org-scope POLICY document "default", the one the permission mode and local model
+// policies live in, so it reaches clients through their sync feed. The server enforces the parts it can see itself (which
+// providers and MCP servers may be used); the client enforces the rest (permission rules, the sandbox).
+service PolicyService {
+  // Admins and auditors.
+  rpc GetManagedPolicy(GetManagedPolicyRequest) returns (GetManagedPolicyResponse);
+  // Admins. Replaces the fields of ManagedPolicy; other keys of the document stay as they are.
+  rpc SetManagedPolicy(SetManagedPolicyRequest) returns (SetManagedPolicyResponse);
+}
+
+message ManagedPolicy {
+  // Permission rules in the settings syntax, e.g. "Bash(rm:*)".
+  repeated string allow_rules = 1;
+  repeated string ask_rules = 2;
+  repeated string deny_rules = 3;
+  // Ignore permission rules from user, project and local settings (allowManagedPermissionRulesOnly).
+  bool managed_rules_only = 4;
+  // sandbox.enabled: the sandbox cannot be turned off.
+  bool sandbox_required = 5;
+  // sandbox.allowOutside false: commands cannot be run outside the sandbox at all.
+  bool sandbox_outside_refused = 6;
+  // allowedProviders: only these providers (id or preset id) serve models, for global and personal providers alike.
+  bool restrict_providers = 7;
+  repeated string allowed_providers = 8;
+  // disablePersonalProviders: users cannot add or use their own providers.
+  bool personal_providers_disabled = 9;
+  // allowedMcpServers: only MCP servers with these names may be used, at any scope.
+  bool restrict_mcp_servers = 10;
+  repeated string allowed_mcp_servers = 11;
+}
+
+message GetManagedPolicyRequest {}
+
+message GetManagedPolicyResponse {
+  ManagedPolicy policy = 1;
+  // RFC 3339, UTC. Empty: never set.
+  string updated_at = 2;
+  // What the lists can name, for the form.
+  repeated PolicyChoice providers = 3;
+  repeated PolicyChoice mcp_servers = 4;
+}
+
+message PolicyChoice {
+  string id = 1;
+  string label = 2;
+}
+
+message SetManagedPolicyRequest {
+  ManagedPolicy policy = 1;
+}
+
+message SetManagedPolicyResponse {
+  ManagedPolicy policy = 1;
+  string updated_at = 2;
+}

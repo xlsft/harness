@@ -21,6 +21,10 @@ done
 got="$(jq -r .version <<<"$health")"
 [[ "$got" == "$want" ]] || { echo "the image reports version $got, expected $want" >&2; exit 1; }
 
+# The web UI ships in the image: its page at /, and an API path still is not one of its pages.
+curl -fsS "$url/" | grep -q 'xlsft`s harness' || { echo "the image does not serve the web UI" >&2; exit 1; }
+[[ "$(curl -s -o /dev/null -w '%{http_code}' "$url/api/nothing")" == 404 ]] || { echo "/api/nothing is not a 404" >&2; exit 1; }
+
 docker exec "$name" garage --version
 docker exec "$name" /command/s6-rc -a list
 docker exec "$name" node --version

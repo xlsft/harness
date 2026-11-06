@@ -27,6 +27,7 @@ import { contextUsageFromProto } from '~/lib/session/context'
 import { backgroundReasonPb } from '~/lib/session/reducer'
 import { ConnectProvidersApi } from '~/lib/providers/connect'
 import { ConnectUsersApi } from '~/lib/users/connect'
+import { ConnectEnterpriseApi } from '~/lib/enterprise/connect'
 import { ConnectAccountApi } from '~/lib/account/connect'
 import { ConnectUsageApi } from '~/lib/usage/connect'
 import { ConnectTerminalsApi } from '~/lib/terminal/connect'
@@ -53,7 +54,8 @@ const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
 
 function preferencesVM(p: UserPreferences_pb | undefined): UserPreferences {
   const b = p?.sandbox
-  return { compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
+  const m = p?.managedPolicy
+  return { managedPolicy: { active: m?.active ?? false, allowRules: m?.allowRules ?? [], askRules: m?.askRules ?? [], denyRules: m?.denyRules ?? [], managedRulesOnly: m?.managedRulesOnly ?? false, sandboxRequired: m?.sandboxRequired ?? false, sandboxOutsideRefused: m?.sandboxOutsideRefused ?? false, disabledModes: m?.disabledModes ?? [], restrictProviders: m?.restrictProviders ?? false, allowedProviders: m?.allowedProviders ?? [], personalProvidersDisabled: m?.personalProvidersDisabled ?? false, restrictMcpServers: m?.restrictMcpServers ?? false, allowedMcpServers: m?.allowedMcpServers ?? [], localModelsDisabled: m?.localModelsDisabled ?? false }, compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
     sandbox: { enabled: b?.enabled ?? true, allowedWritePaths: b?.allowedWritePaths ?? [], allowedHosts: b?.allowedHosts ?? [], allowLocalhost: b?.allowLocalhost ?? false, autoAllowBash: b?.autoAllowBash ?? false, outsideWithoutPrompt: b?.outsideWithoutPrompt ?? false },
     hooksEnabled: p?.hooksEnabled ?? true }
 }
@@ -80,6 +82,7 @@ export class ConnectTransport implements SessionTransport {
 
   private providersApi: ConnectProvidersApi
   private usersApi: ConnectUsersApi
+  private enterpriseApi: ConnectEnterpriseApi
   private accountApi: ConnectAccountApi
   private usageApi: ConnectUsageApi
   private terminalsApi: ConnectTerminalsApi
@@ -91,6 +94,7 @@ export class ConnectTransport implements SessionTransport {
     this.client = createClient(AgentService, transport)
     this.providersApi = new ConnectProvidersApi(transport)
     this.usersApi = new ConnectUsersApi(transport)
+    this.enterpriseApi = new ConnectEnterpriseApi(transport)
     this.accountApi = new ConnectAccountApi(transport)
     this.usageApi = new ConnectUsageApi(transport)
     this.terminalsApi = new ConnectTerminalsApi(transport, baseUrl)
@@ -122,6 +126,10 @@ export class ConnectTransport implements SessionTransport {
 
   providers() {
     return this.providersApi
+  }
+
+  enterprise() {
+    return this.enterpriseApi
   }
 
   users() {

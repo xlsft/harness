@@ -94,7 +94,7 @@ type DraftPullRequestResponse struct {
 	// False when the model could not write the draft and the text comes from the commit messages; `note` says why.
 	Drafted bool   `protobuf:"varint,10,opt,name=drafted,proto3" json:"drafted,omitempty"`
 	Note    string `protobuf:"bytes,11,opt,name=note,proto3" json:"note,omitempty"`
-	// Who would open the PR: "server" (a connection on the harness server), "gh" or "glab". Empty when nothing can;
+	// Who would open the PR: "server" (a connection on the server), "gh" or "glab". Empty when nothing can;
 	// `note` says what to do about it.
 	Provider      string `protobuf:"bytes,12,opt,name=provider,proto3" json:"provider,omitempty"`
 	unknownFields protoimpl.UnknownFields

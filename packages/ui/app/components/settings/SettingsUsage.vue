@@ -3,8 +3,10 @@
 // model and request kind. Admins can switch to everyone (with a per-user table) or one user. Money only counts
 // for pay-as-you-go providers' priced models; the rest shows tokens only (lib/usage/types.ts).
 import type { AdminUsageReport, UsageBucketPoint, UsageReport, UsageTotals } from '~/lib/usage/types'
+import { downloadCsv } from '~/lib/enterprise/types'
 
 const store = useSessionStore()
+const access = useAccess()
 
 const RANGES = [
   { value: '1', label: 'Last 24 hours' },
@@ -25,6 +27,34 @@ const error = ref('')
 
 function message(e: unknown) {
   return e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e)
+}
+
+const exporting = ref(false)
+
+/** The records behind this view. Someone else's records on their personal providers come without model or cost. */
+async function exportCsv() {
+  if (!store.transport) return
+  exporting.value = true
+  try {
+    const from = new Date(Date.now() - Number(range.value) * 86400_000).toISOString()
+    const userId = scope.value === 'all' ? undefined : scope.value === 'me' ? await myId() : scope.value
+    const r = await store.transport.enterprise().exportUsage({ from, userId })
+    downloadCsv('harness-usage.csv', r.csv)
+    error.value = r.truncated ? `Exported the newest ${r.rows} records: the export is limited. Pick a shorter range for the rest.` : ''
+  } catch (e) {
+    error.value = message(e)
+  } finally {
+    exporting.value = false
+  }
+}
+
+async function myId() {
+  try {
+    return (await store.transport!.account().me()).id
+  } catch {
+    // The server narrows it to the caller for anyone who may not see more.
+    return undefined
+  }
 }
 
 async function load() {
@@ -52,7 +82,8 @@ async function load() {
 
 onMounted(async () => {
   try {
-    isAdmin.value = !!store.transport && await store.transport.users().isAdmin()
+    await access.load()
+    isAdmin.value = access.can('usage.read')
   } catch {
     isAdmin.value = false
   }
@@ -186,6 +217,16 @@ function ago(iso: string) {
         aria-label="Whose usage"
       />
     </div>
+    <HBtn
+      size="sm"
+      :disabled="exporting"
+      @click="exportCsv"
+    >
+      <HIcon
+        name="download"
+        :size="12"
+      />Export CSV
+    </HBtn>
     <div
       v-if="anyCost"
       role="radiogroup"

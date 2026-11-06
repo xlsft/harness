@@ -2,7 +2,7 @@
 #
 # These events run with secrets and the default branch's code whoever comments, so the filter below is only a saving: the
 # real check is in `harness-client ci mention`. The agent stays read-only unless allowed-tools says otherwise.
-name: harness mention
+name: xlsft`s harness mention
 
 on:
   issue_comment:

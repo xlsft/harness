@@ -196,6 +196,9 @@ type PromptBundle struct {
 	//	notifications_pending                        notifications wait for ReadNotifications (rides on the next model
 	//	                      request, or wakes an idle session)
 	//	side_chat            (none)                 not a reminder: the system prompt of side chats (AskSideChat)
+	//	pr_draft             {{head}} {{base}} {{log}} {{stat}} {{diff}}   not a reminder: the Create PR button's prompt
+	//	ci_review            see packages/core/prompts/README.md            not a reminder: `harness-client ci review`
+	//	ci_mention           see packages/core/prompts/README.md            not a reminder: `harness-client ci mention`
 	//	bash_background_user / bash_background_queued_message / bash_background_agent  {{task_id}} {{output_path}}
 	//	bash_background_timeout  {{timeout}} {{task_id}} {{output_path}}
 	//	                      not reminders: the Bash tool_result when the command runs as a background task

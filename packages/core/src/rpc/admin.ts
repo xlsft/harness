@@ -1,7 +1,7 @@
 /**
  * Connect implementation of harness.auth.v1.AdminService: proto <-> src/services/admin-users.ts and the LDAP
  * settings / directory code in src/auth, and the permission mode policy (src/services/mode-policy.ts). Every method
- * needs the admin role (PERMISSION_DENIED otherwise).
+ * names the capability it needs (auth/roles.ts, PERMISSION_DENIED otherwise): auditors read, admins read and write.
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import {
@@ -22,6 +22,7 @@ import {
 } from "../auth/ldap-config.ts";
 import { findLdapUser } from "../auth/ldap-sign-in.ts";
 import { LdapUnavailableError, lookupUser, testConnection } from "../auth/ldap.ts";
+import { need, type Capability } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import {
   createUser,
@@ -50,8 +51,10 @@ function userToProto(u: AdminUserView, selfId: string): Omit<AdminUser, "$typeNa
     name: u.name,
     username: u.username,
     email: u.email,
-    role: u.role === "admin" ? User_Role.ADMIN : User_Role.USER,
-    source: u.source === "ldap" ? UserSource.LDAP : UserSource.LOCAL,
+    role: roleToProto(u.role),
+    source: SOURCE_TO_PROTO[u.source],
+    mfaEnabled: u.mfa_enabled,
+    groups: u.groups,
     disabled: u.disabled,
     disabledReason: u.disabled_reason,
     createdAt: u.created_at,
@@ -61,8 +64,16 @@ function userToProto(u: AdminUserView, selfId: string): Omit<AdminUser, "$typeNa
   };
 }
 
-function roleFromProto(r: User_Role): Role {
+const SOURCE_TO_PROTO = { local: UserSource.LOCAL, ldap: UserSource.LDAP, sso: UserSource.SSO, scim: UserSource.SCIM } as const;
+
+export function roleToProto(r: string): User_Role {
+  return { admin: User_Role.ADMIN, auditor: User_Role.AUDITOR, billing: User_Role.BILLING }[r] ?? User_Role.USER;
+}
+
+export function roleFromProto(r: User_Role): Role {
   if (r === User_Role.ADMIN) return "admin";
+  if (r === User_Role.AUDITOR) return "auditor";
+  if (r === User_Role.BILLING) return "billing";
   if (r === User_Role.USER || r === User_Role.UNSPECIFIED) return "user";
   throw new ApiError("invalid_request", "Unknown role");
 }
@@ -85,6 +96,7 @@ function ldapToProto(s: PublicLdapSettings): Omit<LdapConfig, "$typeName"> {
     nameAttribute: s.name_attribute,
     allowedGroupDn: s.allowed_group_dn,
     adminGroupDn: s.admin_group_dn,
+    roleMappings: s.role_mappings.map((m) => ({ group: m.group, role: roleToProto(m.role) })) as LdapConfig["roleMappings"],
     autoCreateUsers: s.auto_create_users,
     localLogin: s.local_login === "break_glass" ? LdapLocalLogin.BREAK_GLASS : LdapLocalLogin.FALLBACK,
     breakGlassLogins: s.break_glass_logins,
@@ -110,6 +122,7 @@ function ldapFromProto(c: LdapConfig | undefined): LdapSettingsInput {
     name_attribute: c.nameAttribute,
     allowed_group_dn: c.allowedGroupDn,
     admin_group_dn: c.adminGroupDn,
+    role_mappings: c.roleMappings.map((m) => ({ group: m.group, role: roleFromProto(m.role) })),
     auto_create_users: c.autoCreateUsers,
     local_login: c.localLogin === LdapLocalLogin.BREAK_GLASS ? "break_glass" : "fallback",
     break_glass_logins: c.breakGlassLogins,
@@ -147,21 +160,21 @@ function failure(e: unknown): string {
 }
 
 export function registerAdminService(router: ConnectRouter): void {
-  const principal = async (ctx: HandlerContext) => {
+  const principal = async (ctx: HandlerContext, cap: Capability) => {
     const p = await requirePrincipal(ctx);
-    if (p.user.role !== "admin") throw new ApiError("permission", "Admin role required");
+    need(p.user, cap);
     return p;
   };
-  const admin = async (ctx: HandlerContext) => (await principal(ctx)).user;
+  const admin = async (ctx: HandlerContext, cap: Capability) => (await principal(ctx, cap)).user;
 
   router.service(AdminService, {
     listUsers: guard(async (req, ctx: HandlerContext) => {
-      const me = await admin(ctx);
+      const me = await admin(ctx, "users.read");
       return { users: (await listUsers(req.query, req.limit)).map((u) => userToProto(u, me.id)) };
     }),
 
     createUser: guard(async (req, ctx: HandlerContext) => {
-      const me = await admin(ctx);
+      const me = await admin(ctx, "users.write");
       const r = await createUser({
         name: req.name,
         username: req.username,
@@ -175,29 +188,29 @@ export function registerAdminService(router: ConnectRouter): void {
     }),
 
     resetPassword: guard(async (req, ctx: HandlerContext) => {
-      await admin(ctx);
+      await admin(ctx, "users.write");
       const r = await resetPassword(req.userId, { password: req.password, generate: req.generate, revoke_sessions: req.revokeSessions });
       return { generatedPassword: r.generated_password };
     }),
 
     setRole: guard(async (req, ctx: HandlerContext) => {
-      const me = await admin(ctx);
+      const me = await admin(ctx, "users.write");
       return { user: userToProto(await setRole(req.userId, roleFromProto(req.role)), me.id) };
     }),
 
     setDisabled: guard(async (req, ctx: HandlerContext) => {
-      const me = await admin(ctx);
+      const me = await admin(ctx, "users.write");
       return { user: userToProto(await setDisabled(req.userId, req.disabled, req.reason, me.id), me.id) };
     }),
 
     deleteUser: guard(async (req, ctx: HandlerContext) => {
-      const me = await admin(ctx);
+      const me = await admin(ctx, "users.write");
       await deleteUser(req.userId, me.id);
       return {};
     }),
 
     listUserSessions: guard(async (req, ctx: HandlerContext) => {
-      await admin(ctx);
+      await admin(ctx, "users.read");
       const r = await listUserSessions(req.userId);
       return {
         devices: r.devices.map((d) => ({
@@ -213,13 +226,13 @@ export function registerAdminService(router: ConnectRouter): void {
     }),
 
     revokeUserSessions: guard(async (req, ctx: HandlerContext) => {
-      await admin(ctx);
+      await admin(ctx, "users.write");
       const r = await revokeUserSessions(req.userId, req.deviceId);
       return { revokedDevices: r.devices, revokedWebSessions: r.web_sessions };
     }),
 
     listUserProviders: guard(async (req, ctx: HandlerContext) => {
-      await admin(ctx);
+      await admin(ctx, "users.read");
       const providers = await listUserProviders(req.userId);
       const counts = await modelCounts(providers.map((p) => p.id));
       return {
@@ -236,24 +249,24 @@ export function registerAdminService(router: ConnectRouter): void {
     }),
 
     deleteUserProvider: guard(async (req, ctx: HandlerContext) => {
-      await admin(ctx);
+      await admin(ctx, "users.write");
       if (!req.userId) throw new ApiError("invalid_request", "user_id is required");
       await deleteProvider(req.providerId, { userId: req.userId });
       return {};
     }),
 
     getLdapConfig: guard(async (_req, ctx: HandlerContext) => {
-      await admin(ctx);
+      await admin(ctx, "sign_in.read");
       return { config: ldapToProto(await getLdapSettings()) };
     }),
 
     setLdapConfig: guard(async (req, ctx: HandlerContext) => {
-      await admin(ctx);
+      await admin(ctx, "sign_in.write");
       return { config: ldapToProto(await setLdapSettings(ldapFromProto(req.config))) };
     }),
 
     testLdapConnection: guard(async (req, ctx: HandlerContext) => {
-      await admin(ctx);
+      await admin(ctx, "sign_in.write");
       try {
         const r = await testConnection(await testConfig(req.config));
         return { ok: true, message: r.message, url: r.url };
@@ -263,7 +276,7 @@ export function registerAdminService(router: ConnectRouter): void {
     }),
 
     testLdapUser: guard(async (req, ctx: HandlerContext) => {
-      await admin(ctx);
+      await admin(ctx, "sign_in.write");
       const login = req.login.trim();
       if (!login) throw new ApiError("invalid_request", "login is required");
       try {
@@ -281,6 +294,7 @@ export function registerAdminService(router: ConnectRouter): void {
           allowed: u.allowed,
           admin: u.admin,
           userId: local?.id ?? "",
+          role: roleToProto(u.admin ? "admin" : u.mapped_role),
         };
       } catch (e) {
         return { found: false, message: failure(e) };
@@ -288,32 +302,32 @@ export function registerAdminService(router: ConnectRouter): void {
     }),
 
     getPermissionModePolicy: guard(async (_req, ctx: HandlerContext) => {
-      return { policy: modePolicyToProto(await getModePolicy(await principal(ctx))) };
+      return { policy: modePolicyToProto(await getModePolicy(await principal(ctx, "policy.read"))) };
     }),
 
     setPermissionModePolicy: guard(async (req, ctx: HandlerContext) => {
-      const p = await principal(ctx);
+      const p = await principal(ctx, "policy.write");
       const modes = (req.policy?.disabledModes ?? []).map(modeFromProto);
       return { policy: modePolicyToProto(await setModePolicy(p, modes)) };
     }),
 
     getLocalModelPolicy: guard(async (_req, ctx: HandlerContext) => {
-      return { policy: { allowed: await getLocalModelPolicy(await principal(ctx)) } };
+      return { policy: { allowed: await getLocalModelPolicy(await principal(ctx, "policy.read")) } };
     }),
 
     setLocalModelPolicy: guard(async (req, ctx: HandlerContext) => {
-      const p = await principal(ctx);
+      const p = await principal(ctx, "policy.write");
       if (!req.policy) throw new ApiError("invalid_request", "policy is required");
       return { policy: { allowed: await setLocalModelPolicy(p, req.policy.allowed) } };
     }),
 
     listProviderLimitsPolicies: guard(async (_req, ctx: HandlerContext) => {
-      await admin(ctx);
+      await admin(ctx, "limits.read");
       return { policies: (await listLimitsPolicies()).map(policyToProto) };
     }),
 
     setProviderLimitsPolicy: guard(async (req, ctx: HandlerContext) => {
-      await admin(ctx);
+      await admin(ctx, "limits.write");
       return { policy: policyToProto(await setLimitsPolicy(policyFromProto(req.policy))) };
     }),
   });

@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -124,5 +125,98 @@ func TestGitLabTemplateIsValidAndUsesRealFlags(t *testing.T) {
 		for _, line := range j["script"].([]any) {
 			checkFlags(t, job, line.(string), ciFlagKnown)
 		}
+	}
+}
+
+// runActionScript runs the action's script with a fake binary that records its arguments, one per line.
+func runActionScript(t *testing.T, env map[string]string, stdin bool) (args []string, output string, err error) {
+	t.Helper()
+	var action struct {
+		Runs struct {
+			Steps []struct {
+				ID  string `yaml:"id"`
+				Run string `yaml:"run"`
+			} `yaml:"steps"`
+		} `yaml:"runs"`
+	}
+	if err := yaml.Unmarshal(repoFile(t, "ci/github/action.yml"), &action); err != nil {
+		t.Fatal(err)
+	}
+	script := ""
+	for _, s := range action.Runs.Steps {
+		if s.ID == "harness" {
+			script = s.Run
+		}
+	}
+	bash, lookErr := exec.LookPath("bash")
+	if lookErr != nil {
+		t.Skip("no bash")
+	}
+	dir := t.TempDir()
+	argsFile := filepath.Join(dir, "args")
+	fake := filepath.Join(dir, "harness-client")
+	body := "#!/bin/sh\nfor a in \"$@\"; do printf '%s\\n' \"$a\" >> " + argsFile + "; done\n"
+	if stdin {
+		body += "printf 'stdin=' >> " + argsFile + "; cat >> " + argsFile + "; printf '\\n' >> " + argsFile + "\n"
+	}
+	body += "echo '{\"ok\":true}'\n"
+	if err := os.WriteFile(fake, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "output")
+	cmd := exec.Command(bash, "-c", script)
+	cmd.Env = []string{"PATH=" + os.Getenv("PATH"), "RUNNER_TEMP=" + dir, "GITHUB_OUTPUT=" + out, "INPUT_BIN=" + fake, "INPUT_BUDGET=2", "INPUT_TURNS=0"}
+	for k, v := range env {
+		cmd.Env = append(cmd.Env, k+"="+v)
+	}
+	for _, k := range []string{"INPUT_MODEL", "INPUT_TOOLS", "INPUT_PROMPT", "INPUT_FAIL_ON", "INPUT_SCHEMA", "INPUT_TRIGGER"} {
+		if _, ok := env[k]; !ok {
+			cmd.Env = append(cmd.Env, k+"=")
+		}
+	}
+	combined, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, string(combined), err
+	}
+	data, _ := os.ReadFile(argsFile)
+	res, _ := os.ReadFile(out)
+	return strings.Split(strings.TrimSpace(string(data)), "\n"), string(res), nil
+}
+
+func TestActionScriptBuildsTheCommand(t *testing.T) {
+	args, output, err := runActionScript(t, map[string]string{"MODE": "review", "INPUT_FAIL_ON": "high", "INPUT_TOOLS": "Bash(go test *)\nEdit\n", "INPUT_PROMPT": "mind; $(touch /tmp/x) the retries"}, false)
+	if err != nil {
+		t.Fatalf("%v: %s", err, output)
+	}
+	got := strings.Join(args, "|")
+	want := "ci|review|--max-budget-usd|2|--max-turns|0|--prompt|mind; $(touch /tmp/x) the retries|--fail-on|high|--allowed-tools|Bash(go test *)|--allowed-tools|Edit"
+	if got != want {
+		t.Fatalf("args\n got %s\nwant %s", got, want)
+	}
+	if !strings.Contains(output, `{"ok":true}`) {
+		t.Fatalf("output: %s", output)
+	}
+
+	args, _, err = runActionScript(t, map[string]string{"MODE": "mention", "INPUT_TRIGGER": "@bot"}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(args, "|"); got != "ci|mention|--trigger|@bot|--max-budget-usd|2|--max-turns|0" {
+		t.Fatalf("mention: %s", got)
+	}
+
+	args, _, err = runActionScript(t, map[string]string{"MODE": "run", "INPUT_PROMPT": "write notes", "INPUT_SCHEMA": "{}"}, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(args, "|"); !strings.HasPrefix(got, "-p|--permission-mode|dontAsk|--output-format|json|") || !strings.Contains(got, "--json-schema|{}") || !strings.Contains(got, "stdin=write notes") {
+		t.Fatalf("run: %s", got)
+	}
+
+	if _, out, err := runActionScript(t, map[string]string{"MODE": "nonsense"}, false); err == nil || !strings.Contains(out, "mode must be") {
+		t.Fatalf("a bad mode: %v %s", err, out)
+	}
+	if _, out, err := runActionScript(t, map[string]string{"MODE": "run"}, false); err == nil || !strings.Contains(out, "needs the prompt") {
+		t.Fatalf("no prompt: %v %s", err, out)
 	}
 }

@@ -741,10 +741,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.FileHistory = session.NewFileHistory(FileHistoryDir(s.ID), s.Transcript, conv.Snapshots)
 	s.ToolEnv.BeforeEdit = s.FileHistory.TrackEdit
 
-	var todos []tools.Todo
-	if len(conv.Todos) > 0 {
-		todos, _ = tools.ParseTodos([]byte(`{"todos":` + string(conv.Todos) + `}`))
-	}
+	todos := tools.RestoreTodos(conv.Todos, conv.TodoLinks)
 
 	maxTokens := 32000
 	if info.MaxOutputTokens > 0 && info.MaxOutputTokens < maxTokens {

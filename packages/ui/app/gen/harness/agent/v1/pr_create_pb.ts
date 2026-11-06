@@ -110,7 +110,7 @@ export type DraftPullRequestResponse = Message<"harness.agent.v1.DraftPullReques
   note: string;
 
   /**
-   * Who would open the PR: "server" (a connection on the harness server), "gh" or "glab". Empty when nothing can;
+   * Who would open the PR: "server" (a connection on the server), "gh" or "glab". Empty when nothing can;
    * `note` says what to do about it.
    *
    * @generated from field: string provider = 12;

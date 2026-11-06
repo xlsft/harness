@@ -1,7 +1,8 @@
-# The image (deploy/Dockerfile) needs only the core sources and deploy/. Everything else stays out
+# The image (deploy/Dockerfile) needs only the core and UI sources and deploy/. Everything else stays out
 # of the build context.
 *
 !packages/core/
+!packages/ui/
 !deploy/
 
 packages/core/node_modules
@@ -10,6 +11,12 @@ packages/core/.nitro
 packages/core/.data
 packages/core/.cache
 packages/core/test
+packages/ui/node_modules
+packages/ui/.output
+packages/ui/.nuxt
+packages/ui/.data
+packages/ui/test
+packages/ui/testdata
 **/.DS_Store
 **/*.log
 **/.env
