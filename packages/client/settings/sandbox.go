@@ -103,7 +103,11 @@ func (s *Settings) mergeSandbox(layers []*layer) {
 				s.ignored(l.src, KeySandbox+".enabled", "a committed settings file cannot turn the sandbox off")
 				sb.enabled = nil
 			}
-			if len(sb.hosts)+len(sb.paths) > 0 || sb.allowLocalhost != nil || sb.autoAllow != nil || sb.outsideNoPrompt != nil {
+			// Closing localhost narrows the sandbox, so a committed file may do that.
+			if sb.allowLocalhost != nil && !*sb.allowLocalhost {
+				s.Sandbox.AllowLocalhost = false
+			}
+			if len(sb.hosts)+len(sb.paths) > 0 || (sb.allowLocalhost != nil && *sb.allowLocalhost) || sb.autoAllow != nil || sb.outsideNoPrompt != nil {
 				s.ignored(l.src, KeySandbox, "a committed settings file cannot widen the sandbox")
 			}
 			if sb.enabled != nil {
