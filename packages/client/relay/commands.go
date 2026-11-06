@@ -64,8 +64,9 @@ func (h *Host) dispatch(ctx context.Context, c *relayv1.Command) {
 	// ours: leave the command to its owner. An older epoch on a session we
 	// still own is a redelivery from before our last registration and runs.
 	hs := h.session(c.GetSessionId())
-	if hs == nil && c.GetDeliverSessionNote() != nil {
+	if hs == nil && (c.GetDeliverSessionNote() != nil || c.GetDeliverAutoFixJob() != nil) {
 		// A note is for the session whether or not it is open here now (it may have waited in core through a restart).
+		// So is an auto-fix job: the pipeline must not need a live session.
 		h.markRunning(id, true)
 		go func() { h.ack(h.exec(ctx, c)) }()
 		return
@@ -244,6 +245,16 @@ func (h *Host) exec(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck
 		m := clone(p.DeliverSessionNote).(*agentv1.DeliverSessionNoteRequest)
 		m.SessionId = sid
 		return errAck(id, d.DeliverSessionNote(ctx, m), false)
+	case *relayv1.Command_DeliverAutoFixJob:
+		d, ok := b.(interface {
+			DeliverAutoFixJob(context.Context, *agentv1.DeliverAutoFixJobRequest) error
+		})
+		if !ok {
+			return outcome(id, relayv1.CommandAck_OUTCOME_REJECTED, "this client cannot take auto-fix jobs")
+		}
+		m := clone(p.DeliverAutoFixJob).(*agentv1.DeliverAutoFixJobRequest)
+		m.SessionId = sid
+		return errAck(id, d.DeliverAutoFixJob(ctx, m), false)
 	case *relayv1.Command_ResolveSessionProposal:
 		m := clone(p.ResolveSessionProposal).(*agentv1.ResolveSessionProposalRequest)
 		m.SessionId = sid

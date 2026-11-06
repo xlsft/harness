@@ -101,6 +101,8 @@ export interface VcsProviderClient {
   whoami(): Promise<string>;
   /** Whether the token can see the repository. */
   canAccess(repo: RepoRef): Promise<boolean>;
+  /** Whether a user of the code host, by numeric id, can push to the repository (GitLab: comments do not say). */
+  canWrite?(repo: RepoRef, userId: number): Promise<boolean>;
   listRepositories(query: string, pageToken: string): Promise<{ repositories: RepoData[]; nextPageToken: string }>;
   listPullRequests(repo: RepoRef, opts: { headBranch: string; includeClosed: boolean }): Promise<PrData[]>;
   getPullRequest(repo: RepoRef, number: number): Promise<PrData>;

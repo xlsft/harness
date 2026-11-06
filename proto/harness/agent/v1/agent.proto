@@ -13,6 +13,7 @@ import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
 import "harness/agent/v1/mcp.proto";
 import "harness/agent/v1/pr.proto";
+import "harness/agent/v1/pr_create.proto";
 import "harness/agent/v1/preview.proto";
 import "harness/agent/v1/sandbox.proto";
 import "harness/agent/v1/session_diff.proto";
@@ -319,6 +320,14 @@ service AgentService {
   // of the session's branch. FAILED_PRECONDITION when there is none, when the PR is merged or closed, or when gh or
   // glab is missing or not logged in; NOT_FOUND for a session that is not open here.
   rpc SetPrMonitor(SetPrMonitorRequest) returns (SetPrMonitorResponse);
+  // Reads the session's branch and asks the small-slot model for a pull request's title and body (pr_create.proto); falls
+  // back to the commit messages. FAILED_PRECONDITION when the branch has nothing to propose or is the base branch.
+  rpc DraftPullRequest(DraftPullRequestRequest) returns (DraftPullRequestResponse);
+  // Pushes the session's branch, opens the PR through the server's connection or gh / glab and binds it to the session.
+  // An open PR of the branch is returned as it is. FAILED_PRECONDITION with what to do when no provider covers the host.
+  rpc CreatePullRequest(CreatePullRequestRequest) returns (CreatePullRequestResponse);
+  // The local CLIs this client can reach code hosts with (pr_create.proto).
+  rpc GetVcsStatus(GetVcsStatusRequest) returns (GetVcsStatusResponse);
   // Preview servers (preview.proto): the session's dev servers on this client, for the Browser pane.
   rpc ListPreviewServers(ListPreviewServersRequest) returns (ListPreviewServersResponse);
   rpc StopPreviewServer(StopPreviewServerRequest) returns (StopPreviewServerResponse);

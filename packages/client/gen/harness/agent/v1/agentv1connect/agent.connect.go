@@ -311,6 +311,15 @@ const (
 	// AgentServiceSetPrMonitorProcedure is the fully-qualified name of the AgentService's SetPrMonitor
 	// RPC.
 	AgentServiceSetPrMonitorProcedure = "/harness.agent.v1.AgentService/SetPrMonitor"
+	// AgentServiceDraftPullRequestProcedure is the fully-qualified name of the AgentService's
+	// DraftPullRequest RPC.
+	AgentServiceDraftPullRequestProcedure = "/harness.agent.v1.AgentService/DraftPullRequest"
+	// AgentServiceCreatePullRequestProcedure is the fully-qualified name of the AgentService's
+	// CreatePullRequest RPC.
+	AgentServiceCreatePullRequestProcedure = "/harness.agent.v1.AgentService/CreatePullRequest"
+	// AgentServiceGetVcsStatusProcedure is the fully-qualified name of the AgentService's GetVcsStatus
+	// RPC.
+	AgentServiceGetVcsStatusProcedure = "/harness.agent.v1.AgentService/GetVcsStatus"
 	// AgentServiceListPreviewServersProcedure is the fully-qualified name of the AgentService's
 	// ListPreviewServers RPC.
 	AgentServiceListPreviewServersProcedure = "/harness.agent.v1.AgentService/ListPreviewServers"
@@ -650,6 +659,14 @@ type AgentServiceClient interface {
 	// of the session's branch. FAILED_PRECONDITION when there is none, when the PR is merged or closed, or when gh or
 	// glab is missing or not logged in; NOT_FOUND for a session that is not open here.
 	SetPrMonitor(context.Context, *connect.Request[v1.SetPrMonitorRequest]) (*connect.Response[v1.SetPrMonitorResponse], error)
+	// Reads the session's branch and asks the small-slot model for a pull request's title and body (pr_create.proto); falls
+	// back to the commit messages. FAILED_PRECONDITION when the branch has nothing to propose or is the base branch.
+	DraftPullRequest(context.Context, *connect.Request[v1.DraftPullRequestRequest]) (*connect.Response[v1.DraftPullRequestResponse], error)
+	// Pushes the session's branch, opens the PR through the server's connection or gh / glab and binds it to the session.
+	// An open PR of the branch is returned as it is. FAILED_PRECONDITION with what to do when no provider covers the host.
+	CreatePullRequest(context.Context, *connect.Request[v1.CreatePullRequestRequest]) (*connect.Response[v1.CreatePullRequestResponse], error)
+	// The local CLIs this client can reach code hosts with (pr_create.proto).
+	GetVcsStatus(context.Context, *connect.Request[v1.GetVcsStatusRequest]) (*connect.Response[v1.GetVcsStatusResponse], error)
 	// Preview servers (preview.proto): the session's dev servers on this client, for the Browser pane.
 	ListPreviewServers(context.Context, *connect.Request[v1.ListPreviewServersRequest]) (*connect.Response[v1.ListPreviewServersResponse], error)
 	StopPreviewServer(context.Context, *connect.Request[v1.StopPreviewServerRequest]) (*connect.Response[v1.StopPreviewServerResponse], error)
@@ -1304,6 +1321,24 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("SetPrMonitor")),
 			connect.WithClientOptions(opts...),
 		),
+		draftPullRequest: connect.NewClient[v1.DraftPullRequestRequest, v1.DraftPullRequestResponse](
+			httpClient,
+			baseURL+AgentServiceDraftPullRequestProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("DraftPullRequest")),
+			connect.WithClientOptions(opts...),
+		),
+		createPullRequest: connect.NewClient[v1.CreatePullRequestRequest, v1.CreatePullRequestResponse](
+			httpClient,
+			baseURL+AgentServiceCreatePullRequestProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("CreatePullRequest")),
+			connect.WithClientOptions(opts...),
+		),
+		getVcsStatus: connect.NewClient[v1.GetVcsStatusRequest, v1.GetVcsStatusResponse](
+			httpClient,
+			baseURL+AgentServiceGetVcsStatusProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetVcsStatus")),
+			connect.WithClientOptions(opts...),
+		),
 		listPreviewServers: connect.NewClient[v1.ListPreviewServersRequest, v1.ListPreviewServersResponse](
 			httpClient,
 			baseURL+AgentServiceListPreviewServersProcedure,
@@ -1574,6 +1609,9 @@ type agentServiceClient struct {
 	updateViewerPresence    *connect.Client[v1.UpdateViewerPresenceRequest, v1.UpdateViewerPresenceResponse]
 	readSentFile            *connect.Client[v1.ReadSentFileRequest, v1.ReadSentFileResponse]
 	setPrMonitor            *connect.Client[v1.SetPrMonitorRequest, v1.SetPrMonitorResponse]
+	draftPullRequest        *connect.Client[v1.DraftPullRequestRequest, v1.DraftPullRequestResponse]
+	createPullRequest       *connect.Client[v1.CreatePullRequestRequest, v1.CreatePullRequestResponse]
+	getVcsStatus            *connect.Client[v1.GetVcsStatusRequest, v1.GetVcsStatusResponse]
 	listPreviewServers      *connect.Client[v1.ListPreviewServersRequest, v1.ListPreviewServersResponse]
 	stopPreviewServer       *connect.Client[v1.StopPreviewServerRequest, v1.StopPreviewServerResponse]
 	getPreviewLogs          *connect.Client[v1.GetPreviewLogsRequest, v1.GetPreviewLogsResponse]
@@ -2089,6 +2127,21 @@ func (c *agentServiceClient) SetPrMonitor(ctx context.Context, req *connect.Requ
 	return c.setPrMonitor.CallUnary(ctx, req)
 }
 
+// DraftPullRequest calls harness.agent.v1.AgentService.DraftPullRequest.
+func (c *agentServiceClient) DraftPullRequest(ctx context.Context, req *connect.Request[v1.DraftPullRequestRequest]) (*connect.Response[v1.DraftPullRequestResponse], error) {
+	return c.draftPullRequest.CallUnary(ctx, req)
+}
+
+// CreatePullRequest calls harness.agent.v1.AgentService.CreatePullRequest.
+func (c *agentServiceClient) CreatePullRequest(ctx context.Context, req *connect.Request[v1.CreatePullRequestRequest]) (*connect.Response[v1.CreatePullRequestResponse], error) {
+	return c.createPullRequest.CallUnary(ctx, req)
+}
+
+// GetVcsStatus calls harness.agent.v1.AgentService.GetVcsStatus.
+func (c *agentServiceClient) GetVcsStatus(ctx context.Context, req *connect.Request[v1.GetVcsStatusRequest]) (*connect.Response[v1.GetVcsStatusResponse], error) {
+	return c.getVcsStatus.CallUnary(ctx, req)
+}
+
 // ListPreviewServers calls harness.agent.v1.AgentService.ListPreviewServers.
 func (c *agentServiceClient) ListPreviewServers(ctx context.Context, req *connect.Request[v1.ListPreviewServersRequest]) (*connect.Response[v1.ListPreviewServersResponse], error) {
 	return c.listPreviewServers.CallUnary(ctx, req)
@@ -2482,6 +2535,14 @@ type AgentServiceHandler interface {
 	// of the session's branch. FAILED_PRECONDITION when there is none, when the PR is merged or closed, or when gh or
 	// glab is missing or not logged in; NOT_FOUND for a session that is not open here.
 	SetPrMonitor(context.Context, *connect.Request[v1.SetPrMonitorRequest]) (*connect.Response[v1.SetPrMonitorResponse], error)
+	// Reads the session's branch and asks the small-slot model for a pull request's title and body (pr_create.proto); falls
+	// back to the commit messages. FAILED_PRECONDITION when the branch has nothing to propose or is the base branch.
+	DraftPullRequest(context.Context, *connect.Request[v1.DraftPullRequestRequest]) (*connect.Response[v1.DraftPullRequestResponse], error)
+	// Pushes the session's branch, opens the PR through the server's connection or gh / glab and binds it to the session.
+	// An open PR of the branch is returned as it is. FAILED_PRECONDITION with what to do when no provider covers the host.
+	CreatePullRequest(context.Context, *connect.Request[v1.CreatePullRequestRequest]) (*connect.Response[v1.CreatePullRequestResponse], error)
+	// The local CLIs this client can reach code hosts with (pr_create.proto).
+	GetVcsStatus(context.Context, *connect.Request[v1.GetVcsStatusRequest]) (*connect.Response[v1.GetVcsStatusResponse], error)
 	// Preview servers (preview.proto): the session's dev servers on this client, for the Browser pane.
 	ListPreviewServers(context.Context, *connect.Request[v1.ListPreviewServersRequest]) (*connect.Response[v1.ListPreviewServersResponse], error)
 	StopPreviewServer(context.Context, *connect.Request[v1.StopPreviewServerRequest]) (*connect.Response[v1.StopPreviewServerResponse], error)
@@ -3132,6 +3193,24 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("SetPrMonitor")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceDraftPullRequestHandler := connect.NewUnaryHandler(
+		AgentServiceDraftPullRequestProcedure,
+		svc.DraftPullRequest,
+		connect.WithSchema(agentServiceMethods.ByName("DraftPullRequest")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceCreatePullRequestHandler := connect.NewUnaryHandler(
+		AgentServiceCreatePullRequestProcedure,
+		svc.CreatePullRequest,
+		connect.WithSchema(agentServiceMethods.ByName("CreatePullRequest")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetVcsStatusHandler := connect.NewUnaryHandler(
+		AgentServiceGetVcsStatusProcedure,
+		svc.GetVcsStatus,
+		connect.WithSchema(agentServiceMethods.ByName("GetVcsStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentServiceListPreviewServersHandler := connect.NewUnaryHandler(
 		AgentServiceListPreviewServersProcedure,
 		svc.ListPreviewServers,
@@ -3496,6 +3575,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceReadSentFileHandler.ServeHTTP(w, r)
 		case AgentServiceSetPrMonitorProcedure:
 			agentServiceSetPrMonitorHandler.ServeHTTP(w, r)
+		case AgentServiceDraftPullRequestProcedure:
+			agentServiceDraftPullRequestHandler.ServeHTTP(w, r)
+		case AgentServiceCreatePullRequestProcedure:
+			agentServiceCreatePullRequestHandler.ServeHTTP(w, r)
+		case AgentServiceGetVcsStatusProcedure:
+			agentServiceGetVcsStatusHandler.ServeHTTP(w, r)
 		case AgentServiceListPreviewServersProcedure:
 			agentServiceListPreviewServersHandler.ServeHTTP(w, r)
 		case AgentServiceStopPreviewServerProcedure:
@@ -3947,6 +4032,18 @@ func (UnimplementedAgentServiceHandler) ReadSentFile(context.Context, *connect.R
 
 func (UnimplementedAgentServiceHandler) SetPrMonitor(context.Context, *connect.Request[v1.SetPrMonitorRequest]) (*connect.Response[v1.SetPrMonitorResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SetPrMonitor is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) DraftPullRequest(context.Context, *connect.Request[v1.DraftPullRequestRequest]) (*connect.Response[v1.DraftPullRequestResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DraftPullRequest is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) CreatePullRequest(context.Context, *connect.Request[v1.CreatePullRequestRequest]) (*connect.Response[v1.CreatePullRequestResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.CreatePullRequest is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetVcsStatus(context.Context, *connect.Request[v1.GetVcsStatusRequest]) (*connect.Response[v1.GetVcsStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetVcsStatus is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) ListPreviewServers(context.Context, *connect.Request[v1.ListPreviewServersRequest]) (*connect.Response[v1.ListPreviewServersResponse], error) {
