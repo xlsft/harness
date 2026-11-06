@@ -1,6 +1,6 @@
 {
   "id": "colorblind-blue-yellow-dark",
-  "name": "Color-blind dark (blue-yellow)",
+  "name": "Tritanopia Dark",
   "kind": "dark",
   "fonts": {
     "terminal": "'CaskaydiaCove Nerd Font', 'Cascadia Mono', 'JetBrains Mono', ui-monospace, monospace"
