@@ -55,6 +55,7 @@ func WatchModePolicy(ctx context.Context, url string, hc *http.Client, tokens au
 		if p.Set(modes) {
 			log.Info("permission mode policy changed", "disabled", modes)
 		}
+		p.SetSandbox(settings.PolicySandbox(cache.List(kind)))
 		// The same POLICY document may disallow local models (disableLocalModels).
 		localmodels.Default().SetPolicyDisabled(localmodels.PolicyDisabledIn(cache.List(kind)))
 	}

@@ -11,6 +11,7 @@ import (
 
 	"github.com/xlsft/harness/packages/client/browser"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
+	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/tools"
 )
 
@@ -201,7 +202,11 @@ func (t *startTool) Run(ctx context.Context, env *tools.Env, call tools.Call) to
 	}
 	res, err := t.m.Start(ctx, sessionID, p.config, newCmd)
 	if err != nil {
-		return t.startFailure(sessionID, res.Info, err)
+		r := t.startFailure(sessionID, res.Info, err)
+		if env.Sandbox.State().Active {
+			r.Content = append(r.Content, llm.TextBlock(sandboxServerNote))
+		}
+		return r
 	}
 	i := res.Info
 	verb := "started"
@@ -219,6 +224,10 @@ func (t *startTool) Run(ctx context.Context, env *tools.Env, call tools.Call) to
 	r.Summary = i.Name + " on port " + fmt.Sprint(i.Port)
 	return r
 }
+
+// sandboxServerNote closes a failed start in a sandboxed session. A preview server has a policy of its own in the OS sandbox:
+// the same files and hosts as any command of the model, plus listening on a port and reaching what listens on this machine.
+const sandboxServerNote = "Preview servers run in the OS sandbox: they can listen on ports and reach local services, but write only in the working directories, the temp directory and toolchain caches, and reach the network only through a proxy to the allowed hosts. If the output shows \"Operation not permitted\" or a refused host, that is why: tell the user what it needs, they can add a write path or a host in Settings > Sandbox."
 
 func (t *startTool) startFailure(sessionID string, i Info, err error) tools.Result {
 	var (

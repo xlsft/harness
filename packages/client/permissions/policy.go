@@ -61,6 +61,25 @@ type ModePolicy struct {
 	disabled map[Mode]bool
 	subs     map[int]func([]Mode)
 	subID    int
+	// The same documents can require the command sandbox and refuse running outside it (settings.PolicySandbox).
+	sandboxRequired, outsideRefused bool
+}
+
+// SetSandbox records what the policy documents say of the command sandbox.
+func (p *ModePolicy) SetSandbox(required, outsideRefused bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.sandboxRequired, p.outsideRefused = required, outsideRefused
+}
+
+// Sandbox returns what SetSandbox recorded. Nil-safe.
+func (p *ModePolicy) Sandbox() (required, outsideRefused bool) {
+	if p == nil {
+		return false, false
+	}
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.sandboxRequired, p.outsideRefused
 }
 
 // NewModePolicy returns a policy with the given modes disabled.

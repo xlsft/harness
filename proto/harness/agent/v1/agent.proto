@@ -12,6 +12,7 @@ import "harness/agent/v1/localmodels.proto";
 import "harness/agent/v1/pr.proto";
 import "harness/agent/v1/preview.proto";
 import "harness/agent/v1/device_settings.proto";
+import "harness/agent/v1/sandbox.proto";
 import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/session_links.proto";
 import "harness/agent/v1/shell.proto";
@@ -103,6 +104,8 @@ service AgentService {
   // document). Without a server connection Get returns the defaults and Update fails with FAILED_PRECONDITION.
   rpc GetUserPreferences(GetUserPreferencesRequest) returns (GetUserPreferencesResponse);
   rpc UpdateUserPreferences(UpdateUserPreferencesRequest) returns (UpdateUserPreferencesResponse);
+  // What this machine can do about the command sandbox (sandbox.proto).
+  rpc GetSandboxStatus(GetSandboxStatusRequest) returns (GetSandboxStatusResponse);
 
   // Background tasks: shell commands started with run_in_background or moved to the background.
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
@@ -1449,6 +1452,8 @@ message UserPreferences {
   int32 subagent_max_running = 4;
   // How many agent() calls a run of the Workflow tool may make (settings key workflowMaxAgents), 1 to 200. Default 30.
   int32 workflow_max_agents = 5;
+  // The command sandbox (settings key sandbox). Applies from the next command.
+  SandboxPreferences sandbox = 6;
 }
 
 message GetUserPreferencesRequest {}
@@ -1468,6 +1473,8 @@ message UpdateUserPreferencesRequest {
   optional int32 subagent_max_running = 4;
   // INVALID_ARGUMENT outside 1 to 200.
   optional int32 workflow_max_agents = 5;
+  // Replaces the whole sandbox block. INVALID_ARGUMENT for a write path that is not absolute or ~/, or a host that cannot be one.
+  optional SandboxPreferences sandbox = 6;
 }
 
 message UpdateUserPreferencesResponse {

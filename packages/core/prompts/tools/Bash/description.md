@@ -4,6 +4,12 @@ How the shell behaves:
 - Every call starts a new shell process from the user's profile. The working directory carries over to the next call (a `cd` sticks), as long as it stays inside the working directories; otherwise it is reset. A note at the end of the result says so whenever a command ends in another directory than it started in. Environment variables, functions and aliases do not carry over: set them in the same command that needs them. Prefer absolute paths to `cd`.
 - Because each call is a new process, shell job control does not work across calls: `jobs`, `kill %1`, `fg` and `wait` see nothing from earlier calls, and a process started with `&`, `nohup` or `disown` is not tracked and TaskStop cannot stop it. Never background a command that way; use `run_in_background`.
 
+The OS sandbox:
+- Where the user has it on, commands run restricted by the operating system, whatever the permission mode (bypass included). They can write only in the working directories, the scratch and temp directories and toolchain caches, cannot read credential stores or the keychain, and reach the network only through an HTTP proxy to a list of allowed hosts. Git hooks, a repository's git config, shell startup files and agent settings are closed to them. Use the file tools for what they cover.
+- A refusal looks like `Operation not permitted`, a refused proxy request or a failed name lookup. When it comes from the sandbox, a `[sandbox]` line at the end of the result says what was refused. The same command fails the same way: do not retry it as it is, and do not look for ways around it.
+- If the command does need more, set `run_outside_sandbox` to true. That asks the user, every time, so say why. A refused host or write path the task keeps needing is better added by the user in Settings > Sandbox: tell them which.
+- Known limits inside: git over SSH and logins from stored credentials do not work (git over HTTPS can read public repositories on the allowed hosts); `ps` and `top` cannot start (use `pgrep` or `lsof`); a local server cannot bind a port unless the user allows localhost.
+
 Timeouts and output:
 - The default timeout is 2 minutes (120000 ms). Set `timeout` in milliseconds, up to 10 minutes (600000 ms).
 - A foreground command that reaches its timeout is not killed: it moves to the background and you get its task id and output file, as with `run_in_background`.

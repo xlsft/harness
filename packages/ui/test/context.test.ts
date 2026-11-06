@@ -123,8 +123,12 @@ describe('compaction', () => {
 describe('user preferences', () => {
   it('updates only the fields given', async () => {
     const transport = new MockTransport({ tick: 0 })
-    expect(await transport.getUserPreferences()).toEqual({ compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30 })
-    expect(await transport.updateUserPreferences({ compactIdleSessions: false })).toEqual({ compactIdleSessions: false, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30 })
-    expect(await transport.updateUserPreferences({})).toEqual({ compactIdleSessions: false, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30 })
+    const sandbox = { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: false, autoAllowBash: false, outsideWithoutPrompt: false }
+    expect(await transport.getUserPreferences()).toEqual({ compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, sandbox })
+    expect(await transport.updateUserPreferences({ compactIdleSessions: false })).toEqual({ compactIdleSessions: false, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, sandbox })
+    expect(await transport.updateUserPreferences({})).toEqual({ compactIdleSessions: false, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, sandbox })
+    // The sandbox block is replaced whole.
+    const off = { ...sandbox, enabled: false, allowedHosts: ['example.com'] }
+    expect((await transport.updateUserPreferences({ sandbox: off })).sandbox).toEqual(off)
   })
 })

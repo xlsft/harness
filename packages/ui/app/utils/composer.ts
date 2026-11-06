@@ -100,7 +100,7 @@ export const MODES: { key: PermissionModeName, label: string, detail: string, cl
   { key: 'accept_edits', label: 'Accept edits', detail: 'File edits auto, commands ask', cls: 'text-strong' },
   { key: 'auto', label: 'Auto', detail: 'Safe actions auto, risky ones ask', cls: 'text-strong' },
   { key: 'plan', label: 'Plan', detail: 'Read only, produce a plan', cls: 'text-cyan' },
-  { key: 'bypass', label: 'Bypass', detail: 'All safeguards off. Sandboxed hosts only', cls: 'text-bad', sep: true }
+  { key: 'bypass', label: 'Bypass', detail: 'Permission prompts off. The OS sandbox stays as set', cls: 'text-bad', sep: true }
 ]
 
 // Every mode in the client's order (the Shift+Tab cycle, then the modes outside it), for Settings; Don't ask is

@@ -7,7 +7,7 @@ import type { ComputerUseStatus } from '~/gen/harness/agent/v1/computer_use_pb'
 import { permissionVM, profileMessage, profileVM, tierName } from '~/lib/session/computer'
 import type { ComputerProfileVM, EffortName, QuestionReply } from '~/lib/session/types'
 import { messageContent, type OutgoingAttachment } from '~/lib/session/attachments'
-import type { DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import type { DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, SandboxStatus, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { createClient, type Client, type Interceptor, type Transport } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
 import {
@@ -17,7 +17,8 @@ import {
   type RespondToPermissionRequest_Decision,
   type RespondToPlanRequest_Decision,
   type RewindRequest_Mode,
-  type SendUserMessageRequest_Delivery
+  type SendUserMessageRequest_Delivery,
+  type UserPreferences as UserPreferences_pb
 } from '~/gen/harness/agent/v1/agent_pb'
 import { Effort } from '~/gen/harness/llm/v1/content_pb'
 import { contextUsageFromProto } from '~/lib/session/context'
@@ -44,6 +45,12 @@ const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
   [Effort.HIGH]: 'high',
   [Effort.XHIGH]: 'xhigh',
   [Effort.MAX]: 'max'
+}
+
+function preferencesVM(p: UserPreferences_pb | undefined): UserPreferences {
+  const b = p?.sandbox
+  return { compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30,
+    sandbox: { enabled: b?.enabled ?? true, allowedWritePaths: b?.allowedWritePaths ?? [], allowedHosts: b?.allowedHosts ?? [], allowLocalhost: b?.allowLocalhost ?? false, autoAllowBash: b?.autoAllowBash ?? false, outsideWithoutPrompt: b?.outsideWithoutPrompt ?? false } }
 }
 
 function computerStatusVM(s: ComputerUseStatus | undefined): ComputerUseStatusVM {
@@ -313,12 +320,17 @@ export class ConnectTransport implements SessionTransport {
 
   async getUserPreferences(): Promise<UserPreferences> {
     const res = await this.client.getUserPreferences({})
-    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30, subagentMaxDepth: res.preferences?.subagentMaxDepth || 2, subagentMaxRunning: res.preferences?.subagentMaxRunning || 8, workflowMaxAgents: res.preferences?.workflowMaxAgents || 30 }
+    return preferencesVM(res.preferences)
+  }
+
+  async getSandboxStatus(): Promise<SandboxStatus> {
+    const res = await this.client.getSandboxStatus({})
+    return { platform: res.platform, supported: res.supported, reason: res.reason, requiredByPolicy: res.requiredByPolicy, outsideRefusedByPolicy: res.outsideRefusedByPolicy, builtinHosts: res.builtinHosts }
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
-    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents })
-    return { compactIdleSessions: res.preferences?.compactIdleSessions ?? true, prMonitorWakesPerHour: res.preferences?.prMonitorWakesPerHour || 30, subagentMaxDepth: res.preferences?.subagentMaxDepth || 2, subagentMaxRunning: res.preferences?.subagentMaxRunning || 8, workflowMaxAgents: res.preferences?.workflowMaxAgents || 30 }
+    const res = await this.client.updateUserPreferences({ compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, sandbox: patch.sandbox })
+    return preferencesVM(res.preferences)
   }
 
   async listTasks(sessionId: string) {

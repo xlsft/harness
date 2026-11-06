@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ToolItem } from '~/lib/session/types'
 import { keepAwakeAvailable } from '~/utils/keepAwake'
-import { toolIcon, toolMeta, toolTarget } from '~/utils/tools'
+import { bashSandboxDenied, ranOutsideSandbox, toolIcon, toolMeta, toolTarget, withoutCwdNote } from '~/utils/tools'
 
 const tool = (name: string, input: Record<string, unknown>, result: Record<string, unknown> | null = null, status: ToolItem['status'] = 'ok'): ToolItem => ({
   kind: 'tool', id: 't', name, input, summary: '', status, output: '', result, resultSummary: '', durationMs: 900, startedAt: 0, messageId: 'm', grouped: false
@@ -24,6 +24,21 @@ describe('who gets the keep-awake switch', () => {
       expect(keepAwakeAvailable(remote, { desktop, controlling: false })).toBe(false)
       expect(keepAwakeAvailable({ ...remote, remoteControllable: false }, { desktop, controlling: true })).toBe(false)
     }
+  })
+})
+
+describe('the sandbox on a Bash row', () => {
+  it('marks a command only when it ran outside the sandbox', () => {
+    expect(ranOutsideSandbox(tool('Bash', { command: 'ls' }, { sandbox: 'outside' }))).toBe(true)
+    expect(ranOutsideSandbox(tool('Bash', { command: 'ls' }, { exitCode: 0 }))).toBe(false)
+    expect(ranOutsideSandbox(tool('Bash', { command: 'ls', run_outside_sandbox: true }))).toBe(false)
+  })
+  it('shows what was refused in short and takes the advice for the model off the text', () => {
+    const note = '[sandbox] This command ran in the OS sandbox, which refused: /x. Do not retry.'
+    const t = tool('Bash', { command: 'touch /x' }, { sandboxNote: note, sandboxDenied: 'Blocked by the sandbox: /x' })
+    expect(bashSandboxDenied(t)).toEqual({ summary: 'Blocked by the sandbox: /x', note })
+    expect(withoutCwdNote(`touch: /x: Operation not permitted\nExit code 1\n${note}`, note)).toBe('touch: /x: Operation not permitted\nExit code 1')
+    expect(bashSandboxDenied(tool('Bash', { command: 'ls' }, { exitCode: 0 }))).toEqual({ summary: '', note: '' })
   })
 })
 

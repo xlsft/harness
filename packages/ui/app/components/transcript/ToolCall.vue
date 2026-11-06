@@ -48,9 +48,12 @@ const backgroundNote = computed(() => {
   return `${why}. Background task ${b.taskId}.`
 })
 const cwdNote = computed(() => bashCwdNote(t.value))
-// The command's own output (without the note when the result is just the note).
+const outsideSandbox = computed(() => ranOutsideSandbox(t.value))
+const sandboxDenied = computed(() => bashSandboxDenied(t.value))
+// The command's own output (without the notes when the result is just the notes).
 const bashOutput = computed(() => {
-  const s = withoutCwdNote(outputLines.value.map(l => l.map(tk => tk.t).join('')).join('\n'), cwdNote.value)
+  const text = outputLines.value.map(l => l.map(tk => tk.t).join('')).join('\n')
+  const s = withoutCwdNote(withoutCwdNote(text, sandboxDenied.value.note), cwdNote.value)
   return backgroundNote.value && s.trim() === backgroundNote.value ? '' : s
 })
 const toast = useToast()
@@ -180,6 +183,11 @@ const { open: openImage } = useImageViewer()
       />
       <span class="flex-1" />
       <span
+        v-if="outsideSandbox"
+        class="shrink-0 text-[11px] text-warn"
+        title="This command ran outside the sandbox, with your approval"
+      >outside sandbox</span>
+      <span
         class="shrink-0 text-[11px]"
         :class="meta.cls === 'diff' ? '' : meta.cls"
       >{{ meta.text }}</span>
@@ -292,7 +300,7 @@ v-for="(line, i) in commandLines"
 v-for="(tk, j) in line"
 :key="j"
 :style="{ color: tk.c }"
->{{ tk.t }}</span><template v-if="i < commandLines.length - 1">{{ '\n' }}</template></template><template v-if="bashOutput.trim()">{{ '\n' }}<span :class="tool.status === 'error' ? 'text-bad/80' : 'text-muted'">{{ bashOutput }}</span></template><template v-if="backgroundNote">{{ '\n' }}<span class="text-dimmed italic">{{ backgroundNote }}</span></template><template v-if="cwdNote">{{ '\n' }}<span class="text-dimmed">{{ cwdNote }}</span></template><span
+>{{ tk.t }}</span><template v-if="i < commandLines.length - 1">{{ '\n' }}</template></template><template v-if="bashOutput.trim()">{{ '\n' }}<span :class="tool.status === 'error' ? 'text-bad/80' : 'text-muted'">{{ bashOutput }}</span></template><template v-if="backgroundNote">{{ '\n' }}<span class="text-dimmed italic">{{ backgroundNote }}</span></template><template v-if="cwdNote">{{ '\n' }}<span class="text-dimmed">{{ cwdNote }}</span></template><template v-if="sandboxDenied.summary">{{ '\n' }}<span class="text-warn">{{ sandboxDenied.summary }}</span></template><span
       v-if="tool.status === 'running'"
       class="h-caret ml-0.5 inline-block h-[13px] w-[7px] bg-graphite-200 align-[-2px]"
     /></pre>

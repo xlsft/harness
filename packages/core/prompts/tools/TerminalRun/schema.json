@@ -10,6 +10,10 @@
       "type": "string",
       "description": "The new tab's short title, such as dev server"
     },
+    "run_outside_sandbox": {
+      "type": "boolean",
+      "description": "Ask the user to start the tab outside the OS sandbox. Only after the sandbox refused the command, or when you know it cannot work in the sandbox"
+    },
     "description": {
       "type": "string",
       "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"

@@ -10,6 +10,10 @@
       "type": "string",
       "description": "Shell command to start and watch; it stops when the monitor ends. Pass this or task_id"
     },
+    "run_outside_sandbox": {
+      "type": "boolean",
+      "description": "With command: ask the user to run it outside the OS sandbox. Only after the sandbox refused it, or when you know it cannot work in the sandbox"
+    },
     "pattern": {
       "type": "string",
       "description": "Regular expression (RE2 syntax) matched against each output line"
