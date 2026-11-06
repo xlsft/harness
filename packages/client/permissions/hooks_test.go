@@ -72,7 +72,9 @@ func TestHookBehavior(t *testing.T) {
 		}
 	})
 	t.Run("the prompt hook answers ordinary prompts only", func(t *testing.T) {
-		answer := func(context.Context, Request) (Decision, bool) { return Decision{Behavior: Allow, ResolvedBy: "hook"}, true }
+		answer := func(context.Context, Request) (Decision, bool) {
+			return Decision{Behavior: Allow, ResolvedBy: "hook"}, true
+		}
 		e := New(Config{Cwd: t.TempDir(), Home: t.TempDir()})
 		was := asked(e)
 		e.SetPromptHook(answer)
