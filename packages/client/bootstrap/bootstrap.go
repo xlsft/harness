@@ -730,7 +730,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		DisabledTools: disabled, OutputStyle: style, ExtraTools: s.extraTools(useBrowser),
 		DisableInterruptReply: (st != nil && !st.InterruptReply) || os.Getenv("HARNESS_NO_INTERRUPT_REPLY") == "1",
 		UsageMonitor:          o.UsageMonitor, Skills: s.skillSource(),
-		OnEvent:               onEvent, Logger: log,
+		OnEvent: onEvent, Logger: log,
 	})
 	tools.SetNotificationListener(s.ID, s.Agent.OnNotification)
 	s.ToolEnv.RestoreFindings(conv.Findings)

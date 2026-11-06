@@ -940,5 +940,3 @@ func TestQueuedSkillGoesWithItsMessage(t *testing.T) {
 		t.Fatal("a message taken back took its skill along, it should have")
 	}
 }
-
-

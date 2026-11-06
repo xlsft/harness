@@ -463,7 +463,7 @@ func (r routed) ListSlashCommands(ctx context.Context, req *connect.Request[agen
 }
 
 // ListSlashCommands of a session on an ACP agent: the agent's commands, and the built-ins that act on the session rather
-// than on the agent's conversation. Skills belong to the harness loop: the agent has its own.
+// than on the agent's conversation. Skills belong to the client's own loop: the agent has its own.
 func (r acpRouted) ListSlashCommands(ctx context.Context, req *connect.Request[agentv1.ListSlashCommandsRequest]) (*connect.Response[agentv1.ListSlashCommandsResponse], error) {
 	l, err := r.acpTarget(req.Msg.GetSessionId())
 	if req.Msg.GetSessionId() == "" || err != nil || l == nil {

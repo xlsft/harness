@@ -460,7 +460,7 @@ func (s *Session) promptTemplate(ctx context.Context, id string) (string, error)
 			}
 		}
 	}
-	return "", errors.New("the harness server doesn't have its prompt yet; update the server")
+	return "", errors.New("the xlsft`s harness server doesn't have its prompt yet; update the server")
 }
 
 func (s *Session) initVars(args string) map[string]string {

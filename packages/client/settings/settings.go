@@ -264,7 +264,7 @@ const KeyCompactIdleSessions = "compactIdleSessions"
 // like every preference: a skill keeps its switch from one machine to the next.
 const KeyDisabledSkills = "disabledSkills"
 
-// KeyDisableSkillShell turns off running the `!`command`` of skill and command bodies.
+// KeyDisableSkillShell turns off running the `!`command“ of skill and command bodies.
 const KeyDisableSkillShell = "disableSkillShellExecution"
 
 // Bounds of Settings.SubagentMaxDepth and Settings.SubagentMaxRunning. The maximums keep a model from fanning out past

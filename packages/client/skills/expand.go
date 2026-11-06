@@ -123,7 +123,7 @@ func plain(s string) string { return s }
 // shellQuote makes a value one word of a command line.
 func shellQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
-// inlineShell finds `!`command`` at the start of a word.
+// inlineShell finds `!`command“ at the start of a word.
 var inlineShell = regexp.MustCompile("(^|[\\s(\\[])!`([^`\n]+)`")
 
 // disabledShell stands where a command would have run.

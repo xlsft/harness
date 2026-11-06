@@ -67,7 +67,7 @@ func TestAcpSlashCommands(t *testing.T) {
 		t.Fatal(inst.Err())
 	}
 	proj, _ := filepath.EvalSymlinks(t.TempDir())
-	writeFile(t, filepath.Join(proj, ".claude/skills/local/SKILL.md"), "A skill of the harness loop")
+	writeFile(t, filepath.Join(proj, ".claude/skills/local/SKILL.md"), "A skill of the client's own loop")
 	cs, err := client.CreateSession(ctx, connect.NewRequest(&agentv1.CreateSessionRequest{Cwd: proj, Engine: "acp:fake"}))
 	if err != nil {
 		t.Fatal(err)
@@ -98,7 +98,7 @@ func TestAcpSlashCommands(t *testing.T) {
 		t.Fatalf("built-ins: %+v", list)
 	}
 	if list["compact"] != nil || list["init"] != nil || list["local"] != nil {
-		t.Fatalf("what the harness loop does isn't on an agent: %+v", list)
+		t.Fatalf("what the client's own loop does isn't on an agent: %+v", list)
 	}
 
 	sctx, scancel := context.WithCancel(ctx)

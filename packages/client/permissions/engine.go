@@ -273,13 +273,13 @@ type Engine struct {
 	localRoot  string
 	sources    []Source
 	// scopes counts AddScopedAllow calls.
-	scopes int
-	allow      []Rule
-	ask        []Rule
-	deny       []Rule
-	asker      Asker
-	onMode     func(Mode)
-	netGuard   *netguard.Guard
+	scopes   int
+	allow    []Rule
+	ask      []Rule
+	deny     []Rule
+	asker    Asker
+	onMode   func(Mode)
+	netGuard *netguard.Guard
 	// sites are the hosts the user approved for the browser tools in this session (browser.go).
 	sites map[string]bool
 }

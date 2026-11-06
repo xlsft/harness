@@ -113,29 +113,29 @@ type Entry struct {
 	// machine lists the session's agents from.
 	Subagent json.RawMessage `json:"subagent,omitempty"`
 	// Workflow is the same for a run of the Workflow tool (tools.WorkflowInfo as JSON).
-	Workflow                json.RawMessage `json:"workflow,omitempty"`
-	UserType                string          `json:"userType,omitempty"`
-	Cwd                     string          `json:"cwd,omitempty"`
-	SessionID               string          `json:"sessionId"`
-	Version                 string          `json:"version,omitempty"`
-	GitBranch               string          `json:"gitBranch,omitempty"`
-	Entrypoint              string          `json:"entrypoint,omitempty"`
-	Type                    string          `json:"type"`
-	Subtype                 string          `json:"subtype,omitempty"`
-	Message                 *Message        `json:"message,omitempty"`
-	Content                 string          `json:"content,omitempty"`
-	Level                   string          `json:"level,omitempty"`
-	IsMeta                  bool            `json:"isMeta,omitempty"`
+	Workflow   json.RawMessage `json:"workflow,omitempty"`
+	UserType   string          `json:"userType,omitempty"`
+	Cwd        string          `json:"cwd,omitempty"`
+	SessionID  string          `json:"sessionId"`
+	Version    string          `json:"version,omitempty"`
+	GitBranch  string          `json:"gitBranch,omitempty"`
+	Entrypoint string          `json:"entrypoint,omitempty"`
+	Type       string          `json:"type"`
+	Subtype    string          `json:"subtype,omitempty"`
+	Message    *Message        `json:"message,omitempty"`
+	Content    string          `json:"content,omitempty"`
+	Level      string          `json:"level,omitempty"`
+	IsMeta     bool            `json:"isMeta,omitempty"`
 	// Skill marks the meta entry holding the text of a skill that started, or came back after a compaction.
-	Skill *SkillUse `json:"skillUse,omitempty"`
-	PromptID                string          `json:"promptId,omitempty"`
-	PermissionMode          string          `json:"permissionMode,omitempty"`
-	RequestID               string          `json:"requestId,omitempty"`
-	ToolUseResult           any             `json:"toolUseResult,omitempty"`
-	SourceToolAssistantUUID string          `json:"sourceToolAssistantUUID,omitempty"`
-	IsAPIErrorMessage       bool            `json:"isApiErrorMessage,omitempty"`
-	UUID                    string          `json:"uuid,omitempty"`
-	Timestamp               string          `json:"timestamp"`
+	Skill                   *SkillUse `json:"skillUse,omitempty"`
+	PromptID                string    `json:"promptId,omitempty"`
+	PermissionMode          string    `json:"permissionMode,omitempty"`
+	RequestID               string    `json:"requestId,omitempty"`
+	ToolUseResult           any       `json:"toolUseResult,omitempty"`
+	SourceToolAssistantUUID string    `json:"sourceToolAssistantUUID,omitempty"`
+	IsAPIErrorMessage       bool      `json:"isApiErrorMessage,omitempty"`
+	UUID                    string    `json:"uuid,omitempty"`
+	Timestamp               string    `json:"timestamp"`
 
 	// ClientUUIDs are the frontend ids (SendUserMessageRequest.uuid) of the
 	// messages a user entry carries: one for a prompt, one per message for

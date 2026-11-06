@@ -92,7 +92,9 @@ func TestParseDefaults(t *testing.T) {
 func TestDiscoverPrecedenceAndNamespaces(t *testing.T) {
 	home, hh, repo := t.TempDir(), t.TempDir(), t.TempDir()
 	cwd := filepath.Join(repo, "pkg", "app")
-	skill := func(dir, desc string) { write(t, filepath.Join(dir, SkillFile), "---\ndescription: "+desc+"\n---\nbody of "+desc) }
+	skill := func(dir, desc string) {
+		write(t, filepath.Join(dir, SkillFile), "---\ndescription: "+desc+"\n---\nbody of "+desc)
+	}
 	skill(filepath.Join(home, ".claude/skills/both"), "personal claude")
 	skill(filepath.Join(hh, "skills/both"), "personal harness")
 	skill(filepath.Join(cwd, ".claude/skills/both"), "project")
