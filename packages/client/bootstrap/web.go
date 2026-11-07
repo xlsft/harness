@@ -2,14 +2,22 @@ package bootstrap
 
 import (
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/web"
 )
 
 // registerWebTools adds WebSearch (the server's SearchService) and WebFetch
 // (local fetch, answer from the small-slot model through the gateway). Like
 // every tool, they reach the model only when the prompt bundle defines them.
-func (s *Session) registerWebTools(o Options) {
-	s.Tools.Register(&web.WebSearch{Searcher: o.Search})
+func (s *Session) registerWebTools(o Options, st *settings.Settings) {
+	switch {
+	case st != nil && st.Extras.WebSearchMode == settings.WebSearchDisabled:
+		// Not offered at all (webSearchMode).
+	case st != nil && st.Extras.WebSearchMode == settings.WebSearchCached && o.Search != nil:
+		s.Tools.Register(&web.WebSearch{Searcher: web.NewCachingSearcher(o.Search, web.SearchCacheTTL)})
+	default:
+		s.Tools.Register(&web.WebSearch{Searcher: o.Search})
+	}
 	small := ""
 	if s.Catalog != nil {
 		small = s.Catalog.Slots["small"]

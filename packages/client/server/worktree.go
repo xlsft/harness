@@ -26,7 +26,7 @@ func createWorktree(ctx context.Context, m *agentv1.CreateSessionRequest) (*work
 	if m.GetCwd() == "" {
 		return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("cwd is required"))
 	}
-	r, err := worktree.Create(ctx, m.GetCwd(), worktree.Options{Name: o.GetName(), Branch: o.GetBranch(), BaseRef: o.GetBaseRef()})
+	r, err := worktree.Create(ctx, m.GetCwd(), worktree.Options{Name: o.GetName(), Branch: o.GetBranch(), BaseRef: o.GetBaseRef(), PullRequest: o.GetFromPr()})
 	if err != nil {
 		code := connect.CodeFailedPrecondition
 		switch {

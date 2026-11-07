@@ -14,6 +14,8 @@ import { testSsoConfig } from "../auth/sso-test.ts";
 import { eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { AuditService } from "../gen/harness/auth/v1/audit_pb.ts";
+import { DecisionLogService } from "../gen/harness/auth/v1/decision_log_pb.ts";
+import { listDecisionLog } from "../decision/service.ts";
 import { BillingService, type QuotaLimits, QuotaLimitsSchema, UserQuotaStatusSchema } from "../gen/harness/auth/v1/billing_pb.ts";
 import { DirectoryService } from "../gen/harness/auth/v1/directory_pb.ts";
 import { MfaService } from "../gen/harness/auth/v1/mfa_pb.ts";
@@ -202,6 +204,32 @@ export function registerEnterpriseServices(router: ConnectRouter): void {
       await allowed(ctx, "audit.read");
       const r = await auditCsv(req.filter ?? {});
       return { csv: encoder.encode(r.csv), rows: r.rows, truncated: r.truncated };
+    }),
+  });
+
+  router.service(DecisionLogService, {
+    listDecisions: guard(async (req, ctx: HandlerContext) => {
+      await allowed(ctx, "audit.read");
+      const r = await listDecisionLog({ limit: req.limit, sessionId: req.sessionId, userId: req.userId });
+      return {
+        decisions: r.decisions.map((d) => ({
+          id: d.id,
+          userId: d.user_id ?? "",
+          sessionId: d.session_id ?? "",
+          toolName: d.tool_name,
+          inputPreview: d.input_preview ?? "",
+          decision: d.decision,
+          provider: d.provider,
+          categories: d.categories ?? [],
+          reason: d.reason ?? "",
+          confidence: d.confidence ?? 0,
+          latencyMs: BigInt(d.latency_ms ?? 0),
+          costUsd: d.cost_usd ?? 0,
+          cached: d.cached ?? false,
+          error: d.error ?? "",
+          createdAt: d.created_at,
+        })),
+      };
     }),
   });
 

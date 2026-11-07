@@ -293,6 +293,7 @@ func (s *Server) mux() *http.ServeMux {
 func (s *Server) serveHandler(ctx context.Context, ln net.Listener, h http.Handler) error {
 	sweepFolderBaselines()
 	go s.prResume.Do(s.resumePRWatches)
+	go s.runWorktreeCleanup()
 	s.startScheduler()
 	p := new(http.Protocols)
 	p.SetHTTP1(true)
@@ -1227,8 +1228,6 @@ func (s *Server) closeLive(id, reason string) bool {
 	if ls == nil {
 		return false
 	}
-	// TODO(worktree): offer to remove the session's worktree (ls.sess.Worktree) here when it is clean and its
-	// branch has no commits beyond base_ref; worktrees are never removed automatically today.
 	ls.sess.PR.Park()
 	ls.close(reason)
 	s.terminals().KillSession(id)

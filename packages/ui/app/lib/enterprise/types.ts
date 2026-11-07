@@ -250,6 +250,7 @@ export interface EnterpriseApi {
   exportUsage(o?: { from?: string, to?: string, userId?: string, groupId?: string }): Promise<CsvExport>
 
   listAudit(f: AuditFilter, pageToken?: string): Promise<{ events: AuditEventView[], nextPageToken: string }>
+  listDecisions(o?: { sessionId?: string, userId?: string }): Promise<{ decisions: DecisionRecordView[] }>
   exportAudit(f: AuditFilter): Promise<CsvExport>
 
   getManagedPolicy(): Promise<ManagedPolicyState>
@@ -290,4 +291,17 @@ export function downloadCsv(name: string, csv: Uint8Array) {
   a.download = name
   a.click()
   URL.revokeObjectURL(url)
+}
+
+// One decision of the auto mode classifier.
+export interface DecisionRecordView {
+  id: string
+  toolName: string
+  decision: string
+  provider: string
+  reason: string
+  error: string
+  inputPreview: string
+  cached: boolean
+  createdAt: string
 }

@@ -70,6 +70,7 @@ export function compareVersions(a: string, b: string): number {
 const COOKIE_SERVICES = new Set([
   "harness.auth.v1.AdminService",
   "harness.auth.v1.AuditService",
+  "harness.auth.v1.DecisionLogService",
   "harness.auth.v1.BillingService",
   "harness.auth.v1.DirectoryService",
   "harness.auth.v1.MfaService",

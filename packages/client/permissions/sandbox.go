@@ -36,7 +36,7 @@ func (e *Engine) evalOutsideSandbox(req Request, st SandboxState) (d Decision, d
 		return Decision{Behavior: Deny, ResolvedBy: "policy", Message: "Your administrator does not allow running commands outside the sandbox. Do not retry it; change the approach, or tell the user what the command needs."}, true
 	case st.OutsideWithoutPrompt:
 		return Decision{}, false
-	case e.mode == ModePlan:
+	case e.modeOf(req) == ModePlan:
 		return e.planDenial("Bash (" + req.Command + ")"), true
 	}
 	return Decision{Behavior: Ask, UserOnly: true, Message: "This command asks to run outside the sandbox, with your full rights over files, credentials and the network."}, true

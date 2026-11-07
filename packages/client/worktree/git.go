@@ -4,8 +4,8 @@
 //
 // Worktrees live in <repository>/.harness/worktrees/<name>, on a branch
 // harness/<name> by default; .harness/worktrees/ is ignored through
-// .git/info/exclude so the user's .gitignore is never touched. Worktrees are
-// never removed automatically once a session uses them.
+// .git/info/exclude so the user's .gitignore is never touched. A session's worktree stays while it holds work of its
+// own; Prune takes away the ones that hold none after the cleanup period.
 package worktree
 
 import (

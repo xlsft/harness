@@ -101,7 +101,7 @@ func (s *Server) ListExtensionSkills(ctx context.Context, req *connect.Request[a
 	}
 	shown := map[string]bool{}
 	_, report := m.Listing(0, true)
-	catalog := slashCatalog(m, report)
+	catalog := slashCatalog(m, report, nil)
 	cat := m.Catalog(false)
 
 	titles := map[string]string{}

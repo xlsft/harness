@@ -34,6 +34,13 @@ import (
 const (
 	CommandInit       = "init"
 	CommandCodeReview = "code-review"
+	// CommandDeepResearch, CommandRecap, CommandInterview and CommandOrchestrate are prompts too: their text says how to do it.
+	CommandDeepResearch = "deep-research"
+	CommandRecap        = "recap"
+	CommandInterview    = "interview"
+	CommandOrchestrate  = "orchestrate"
+	// commandWorkflow is a saved workflow typed as a command.
+	reminderCommandWorkflow = "command_workflow"
 
 	reminderCommandInit       = "command_init"
 	reminderCommandCodeReview = "command_code_review"
@@ -44,6 +51,9 @@ const commandGitTimeout = 10 * time.Second
 
 // SkillOptions says where to look for a folder, with or without a session. docs and disabled may be nil.
 func SkillOptions(home, cwd string, trusted bool, docs skills.DocSource, disabled map[string]bool) skills.Options {
+	if os.Getenv("HARNESS_NO_SKILLS") == "1" {
+		return skills.Options{Cwd: cwd, Disabled: disabled}
+	}
 	gitRoot := ""
 	if cwd != "" {
 		ctx, cancel := context.WithTimeout(context.Background(), commandGitTimeout)
@@ -432,8 +442,12 @@ func (s *Session) StartSlashPrompt(ctx context.Context, text string) (refusal st
 		s.StartUserSkill(sk, args, "")
 		return ""
 	}
-	if name == CommandInit || name == CommandCodeReview {
+	switch name {
+	case CommandInit, CommandCodeReview, CommandDeepResearch, CommandRecap, CommandInterview, CommandOrchestrate:
 		return s.StartPromptCommand(ctx, name, args, "")
+	}
+	if s.Workflows != nil && s.Workflows.HasSaved(name) {
+		return s.StartWorkflowCommand(ctx, name, args, "")
 	}
 	return ""
 }
@@ -453,6 +467,15 @@ func (s *Session) StartPromptCommand(ctx context.Context, name, args, messageID 
 		if vars, why = s.codeReviewVars(ctx, args); why != "" {
 			return why
 		}
+	case CommandDeepResearch, CommandInterview, CommandOrchestrate:
+		if strings.TrimSpace(args) == "" {
+			return "/" + name + " needs to know what about: /" + name + " <topic or task>"
+		}
+		id = "command_" + strings.ReplaceAll(name, "-", "_")
+		vars = map[string]string{"cwd": s.Dir(), "arguments": args}
+	case CommandRecap:
+		id = "command_recap"
+		vars = map[string]string{"arguments": args}
 	default:
 		return "Unknown command /" + name
 	}
@@ -527,3 +550,23 @@ func (s *Session) codeReviewVars(ctx context.Context, args string) (map[string]s
 	}
 	return map[string]string{"cwd": dir, "status": status, "diff_stat": stat, "arguments": args}, ""
 }
+
+// StartWorkflowCommand starts a saved workflow typed as a command: the model runs it with the Workflow tool, so it gets the
+// user's approval as any other run does.
+func (s *Session) StartWorkflowCommand(ctx context.Context, name, args, messageID string) (refusal string) {
+	tmpl, err := s.promptTemplate(ctx, reminderCommandWorkflow)
+	if err != nil {
+		return "/" + name + " can't run: " + err.Error()
+	}
+	s.Agent.ActivateSkill(&agent.SkillActivation{
+		MessageID: messageID,
+		Use:       session.SkillUse{Name: name, Kind: "builtin", Source: "workflow", Args: args},
+		Prepare: func(context.Context) (string, string, string) {
+			return prompts.Render(tmpl, map[string]string{"name": name, "arguments": args}, nil), "", ""
+		},
+	})
+	return ""
+}
+
+// SettingsNow reads the session's settings as they are now (nil when they can't be read).
+func (s *Session) SettingsNow() *settings.Settings { return s.loadSettings() }

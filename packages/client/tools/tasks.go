@@ -107,6 +107,8 @@ type task struct {
 	reported bool
 	// watchers are the monitors reading this task's output; their last matches go out before it counts as finished.
 	watchers []*monitor
+	// stdin is the command's input, for one started with it (TaskInput).
+	stdin io.WriteCloser
 }
 
 // NewTaskManager creates a manager writing output files to dir.
@@ -147,6 +149,20 @@ func (m *TaskManager) StartOutside(sh *Shell, command, description, toolUseID st
 }
 
 func (m *TaskManager) start(sh *Shell, command, description, toolUseID string, timeout time.Duration, how confinement) (TaskInfo, error) {
+	return m.startWith(sh, command, description, toolUseID, timeout, how, false)
+}
+
+// StartWithStdin is Start with the command's input left open for TaskInput. Only on request: a command that reads its input
+// waits for it, where any other sees the end of it at once and goes on.
+func (m *TaskManager) StartWithStdin(sh *Shell, command, description, toolUseID string, timeout time.Duration, outside bool) (TaskInfo, error) {
+	how := confineCommand
+	if outside {
+		how = unconfined
+	}
+	return m.startWith(sh, command, description, toolUseID, timeout, how, true)
+}
+
+func (m *TaskManager) startWith(sh *Shell, command, description, toolUseID string, timeout time.Duration, how confinement, withStdin bool) (TaskInfo, error) {
 	id := newTaskID()
 	f, path, err := m.outputFile(id)
 	if err != nil {
@@ -155,6 +171,13 @@ func (m *TaskManager) start(sh *Shell, command, description, toolUseID string, t
 	cwd := sh.Cwd()
 	cmd, wrapped := sh.command(command, "", cwd, how)
 	cmd.Stdout, cmd.Stderr = f, f
+	var stdin io.WriteCloser
+	if withStdin {
+		if stdin, err = cmd.StdinPipe(); err != nil {
+			f.Close()
+			return TaskInfo{}, err
+		}
+	}
 	if err := cmd.Start(); err != nil {
 		f.Close()
 		return TaskInfo{}, err
@@ -162,7 +185,15 @@ func (m *TaskManager) start(sh *Shell, command, description, toolUseID string, t
 	done := make(chan error, 1)
 	go func() { done <- cmd.Wait() }()
 	cleanup := func() { noteDenialInOutput(wrapped, path, cwd) }
-	return m.adopt(id, path, f, cmd, done, command, description, toolUseID, timeout, cleanup), nil
+	info := m.adopt(id, path, f, cmd, done, command, description, toolUseID, timeout, cleanup)
+	if stdin != nil {
+		m.mu.Lock()
+		if t := m.tasks[id]; t != nil {
+			t.stdin = stdin
+		}
+		m.mu.Unlock()
+	}
+	return info, nil
 }
 
 // adopt takes over a running command whose output now goes to path.

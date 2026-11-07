@@ -103,7 +103,7 @@ export interface NewSessionOptions {
   // With fork: copy only the conversation before this user message (UserMessage.uuid, a checkpoint id).
   forkAtMessageId?: string
   // Run in a new git worktree of the repository containing cwd.
-  worktree?: { name?: string, branch?: string, baseRef?: string }
+  worktree?: { name?: string, branch?: string, baseRef?: string, fromPr?: string }
   // The session engine: omitted or 'harness' for the harness agent loop, 'acp:<agent id>' for an installed ACP agent
   // (AcpAgent.engine). A resume keeps the session's recorded engine. On an agent, `model` is one of AcpAgent.models.
   engine?: string

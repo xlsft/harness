@@ -151,7 +151,7 @@ export function newSessionAgentEffort(agent: AcpAgent | undefined, chosen: strin
 
 // What the new-session screen starts a session with. On an agent the server's effort and permission mode do not apply,
 // the agent's mode and effort do, and only what the agent supports goes along.
-export function newSessionChoice<E, M>(c: { engine: string, agent?: AcpAgent, acpMode: string, acpEffort?: string, effort?: E, mode: M, worktree?: { baseRef: string } }) {
+export function newSessionChoice<E, M>(c: { engine: string, agent?: AcpAgent, acpMode: string, acpEffort?: string, effort?: E, mode: M, worktree?: { baseRef: string, fromPr?: string } }) {
   if (!c.engine) return { effort: c.effort, mode: c.mode, worktree: c.worktree, engine: undefined, acpModeId: undefined, acpEffortId: undefined }
   return {
     effort: undefined,

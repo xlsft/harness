@@ -33,6 +33,7 @@ import (
 	"github.com/xlsft/harness/packages/client/sdk"
 	"github.com/xlsft/harness/packages/client/server"
 	"github.com/xlsft/harness/packages/client/speech"
+	"github.com/xlsft/harness/packages/client/subagent"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/vcs"
 	"github.com/xlsft/harness/packages/client/web"
@@ -92,6 +93,12 @@ func run(args []string) int {
 			return runPlugin(args[1:])
 		case "ci":
 			return runCI(ctx, args[1:])
+		case "config":
+			return runConfig(ctx, args[1:])
+		case "permissions":
+			return runPermissions(ctx, args[1:])
+		case "insights":
+			return runInsights(args[1:])
 		case "version", "--version":
 			fmt.Println(config.UserAgent())
 			return 0
@@ -223,6 +230,10 @@ func cmdServe(ctx context.Context, args []string) int {
 	disallowed := fs.StringArray("disallowedTools", nil, "permission rules that are always denied")
 	addDirs := fs.StringArray("add-dir", nil, "additional working directories for every session")
 	outputStyle := fs.String("output-style", "", "output style for every session: a built-in id (default, proactive, concise, explanatory, learning) or a user/project style name")
+	agents := fs.String("agents", "", `subagent types for every session of this run, as JSON: {"name": {"description": "...", "prompt": "...", "tools": [...], ...}}`)
+	profile := fs.String("permission-profile", "", "the permission profile for every session: a name under permissionProfiles in settings")
+	bare := fs.Bool("bare", false, bareHelp)
+	safe := fs.Bool("safe-mode", false, safeHelp)
 	remote := fs.Bool("remote-control", true, "mirror sessions to the harness server so they can be watched and controlled from the web (HARNESS_REMOTE_CONTROL=0 disables)")
 	verbose := fs.Bool("verbose", false, "debug logging")
 	tcp := addTCPFlags(fs)
@@ -238,6 +249,11 @@ func cmdServe(ctx context.Context, args []string) int {
 		return fail(err)
 	}
 	base.AllowedTools, base.DisallowedTools, base.AdditionalDirs, base.Logger = *allowed, *disallowed, *addDirs, log
+	if base.Agents, err = parseAgents(*agents); err != nil {
+		return fail(err)
+	}
+	base.PermissionProfile = *profile
+	applyStartup(*bare, *safe)
 	base.OutputStyle = *outputStyle
 	// Interactive frontends start sessions in auto mode unless the request or settings say otherwise.
 	base.FallbackPermissionMode = permissions.ModeAuto
@@ -308,6 +324,10 @@ func cmdPrint(ctx context.Context, args []string) int {
 	effort := fs.String("effort", "", "low | medium | high | xhigh | max")
 	mode := fs.String("permission-mode", "", "default | acceptEdits | plan | auto | dontAsk | bypassPermissions (default: settings, else default)")
 	maxTurns := fs.Int("max-turns", 0, "maximum tool-use round trips (0 = unlimited)")
+	agents := fs.String("agents", "", `subagent types for this run, as JSON: {"name": {"description": "...", "prompt": "...", "tools": [...], ...}}`)
+	profile := fs.String("permission-profile", "", "the permission profile for this run: a name under permissionProfiles in settings")
+	bare := fs.Bool("bare", false, bareHelp)
+	safe := fs.Bool("safe-mode", false, safeHelp)
 	outputStyle := fs.String("output-style", "", "output style: a built-in id (default, proactive, concise, explanatory, learning) or a user/project style name (default: settings outputStyle)")
 	var allowed, disallowed, addDirs []string
 	fs.StringArrayVar(&allowed, "allowedTools", nil, `tools allowed without asking, e.g. "Bash(git *) Edit"`)
@@ -345,6 +365,11 @@ func cmdPrint(ctx context.Context, args []string) int {
 			return fail(err)
 		}
 	}
+	agentTypes, err := parseAgents(*agents)
+	if err != nil {
+		return fail(err)
+	}
+	applyStartup(*bare, *safe)
 	if *skipPerms {
 		pm = permissions.ModeBypassPermissions
 	}
@@ -406,7 +431,15 @@ func cmdPrint(ctx context.Context, args []string) int {
 			MaxBudgetUSD: *maxBudget, SystemPrompt: sysPrompt, AppendSystemPrompt: appendPrompt,
 			PermissionMode: pm, AllowedTools: allowed, DisallowedTools: disallowed, AdditionalDirs: addDirs,
 			Continue: *cont, Resume: *resume, SessionID: *sessionID, NoPersistence: *noPersist, Fork: *forkSession,
-			Logger: newLogger(*verbose),
+			Logger: newLogger(*verbose), Agents: agentTypes, PermissionProfile: *profile,
 		},
 	})
+}
+
+// parseAgents reads --agents ("": none).
+func parseAgents(raw string) ([]subagent.Type, error) {
+	if strings.TrimSpace(raw) == "" {
+		return nil, nil
+	}
+	return subagent.InlineDefinitions(raw)
 }

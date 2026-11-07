@@ -29,6 +29,8 @@ func ModePolicyDir() string { return filepath.Join(config.Home(), "cache", "poli
 func WatchModePolicy(ctx context.Context, url string, hc *http.Client, tokens auth.TokenSource, user *auth.User, log *slog.Logger) *permissions.ModePolicy {
 	p := permissions.NewModePolicy()
 	if os.Getenv("HARNESS_NO_SYNC") == "1" || url == "" || tokens == nil {
+		// Without a server the machine's own policy still stands.
+		applyPolicyDocs(ctx, p, settings.DevicePolicyDocs(), log)
 		return p
 	}
 	if log == nil {
@@ -48,19 +50,7 @@ func WatchModePolicy(ctx context.Context, url string, hc *http.Client, tokens au
 		Client: syncclient.NewClient(url, hc, tokens), Cache: cache, Kinds: []syncv1.DocumentKind{kind}, Logger: log,
 	})
 	apply := func() {
-		var modes []permissions.Mode
-		for _, m := range settings.PolicyDisabledModes(cache.List(kind)) {
-			modes = append(modes, permissions.Mode(m))
-		}
-		if p.Set(modes) {
-			log.Info("permission mode policy changed", "disabled", modes)
-		}
-		applyPluginPolicy(ctx, cache.List(kind), log)
-		p.SetSandbox(settings.PolicySandbox(cache.List(kind)))
-		managed := settings.PolicyManaged(cache.List(kind))
-		p.SetManaged(managed)
-		// The same POLICY document may disallow local models (disableLocalModels), or leave them off its provider list.
-		localmodels.Default().SetPolicyDisabled(localmodels.PolicyDisabledIn(cache.List(kind)) || !managed.ProviderAllowed("local"))
+		applyPolicyDocs(ctx, p, append(cache.List(kind), settings.DevicePolicyDocs()...), log)
 	}
 	apply()
 	cache.Subscribe(func(syncclient.Event) { apply() })
@@ -71,4 +61,24 @@ func WatchModePolicy(ctx context.Context, url string, hc *http.Client, tokens au
 	cancel()
 	go func() { _ = syncer.Run(ctx) }()
 	return p
+}
+
+// applyPolicyDocs puts POLICY documents, and what the machine's own policy adds, into force.
+func applyPolicyDocs(ctx context.Context, p *permissions.ModePolicy, docs []*syncv1.Document, log *slog.Logger) {
+	if log == nil {
+		log = slog.Default()
+	}
+	var modes []permissions.Mode
+	for _, m := range settings.PolicyDisabledModes(docs) {
+		modes = append(modes, permissions.Mode(m))
+	}
+	if p.Set(modes) {
+		log.Info("permission mode policy changed", "disabled", modes)
+	}
+	applyPluginPolicy(ctx, docs, log)
+	p.SetSandbox(settings.PolicySandbox(docs))
+	managed := settings.PolicyManaged(docs)
+	p.SetManaged(managed)
+	// The same POLICY document may disallow local models (disableLocalModels), or leave them off its provider list.
+	localmodels.Default().SetPolicyDisabled(localmodels.PolicyDisabledIn(docs) || !managed.ProviderAllowed("local"))
 }

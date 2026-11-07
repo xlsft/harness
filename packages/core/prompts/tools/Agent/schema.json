@@ -8,7 +8,7 @@
     },
     "prompt": {
       "type": "string",
-      "description": "The complete task for the agent, which sees nothing else of this conversation"
+      "description": "The complete task for the agent, which sees nothing else of this conversation unless fork is set"
     },
     "subagent_type": {
       "type": "string",
@@ -28,6 +28,10 @@
     "team": {
       "type": "string",
       "description": "Make it a member of this team: peers that message each other and share the task graph"
+    },
+    "fork": {
+      "type": "boolean",
+      "description": "Start it with a copy of this conversation so far, on your model, instead of from nothing"
     }
   },
   "required": [

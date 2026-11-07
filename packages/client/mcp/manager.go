@@ -177,6 +177,34 @@ func Open(ctx context.Context, o Options) (*Manager, error) {
 	if o.Client == nil {
 		return nil, fmt.Errorf("mcp: no McpService client")
 	}
+	m := newManager(ctx, o)
+	for _, cfg := range o.Local.List() {
+		if !cfg.GetEnabled() {
+			continue
+		}
+		m.servers = append(m.servers, &server{cfg: cfg, local: true, needsApproval: true, alwaysAsk: cfg.GetRemote().GetRequiresUserInteraction()})
+	}
+	for _, cfg := range o.PluginServers {
+		m.servers = append(m.servers, &server{cfg: cfg, local: true, plugin: true, needsApproval: true})
+	}
+	return m.openRegistered(ctx, o)
+}
+
+// OpenServers starts these servers and nothing else: no registry, no catalog, and nothing about them goes to the xlsft`s
+// harness server. For the servers a subagent's definition brings; the caller has decided they may run. A server that
+// doesn't start is a warning.
+func OpenServers(ctx context.Context, o Options, servers []*mcpv1.Server) *Manager {
+	o.Client, o.ToolSearch, o.RefreshEvery = nil, ToolSearchNever, -1
+	m := newManager(ctx, o)
+	for _, cfg := range servers {
+		m.servers = append(m.servers, &server{cfg: cfg, local: true, plugin: true, needsApproval: true})
+	}
+	m.startDirect(ctx)
+	m.buildTools(ctx)
+	return m
+}
+
+func newManager(ctx context.Context, o Options) *Manager {
 	m := &Manager{o: o, log: o.Logger, byName: map[string]*Tool{}, loaded: map[string]bool{}, reported: map[string]*mcpv1.DeviceServerStatus{},
 		inflight: map[string][]*inflightCall{}, remoteInfo: map[string]*mcpv1.CatalogServer{},
 		promptCache: map[string]cachedList[*mcpv1.Prompt]{}, resourceCache: map[string]cachedList[*mcpv1.Resource]{}}
@@ -197,15 +225,11 @@ func Open(ctx context.Context, o Options) (*Manager, error) {
 	}
 	m.ctx, m.cancel = context.WithCancel(context.WithoutCancel(ctx))
 	m.lastCheck = time.Now()
-	for _, cfg := range o.Local.List() {
-		if !cfg.GetEnabled() {
-			continue
-		}
-		m.servers = append(m.servers, &server{cfg: cfg, local: true, needsApproval: true, alwaysAsk: cfg.GetRemote().GetRequiresUserInteraction()})
-	}
-	for _, cfg := range o.PluginServers {
-		m.servers = append(m.servers, &server{cfg: cfg, local: true, plugin: true, needsApproval: true})
-	}
+	return m
+}
+
+// openRegistered adds the servers of the user's registry and starts everything.
+func (m *Manager) openRegistered(ctx context.Context, o Options) (*Manager, error) {
 	all, err := o.Client.ListServers(ctx, o.ProjectKey)
 	if err != nil {
 		m.log.Warn("MCP servers unavailable", "err", err)
@@ -423,13 +447,19 @@ func (m *Manager) Reported(serverID string) *mcpv1.DeviceServerStatus {
 // buildTools fetches the catalog and assembles the session's tools.
 func (m *Manager) buildTools(ctx context.Context) {
 	catalogTools := map[string][]*mcpv1.Tool{}
-	cat, err := m.o.Client.GetToolCatalog(ctx, m.o.CatalogVersion, m.o.ProjectKey)
-	if err != nil && m.o.CatalogVersion != "" && connect.CodeOf(err) == connect.CodeNotFound {
-		cat, err = m.o.Client.GetToolCatalog(ctx, "", m.o.ProjectKey)
+	var (
+		cat *mcpv1.ToolCatalog
+		err error
+	)
+	if m.o.Client != nil {
+		cat, err = m.o.Client.GetToolCatalog(ctx, m.o.CatalogVersion, m.o.ProjectKey)
+		if err != nil && m.o.CatalogVersion != "" && connect.CodeOf(err) == connect.CodeNotFound {
+			cat, err = m.o.Client.GetToolCatalog(ctx, "", m.o.ProjectKey)
+		}
 	}
 	if err != nil {
 		m.log.Warn("MCP tool catalog unavailable", "err", err)
-	} else {
+	} else if cat != nil {
 		m.catalog = cat.GetVersion()
 		for _, cs := range cat.GetServers() {
 			catalogTools[cs.GetServerId()] = cs.GetTools()

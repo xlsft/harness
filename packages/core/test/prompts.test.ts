@@ -40,12 +40,12 @@ describe("bundle builder", () => {
       "Advisor", "Agent", "ArtifactPublish", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork", "BrowserRecord",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait", "ChangeDirectory", "ComputerAccess", "ComputerActivate",
       "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey", "ComputerMenu", "ComputerScreenshot", "ComputerScroll",
-      "ComputerType", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake", "KnowledgeRead", "KnowledgeSearch", "LSP",
-      "ListAgents", "ListMcpResources", "MarkChapter", "McpAuthenticate", "Memory", "Monitor", "NotebookEdit", "NotebookRun", "OpenInEditor", "PrAutoMerge", "PrBind", "PrMonitor",
+      "ComputerType", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake", "KnowledgeRead", "KnowledgeSearch", "LS", "LSP",
+      "ListAgents", "ListMcpResources", "MarkChapter", "McpAuthenticate", "Memory", "Monitor", "MultiEdit", "NotebookEdit", "NotebookRun", "OpenInEditor", "PrAutoMerge", "PrBind", "PrMonitor",
       "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop", "ProposeBranch", "PushNotification", "Read",
       "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "ScheduleCancel", "ScheduleList", "ScheduleWakeup", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff",
       "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet", "SettingsSet",
-      "Show", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskOutput", "TaskStop", "TaskTracker", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
+      "Show", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskInput", "TaskOutput", "TaskStop", "TaskTracker", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
       "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "Workflow", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders
@@ -69,6 +69,11 @@ describe("bundle builder", () => {
       skill_invoked: ["name", "directory", "arguments", "content"],
       command_init: ["cwd", "target", "existing", "arguments"],
       command_code_review: ["cwd", "status", "diff_stat", "arguments"],
+      command_deep_research: ["cwd", "arguments"],
+      command_orchestrate: ["cwd", "arguments"],
+      command_interview: ["cwd", "arguments"],
+      command_recap: ["arguments"],
+      command_workflow: ["name", "arguments"],
       deferred_tools: ["tools"],
       mcp_instructions: ["servers"],
       mcp_tools_changed: ["server", "added", "removed", "deferred"],
@@ -102,6 +107,7 @@ describe("bundle builder", () => {
       goal_continue: ["condition", "reason", "turn", "max_turns"],
       // the check after each turn of a goal, filled by the client for the small-slot model
       goal_check: ["condition", "conversation"],
+      agent_fork: [],
       team_context: ["team"],
       team_next_task: ["team", "tasks"],
       team_message: ["from", "message"],
@@ -180,7 +186,7 @@ describe("bundle builder", () => {
     expect(props("Read")).toEqual(["file_path", "offset", "limit", "pages", "description"]);
     expect(props("Write")).toEqual(["file_path", "content", "description"]);
     expect(props("Edit")).toEqual(["file_path", "old_string", "new_string", "replace_all", "description"]);
-    expect(props("Bash")).toEqual(["command", "timeout", "description", "run_in_background", "run_outside_sandbox"]);
+    expect(props("Bash")).toEqual(["command", "timeout", "description", "stdin", "run_in_background", "run_outside_sandbox"]);
     expect(b.tools.Bash!.description).toMatch(/run_outside_sandbox/);
     expect(props("TaskStop")).toEqual(["task_id", "description"]);
     expect(props("PreviewStart")).toEqual(["name", "url", "description"]);

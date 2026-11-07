@@ -2,9 +2,46 @@ package permissions
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 )
+
+// modeOf is the mode a request is judged under.
+func (e *Engine) modeOf(req Request) Mode {
+	if req.Mode != "" {
+		return req.Mode
+	}
+	return e.mode
+}
+
+// modeStrictness orders the modes, stricter first.
+var modeStrictness = map[Mode]int{ModePlan: 0, ModeDontAsk: 1, ModeDefault: 2, ModeAcceptEdits: 3, ModeAuto: 4, ModeBypassPermissions: 5}
+
+// AgentMode says which mode an agent works under when its definition asks for wanted and the session is in session; ""
+// means the session's. A definition can always make its agent stricter. It can make it freer in two steps only, from
+// default to acceptEdits or auto and from acceptEdits to auto, so an agent never gets what the user would have to switch
+// on with a warning, and plan mode stays what the user asked for. A mode policy turned off isn't available either.
+func AgentMode(session, wanted Mode, allowed func(Mode) bool) Mode {
+	if wanted == "" || wanted == session || session == ModePlan {
+		return ""
+	}
+	want, known := modeStrictness[wanted]
+	have, knownSession := modeStrictness[session]
+	if !known || !knownSession || (allowed != nil && !allowed(wanted)) {
+		return ""
+	}
+	switch {
+	case want < have:
+		return wanted
+	case session == ModeDefault && (wanted == ModeAcceptEdits || wanted == ModeAuto):
+		return wanted
+	case session == ModeAcceptEdits && wanted == ModeAuto:
+		return wanted
+	}
+	return ""
+}
 
 // AllModes lists every mode: the Shift+Tab cycle, then the modes outside it.
 func AllModes() []Mode {
@@ -160,4 +197,95 @@ func (p *ModePolicy) OnChange(f func([]Mode)) func() {
 		delete(p.subs, id)
 		p.mu.Unlock()
 	}
+}
+
+// readAllowed: the path is in a working directory or a readable one, or an allow rule opens it (e.mu held).
+func (e *Engine) readAllowed(req Request, path string, input map[string]any, mc matchContext) bool {
+	if inAny(path, e.workDirs) || inAny(path, e.scratch) || inAny(path, e.readable) {
+		return true
+	}
+	for _, r := range e.allow {
+		if r.matchesCall(req, input, mc, true) {
+			return true
+		}
+	}
+	return false
+}
+
+func readRefusal(path string) Decision {
+	return Decision{Behavior: Deny, ResolvedBy: "setting", Message: fmt.Sprintf("%s is outside the working directories, and permissions.restrictReads refuses reads there. Work with what is inside them, or ask the user to add the directory.", path)}
+}
+
+// refuseRead applies restrictReads to the read tools (e.mu held). A Glob or Grep without a path looks in the current
+// directory, which the tools keep inside the session's folders.
+func (e *Engine) refuseRead(req Request, input map[string]any, mc matchContext) (Decision, bool) {
+	if !e.restrictReads || !(readTools[req.ToolName] || pathObservers[req.ToolName]) || req.FilePath == "" {
+		return Decision{}, false
+	}
+	path := req.FilePath
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(e.cwd, path)
+	}
+	path = filepath.Clean(path)
+	if e.readAllowed(req, path, input, mc) {
+		return Decision{}, false
+	}
+	return readRefusal(path), true
+}
+
+// refuseBashRead applies restrictReads to the paths a command line names: arguments and input redirections. A path built at
+// run time gets through, so this stops the plain case and the sandbox stays the boundary (e.mu held).
+func (e *Engine) refuseBashRead(req Request, input map[string]any, top []SimpleCommand) (Decision, bool) {
+	if !e.restrictReads {
+		return Decision{}, false
+	}
+	cwd := req.Cwd
+	if cwd == "" {
+		cwd = e.cwd
+	}
+	mc := matchContext{cwd: e.cwd, home: e.home}
+	check := func(word string) (Decision, bool) {
+		named := namedPath(word)
+		if named == "" {
+			return Decision{}, false
+		}
+		p := resolvePath(named, cwd, e.home)
+		if p == "/dev/null" || e.readAllowed(Request{ToolName: "Read", FilePath: p}, p, map[string]any{"file_path": p}, mc) {
+			return Decision{}, false
+		}
+		return readRefusal(p), true
+	}
+	for _, c := range top {
+		for i, w := range c.Words {
+			if i == 0 {
+				continue
+			}
+			if d, refused := check(w.Value); refused {
+				return d, true
+			}
+		}
+		for _, r := range c.Redirects {
+			if r.Op == "<" {
+				if d, refused := check(r.Target); refused {
+					return d, true
+				}
+			}
+		}
+	}
+	return Decision{}, false
+}
+
+// namedPath is the path an argument names outright: itself or an option's value (--file=/x). A relative name without a way
+// out of the folder doesn't need looking at, and one built at run time can't be, so both give "".
+func namedPath(word string) string {
+	if strings.ContainsAny(word, "$`") {
+		return ""
+	}
+	if _, v, ok := strings.Cut(word, "="); ok && strings.HasPrefix(word, "-") {
+		word = v
+	}
+	if strings.HasPrefix(word, "/") || strings.HasPrefix(word, "~") || word == ".." || strings.HasPrefix(word, "../") || strings.Contains(word, "/../") {
+		return word
+	}
+	return ""
 }

@@ -1050,3 +1050,103 @@ func (h *runHost) runAgent(call agentCall, label, slot string, idx int, done fun
 	update(func(a *tools.WorkflowAgent) { a.State, a.Error = res.Info.State, out.Err })
 	done(out)
 }
+
+// SavedWorkflow is a script kept under a name.
+type SavedWorkflow struct {
+	Name, Description, Path string
+}
+
+// Saved lists the saved workflows that can be run by name; of two with one name, the one that would run.
+func (m *Manager) Saved() []SavedWorkflow {
+	if m.cfg.SearchDirs == nil {
+		return nil
+	}
+	dirs := m.cfg.SearchDirs()
+	byName := map[string]SavedWorkflow{}
+	for _, dir := range dirs { // later directories win
+		files, _ := filepath.Glob(filepath.Join(dir, "*.js"))
+		for _, f := range files {
+			text, err := readScript(f)
+			if err != nil {
+				continue
+			}
+			parsed, err := parseScript(text)
+			if err != nil {
+				continue
+			}
+			name := strings.TrimSuffix(filepath.Base(f), ".js")
+			byName[name] = SavedWorkflow{Name: name, Description: parsed.meta.Description, Path: f}
+		}
+	}
+	out := make([]SavedWorkflow, 0, len(byName))
+	for _, w := range byName {
+		out = append(out, w)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out
+}
+
+// HasSaved reports whether a saved workflow has this file name.
+func (m *Manager) HasSaved(name string) bool {
+	if !savedName.MatchString(name) || m.cfg.SearchDirs == nil {
+		return false
+	}
+	for _, dir := range m.cfg.SearchDirs() {
+		if _, err := readScript(filepath.Join(dir, name+".js")); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+// Save keeps a run's script under a name: in the user's directory, or with project in the project's (which needs a trusted
+// workspace, as only that is searched). It doesn't replace a saved workflow of that name.
+func (m *Manager) Save(runID, name string, project bool) (string, error) {
+	if !savedName.MatchString(name) {
+		return "", fmt.Errorf("%q can't be a name: use letters, digits, dots, dashes and underscores", name)
+	}
+	m.mu.Lock()
+	r := m.runs[runID]
+	var text string
+	if r != nil {
+		text = r.rec.Script
+	}
+	m.mu.Unlock()
+	if r == nil {
+		return "", fmt.Errorf("this session has no workflow run %s", runID)
+	}
+	if text == "" {
+		return "", fmt.Errorf("the script of run %s wasn't kept", runID)
+	}
+	var dirs []string
+	if m.cfg.SearchDirs != nil {
+		dirs = m.cfg.SearchDirs()
+	}
+	if len(dirs) == 0 {
+		return "", errors.New("there is nowhere to save it")
+	}
+	dir := dirs[0]
+	if project {
+		if len(dirs) < 2 {
+			return "", errors.New("this folder isn't trusted, so a project's workflows aren't read here")
+		}
+		dir = dirs[len(dirs)-1]
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	path := filepath.Join(dir, name+".js")
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if os.IsExist(err) {
+		return "", fmt.Errorf("%s exists; pick another name", path)
+	}
+	if err != nil {
+		return "", err
+	}
+	_, werr := f.WriteString(text)
+	if err := errors.Join(werr, f.Close()); err != nil {
+		_ = os.Remove(path)
+		return "", err
+	}
+	return path, nil
+}

@@ -160,9 +160,11 @@ type Env struct {
 	push     pushThrottle
 	findings findingsState
 
-	mu    sync.Mutex
-	host  Host
-	mover Mover
+	mu        sync.Mutex
+	host      Host
+	mover     Mover
+	envFilter func([]string) []string
+	memoryMB  int
 	// extraEnv is added to the environment of spawned processes (mu).
 	extraEnv []string
 }
@@ -173,6 +175,21 @@ func (e *Env) SetAdditionalDirs(dirs []string) {
 	e.mu.Lock()
 	e.AdditionalDirs = append([]string(nil), dirs...)
 	e.mu.Unlock()
+}
+
+// SetShellLimits sets what the model's commands run under from the next command on: a filter over their environment (nil
+// leaves it as it is) and a cap on their memory in MB (0: none; Linux only).
+func (e *Env) SetShellLimits(filter func([]string) []string, memoryMB int) {
+	e.mu.Lock()
+	e.envFilter, e.memoryMB = filter, memoryMB
+	e.mu.Unlock()
+}
+
+// ShellLimits returns what SetShellLimits set.
+func (e *Env) ShellLimits() (filter func([]string) []string, memoryMB int) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	return e.envFilter, e.memoryMB
 }
 
 // SetExtraEnv replaces the NAME=value entries added to the environment of the processes tools spawn (shell
@@ -335,7 +352,7 @@ func NewRegistry(ts ...Tool) *Registry {
 // defines are exposed to the model.
 func Default() *Registry {
 	return NewRegistry(&Bash{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{},
-		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Workflow{}, &Monitor{}, &NotebookEdit{}, &NotebookRun{}, &PushNotification{}, &ReadNotifications{}, &SendUserFile{}, &ReportFindings{}, &Skill{}, &SettingsGet{}, &SettingsSet{}, &OpenInEditor{}, &RevealPath{}, &KeepAwake{}, &SessionSetModel{}, &SessionSetEffort{}, &SessionSetMode{}, &SessionSetTitle{})
+		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Workflow{}, &Monitor{}, &NotebookEdit{}, &NotebookRun{}, &PushNotification{}, &ReadNotifications{}, &SendUserFile{}, &ReportFindings{}, &Skill{}, &SettingsGet{}, &SettingsSet{}, &OpenInEditor{}, &RevealPath{}, &KeepAwake{}, &SessionSetModel{}, &SessionSetEffort{}, &SessionSetMode{}, &SessionSetTitle{}, &MultiEdit{}, &LS{}, &TaskInput{})
 }
 
 // Register adds or replaces a tool.

@@ -2312,7 +2312,10 @@ type WorktreeOptions struct {
 	// checked out anywhere else.
 	Branch string `protobuf:"bytes,2,opt,name=branch,proto3" json:"branch,omitempty"`
 	// Where the new branch starts; default the current HEAD of the repository.
-	BaseRef       string `protobuf:"bytes,3,opt,name=base_ref,json=baseRef,proto3" json:"base_ref,omitempty"`
+	BaseRef string `protobuf:"bytes,3,opt,name=base_ref,json=baseRef,proto3" json:"base_ref,omitempty"`
+	// Start from the head of this pull or merge request instead: its number or URL, fetched from the repository's remote.
+	// The default name is pr-<number>; can't be combined with base_ref.
+	FromPr        string `protobuf:"bytes,4,opt,name=from_pr,json=fromPr,proto3" json:"from_pr,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2364,6 +2367,13 @@ func (x *WorktreeOptions) GetBranch() string {
 func (x *WorktreeOptions) GetBaseRef() string {
 	if x != nil {
 		return x.BaseRef
+	}
+	return ""
+}
+
+func (x *WorktreeOptions) GetFromPr() string {
+	if x != nil {
+		return x.FromPr
 	}
 	return ""
 }
@@ -11111,11 +11121,12 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x06engine\x18\r \x01(\tR\x06engine\x12\x1e\n" +
 	"\vacp_mode_id\x18\x0e \x01(\tR\tacpModeId\x12\"\n" +
 	"\racp_effort_id\x18\x0f \x01(\tR\vacpEffortIdB\v\n" +
-	"\t_worktree\"X\n" +
+	"\t_worktree\"q\n" +
 	"\x0fWorktreeOptions\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x16\n" +
 	"\x06branch\x18\x02 \x01(\tR\x06branch\x12\x19\n" +
-	"\bbase_ref\x18\x03 \x01(\tR\abaseRef\"0\n" +
+	"\bbase_ref\x18\x03 \x01(\tR\abaseRef\x12\x17\n" +
+	"\afrom_pr\x18\x04 \x01(\tR\x06fromPr\"0\n" +
 	"\x18ListRecentFoldersRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\"U\n" +
 	"\x19ListRecentFoldersResponse\x128\n" +
