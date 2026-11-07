@@ -7,6 +7,10 @@ import "harness/common/v1/scope.proto";
 // KnowledgeService is served by core: text documents kept on the server, which agents search with the KnowledgeSearch
 // tool. Two scopes: SCOPE_ORG documents are written by admins and readable by every user of the server; SCOPE_USER
 // documents belong to their owner alone, and nobody else can see them, admins included.
+//
+// It also reads provider sources of admin connections, live: nothing of them is stored. Their documents have ids of the form
+// conn:<connection id>:<article id>. Sources on the user's device are the client's (harness.agent.v1.LocalTrackerService), which
+// merges both. docs/design/tracker.md.
 service KnowledgeService {
   rpc ListKnowledgeDocuments(ListKnowledgeDocumentsRequest) returns (ListKnowledgeDocumentsResponse);
   rpc GetKnowledgeDocument(GetKnowledgeDocumentRequest) returns (GetKnowledgeDocumentResponse);
@@ -14,8 +18,12 @@ service KnowledgeService {
   rpc CreateKnowledgeDocument(CreateKnowledgeDocumentRequest) returns (CreateKnowledgeDocumentResponse);
   rpc UpdateKnowledgeDocument(UpdateKnowledgeDocumentRequest) returns (UpdateKnowledgeDocumentResponse);
   rpc DeleteKnowledgeDocument(DeleteKnowledgeDocumentRequest) returns (DeleteKnowledgeDocumentResponse);
-  // Passages of the documents the caller may read, best first.
+  // Passages of the documents the caller may read, best first. A provider source that fails is a warning, not an error.
   rpc SearchKnowledge(SearchKnowledgeRequest) returns (SearchKnowledgeResponse);
+  // The internal sources and the global provider sources the caller can read.
+  rpc ListKnowledgeSources(ListKnowledgeSourcesRequest) returns (ListKnowledgeSourcesResponse);
+  // Documents of one source, provider ones read live: top-level ones, or the children of `parent_id`.
+  rpc BrowseKnowledgeSource(BrowseKnowledgeSourceRequest) returns (BrowseKnowledgeSourceResponse);
 }
 
 message KnowledgeDocument {
@@ -31,6 +39,60 @@ message KnowledgeDocument {
   // RFC 3339.
   string created_at = 7;
   string updated_at = 8;
+  // Where it comes from. Internal documents leave `url` empty.
+  KnowledgeSourceRef source = 9;
+  string url = 10;
+  // Has sub-documents, on providers that keep a tree.
+  bool has_children = 11;
+}
+
+enum KnowledgeSourceKind {
+  KNOWLEDGE_SOURCE_KIND_UNSPECIFIED = 0;
+  // Documents kept on the server.
+  KNOWLEDGE_SOURCE_KIND_INTERNAL = 1;
+  // Documents of a tracker, read live through a connection.
+  KNOWLEDGE_SOURCE_KIND_PROVIDER = 2;
+}
+
+// Names a source wherever a document or a passage says where it comes from.
+message KnowledgeSourceRef {
+  // "internal:org", "internal:user", or a connection id.
+  string id = 1;
+  KnowledgeSourceKind kind = 2;
+  // SCOPE_ORG: global. SCOPE_USER: this user's.
+  harness.common.v1.Scope scope = 3;
+  // What people call it.
+  string name = 4;
+  // "youtrack"; empty for internal sources.
+  string provider = 5;
+}
+
+message KnowledgeSource {
+  KnowledgeSourceRef ref = 1;
+  // Internal: how many documents.
+  int32 document_count = 2;
+  // The caller may add documents here.
+  bool writable = 3;
+}
+
+message ListKnowledgeSourcesRequest {}
+
+message ListKnowledgeSourcesResponse {
+  repeated KnowledgeSource sources = 1;
+}
+
+message BrowseKnowledgeSourceRequest {
+  string source_id = 1;
+  // An article id of this source; empty: top level.
+  string parent_id = 2;
+  // Default 100, at most 200.
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message BrowseKnowledgeSourceResponse {
+  repeated KnowledgeDocument documents = 1;
+  bool has_more = 2;
 }
 
 message ListKnowledgeDocumentsRequest {
@@ -96,8 +158,17 @@ message KnowledgeHit {
   // The matching passage, with the surrounding words.
   string snippet = 4;
   double score = 5;
+  KnowledgeSourceRef source = 6;
+  string url = 7;
+}
+
+message KnowledgeWarning {
+  KnowledgeSourceRef source = 1;
+  string message = 2;
 }
 
 message SearchKnowledgeResponse {
   repeated KnowledgeHit hits = 1;
+  // Sources that could not answer. The hits of the others are still here.
+  repeated KnowledgeWarning warnings = 2;
 }

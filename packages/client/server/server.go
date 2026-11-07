@@ -48,6 +48,7 @@ import (
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/terminal"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/tracker"
 	"github.com/xlsft/harness/packages/client/usagelimit"
 	"github.com/xlsft/harness/packages/client/vcs"
 	"github.com/xlsft/harness/packages/client/workspace"
@@ -153,10 +154,13 @@ type Server struct {
 	terms    *terminal.Manager
 	// SSHClient runs the user's ssh for SSH hosts (sshhosts.go); nil: the default, under HARNESS_HOME/ssh. SSHBinaries finds a
 	// harness-client to upload to a host (nil: this very binary, for a host of the same platform).
-	SSHClient   *sshhost.Client
-	SSHBinaries sshhost.Binaries
-	sshOnce     sync.Once
-	ssh         *sshHostService
+	// Trackers is this device's connections, folder links and board worker (trackers.go); nil: made with no server.
+	Trackers     *tracker.Service
+	trackersOnce sync.Once
+	SSHClient    *sshhost.Client
+	SSHBinaries  sshhost.Binaries
+	sshOnce      sync.Once
+	ssh          *sshHostService
 	// Browsers runs the sessions' browsers (browsers.go); nil: created on first use under HARNESS_HOME/browser.
 	Browsers    *browser.Manager
 	previewOnce sync.Once
@@ -276,6 +280,7 @@ func (s *Server) mux() *http.ServeMux {
 	mux.Handle(agentv1connect.NewRealBrowserServiceHandler(&realBrowserService{s: s}))
 	s.sshOnce.Do(func() { s.ssh = &sshHostService{s: s} })
 	mux.Handle(agentv1connect.NewSshHostServiceHandler(s.ssh))
+	mux.Handle(agentv1connect.NewLocalTrackerServiceHandler(&localTrackerService{s: s}))
 	pluginsPath, pluginsHandler := agentv1connect.NewPluginServiceHandler(s)
 	mux.Handle(pluginsPath, pluginsHandler)
 	extensionsPath, extensionsHandler := agentv1connect.NewExtensionsServiceHandler(s)
@@ -298,6 +303,7 @@ func (s *Server) serveHandler(ctx context.Context, ln net.Listener, h http.Handl
 	go s.prResume.Do(s.resumePRWatches)
 	go s.runWorktreeCleanup()
 	s.startScheduler()
+	go s.trackers().Run(ctx, nil)
 	p := new(http.Protocols)
 	p.SetHTTP1(true)
 	p.SetUnencryptedHTTP2(true)

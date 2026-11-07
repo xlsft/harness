@@ -28,7 +28,9 @@ import { UsageService } from "../../src/gen/harness/llm/v1/usage_pb.ts";
 import { VcsService } from "../../src/gen/harness/vcs/v1/vcs_pb.ts";
 import { ArtifactService } from "../../src/gen/harness/library/v1/artifacts_pb.ts";
 import { KnowledgeService } from "../../src/gen/harness/library/v1/knowledge_pb.ts";
-import { TrackerService } from "../../src/gen/harness/library/v1/tracker_pb.ts";
+import { BoardService } from "../../src/gen/harness/library/v1/boards_pb.ts";
+import { ProjectService } from "../../src/gen/harness/library/v1/projects_pb.ts";
+import { TrackerConnectionService } from "../../src/gen/harness/library/v1/tracker_connections_pb.ts";
 import { TranscriptSearchService } from "../../src/gen/harness/library/v1/transcripts_pb.ts";
 import { ObjectsService } from "../../src/gen/harness/objects/v1/objects_pb.ts";
 import { createTempDatabase, type TempDatabase } from "./pg.ts";
@@ -51,7 +53,9 @@ export interface TestServer {
   vcs: Client<typeof VcsService>;
   artifacts: Client<typeof ArtifactService>;
   knowledge: Client<typeof KnowledgeService>;
-  tracker: Client<typeof TrackerService>;
+  boards: Client<typeof BoardService>;
+  trackers: Client<typeof TrackerConnectionService>;
+  projects: Client<typeof ProjectService>;
   transcripts: Client<typeof TranscriptSearchService>;
   objects: Client<typeof ObjectsService>;
   audit: Client<typeof AuditService>;
@@ -76,7 +80,9 @@ export interface TestServer {
     vcs: Client<typeof VcsService>;
     artifacts: Client<typeof ArtifactService>;
     knowledge: Client<typeof KnowledgeService>;
-    tracker: Client<typeof TrackerService>;
+    boards: Client<typeof BoardService>;
+  trackers: Client<typeof TrackerConnectionService>;
+  projects: Client<typeof ProjectService>;
     transcripts: Client<typeof TranscriptSearchService>;
     objects: Client<typeof ObjectsService>;
     audit: Client<typeof AuditService>;
@@ -152,7 +158,9 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       vcs: createClient(VcsService, transport),
       artifacts: createClient(ArtifactService, transport),
       knowledge: createClient(KnowledgeService, transport),
-      tracker: createClient(TrackerService, transport),
+      boards: createClient(BoardService, transport),
+      trackers: createClient(TrackerConnectionService, transport),
+      projects: createClient(ProjectService, transport),
       transcripts: createClient(TranscriptSearchService, transport),
       objects: createClient(ObjectsService, transport),
       audit: createClient(AuditService, transport),

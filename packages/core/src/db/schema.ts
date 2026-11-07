@@ -1022,7 +1022,7 @@ export const objectUpload = pgTable(
 );
 
 // ---------------------------------------------------------------------------
-// Library: artifacts, knowledge base, task tracker (proto/harness/library/v1)
+// Library: artifacts, Knowledge (proto/harness/library/v1)
 // ---------------------------------------------------------------------------
 
 /** Postgres full-text vector; always a generated column here. */
@@ -1064,7 +1064,7 @@ export const artifactVersion = pgTable(
   (t) => [primaryKey({ columns: [t.artifactId, t.number] }), index("artifact_version_sha_idx").on(t.sha256)],
 );
 
-/** A document of the knowledge base: scope "org" is written by admins and read by everyone, scope "user" by its owner alone. */
+/** A document of Knowledge: scope "org" is written by admins and read by everyone, scope "user" by its owner alone. */
 export const knowledgeDocument = pgTable(
   "knowledge_document",
   {
@@ -1105,28 +1105,303 @@ export const knowledgeChunk = pgTable(
   (t) => [primaryKey({ columns: [t.documentId, t.index] }), index("knowledge_chunk_search_idx").using("gin", t.search)],
 );
 
-/** A task of the user's own tracker. Nobody else can see it. */
-export const trackerTask = pgTable(
-  "tracker_task",
+// ---------------------------------------------------------------------------
+// Trackers and boards (proto/harness/library/v1, docs/design/tracker.md)
+// ---------------------------------------------------------------------------
+
+/** An admin connection to an external tracker. Device connections never appear here, only their opaque ids in stages. */
+export const trackerConnection = pgTable("tracker_connection", {
+  id: text("id").primaryKey(),
+  /** "youtrack". */
+  provider: text("provider").notNull(),
+  name: text("name").notNull(),
+  baseUrl: text("base_url").notNull(),
+  /** "token" | "password" | "oauth". */
+  auth: text("auth").notNull(),
+  login: text("login").notNull().default(""),
+  oauthClientId: text("oauth_client_id").notNull().default(""),
+  /** AES-256-GCM of JSON {token, password, clientSecret, accessToken, refreshToken, expiresAt}; "" when none. */
+  secretsEnc: text("secrets_enc").notNull().default(""),
+  enabled: boolean("enabled").notNull().default(true),
+  allowPrivateNetwork: boolean("allow_private_network").notNull().default(false),
+  knowledgeEnabled: boolean("knowledge_enabled").notNull().default(false),
+  knowledgeQuery: text("knowledge_query").notNull().default(""),
+  healthy: boolean("healthy").notNull().default(false),
+  lastError: text("last_error").notNull().default(""),
+  lastCheckedAt: ts("last_checked_at"),
+  createdAt: ts("created_at").notNull(),
+  updatedAt: ts("updated_at").notNull(),
+  updatedBy: text("updated_by").notNull().default(""),
+});
+
+/** What issues belong to. Internal, or mapped onto a provider project. Local values override the provider's; null means not set here. */
+export const project = pgTable(
+  "project",
+  {
+    id: text("id").primaryKey(),
+    /** "personal" | "global". */
+    scope: text("scope").notNull(),
+    /** Set for a personal project. */
+    ownerId: text("owner_id").references(() => user.id, { onDelete: "cascade" }),
+    ticker: text("ticker"),
+    name: text("name"),
+    description: text("description"),
+    logo: text("logo"),
+    color: text("color"),
+    /** "admin" | "device" | "" for an internal project. */
+    connectionScope: text("connection_scope").notNull().default(""),
+    connectionId: text("connection_id").notNull().default(""),
+    externalKey: text("external_key").notNull().default(""),
+    /** What the provider says: {ticker, name, description, logo, color}. */
+    providerValues: jsonb("provider_values").notNull().default({}),
+    /** The number of the next card. */
+    nextNumber: integer("next_number").notNull().default(1),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [index("project_scope_owner_idx").on(t.scope, t.ownerId)],
+);
+
+/** Who a project is shared with, at what level. */
+export const projectShare = pgTable(
+  "project_share",
+  {
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    /** "user" | "group" | "role" | "everyone". */
+    subject: text("subject").notNull(),
+    /** A user id, a group id, a role; "" for everyone. */
+    subjectId: text("subject_id").notNull().default(""),
+    /** "view" | "edit" | "manage". */
+    level: text("level").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.projectId, t.subject, t.subjectId] }), index("project_share_subject_idx").on(t.subject, t.subjectId)],
+);
+
+/** An internal board of a project. Scope "personal" exists for its owner alone, whatever the role of anyone else. */
+export const board = pgTable(
+  "board",
+  {
+    id: text("id").primaryKey(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    /** "shared" | "personal". */
+    scope: text("scope").notNull(),
+    ownerId: text("owner_id").references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [index("board_project_idx").on(t.projectId, t.scope, t.ownerId)],
+);
+
+export const boardStage = pgTable(
+  "board_stage",
+  {
+    id: text("id").primaryKey(),
+    boardId: text("board_id")
+      .notNull()
+      .references(() => board.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    position: integer("position").notNull(),
+  },
+  (t) => [index("board_stage_board_idx").on(t.boardId, t.position)],
+);
+
+/** Pulls issues matching a query into a stage, once per board. At most one per stage and connection. */
+export const boardStageInput = pgTable(
+  "board_stage_input",
+  {
+    id: text("id").primaryKey(),
+    stageId: text("stage_id")
+      .notNull()
+      .references(() => boardStage.id, { onDelete: "cascade" }),
+    /** "admin" | "device". */
+    connectionScope: text("connection_scope").notNull(),
+    connectionId: text("connection_id").notNull(),
+    query: text("query").notNull(),
+    intervalSeconds: integer("interval_seconds").notNull().default(300),
+    lastPolledAt: ts("last_polled_at"),
+    lastOkAt: ts("last_ok_at"),
+    lastError: text("last_error").notNull().default(""),
+    /** Whoever claimed it works on it until then. */
+    leaseUntil: ts("lease_until"),
+  },
+  (t) => [uniqueIndex("board_stage_input_conn_idx").on(t.stageId, t.connectionScope, t.connectionId), index("board_stage_input_due_idx").on(t.connectionScope, t.connectionId)],
+);
+
+/** Applied to a card's linked issue when it enters the stage. At most one per stage and connection. */
+export const boardStageOutput = pgTable(
+  "board_stage_output",
+  {
+    id: text("id").primaryKey(),
+    stageId: text("stage_id")
+      .notNull()
+      .references(() => boardStage.id, { onDelete: "cascade" }),
+    connectionScope: text("connection_scope").notNull(),
+    connectionId: text("connection_id").notNull(),
+    /** [{name, value}]. */
+    fields: jsonb("fields").notNull().default([]),
+    comment: text("comment").notNull().default(""),
+  },
+  (t) => [uniqueIndex("board_stage_output_conn_idx").on(t.stageId, t.connectionScope, t.connectionId)],
+);
+
+export const boardCard = pgTable(
+  "board_card",
+  {
+    id: text("id").primaryKey(),
+    boardId: text("board_id")
+      .notNull()
+      .references(() => board.id, { onDelete: "cascade" }),
+    stageId: text("stage_id")
+      .notNull()
+      .references(() => boardStage.id),
+    position: doublePrecision("position").notNull(),
+    projectId: text("project_id")
+      .notNull()
+      .references(() => project.id, { onDelete: "cascade" }),
+    /** With the project's ticker, the key people read: ABC-12. */
+    number: integer("number").notNull(),
+    /** "low" | "normal" | "high" | "urgent". */
+    priority: text("priority").notNull().default("normal"),
+    labels: jsonb("labels").notNull().default([]),
+    assigneeIds: jsonb("assignee_ids").notNull().default([]),
+    dueAt: ts("due_at"),
+    commentCount: integer("comment_count").notNull().default(0),
+    title: text("title").notNull(),
+    /** Someone edited the title here: it stops following the issue. */
+    titleEdited: boolean("title_edited").notNull().default(false),
+    description: text("description").notNull().default(""),
+    version: integer("version").notNull().default(1),
+    /** "" for a card without an issue. */
+    connectionScope: text("connection_scope").notNull().default(""),
+    connectionId: text("connection_id").notNull().default(""),
+    externalId: text("external_id").notNull().default(""),
+    externalUrl: text("external_url").notNull().default(""),
+    /** "linked" | "missing" | "disconnected"; "" for a card without an issue. */
+    externalState: text("external_state").notNull().default(""),
+    externalCheckedAt: ts("external_checked_at"),
+    sessionIds: jsonb("session_ids").notNull().default([]),
+    prUrls: jsonb("pr_urls").notNull().default([]),
+    branch: text("branch").notNull().default(""),
+    /** A user id, or "" when an input made it. */
+    createdBy: text("created_by").notNull().default(""),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [
+    index("board_card_stage_idx").on(t.stageId, t.position),
+    index("board_card_board_idx").on(t.boardId, t.updatedAt),
+    index("board_card_link_idx").on(t.connectionScope, t.connectionId, t.externalCheckedAt),
+    index("board_card_sessions_idx").using("gin", t.sessionIds),
+    uniqueIndex("board_card_number_idx").on(t.projectId, t.number),
+    index("board_card_project_idx").on(t.projectId, t.updatedAt),
+  ],
+);
+
+export const boardCardComment = pgTable(
+  "board_card_comment",
+  {
+    id: text("id").primaryKey(),
+    cardId: text("card_id")
+      .notNull()
+      .references(() => boardCard.id, { onDelete: "cascade" }),
+    authorId: text("author_id").notNull(),
+    text: text("text").notNull(),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [index("board_card_comment_card_idx").on(t.cardId, t.createdAt)],
+);
+
+/** What happened to a card, for people. */
+export const boardCardActivity = pgTable(
+  "board_card_activity",
+  {
+    id: text("id").primaryKey(),
+    cardId: text("card_id")
+      .notNull()
+      .references(() => boardCard.id, { onDelete: "cascade" }),
+    /** A user id, or "" when the sync did it. */
+    actorId: text("actor_id").notNull().default(""),
+    kind: text("kind").notNull(),
+    summary: text("summary").notNull().default(""),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [index("board_card_activity_card_idx").on(t.cardId, t.createdAt)],
+);
+
+/** `card_id` blocks, relates to or duplicates `other_id`. */
+export const boardCardRelation = pgTable(
+  "board_card_relation",
+  {
+    cardId: text("card_id")
+      .notNull()
+      .references(() => boardCard.id, { onDelete: "cascade" }),
+    /** "blocks" | "relates" | "duplicates". */
+    kind: text("kind").notNull(),
+    otherId: text("other_id")
+      .notNull()
+      .references(() => boardCard.id, { onDelete: "cascade" }),
+  },
+  (t) => [primaryKey({ columns: [t.cardId, t.kind, t.otherId] }), index("board_card_relation_other_idx").on(t.otherId)],
+);
+
+/** A user's saved filter over cards. */
+export const savedView = pgTable(
+  "saved_view",
   {
     id: text("id").primaryKey(),
     ownerId: text("owner_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    title: text("title").notNull(),
-    description: text("description").notNull().default(""),
-    /** todo | in_progress | blocked | done | cancelled */
-    status: text("status").notNull().default("todo"),
-    /** low | normal | high */
-    priority: text("priority").notNull().default("normal"),
-    project: text("project").notNull().default(""),
-    sessionIds: jsonb("session_ids").notNull().default([]),
-    blockedBy: jsonb("blocked_by").notNull().default([]),
+    name: text("name").notNull(),
+    filter: jsonb("filter").notNull().default({}),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [index("saved_view_owner_idx").on(t.ownerId)],
+);
+
+/** One application of an output to a card, with what to apply copied at the moment of the move. */
+export const boardCardOutput = pgTable(
+  "board_card_output",
+  {
+    id: text("id").primaryKey(),
+    cardId: text("card_id")
+      .notNull()
+      .references(() => boardCard.id, { onDelete: "cascade" }),
+    stageId: text("stage_id").notNull(),
+    connectionScope: text("connection_scope").notNull(),
+    connectionId: text("connection_id").notNull(),
+    fields: jsonb("fields").notNull().default([]),
+    comment: text("comment").notNull().default(""),
+    /** "pending" | "running" | "done" | "failed" | "superseded". */
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    lastError: text("last_error").notNull().default(""),
+    nextAttemptAt: ts("next_attempt_at").notNull(),
+    leaseUntil: ts("lease_until"),
     createdAt: ts("created_at").notNull(),
     updatedAt: ts("updated_at").notNull(),
-    closedAt: ts("closed_at"),
   },
-  (t) => [index("tracker_task_owner_idx").on(t.ownerId, t.status, t.updatedAt)],
+  (t) => [index("board_card_output_card_idx").on(t.cardId, t.createdAt), index("board_card_output_due_idx").on(t.status, t.connectionScope, t.nextAttemptAt)],
+);
+
+/** The "once" ledger: an issue listed here is never pulled into this board by an input again, even after its card is gone. */
+export const boardInputSeen = pgTable(
+  "board_input_seen",
+  {
+    boardId: text("board_id")
+      .notNull()
+      .references(() => board.id, { onDelete: "cascade" }),
+    connectionScope: text("connection_scope").notNull(),
+    connectionId: text("connection_id").notNull(),
+    externalId: text("external_id").notNull(),
+    firstSeenAt: ts("first_seen_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.boardId, t.connectionScope, t.connectionId, t.externalId] })],
 );
 
 // ---------------------------------------------------------------------------

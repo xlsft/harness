@@ -1,5 +1,5 @@
 /**
- * Connect implementation of harness.library.v1: artifacts, the knowledge base, the task tracker and transcript search,
+ * Connect implementation of harness.library.v1: artifacts, Knowledge and transcript search (boards: boards.ts),
  * proto <-> the services of the same name. Artifact bytes go through the HTTP route (src/http/routes/artifact.ts).
  */
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
@@ -10,8 +10,7 @@ import {
   ArtifactVisibility,
   ListArtifactsRequest_Filter as Filter,
 } from "../gen/harness/library/v1/artifacts_pb.ts";
-import { KnowledgeService } from "../gen/harness/library/v1/knowledge_pb.ts";
-import { TrackerPriority, TrackerService, TrackerStatus } from "../gen/harness/library/v1/tracker_pb.ts";
+import { KnowledgeService, KnowledgeSourceKind } from "../gen/harness/library/v1/knowledge_pb.ts";
 import { TranscriptSearchService } from "../gen/harness/library/v1/transcripts_pb.ts";
 import { ApiError } from "../lib/errors.ts";
 import { deleteArtifact, getArtifact, listArtifacts, publishArtifact, updateArtifact, type ArtifactKindName, type ArtifactView } from "../services/artifacts.ts";
@@ -20,22 +19,15 @@ import {
   deleteKnowledgeDocument,
   getKnowledgeDocument,
   listKnowledgeDocuments,
+  browseKnowledgeSource,
+  listKnowledgeSources,
   searchKnowledge,
   updateKnowledgeDocument,
   type KnowledgeDocumentView,
   type KnowledgeScope,
+  type SourceRef,
 } from "../services/knowledge.ts";
 import { searchTranscripts } from "../services/sessions.ts";
-import {
-  createTrackerTask,
-  deleteTrackerTask,
-  getTrackerTask,
-  listTrackerTasks,
-  updateTrackerTask,
-  type TrackerPriorityName,
-  type TrackerRow,
-  type TrackerStatusName,
-} from "../services/tracker.ts";
 import { requirePrincipal } from "./context.ts";
 import { guard } from "./errors.ts";
 
@@ -72,11 +64,15 @@ function scopeFromProto(s: Scope): KnowledgeScope | undefined {
   if (s === Scope.UNSPECIFIED) return undefined;
   if (s === Scope.USER) return "user";
   if (s === Scope.ORG) return "org";
-  throw new ApiError("invalid_request", "The knowledge base has only the user and org scopes");
+  throw new ApiError("invalid_request", "Knowledge has only the user and org scopes");
 }
 
 function scopeToProto(s: string): Scope {
   return s === "org" ? Scope.ORG : Scope.USER;
+}
+
+function sourceToProto(s: SourceRef) {
+  return { id: s.id, kind: s.kind === "provider" ? KnowledgeSourceKind.PROVIDER : KnowledgeSourceKind.INTERNAL, scope: scopeToProto(s.scope), name: s.name, provider: s.provider };
 }
 
 function documentToProto(d: KnowledgeDocumentView) {
@@ -89,43 +85,9 @@ function documentToProto(d: KnowledgeDocumentView) {
     editable: d.editable,
     createdAt: d.row.createdAt.toISOString(),
     updatedAt: d.row.updatedAt.toISOString(),
-  };
-}
-
-const STATUS_NAME: Partial<Record<TrackerStatus, TrackerStatusName>> = {
-  [TrackerStatus.TODO]: "todo",
-  [TrackerStatus.IN_PROGRESS]: "in_progress",
-  [TrackerStatus.BLOCKED]: "blocked",
-  [TrackerStatus.DONE]: "done",
-  [TrackerStatus.CANCELLED]: "cancelled",
-};
-const STATUS_PROTO: Record<TrackerStatusName, TrackerStatus> = {
-  todo: TrackerStatus.TODO,
-  in_progress: TrackerStatus.IN_PROGRESS,
-  blocked: TrackerStatus.BLOCKED,
-  done: TrackerStatus.DONE,
-  cancelled: TrackerStatus.CANCELLED,
-};
-const PRIORITY_NAME: Partial<Record<TrackerPriority, TrackerPriorityName>> = {
-  [TrackerPriority.LOW]: "low",
-  [TrackerPriority.NORMAL]: "normal",
-  [TrackerPriority.HIGH]: "high",
-};
-const PRIORITY_PROTO: Record<TrackerPriorityName, TrackerPriority> = { low: TrackerPriority.LOW, normal: TrackerPriority.NORMAL, high: TrackerPriority.HIGH };
-
-function taskToProto(t: TrackerRow) {
-  return {
-    id: t.id,
-    title: t.title,
-    description: t.description,
-    status: STATUS_PROTO[t.status as TrackerStatusName] ?? TrackerStatus.UNSPECIFIED,
-    priority: PRIORITY_PROTO[t.priority as TrackerPriorityName] ?? TrackerPriority.UNSPECIFIED,
-    project: t.project,
-    sessionIds: (t.sessionIds ?? []) as string[],
-    blockedBy: (t.blockedBy ?? []) as string[],
-    createdAt: t.createdAt.toISOString(),
-    updatedAt: t.updatedAt.toISOString(),
-    closedAt: t.closedAt ? t.closedAt.toISOString() : "",
+    source: sourceToProto(d.source),
+    url: d.url,
+    hasChildren: d.hasChildren,
   };
 }
 
@@ -187,60 +149,20 @@ export function registerLibraryServices(router: ConnectRouter): void {
     }),
     searchKnowledge: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      const hits = await searchKnowledge(p, { query: req.query, limit: req.limit, scope: scopeFromProto(req.scope) });
-      return { hits: hits.map((h) => ({ documentId: h.document_id, title: h.title, scope: scopeToProto(h.scope), snippet: h.snippet, score: h.score })) };
+      const r = await searchKnowledge(p, { query: req.query, limit: req.limit, scope: scopeFromProto(req.scope) });
+      return {
+        hits: r.hits.map((h) => ({ documentId: h.document_id, title: h.title, scope: scopeToProto(h.scope), snippet: h.snippet, score: h.score, source: sourceToProto(h.source), url: h.url })),
+        warnings: r.warnings.map((w) => ({ source: sourceToProto(w.source), message: w.message })),
+      };
     }),
-  });
-
-  const statusOf = (s: TrackerStatus): TrackerStatusName | undefined => {
-    if (s === TrackerStatus.UNSPECIFIED) return undefined;
-    const name = STATUS_NAME[s];
-    if (!name) throw new ApiError("invalid_request", "Unknown status");
-    return name;
-  };
-  const priorityOf = (s: TrackerPriority): TrackerPriorityName | undefined => {
-    if (s === TrackerPriority.UNSPECIFIED) return undefined;
-    const name = PRIORITY_NAME[s];
-    if (!name) throw new ApiError("invalid_request", "Unknown priority");
-    return name;
-  };
-
-  router.service(TrackerService, {
-    listTrackerTasks: guard(async (req, ctx: HandlerContext) => {
+    listKnowledgeSources: guard(async (_req, ctx: HandlerContext) => {
+      const sources = await listKnowledgeSources(await requirePrincipal(ctx));
+      return { sources: sources.map((s) => ({ ref: sourceToProto(s.ref), documentCount: s.documentCount, writable: s.writable })) };
+    }),
+    browseKnowledgeSource: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      const statuses = req.statuses.map(statusOf).filter((s): s is TrackerStatusName => !!s);
-      return { tasks: (await listTrackerTasks(p, { statuses, project: req.project, query: req.query, limit: req.limit })).map(taskToProto) };
-    }),
-    getTrackerTask: guard(async (req, ctx: HandlerContext) => ({ task: taskToProto(await getTrackerTask(await requirePrincipal(ctx), req.id)) })),
-    createTrackerTask: guard(async (req, ctx: HandlerContext) => {
-      const p = await requirePrincipal(ctx);
-      const task = await createTrackerTask(p, {
-        title: req.title,
-        description: req.description,
-        status: statusOf(req.status),
-        priority: priorityOf(req.priority),
-        project: req.project,
-        session_id: req.sessionId,
-        blocked_by: req.blockedBy,
-      });
-      return { task: taskToProto(task) };
-    }),
-    updateTrackerTask: guard(async (req, ctx: HandlerContext) => {
-      const p = await requirePrincipal(ctx);
-      const task = await updateTrackerTask(p, req.id, {
-        title: req.title,
-        description: req.description,
-        status: req.status === undefined ? undefined : statusOf(req.status),
-        priority: req.priority === undefined ? undefined : priorityOf(req.priority),
-        project: req.project,
-        session_id: req.sessionId,
-        blocked_by: req.setBlockedBy ? req.blockedBy : undefined,
-      });
-      return { task: taskToProto(task) };
-    }),
-    deleteTrackerTask: guard(async (req, ctx: HandlerContext) => {
-      await deleteTrackerTask(await requirePrincipal(ctx), req.id);
-      return {};
+      const r = await browseKnowledgeSource(p, { sourceId: req.sourceId, parentId: req.parentId, limit: req.limit, offset: req.offset });
+      return { documents: r.documents.map(documentToProto), hasMore: r.hasMore };
     }),
   });
 

@@ -34,7 +34,8 @@ type Client struct {
 	objects     objectsv1connect.ObjectsServiceClient
 	artifacts   libraryv1connect.ArtifactServiceClient
 	knowledge   libraryv1connect.KnowledgeServiceClient
-	tracker     libraryv1connect.TrackerServiceClient
+	boards      libraryv1connect.BoardServiceClient
+	projects    libraryv1connect.ProjectServiceClient
 	transcripts libraryv1connect.TranscriptSearchServiceClient
 	tokens      rpc.Tokens
 }
@@ -50,7 +51,8 @@ func NewClient(baseURL string, httpClient *http.Client, tokens rpc.Tokens) *Clie
 		objects:     objectsv1connect.NewObjectsServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
 		artifacts:   libraryv1connect.NewArtifactServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
 		knowledge:   libraryv1connect.NewKnowledgeServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
-		tracker:     libraryv1connect.NewTrackerServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
+		boards:      libraryv1connect.NewBoardServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
+		projects:    libraryv1connect.NewProjectServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
 		transcripts: libraryv1connect.NewTranscriptSearchServiceClient(httpClient, baseURL, rpc.ClientOptions()...),
 		tokens:      tokens,
 	}

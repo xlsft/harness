@@ -47,6 +47,7 @@ import { ConnectMcpApi } from '~/lib/mcp/connect'
 import { ConnectPluginsApi } from '~/lib/plugins/connect'
 import { ConnectExtensionsApi } from '~/lib/extensions/connect'
 import { ConnectLibraryApi } from '~/lib/library/connect'
+import { ConnectIssuesApi } from '~/lib/issues/connect'
 import { ConnectVcsApi } from '~/lib/vcs/connect'
 import { ConnectBrowserApi } from '~/lib/browser/connect'
 
@@ -115,6 +116,7 @@ export class ConnectTransport implements SessionTransport {
     this.pluginsApi = new ConnectPluginsApi(transport)
     this.extensionsApi = new ConnectExtensionsApi(transport)
     this.libraryApi = new ConnectLibraryApi(transport, baseUrl)
+    this.issuesApi = new ConnectIssuesApi(transport)
     this.vcsApi = new ConnectVcsApi(transport)
     this.browserApi = new ConnectBrowserApi(transport, baseUrl)
     this.sshApi = new ConnectSshApi(transport)
@@ -544,6 +546,12 @@ export class ConnectTransport implements SessionTransport {
   }
 
   private libraryApi!: ConnectLibraryApi
+  private issuesApi!: ConnectIssuesApi
+
+  issues() {
+    return this.issuesApi
+  }
+
   library() {
     return this.libraryApi
   }

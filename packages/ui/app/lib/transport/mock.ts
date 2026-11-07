@@ -66,6 +66,7 @@ import { MockMcpApi } from '~/lib/mcp/mock'
 import { MockPluginsApi } from '~/lib/plugins/mock'
 import { MockExtensionsApi, type MockScenario } from '~/lib/extensions/mock'
 import { MockLibraryApi } from '~/lib/library/mock'
+import { MockIssuesApi } from '~/lib/issues/mock'
 import { MockSchedulesApi } from '~/lib/schedule/mock'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
@@ -1586,6 +1587,12 @@ export class MockTransport implements SessionTransport {
   }
 
   private libraryApi = new MockLibraryApi()
+  private issuesApi = new MockIssuesApi()
+
+  issues() {
+    return this.issuesApi
+  }
+
   library() {
     return this.libraryApi
   }
