@@ -26,7 +26,11 @@ type Manager struct {
 	// OnStop runs for a session when the user stops it from the indicator on the machine (not from a frontend): the
 	// server interrupts its turn.
 	OnStop func(sessionID string)
-	Logger *slog.Logger
+	// OnRecording receives each change of a session's demo recording (recording.go); OnRecorded a recording that ended
+	// and was kept, for the agent to turn into a skill.
+	OnRecording func(sessionID string, st RecordingState)
+	OnRecorded  func(sessionID string, f RecordingFile)
+	Logger      *slog.Logger
 
 	once sync.Once
 	d    Driver
@@ -44,6 +48,8 @@ type Manager struct {
 
 	// input serializes actions across sessions: there is one mouse and one keyboard.
 	input chan struct{}
+	// rec is the demo recording running on this machine (one at a time).
+	rec *recording
 }
 
 // settingsFile is Dir/settings.json. It is read once, when first needed: an edit of the file does nothing to a running
@@ -242,6 +248,7 @@ func (m *Manager) SetEnabled(on bool) error {
 	}
 	m.enabled = on
 	var all []*Controller
+	rec := m.rec
 	if !on {
 		for _, c := range m.sessions {
 			all = append(all, c)
@@ -250,6 +257,9 @@ func (m *Manager) SetEnabled(on bool) error {
 	m.mu.Unlock()
 	for _, c := range all {
 		c.Stop()
+	}
+	if !on && rec != nil {
+		m.StopSessionRecording(rec.file.SessionID)
 	}
 	return nil
 }
@@ -286,6 +296,7 @@ func (m *Manager) CloseSession(id string) {
 	if c != nil {
 		c.Stop()
 	}
+	m.StopSessionRecording(id)
 }
 
 // StopAll stops every session (the client is shutting down).
@@ -295,9 +306,13 @@ func (m *Manager) StopAll() {
 	for _, c := range m.sessions {
 		all = append(all, c)
 	}
+	rec := m.rec
 	m.mu.Unlock()
 	for _, c := range all {
 		c.Stop()
+	}
+	if rec != nil {
+		m.StopSessionRecording(rec.file.SessionID)
 	}
 }
 
