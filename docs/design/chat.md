@@ -80,6 +80,18 @@ Every request must carry a valid `X-Slack-Signature` (`v0`, HMAC-SHA256 of `v0:<
 secret) and an `X-Slack-Request-Timestamp` within five minutes. A signature seen before is refused as a replay. Slack's
 own retries of an event carry a new signature and the same `event_id`; they are answered 200 and not processed again.
 
+### What the model cannot do
+
+The remote start switch is not a `SettingsSet` key, and `UpdateDeviceSettings` refuses to change it from a relay
+origin: only a frontend on the machine itself turns it on.
+
+### Status
+
+Tested against a fake Slack Web API and fake relay hosts only (`packages/core/test/chat.test.ts`,
+`packages/client/relay/remotestart_test.go`). Not built yet: a Teams provider, answering `AskUserQuestion` and plans
+from the thread (the thread points to the app instead), slash commands, a server-rendered link page (linking is by
+code from Settings > Remote), and a multi-replica bus for the watchers (one core replica follows all threads).
+
 ### Policy and audit
 
 `disableChatApps` in the managed policy (ManagedPolicy 280) turns the integration off for everyone: inbound requests
