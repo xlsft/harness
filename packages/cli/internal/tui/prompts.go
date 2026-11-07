@@ -78,7 +78,7 @@ type permPrompt struct {
 }
 
 func isEditTool(name string) bool {
-	return name == "Edit" || name == "Write" || name == "MultiEdit" || name == "NotebookEdit"
+	return name == "Edit" || name == "Write" || name == "MultiEdit" || name == "NotebookEdit" || name == "DocumentEdit"
 }
 
 func (m *Model) addPermission(r *agentv1.PermissionRequest) {

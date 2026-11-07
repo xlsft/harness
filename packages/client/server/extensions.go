@@ -67,6 +67,8 @@ func skillGroupOf(sk skills.Skill, pluginTitle func(id string) string) (key, tit
 		return "organization", "Organization"
 	case skills.SourcePlugin:
 		return "plugin:" + sk.Plugin, pluginTitle(sk.Plugin)
+	case skills.SourceBuiltin:
+		return "builtin", "Built in"
 	}
 	return sk.Source, sk.Source
 }

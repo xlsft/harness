@@ -1,0 +1,2 @@
+The reserve is 4217, on the Internal sheet, which is hidden.
+ANSWER: 4217

@@ -1,0 +1,10 @@
+id: doc-xlsx-hidden-question
+title: Find a figure on a hidden sheet (read-only)
+language: documents
+tags: [documents, xlsx, read-only]
+timeout: 6m
+max_turns: 30
+prompt: |
+  Question about accounts.xlsx (do NOT modify any files): what is the reserve figure in this
+  workbook? Say which sheet it is on, and whether that sheet is visible to someone opening the file.
+  End your reply with a final line of exactly the form `ANSWER: <number>`.

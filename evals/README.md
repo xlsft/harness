@@ -9,7 +9,7 @@ Like every package in this repository, `evals/` is standalone: it has its own `g
 ## Requirements
 
 - Go (see `go.mod`), `git` and `bash`.
-- Task toolchains: Go, Node.js 24 or newer (TypeScript tasks run natively through type stripping, with no `npm install`), and Python 3.10 or newer. Checks never use the network.
+- Task toolchains: Go, Node.js 24 or newer (TypeScript tasks run natively through type stripping, with no `npm install`), and Python 3.10 or newer, whose standard library also grades the `doc-*` tasks. Their binary files come from `TestWriteEvalFixtures` in `packages/client/documents`. Checks never use the network.
 - A `harness-client` binary that is signed in to a harness server (`harness-client login <url>`). Build it from `packages/client` with `go build ./cmd/harness-client`.
 
 ## Running

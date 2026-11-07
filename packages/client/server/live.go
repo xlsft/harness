@@ -600,7 +600,7 @@ func toolSummary(name string, input []byte, cwd string) string {
 		return "SendMessage " + jsonField(input, "to")
 	case "Skill":
 		return "Skill " + jsonField(input, "skill")
-	case "NotebookEdit":
+	case "NotebookEdit", "DocumentRead", "DocumentEdit":
 		return name + " " + rel(tools.FilePath(input))
 	case "LSP":
 		what := "LSP " + jsonField(input, "operation") + " "

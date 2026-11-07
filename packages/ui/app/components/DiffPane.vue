@@ -295,12 +295,16 @@ watch(showTarget, async (t) => {
   list.value?.scrollToIndex(Math.max(at, 0))
 }, { immediate: true })
 
+// Office files and PDFs reach this pane as text the client projected from them, one addressed line per paragraph, cell or shape.
+const isDocumentPath = (p: string) => /\.(docx|docm|dotx|dotm|xlsx|xlsm|xltx|xltm|pptx|pptm|potx|potm|ppsx|ppsm|pdf)$/i.test(p)
+
 // Why a file has no hunks to show.
 function noHunks(g: DiffGroup) {
-  if (g.binary) return 'Binary file'
+  if (g.binary) return isDocumentPath(g.path) ? 'Document that cannot be compared by content' : 'Binary file'
   if (g.tooLarge) return 'Too large to show'
   if (live.value?.large && !loadedHunks.value[g.path]) return 'Loading…'
   if (hunksOf(g).length) return ''
+  if (isDocumentPath(g.path)) return 'The file changed, its readable content did not'
   return g.kind === 'R' ? 'Renamed, no line changes' : 'No line changes'
 }
 

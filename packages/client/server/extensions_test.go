@@ -62,7 +62,7 @@ func TestExtensionSkillsCreateListRemove(t *testing.T) {
 	for _, g := range list.Msg.GetGroups() {
 		keys = append(keys, g.GetKey())
 	}
-	if !slices.Equal(keys, []string{"project", "personal"}) {
+	if !slices.Equal(keys, []string{"project", "personal", "builtin"}) {
 		t.Fatalf("groups %v", keys)
 	}
 	row := list.Msg.GetGroups()[1].GetSkills()[0]

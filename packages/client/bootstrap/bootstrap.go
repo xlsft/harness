@@ -764,6 +764,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	onEvent = s.watchSkillForks(onEvent)
 	s.FileHistory = session.NewFileHistory(FileHistoryDir(s.ID), s.Transcript, conv.Snapshots)
 	s.ToolEnv.BeforeEdit = s.FileHistory.TrackEdit
+	s.ToolEnv.BeforeEditChecked = s.FileHistory.TrackEditChecked
 
 	todos := tools.RestoreTodos(conv.Todos, conv.TodoLinks)
 

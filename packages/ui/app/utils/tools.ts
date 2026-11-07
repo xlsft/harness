@@ -34,7 +34,8 @@ export function toolIcon(t: ToolItem): IconName {
     case 'PreviewStop':
     case 'PreviewList':
     case 'PreviewLogs': return 'term'
-    case 'Read': return 'file'
+    case 'Read':
+    case 'DocumentRead': return 'file'
     case 'EnterWorktree':
     case 'ExitWorktree':
     case 'ProposeBranch': return 'branch'
@@ -48,6 +49,7 @@ export function toolIcon(t: ToolItem): IconName {
     case 'Edit':
     case 'MultiEdit':
     case 'NotebookEdit':
+    case 'DocumentEdit':
     case 'Write': return 'edit'
     case 'NotebookRun': return 'play'
     case 'Memory': return 'history'
@@ -118,6 +120,8 @@ export function toolTarget(t: ToolItem): string {
   switch (t.name) {
     case 'Bash': return String(i.command ?? t.summary)
     case 'Read':
+    case 'DocumentRead':
+    case 'DocumentEdit':
     case 'Edit':
     case 'MultiEdit':
     case 'Write': return String(i.file_path ?? t.summary)
@@ -234,7 +238,7 @@ function waitTarget(i: Record<string, unknown>): string {
 }
 
 // The tools whose results carry a structuredPatch of one file, and that file.
-const EDIT_TOOLS = ['Edit', 'MultiEdit', 'Write', 'NotebookEdit']
+const EDIT_TOOLS = ['Edit', 'MultiEdit', 'Write', 'NotebookEdit', 'DocumentEdit']
 export const isEditTool = (name: string) => EDIT_TOOLS.includes(name)
 export const editedPath = (t: ToolItem) => String((t.name === 'NotebookEdit' ? t.input.notebook_path : t.input.file_path) ?? '')
 
@@ -385,6 +389,7 @@ export function toolMeta(t: ToolItem, now: number, compact = false): ToolMeta {
     case 'Edit':
     case 'MultiEdit':
     case 'NotebookEdit':
+    case 'DocumentEdit':
     case 'Write': {
       const s = patchStats(patchOf(t))
       return { text: `+${s.add} −${s.del}`, cls: 'diff' }

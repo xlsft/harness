@@ -1,0 +1,10 @@
+id: doc-xlsx-update-input
+title: Change a spreadsheet input and report the result
+language: documents
+tags: [documents, xlsx]
+timeout: 6m
+max_turns: 30
+prompt: |
+  In budget.xlsx the unit price on the Inputs sheet should be 125. Change it, and keep the
+  workbook's formulas as formulas. Then tell me the new total from the Summary sheet.
+  End your reply with a final line of exactly the form `ANSWER: <number>`.

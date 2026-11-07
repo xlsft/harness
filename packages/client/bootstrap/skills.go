@@ -60,7 +60,7 @@ func SkillOptions(home, cwd string, trusted bool, docs skills.DocSource, disable
 		defer cancel()
 		gitRoot = workspace.GitRoot(ctx, cwd)
 	}
-	return skills.Options{HarnessHome: home, Cwd: cwd, GitRoot: gitRoot, Trusted: trusted, Docs: docs, Disabled: disabled, Plugins: pluginSkillSources(cwd, trusted)}
+	return skills.Options{Builtin: true, HarnessHome: home, Cwd: cwd, GitRoot: gitRoot, Trusted: trusted, Docs: docs, Disabled: disabled, Plugins: pluginSkillSources(cwd, trusted)}
 }
 
 // DisabledSkills reads the user's switches from settings.
