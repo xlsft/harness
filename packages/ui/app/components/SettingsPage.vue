@@ -25,6 +25,7 @@ const SECTIONS = [
   { key: 'memory', label: tt('Memory'), icon: 'doc', group: 'app' },
   { key: 'codehosts', label: tt('Code hosts'), icon: 'pull-request', group: 'app' },
   { key: 'trackers', label: tt('Trackers'), icon: 'tasks', group: 'app' },
+  { key: 'hosts', label: tt('Always-on hosts'), icon: 'box', group: 'app' },
   { key: 'import', label: tt('Import'), icon: 'download', group: 'app' },
   { key: 'models', label: tt('Models'), icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: tt('Classifiers'), icon: 'filter', group: 'ai' },
@@ -58,7 +59,7 @@ onMounted(async () => {
     // Then it does not show here; the client enforces it all the same.
   }
 })
-const SERVER_ONLY: Section[] = ['account', 'usage', 'models', 'users', 'ldap', 'sso', 'provisioning', 'audit', 'policy']
+const SERVER_ONLY: Section[] = ['account', 'usage', 'models', 'hosts', 'users', 'ldap', 'sso', 'provisioning', 'audit', 'policy']
 // What each section holds, so the filter finds "theme" under Appearance and "LDAP" under Users.
 const KEYWORDS: Record<Section, string> = {
   usage: 'tokens cost spend money statistics chart',
@@ -67,6 +68,7 @@ const KEYWORDS: Record<Section, string> = {
   sandbox: 'sandbox seatbelt restrict commands bash write paths network hosts proxy allowlist localhost',
   codehosts: 'github gitlab vcs code host pull request merge request pr connect app oauth gh glab webhook',
   trackers: 'youtrack jira linear issues issue tracker provider connection token oauth board knowledge',
+  hosts: 'always-on host daemon server container cloud remote capacity load workers team isolation',
   hooks: 'hooks pretooluse posttooluse stop sessionstart scripts automation disable trust',
   memory: 'memory auto notes remember forget index project MEMORY.md',
   import: 'import bring claude code migrate memory skills agents commands output styles mcp sessions history',
@@ -169,6 +171,7 @@ const notifications = computed({
       <SettingsHooks v-else-if="section === 'hooks'" />
 
       <SettingsCodeHosts v-else-if="section === 'codehosts'" />
+      <SettingsHosts v-else-if="section === 'hosts'" />
 
       <SettingsTrackers v-else-if="section === 'trackers'" />
 

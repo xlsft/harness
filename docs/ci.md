@@ -79,6 +79,8 @@ By default the agent reads the working tree and nothing else: no shell, no edits
 
 Separately from CI, the server watches comments through its webhooks when a [code host connection](#connecting-a-code-host) exists. If a comment on a pull request linked to a session calls `@harness` (`HARNESS_VCS_MENTION` replaces the word; a GitHub App also answers to `@<app-slug>`) and its author has write access, the session gets it as an auto-fix job, whatever its auto-fix switches say. On GitLab this needs an access token on the connection to check the author.
 
+With nobody's machine up, the job goes to an always-on host: a session whose machine has been away for two minutes, or a mention on a pull request no session is on, from someone the server knows by their code host login. See [design/hosts.md](design/hosts.md).
+
 ## Connecting a code host
 
 Settings > Code hosts shows what can reach GitHub and GitLab:

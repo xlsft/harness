@@ -87,6 +87,7 @@ export function policyView(p: ManagedPolicyPb | undefined): ManagedPolicy {
     restrictProviders: p?.restrictProviders ?? false,
     allowedProviders: p?.allowedProviders ?? [],
     personalProvidersDisabled: p?.personalProvidersDisabled ?? false,
+    personalHostsDisabled: p?.personalHostsDisabled ?? false,
     restrictMcpServers: p?.restrictMcpServers ?? false,
     allowedMcpServers: p?.allowedMcpServers ?? [],
     restrictPluginSources: p?.restrictPluginSources ?? false,

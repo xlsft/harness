@@ -21,6 +21,7 @@ import (
 	"github.com/xlsft/harness/packages/client/auth"
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/daemon"
 	"github.com/xlsft/harness/packages/client/decision"
 	"github.com/xlsft/harness/packages/client/extensions"
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
@@ -52,6 +53,7 @@ Usage:
                                         bearer token, CORS allowlist); combinable with --socket
   harness-client -p "<prompt>" [flags]  Run one headless turn
   harness-client ci <review|mention>    The PR review bot and the @mention trigger, for CI runners (docs/ci.md)
+  harness-client daemon [help|...]      An always-on host: takes sessions, schedules and auto-fix jobs (docs/design/hosts.md)
   harness-client update [--check]       Replace this binary with the newest release (verified)
   harness-client plugin [help|...]      Install, approve and manage plugins and marketplaces
   harness-client version
@@ -100,6 +102,8 @@ func run(args []string) int {
 			return runPermissions(ctx, args[1:])
 		case "insights":
 			return runInsights(args[1:])
+		case "daemon":
+			return runDaemon(ctx, args[1:])
 		case "version", "--version":
 			fmt.Println(config.UserAgent())
 			return 0
@@ -266,47 +270,87 @@ func cmdServe(ctx context.Context, args []string) int {
 	srv.WebURL = strings.TrimRight(strings.TrimSpace(os.Getenv("HARNESS_WEB_URL")), "/")
 	// Why sessions are not mirrored (the session relay switch shows it); cleared when a relay host attaches.
 	srv.RelayOffReason = relay.DisabledReason(*remote, "", false)
-	if tokens, url, user, err := bootstrap.Tokens(*serverURL); err == nil {
-		// Modes the server's policy disables: not offered, refused, and live sessions in one are switched.
-		srv.SetModePolicy(bootstrap.WatchModePolicy(ctx, url, rpc.HTTPClient(url), tokens, user, log))
-		srv.ServerVersion = func(ctx context.Context) string { return server.ReadServerVersion(ctx, rpc.HTTPClient(url), url) }
-		// Settings screens (providers, classifier) reach the server through this client.
-		srv.Core = &server.CoreProxy{URL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens}
-		srv.Trackers = tracker.New(config.Home(), syncclient.NewClient(url, rpc.HTTPClient(url), tokens))
-		srv.MCPClient = mcp.NewClient(url, rpc.HTTPClient(url), tokens)
-		srv.SkillSearch = extensions.NewSkillSearch(url, rpc.HTTPClient(url), tokens)
-		// Frontends read the object store through this client, with a ticket instead of the agent token (<img>, <video>).
-		srv.Objects = server.NewObjectProxy(url, rpc.HTTPClient(url), tokens)
-		// Dictation and read-aloud with the server's global speech providers (local engines need no server).
-		srv.SpeechCore = speech.NewCore(url, rpc.HTTPClient(url), tokens)
-		if srv.RelayOffReason = relay.DisabledReason(*remote, url, tokens != nil); srv.RelayOffReason == "" {
-			o := relay.Options{ServerURL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens, Logger: log}
-			if os.Getenv("HARNESS_NO_SYNC") != "1" && tokens != nil {
-				o.Objects = syncclient.SharedObjectQueue(syncclient.NewClient(url, rpc.HTTPClient(url), tokens), log)
-			}
-			relay.Attach(ctx, srv, o)
-		}
-		// Per-user session state (pin, unread, archive, rename) and session deletes go to the server.
-		if os.Getenv("HARNESS_NO_SYNC") != "1" && url != "" && tokens != nil {
-			sc := syncclient.NewClient(url, rpc.HTTPClient(url), tokens)
-			srv.Sync, srv.Preferences, srv.ImportTo, srv.SkillDocs = sc, sc, sc, sc
-			srv.AutoMemory, srv.Transcripts = syncclient.AutoMemoryDocs{API: sc}, sc
-			srv.CoreURL = url
-			srv.ScheduleSync = bootstrap.WatchSchedules(ctx, url, rpc.HTTPClient(url), tokens, user, log)
-			// The session list also shows the sessions of the user's other machines; the relay viewer adds their
-			// presence and drives the ones open there (HARNESS_REMOTE_CONTROL=0 turns it off with the host side).
-			if creds, err := auth.DefaultStore(config.CredentialsFile()).Load(); err == nil && creds != nil {
-				srv.DeviceID = creds.DeviceID
-			}
-			if relay.Enabled(true, url, true) {
-				srv.Relay = server.NewRelayViewer(url, rpc.HTTPClient(url), tokens)
-			}
-		}
-	}
+	wireServer(ctx, srv, *serverURL, *remote, log, nil)
 	if err := serveListeners(ctx, srv, *socket, tcp); err != nil {
 		return fail(err)
 	}
 	return 0
+}
+
+// wired is what wireServer found out about the signed-in device; tokens is nil when there is no sign-in.
+type wired struct {
+	tokens      auth.TokenSource
+	url         string
+	name, email string
+}
+
+// wireServer connects a server to the signed-in harness server: policy, settings screens, relay, sync. relayOptions adjusts
+// the relay host (nil: as it comes).
+func wireServer(ctx context.Context, srv *server.Server, serverURL string, remote bool, log *slog.Logger, relayOptions func(*relay.Options)) wired {
+	var out wired
+	tokens, url, user, err := bootstrap.Tokens(serverURL)
+	if err != nil {
+		return out
+	}
+	out.tokens, out.url = tokens, url
+	if user != nil {
+		out.name, out.email = user.Name, user.Email
+	}
+	deviceID := ""
+	if creds, err := auth.DefaultStore(config.CredentialsFile()).Load(); err == nil && creds != nil && os.Getenv("HARNESS_DEVICE_TOKEN") == "" {
+		deviceID = creds.DeviceID
+	}
+	// With a token from the environment the sign-in is not on disk: ask who this is.
+	if m, ok := tokens.(*auth.Manager); ok && (user == nil || deviceID == "") && relayOptions != nil {
+		if me, err := m.Me(ctx); err == nil {
+			user, deviceID = &me.User, me.Device.ID
+			out.name, out.email = me.User.Name, me.User.Email
+		} else if log != nil {
+			log.Warn("asking the server who this device is failed", "err", err)
+		}
+	}
+	// Modes the server's policy disables: not offered, refused, and live sessions in one are switched.
+	srv.SetModePolicy(bootstrap.WatchModePolicy(ctx, url, rpc.HTTPClient(url), tokens, user, log))
+	srv.ServerVersion = func(ctx context.Context) string { return server.ReadServerVersion(ctx, rpc.HTTPClient(url), url) }
+	// Settings screens (providers, classifier) reach the server through this client.
+	srv.Core = &server.CoreProxy{URL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens}
+	srv.Trackers = tracker.New(config.Home(), syncclient.NewClient(url, rpc.HTTPClient(url), tokens))
+	srv.MCPClient = mcp.NewClient(url, rpc.HTTPClient(url), tokens)
+	srv.SkillSearch = extensions.NewSkillSearch(url, rpc.HTTPClient(url), tokens)
+	// Frontends read the object store through this client, with a ticket instead of the agent token (<img>, <video>).
+	srv.Objects = server.NewObjectProxy(url, rpc.HTTPClient(url), tokens)
+	// Dictation and read-aloud with the server's global speech providers (local engines need no server).
+	srv.SpeechCore = speech.NewCore(url, rpc.HTTPClient(url), tokens)
+	if srv.RelayOffReason = relay.DisabledReason(remote, url, tokens != nil); srv.RelayOffReason == "" {
+		o := relay.Options{ServerURL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens, Logger: log}
+		if os.Getenv("HARNESS_NO_SYNC") != "1" && tokens != nil {
+			o.Objects = syncclient.SharedObjectQueue(syncclient.NewClient(url, rpc.HTTPClient(url), tokens), log)
+		}
+		if relayOptions != nil {
+			relayOptions(&o)
+		}
+		relay.Attach(ctx, srv, o)
+	}
+	// Per-user session state (pin, unread, archive, rename) and session deletes go to the server.
+	if os.Getenv("HARNESS_NO_SYNC") != "1" && url != "" && tokens != nil {
+		sc := syncclient.NewClient(url, rpc.HTTPClient(url), tokens)
+		srv.Sync, srv.Preferences, srv.ImportTo, srv.SkillDocs = sc, sc, sc, sc
+		srv.AutoMemory, srv.Transcripts = syncclient.AutoMemoryDocs{API: sc}, sc
+		srv.CoreURL = url
+		srv.ScheduleSync = bootstrap.WatchSchedules(ctx, url, rpc.HTTPClient(url), tokens, user, log)
+		// The session list also shows the sessions of the user's other machines; the relay viewer adds their
+		// presence and drives the ones open there (HARNESS_REMOTE_CONTROL=0 turns it off with the host side).
+		srv.DeviceID = deviceID
+		if srv.HostMode == nil {
+			srv.ScheduleClaim = func(ctx context.Context, scheduleID, dueAt string) (bool, error) {
+				return daemon.ClaimSchedule(ctx, tokens, rpc.HTTPClient(url), url, scheduleID, dueAt)
+			}
+		}
+		if relay.Enabled(true, url, true) {
+			srv.Relay = server.NewRelayViewer(url, rpc.HTTPClient(url), tokens)
+		}
+	}
+	return out
 }
 
 func cmdPrint(ctx context.Context, args []string) int {

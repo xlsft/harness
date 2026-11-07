@@ -80,6 +80,7 @@ const COOKIE_SERVICES = new Set([
   "harness.llm.v1.ProviderService",
   "harness.llm.v1.ProviderLimitsService",
   "harness.llm.v1.UsageService",
+  "harness.relay.v1.HostsService",
 ]);
 
 /** The signed-in browser, for a same-origin call to one of COOKIE_SERVICES. */
@@ -100,6 +101,10 @@ export async function requirePrincipal(ctx: HandlerContext): Promise<Principal> 
   const m = authz ? /^Bearer\s+(\S+)$/i.exec(authz.trim()) : null;
   const p = m ? await authenticateAccessToken(m[1]!) : authz ? undefined : await principalFromCookie(ctx);
   if (!p) throw new ApiError("authentication", "Missing or invalid access token");
+  // A team host's supervisor starts workers and nothing else; it has no business with models, sessions or the relay.
+  if (p.deviceKind === "host_supervisor" && ctx.service.typeName !== "harness.relay.v1.HostAgentService") {
+    throw new ApiError("permission", "This host's token can only talk to the host service");
+  }
   ctx.values.get(principalHolderKey).principal = p;
   return p;
 }

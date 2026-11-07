@@ -122,7 +122,7 @@ When the client is signed in to a server, `harness-client serve` and the TUI reg
 - Events: the session's live log (the same `SessionEvent`s `Subscribe` serves) goes up in batches every 100 ms or 64 events. The server's seq continues the stored history of a resumed session (`acked_seq` from `RegisterSession`); the history replayed into a resumed session's log is sent only when the server has no events for the session yet. After a failure the host resends from `acked_seq`, never resending `AssistantDelta`s. A lost epoch (`FAILED_PRECONDITION`) re-registers the session.
 - Commands: run through the same `AgentService` methods local frontends call, in order per session (Compact and Rewind do not block later commands), deduplicated by `command_id` (a redelivered command is re-acked with its first outcome). Expired commands and `bypassPermissions` (as a mode or a spawn mode) are acked `OUTCOME_REJECTED`; an answer to a prompt that was already answered is `OUTCOME_ALREADY_RESOLVED`.
 - Liveness: heartbeats at the server's interval (~20 s), reconnect with exponential backoff and jitter. On `SessionSuperseded` (another device took the session over) the host stops mirroring that session.
-- Spawn: only with `Options.Daemon` and under `AllowedRoots` (no `harness daemon` command yet). Tunnels are not implemented.
+- Spawn: only with `Options.Daemon` and under `AllowedRoots`, which `harness-client daemon` sets to its workspace root (docs/design/hosts.md). Tunnels are not implemented.
 
 ## Worktree sessions and new-session pickers
 

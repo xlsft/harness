@@ -1,0 +1,56 @@
+# Always-on hosts of xlsft`s harness (docs/design/hosts.md; deploy/README.md says how to get a token).
+#
+#   docker compose -f deploy/compose.host.yml up -d personal   # a host of one user: the default, and the safe one
+#   docker compose -f deploy/compose.host.yml up -d team       # one host for a team: read the isolation limits first
+#
+# Set in .env next to this file: HARNESS_SERVER_URL, and the token of the host in a file ./host-token (0600) that compose
+# gives the container as a secret. Tokens stay out of the environment and of `docker inspect` that way.
+
+secrets:
+  host_token:
+    file: ./host-token
+
+x-host: &host
+  build:
+    context: ..
+    dockerfile: deploy/Dockerfile.host
+  image: harness-host
+  restart: unless-stopped
+  secrets: [host_token]
+  environment: &env
+    HARNESS_SERVER_URL: ${HARNESS_SERVER_URL:?the address of your server}
+    HARNESS_DEVICE_TOKEN_FILE: /run/secrets/host_token
+  # SIGTERM ends the daemon; give turns a moment to read as interrupted.
+  stop_grace_period: 30s
+  # Keep what the sandbox can't: a limit on what one host can take from this machine.
+  pids_limit: 4096
+
+services:
+  personal:
+    <<: *host
+    # One user: no root, no capabilities.
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    tmpfs: ["/tmp:mode=1777"]
+    volumes: ["personal-data:/data"]
+    command: ["--max-sessions", "${HARNESS_HOST_MAX_SESSIONS:-4}"]
+
+  team:
+    <<: *host
+    # The supervisor is root in order to start each member's worker under a Unix user of its own (--shared), and has only
+    # the capabilities for that. It runs no agents. The workers have none at all: they start as a non-zero uid, with
+    # no-new-privileges, so a setuid program gives them nothing.
+    user: root
+    cap_drop: [ALL]
+    cap_add: [SETUID, SETGID, CHOWN, FOWNER, DAC_OVERRIDE, KILL]
+    security_opt: ["no-new-privileges:true"]
+    # Everyone's temporary files live under their own home (TMPDIR); this /tmp is shared, so keep it small.
+    tmpfs: ["/tmp:mode=1777,size=256m"]
+    # /proc with hidepid would hide other users' command lines; Docker can't set that per container. See the limits.
+    volumes: ["team-data:/data"]
+    entrypoint: ["harness-client", "daemon", "--shared", "--root", "/data/hosts"]
+    command: ["--max-sessions", "${HARNESS_HOST_MAX_SESSIONS:-8}"]
+
+volumes:
+  personal-data:
+  team-data:

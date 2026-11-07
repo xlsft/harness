@@ -537,6 +537,11 @@ type Schedule struct {
 	DeviceName string `protobuf:"bytes,17,opt,name=device_name,json=deviceName,proto3" json:"device_name,omitempty"`
 	// It stays on that machine: not synced, other machines don't see it.
 	DeviceLocal bool `protobuf:"varint,18,opt,name=device_local,json=deviceLocal,proto3" json:"device_local,omitempty"`
+	// The always-on host that runs this while its machine is away (docs/design/hosts.md, decision 19). Needs repository_key:
+	// the folder is on the machine, and the host makes a checkout of its own.
+	AwayHostId string `protobuf:"bytes,230,opt,name=away_host_id,json=awayHostId,proto3" json:"away_host_id,omitempty"`
+	// host/owner/name.
+	RepositoryKey string `protobuf:"bytes,231,opt,name=repository_key,json=repositoryKey,proto3" json:"repository_key,omitempty"`
 	// Output only.
 	Origin ScheduleOrigin `protobuf:"varint,30,opt,name=origin,proto3,enum=harness.agent.v1.ScheduleOrigin" json:"origin,omitempty"`
 	// It runs on this machine.
@@ -711,6 +716,20 @@ func (x *Schedule) GetDeviceLocal() bool {
 		return x.DeviceLocal
 	}
 	return false
+}
+
+func (x *Schedule) GetAwayHostId() string {
+	if x != nil {
+		return x.AwayHostId
+	}
+	return ""
+}
+
+func (x *Schedule) GetRepositoryKey() string {
+	if x != nil {
+		return x.RepositoryKey
+	}
+	return ""
 }
 
 func (x *Schedule) GetOrigin() ScheduleOrigin {
@@ -1655,7 +1674,7 @@ const file_harness_agent_v1_schedules_proto_rawDesc = "" +
 	"\x05error\x18\t \x01(\tR\x05error\x12\x1f\n" +
 	"\vdevice_name\x18\n" +
 	" \x01(\tR\n" +
-	"deviceName\"\xe3\x06\n" +
+	"deviceName\"\xae\a\n" +
 	"\bSchedule\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
@@ -1678,7 +1697,10 @@ const file_harness_agent_v1_schedules_proto_rawDesc = "" +
 	"\tdevice_id\x18\x10 \x01(\tR\bdeviceId\x12\x1f\n" +
 	"\vdevice_name\x18\x11 \x01(\tR\n" +
 	"deviceName\x12!\n" +
-	"\fdevice_local\x18\x12 \x01(\bR\vdeviceLocal\x128\n" +
+	"\fdevice_local\x18\x12 \x01(\bR\vdeviceLocal\x12!\n" +
+	"\faway_host_id\x18\xe6\x01 \x01(\tR\n" +
+	"awayHostId\x12&\n" +
+	"\x0erepository_key\x18\xe7\x01 \x01(\tR\rrepositoryKey\x128\n" +
 	"\x06origin\x18\x1e \x01(\x0e2 .harness.agent.v1.ScheduleOriginR\x06origin\x12\x1f\n" +
 	"\vthis_device\x18\x1f \x01(\bR\n" +
 	"thisDevice\x12\x1e\n" +

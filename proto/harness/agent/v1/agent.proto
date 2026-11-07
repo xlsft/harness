@@ -878,7 +878,19 @@ message SessionEvent {
     // Goal mode and the task graph (teamwork.proto); numbered apart like the shell events.
     GoalUpdated goal_updated = 140;
     TaskGraphUpdated task_graph_updated = 141;
+    // Always-on hosts (docs/design/hosts.md): what became of the session's work; numbered apart like the shell events.
+    HostWorkUpdated host_work_updated = 230;
   }
+}
+
+// A host pushed the session's work, opened a pull request, or could not. Stored and replayed like other events.
+message HostWorkUpdated {
+  // hwk_...; empty for a session that was reopened on the host and has no work row any more.
+  string work_id = 1;
+  string branch = 2;
+  string pull_request_url = 3;
+  // Why it did not land, for the session's viewers.
+  string error = 4;
 }
 
 message TurnStarted {

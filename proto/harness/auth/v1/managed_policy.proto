@@ -53,6 +53,8 @@ message ManagedPolicy {
   repeated string blocked_skills = 20;
   // disableExternalSkillSearch: no search of public skill directories, on the server and on clients.
   bool external_skill_search_disabled = 21;
+  // Only always-on hosts registered by an admin may be used: nobody registers or runs a host of their own.
+  bool personal_hosts_disabled = 230;
 }
 
 message GetManagedPolicyRequest {}

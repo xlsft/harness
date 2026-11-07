@@ -66,10 +66,17 @@ async function load() {
   }
 }
 
+// What may run a schedule while its machine is away: an always-on host, with a checkout of its own.
+const hostChoices = ref<{ value: string, label: string }[]>([])
+
 let timer: ReturnType<typeof setInterval> | undefined
 onMounted(async () => {
   await load()
   timer = setInterval(load, 5000)
+  try {
+    const hosts = (await store.transport?.hosts().list()) ?? []
+    hostChoices.value = [{ value: '', label: tt('Wait for it') }, ...hosts.map(h => ({ value: h.id, label: tt('Run on {0}', [h.name]) }))]
+  } catch { /* no hosts to offer */ }
   try {
     folders.value = (await store.transport?.listRecentFolders()) ?? []
   } catch { /* a folder can still be kept as it is */ }
@@ -310,6 +317,25 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
             />
             {{ tt('Each run in a new git worktree') }}
           </span>
+        </div>
+        <div
+          v-if="hostChoices.length > 1"
+          class="flex flex-wrap items-center gap-3 text-muted"
+        >
+          <span class="flex items-center gap-2">
+            {{ tt('While its machine is away') }}
+            <HSelect
+              v-model="draft.awayHostId"
+              :options="hostChoices"
+              :aria-label="tt('While its machine is away')"
+            />
+          </span>
+          <input
+            v-if="draft.awayHostId"
+            v-model="draft.repositoryKey"
+            placeholder="host/owner/repository (default: the folder's remote)"
+            class="h-8 min-w-[280px] flex-1 border border-line bg-transparent px-2 text-strong outline-none focus:border-accent"
+          >
         </div>
         <div class="flex gap-2">
           <HBtn

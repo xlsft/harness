@@ -592,6 +592,8 @@ export interface SessionState {
   // The session's goal (GoalUpdated) and its task graph (TaskGraphUpdated).
   goal: GoalVM | null
   taskGraph: TaskNodeVM[]
+  // What an always-on host did with the session's work (HostWorkUpdated).
+  hostWork: { branch: string, pullRequestUrl: string, error: string } | null
   // The session's runs of the Workflow tool (WorkflowUpdated), oldest first.
   workflows: Record<string, WorkflowVM>
   workflowOrder: string[]

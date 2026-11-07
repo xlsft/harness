@@ -124,6 +124,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     workflowOrder: [],
     todos: [],
     goal: null,
+    hostWork: null,
     taskGraph: [],
     proposals: {},
     queue: [],
@@ -832,6 +833,12 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
 
     case 'goalUpdated': {
       s.goal = e.value.goal ? goalVM(e.value.goal) : null
+      break
+    }
+
+    case 'hostWorkUpdated': {
+      const w = e.value
+      s.hostWork = { branch: w.branch, pullRequestUrl: w.pullRequestUrl, error: w.error }
       break
     }
 
