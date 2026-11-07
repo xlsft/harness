@@ -1,6 +1,13 @@
-// In-memory RemoteApi for the mock transport. Like the server, it keeps the app's secrets write-only.
+// In-memory RemoteApi for the mock transport. Like the server, it keeps the apps' and bots' secrets write-only.
 
-import type { ChatAppInput, ChatAppView, ChatIdentityView, FolderView, MachineView, RemoteApi, RemoteStartInput } from './types'
+import type { ChatAppInput, ChatAppView, ChatBotInput, ChatBotView, ChatIdentityView, ChatKind, FolderView, MachineView, RemoteApi, RemoteStartInput } from './types'
+
+const TELEGRAM_TOKEN = /^\d{3,20}:[\w-]{20,100}$/
+
+function emptyApp(provider: ChatKind): ChatAppView {
+  const url = provider === 'telegram' ? 'http://localhost:3000/api/chat/telegram/webhook/org' : 'http://localhost:3000/api/chat/slack/events'
+  return { provider, configured: false, enabled: false, teamId: '', teamName: '', botUserId: '', requestUrl: url, matchByEmail: provider === 'slack', lastEventAt: '', lastError: '', disabledByPolicy: false, delivery: 'auto', activeDelivery: 'auto' }
+}
 
 export class MockRemoteApi implements RemoteApi {
   started: RemoteStartInput[] = []
@@ -14,8 +21,9 @@ export class MockRemoteApi implements RemoteApi {
     { path: '/Users/demo/src/site', name: 'site', branch: 'dev' }
   ]
 
-  private app: ChatAppView = { configured: false, enabled: false, teamId: '', teamName: '', botUserId: '', requestUrl: 'http://localhost:3000/api/chat/slack/events', matchByEmail: true, lastEventAt: '', lastError: '', disabledByPolicy: false }
+  private apps: Record<ChatKind, ChatAppView> = { slack: emptyApp('slack'), telegram: emptyApp('telegram') }
   private ids: ChatIdentityView[] = []
+  private bot: ChatBotView | undefined
 
   async machines() {
     return this.hosts
@@ -34,29 +42,61 @@ export class MockRemoteApi implements RemoteApi {
     return `mock-remote-${this.started.length}`
   }
 
-  async chatApp() {
-    return { ...this.app }
+  async chatApp(provider: ChatKind = 'slack') {
+    return { ...this.apps[provider] }
   }
 
   async putChatApp(input: ChatAppInput) {
-    if (!this.app.configured && (!input.botToken || !input.signingSecret)) throw new Error('A bot token and a signing secret are required')
-    this.app = { ...this.app, configured: true, enabled: input.enabled, matchByEmail: input.matchByEmail, teamId: 'T0DEMO', teamName: 'Demo', botUserId: 'UBOT' }
-    return { ...this.app }
+    const provider = input.provider ?? 'slack'
+    const cur = this.apps[provider]
+    if (provider === 'telegram') {
+      if (!cur.configured && !input.botToken) throw new Error('A bot token is required')
+      if (input.botToken && !TELEGRAM_TOKEN.test(input.botToken)) throw new Error('That is not a Telegram bot token')
+      const delivery = input.delivery ?? 'auto'
+      this.apps.telegram = { ...cur, configured: true, enabled: input.enabled, matchByEmail: false, teamId: '700000', teamName: 'demo_harness_bot', botUserId: '700000', delivery, activeDelivery: delivery === 'auto' ? 'polling' : delivery }
+      return { ...this.apps.telegram }
+    }
+    if (!cur.configured && (!input.botToken || !input.signingSecret)) throw new Error('A bot token and a signing secret are required')
+    this.apps.slack = { ...cur, configured: true, enabled: input.enabled, matchByEmail: input.matchByEmail, teamId: 'T0DEMO', teamName: 'Demo', botUserId: 'UBOT' }
+    return { ...this.apps.slack }
   }
 
-  async deleteChatApp() {
-    this.app = { ...this.app, configured: false, enabled: false, teamId: '', teamName: '', botUserId: '' }
+  async deleteChatApp(provider: ChatKind = 'slack') {
+    this.apps[provider] = emptyApp(provider)
   }
 
   async identities() {
-    return { identities: [...this.ids], available: this.app.configured && this.app.enabled }
+    const providers: ChatKind[] = []
+    if (this.apps.slack.configured && this.apps.slack.enabled) providers.push('slack')
+    if ((this.apps.telegram.configured && this.apps.telegram.enabled) || this.bot?.enabled) providers.push('telegram')
+    return { identities: [...this.ids], available: providers.length > 0, providers, telegramBot: this.apps.telegram.configured ? this.apps.telegram.teamName : '' }
   }
 
-  async startLink() {
-    return { code: 'ABCD-2345', expiresAt: new Date(Date.now() + 15 * 60_000).toISOString() }
+  async startLink(provider: ChatKind = 'slack', personalBot = false) {
+    const code = 'ABCD-2345'
+    const bot = personalBot ? this.bot?.botUsername : this.apps.telegram.teamName
+    return { code, expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(), deepLink: provider === 'telegram' && bot ? `https://t.me/${bot}?start=${code}` : '' }
   }
 
   async unlink(id: ChatIdentityView) {
-    this.ids = this.ids.filter(x => x.externalUserId !== id.externalUserId || x.teamId !== id.teamId)
+    this.ids = this.ids.filter(x => x.provider !== id.provider || x.externalUserId !== id.externalUserId || x.teamId !== id.teamId)
+  }
+
+  async myBot() {
+    return { bot: this.bot ? { ...this.bot } : undefined, allowed: true }
+  }
+
+  async putMyBot(input: ChatBotInput) {
+    if (!this.bot && !input.botToken) throw new Error('A bot token is required')
+    if (input.botToken && !TELEGRAM_TOKEN.test(input.botToken)) throw new Error('That is not a Telegram bot token')
+    const active = input.delivery === 'auto' ? 'polling' : input.delivery
+    this.bot = { id: 'cbt_demo', botUserId: '700001', botUsername: 'my_demo_bot', requestUrl: 'http://localhost:3000/api/chat/telegram/webhook/cbt_demo', lastEventAt: '', lastError: '', ...this.bot, enabled: input.enabled, delivery: input.delivery, activeDelivery: active }
+    return { ...this.bot }
+  }
+
+  async deleteMyBot() {
+    if (!this.bot) throw new Error('You have no bot connected')
+    this.ids = this.ids.filter(x => x.provider !== 'telegram' || x.teamId !== this.bot!.botUserId)
+    this.bot = undefined
   }
 }

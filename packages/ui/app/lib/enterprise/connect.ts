@@ -101,7 +101,8 @@ export function policyView(p: ManagedPolicyPb | undefined): ManagedPolicy {
     blockedSkills: p?.blockedSkills ?? [],
     externalSkillSearchDisabled: p?.externalSkillSearchDisabled ?? false,
     chatAppsDisabled: p?.chatAppsDisabled ?? false,
-    remoteStartsDisabled: p?.remoteStartsDisabled ?? false
+    remoteStartsDisabled: p?.remoteStartsDisabled ?? false,
+    personalChatBotsDisabled: p?.personalChatBotsDisabled ?? false
   }
 }
 

@@ -178,6 +178,9 @@ export interface ChatDefaults {
   deviceId: string
   folder: string
   mode: string
+  // An always-on host (its id) instead of a machine, and the repository it checks out (host/owner/name).
+  agentHostId?: string
+  repositoryKey?: string
 }
 
 export interface ModelTuningPreferences {

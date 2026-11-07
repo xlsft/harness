@@ -1,6 +1,7 @@
 <script setup lang="ts">
-// Settings > Chat apps (admins): the Slack app people mention to start sessions on their machines. The bot token and
-// signing secret go to the server, which checks the token, stores both encrypted and never sends them back.
+// Settings > Chat apps (admins): the Slack app people mention to start sessions on their machines, then the Telegram bot
+// (SettingsChatTelegram). The bot token and signing secret go to the server, which checks the token, stores both
+// encrypted and never sends them back.
 import type { ChatAppView } from '~/lib/remote/types'
 
 const store = useSessionStore()
@@ -19,7 +20,7 @@ function message(e: unknown) {
 async function refresh() {
   error.value = ''
   try {
-    app.value = await api().chatApp()
+    app.value = await api().chatApp('slack')
     form.enabled = app.value.configured ? app.value.enabled : true
     form.matchByEmail = app.value.matchByEmail
   } catch (e) {
@@ -34,7 +35,7 @@ async function save() {
   busy.value = true
   try {
     const opt = (s: string) => s.trim() || undefined
-    app.value = await api().putChatApp({ botToken: opt(form.botToken), signingSecret: opt(form.signingSecret), enabled: form.enabled, matchByEmail: form.matchByEmail })
+    app.value = await api().putChatApp({ provider: 'slack', botToken: opt(form.botToken), signingSecret: opt(form.signingSecret), enabled: form.enabled, matchByEmail: form.matchByEmail })
     form.botToken = ''
     form.signingSecret = ''
     saved.value = true
@@ -48,7 +49,7 @@ async function save() {
 async function remove() {
   error.value = ''
   try {
-    await api().deleteChatApp()
+    await api().deleteChatApp('slack')
     await refresh()
   } catch (e) {
     error.value = message(e)
@@ -67,7 +68,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
       {{ tt('Chat apps') }}
     </h2>
     <p class="set-sub">
-      {{ tt('People mention the Slack app or write to it, and a session starts on one of their own machines. The thread gets progress, permission prompts and the answer.') }}
+      {{ tt('People mention the Slack app or write to the Telegram bot, and a session starts on one of their own machines or an always-on host. The thread or chat gets progress, permission prompts and the answer.') }}
     </p>
     <p
       v-if="error"
@@ -173,5 +174,6 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
         </div>
       </form>
     </template>
+    <SettingsChatTelegram />
   </section>
 </template>

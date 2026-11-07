@@ -194,9 +194,11 @@ export interface ManagedPolicy {
   allowedSkills: string[]
   blockedSkills: string[]
   externalSkillSearchDisabled: boolean
-  // Chat apps (Slack) start no sessions; no session starts through the relay (phone, chat apps).
+  // Chat apps (Slack, Telegram) start no sessions; no session starts through the relay (phone, chat apps); nobody connects a
+  // Telegram bot of their own.
   chatAppsDisabled: boolean
   remoteStartsDisabled: boolean
+  personalChatBotsDisabled: boolean
 }
 
 export interface PolicyChoice {
@@ -212,7 +214,7 @@ export interface ManagedPolicyState {
 }
 
 export function emptyManagedPolicy(): ManagedPolicy {
-  return { allowRules: [], askRules: [], denyRules: [], managedRulesOnly: false, sandboxRequired: false, sandboxOutsideRefused: false, restrictProviders: false, allowedProviders: [], personalProvidersDisabled: false, personalHostsDisabled: false, restrictMcpServers: false, allowedMcpServers: [], restrictPluginSources: false, allowedPluginSources: [], blockedPluginSources: [], distributedMarketplaces: [], distributedPlugins: [], blockedPlugins: [], restrictSkills: false, allowedSkills: [], blockedSkills: [], externalSkillSearchDisabled: false, chatAppsDisabled: false, remoteStartsDisabled: false }
+  return { allowRules: [], askRules: [], denyRules: [], managedRulesOnly: false, sandboxRequired: false, sandboxOutsideRefused: false, restrictProviders: false, allowedProviders: [], personalProvidersDisabled: false, personalHostsDisabled: false, restrictMcpServers: false, allowedMcpServers: [], restrictPluginSources: false, allowedPluginSources: [], blockedPluginSources: [], distributedMarketplaces: [], distributedPlugins: [], blockedPlugins: [], restrictSkills: false, allowedSkills: [], blockedSkills: [], externalSkillSearchDisabled: false, chatAppsDisabled: false, remoteStartsDisabled: false, personalChatBotsDisabled: false }
 }
 
 export interface EnterpriseApi {
