@@ -38,6 +38,10 @@ Three channels, each with one job:
 2. A running client announced in `$HARNESS_HOME/agent-endpoint`, with its token from `agent-token`. Both are written only by a client that generated its own token, which means one started by hand. It must answer `Initialize`.
 3. Start one: the `harness.clientPath` setting, then `PATH`, then `~/.harness/bin`. The token goes through the environment, never the command line. The client exits with the editor window (`HARNESS_EXIT_WITH_PARENT`).
 
+This happens when the panel first opens, not when the window does: a window that never uses the agent runs no client and asks nobody to sign in. The bridge and its lock file do start with the window, because they cost almost nothing and a `harness` in its terminal needs them.
+
+**One client per window when it starts its own.** Windows then share nothing that can go away with another window. A client started by hand is shared by whoever finds it.
+
 **The bridge is Connect unary JSON over loopback.** The contract is a proto file, so it follows the same rules as every other contract. On the wire it is `POST` with JSON and a bearer token, which the extension serves with `node:http` and no dependency. The extension's TypeScript types are written by hand, because generating the whole proto tree into the package for six messages is not worth it. Golden files in `packages/client/ide/testdata/bridge` are checked from both languages, so the two sides cannot drift apart silently.
 
 **Bridge security.**
@@ -87,7 +91,10 @@ The likely trouble spots are JCEF on Linux and remote development (Gateway), whe
 
 ## Known limits
 
-- Remote development (Remote-SSH, containers) is untested. The extension declares itself a workspace extension and sets `portMapping`, so the design should work, but nothing has exercised it.
+- Remote development (Remote-SSH, containers) is untested. The extension declares itself a workspace extension and sets `portMapping`, so the design should work, but nothing has exercised it. `OpenInEditor` refuses on a machine with no display before it reaches the bridge.
+- Windows is untested. The code uses platform paths, but `@`-mentions and the panel's path handling were written and checked with `/`.
+- Other editors are untested: Cursor, Windsurf and VSCodium should work, as they share the webview scheme and the extension API from 1.93, but only VS Code 1.100.0 has run the suite.
+- The panel's terminal and browser panes use WebSockets the policy and the origin check allow, but no test drives them in a webview.
 - The panel keeps the UI's own themes, following the editor's light or dark kind. It does not use the editor's colors.
 - Two edits to the same file in one model response are reviewed against what is on disk, so the second may have no diff to show. It then falls back to the panel's prompt.
 - `NotebookEdit` has no native diff and keeps the panel's prompt.
