@@ -23,6 +23,7 @@ import type {
 import type { Effort } from '~/gen/harness/llm/v1/content_pb'
 import type { SubagentTranscriptItem } from '~/gen/harness/agent/v1/subagents_pb'
 import type { ProvidersApi } from '~/lib/providers/types'
+import type { ImagesApi } from '~/lib/images/types'
 import type { UsersApi } from '~/lib/users/types'
 import type { EnterpriseApi } from '~/lib/enterprise/types'
 import type { AccountApi } from '~/lib/account/types'
@@ -164,6 +165,8 @@ export interface UserPreferences {
   goalMaxTurns: number
   // How requests use the models; sessions opened from then on follow it. An update replaces it whole.
   modelTuning: ModelTuningPreferences
+  // The image model of the ImageGenerate tool on every device ('' the server default); Settings > Images.
+  imageModel: string
 }
 
 export interface ModelTuningPreferences {
@@ -217,6 +220,8 @@ export interface DeviceSettings {
   // 'system', 'light' or 'dark'; empty until something chose on this device.
   theme: string
   notifications: boolean
+  // The device-local image model ("local:<provider>/<model>", '' none); never synced. It wins over imageModel here.
+  imageModel: string
 }
 
 // Per-user session state kept on the harness server; unset fields stay as they are.
@@ -387,6 +392,8 @@ export interface SessionTransport {
   // LLM providers and the auto-mode classifier for the settings screens (harness.llm.v1.ProviderService,
   // forwarded to the server by the client).
   providers(): ProvidersApi
+  // Settings > Images: image models, their allowlist and price, and the server default (harness.llm.v1.ImageService).
+  images(): ImagesApi
 
   // User administration and LDAP for admins (harness.auth.v1.AdminService, forwarded to the server by the client).
   users(): UsersApi

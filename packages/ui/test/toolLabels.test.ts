@@ -21,6 +21,16 @@ describe('Bash cwd note', () => {
   })
 })
 
+describe('ImageGenerate', () => {
+  it('shows the file it writes and how many images it made', () => {
+    const t = tool({ name: 'ImageGenerate', input: { file_path: '/p/fox.png', prompt: 'a fox' }, result: { type: 'image_generate', files: [{ filePath: '/p/fox-1.png' }, { filePath: '/p/fox-2.png' }] } })
+    expect(toolTarget(t)).toBe('/p/fox.png')
+    expect(toolIcon(t)).toBe('image')
+    expect(toolMeta(t).text).toBe('2 images')
+    expect(toolMeta(tool({ name: 'ImageGenerate', status: 'error', input: {} })).text).toBe('failed')
+  })
+})
+
 describe('Document tools', () => {
   it('show the file they work on, and an edit its semantic diff', () => {
     const read = tool({ name: 'DocumentRead', input: { file_path: '/p/a.docx', operation: 'structure' } })

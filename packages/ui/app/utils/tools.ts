@@ -36,6 +36,7 @@ export function toolIcon(t: ToolItem): IconName {
     case 'PreviewLogs': return 'term'
     case 'Read':
     case 'DocumentRead': return 'file'
+    case 'ImageGenerate': return 'image'
     case 'EnterWorktree':
     case 'ExitWorktree':
     case 'ProposeBranch': return 'branch'
@@ -122,6 +123,7 @@ export function toolTarget(t: ToolItem): string {
     case 'Read':
     case 'DocumentRead':
     case 'DocumentEdit':
+    case 'ImageGenerate':
     case 'Edit':
     case 'MultiEdit':
     case 'Write': return String(i.file_path ?? t.summary)
@@ -382,6 +384,12 @@ export function toolMeta(t: ToolItem, now: number, compact = false): ToolMeta {
       if (t.status === 'error') return { text: 'no answer', cls: 'text-muted' }
       if (r.state === 'indexing' || r.state === 'timeout') return { text: String(r.state), cls: 'text-muted' }
       return { text: t.resultSummary, cls: '' }
+    case 'ImageGenerate': {
+      if (t.status === 'error') return { text: 'failed', cls: 'text-bad' }
+      const n = Array.isArray(r.files) ? r.files.length : 0
+      if (!n) return { text: t.resultSummary, cls: '' }
+      return { text: n === 1 ? '1 image' : `${n} images`, cls: '' }
+    }
     case 'Read': {
       const f = r.file as { numLines?: number } | undefined
       return { text: f?.numLines ? `${f.numLines} lines` : t.resultSummary, cls: '' }

@@ -28,6 +28,7 @@ import { Effort } from '~/gen/harness/llm/v1/content_pb'
 import { contextUsageFromProto } from '~/lib/session/context'
 import { backgroundReasonPb } from '~/lib/session/reducer'
 import { ConnectProvidersApi } from '~/lib/providers/connect'
+import { ConnectImagesApi } from '~/lib/images/connect'
 import { ConnectUsersApi } from '~/lib/users/connect'
 import { ConnectEnterpriseApi } from '~/lib/enterprise/connect'
 import { ConnectAccountApi } from '~/lib/account/connect'
@@ -64,7 +65,7 @@ function preferencesVM(p: UserPreferences_pb | undefined): UserPreferences {
   return { autoMemoryEnabled: p?.autoMemoryEnabled ?? true, managedPolicy: { active: m?.active ?? false, allowRules: m?.allowRules ?? [], askRules: m?.askRules ?? [], denyRules: m?.denyRules ?? [], managedRulesOnly: m?.managedRulesOnly ?? false, sandboxRequired: m?.sandboxRequired ?? false, sandboxOutsideRefused: m?.sandboxOutsideRefused ?? false, disabledModes: m?.disabledModes ?? [], restrictProviders: m?.restrictProviders ?? false, allowedProviders: m?.allowedProviders ?? [], personalProvidersDisabled: m?.personalProvidersDisabled ?? false, restrictMcpServers: m?.restrictMcpServers ?? false, allowedMcpServers: m?.allowedMcpServers ?? [], localModelsDisabled: m?.localModelsDisabled ?? false, restrictSkills: m?.restrictSkills ?? false, allowedSkills: m?.allowedSkills ?? [], blockedSkills: m?.blockedSkills ?? [], externalSkillSearchDisabled: m?.externalSkillSearchDisabled ?? false }, compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
     sandbox: { enabled: b?.enabled ?? true, allowedWritePaths: b?.allowedWritePaths ?? [], allowedHosts: b?.allowedHosts ?? [], allowLocalhost: b?.allowLocalhost ?? true, autoAllowBash: b?.autoAllowBash ?? false, outsideWithoutPrompt: b?.outsideWithoutPrompt ?? false },
     hooksEnabled: p?.hooksEnabled ?? true, schedulesEnabled: p?.schedulesEnabled ?? true, goalMaxTurns: p?.goalMaxTurns || 20,
-    modelTuning: { speedTier: p?.modelTuning?.speedTier ?? '', cacheTtl: p?.modelTuning?.cacheTtl ?? '', advisorModel: p?.modelTuning?.advisorModel ?? '' } }
+    modelTuning: { speedTier: p?.modelTuning?.speedTier ?? '', cacheTtl: p?.modelTuning?.cacheTtl ?? '', advisorModel: p?.modelTuning?.advisorModel ?? '' }, imageModel: p?.imageModel ?? '' }
 }
 
 const CONFIGURED_HOOK_STATUS: Partial<Record<ConfiguredHook_Status, ConfiguredHookVM['status']>> = {
@@ -88,6 +89,7 @@ export class ConnectTransport implements SessionTransport {
   private transport: Transport
 
   private providersApi: ConnectProvidersApi
+  private imagesApi: ConnectImagesApi
   private usersApi: ConnectUsersApi
   private enterpriseApi: ConnectEnterpriseApi
   private accountApi: ConnectAccountApi
@@ -100,6 +102,7 @@ export class ConnectTransport implements SessionTransport {
     this.transport = transport
     this.client = createClient(AgentService, transport)
     this.providersApi = new ConnectProvidersApi(transport)
+    this.imagesApi = new ConnectImagesApi(transport)
     this.usersApi = new ConnectUsersApi(transport)
     this.enterpriseApi = new ConnectEnterpriseApi(transport)
     this.accountApi = new ConnectAccountApi(transport)
@@ -162,6 +165,10 @@ export class ConnectTransport implements SessionTransport {
 
   providers() {
     return this.providersApi
+  }
+
+  images() {
+    return this.imagesApi
   }
 
   enterprise() {
@@ -360,12 +367,12 @@ export class ConnectTransport implements SessionTransport {
 
   async getDeviceSettings(): Promise<DeviceSettings> {
     const res = await this.client.getDeviceSettings({})
-    return { theme: res.settings?.theme ?? '', notifications: res.settings?.notifications ?? true }
+    return { theme: res.settings?.theme ?? '', notifications: res.settings?.notifications ?? true, imageModel: res.settings?.imageModel ?? '' }
   }
 
   async updateDeviceSettings(patch: Partial<DeviceSettings>): Promise<DeviceSettings> {
-    const res = await this.client.updateDeviceSettings({ theme: patch.theme, notifications: patch.notifications })
-    return { theme: res.settings?.theme ?? '', notifications: res.settings?.notifications ?? true }
+    const res = await this.client.updateDeviceSettings({ theme: patch.theme, notifications: patch.notifications, imageModel: patch.imageModel })
+    return { theme: res.settings?.theme ?? '', notifications: res.settings?.notifications ?? true, imageModel: res.settings?.imageModel ?? '' }
   }
 
   async setSessionRelay(sessionId: string, enabled: boolean) {
@@ -409,7 +416,7 @@ export class ConnectTransport implements SessionTransport {
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
-    const res = await this.client.updateUserPreferences({ autoMemoryEnabled: patch.autoMemoryEnabled, compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled, schedulesEnabled: patch.schedulesEnabled, goalMaxTurns: patch.goalMaxTurns, modelTuning: patch.modelTuning && { speedTier: patch.modelTuning.speedTier, cacheTtl: patch.modelTuning.cacheTtl, advisorModel: patch.modelTuning.advisorModel } })
+    const res = await this.client.updateUserPreferences({ autoMemoryEnabled: patch.autoMemoryEnabled, compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled, schedulesEnabled: patch.schedulesEnabled, goalMaxTurns: patch.goalMaxTurns, modelTuning: patch.modelTuning && { speedTier: patch.modelTuning.speedTier, cacheTtl: patch.modelTuning.cacheTtl, advisorModel: patch.modelTuning.advisorModel }, imageModel: patch.imageModel })
     return preferencesVM(res.preferences)
   }
 
