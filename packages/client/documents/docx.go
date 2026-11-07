@@ -581,6 +581,16 @@ func (d *docxDoc) Structure() string {
 			fmt.Fprintf(&b, "  comment:%s by %s: %s\n", c.id, c.author, oneLine(c.text, 120))
 		}
 	}
+	if pics := d.imageLines(); len(pics) > 0 {
+		b.WriteString("Pictures (replace_image takes the paragraph and position):\n")
+		for i, l := range pics {
+			if i == 50 {
+				fmt.Fprintf(&b, "  … %d more; read range \"images\"\n", len(pics)-50)
+				break
+			}
+			b.WriteString("  " + l + "\n")
+		}
+	}
 	for _, f := range d.staleFields() {
 		b.WriteString("Stale: " + f.Message + "\n")
 	}
@@ -629,6 +639,8 @@ func (d *docxDoc) Read(sel Selector) (string, error) {
 		for _, c := range d.changes {
 			lines = append(lines, d.changeLine(c))
 		}
+	case rng == "images":
+		lines = d.imageLines()
 	case rng == "":
 		for _, s := range d.stories {
 			for _, p := range s.paras {
@@ -657,7 +669,7 @@ func (d *docxDoc) Read(sel Selector) (string, error) {
 				lines = append(lines, p.line())
 			}
 		} else {
-			return "", fmt.Errorf("range %q: use a story (%s), story:pN, story:pN-pM, comments or changes", rng, strings.Join(d.storyNames(), ", "))
+			return "", fmt.Errorf("range %q: use a story (%s), story:pN, story:pN-pM, comments, changes or images", rng, strings.Join(d.storyNames(), ", "))
 		}
 	}
 	return pageLines(d.viewNote(), lines, sel), nil
@@ -889,6 +901,20 @@ func (d *docxDoc) Project() []string {
 	}
 	for _, c := range d.comments {
 		lines = append(lines, fmt.Sprintf("[comment by %s] %s", c.author, oneLine(c.text, 2000)))
+	}
+	for _, s := range d.stories {
+		for _, p := range s.paras {
+			if p.objects == 0 {
+				continue
+			}
+			for _, im := range d.imagesOf(p) {
+				alt := ""
+				if im.docPr != nil {
+					alt = im.docPr.Attr("descr")
+				}
+				lines = append(lines, fmt.Sprintf("[picture in %s] %s, alt %q, %s", s.name, emuText(im.cx, im.cy), oneLine(alt, 200), im.media))
+			}
+		}
 	}
 	return lines
 }

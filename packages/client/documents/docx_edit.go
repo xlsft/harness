@@ -39,13 +39,17 @@ type docxEdit struct {
 	// extra part edits, applied after the stories.
 	cmtSpans []Span
 	touched  map[*docxPara]bool
+	// c holds new parts (pictures) and their relationships; maybeDrop the relationships replaced pictures may free.
+	c         *Changes
+	maybeDrop []docxDrop
+	docPrID   int
 }
 
-var docxEditOps = "replace_text, set_text, insert_after, insert_before, delete_paragraph, add_comment, delete_comment, accept_change, reject_change"
+var docxEditOps = "replace_text, set_text, insert_after, insert_before, delete_paragraph, insert_image, replace_image, add_comment, delete_comment, accept_change, reject_change"
 
 // Apply implements Document. Every target is resolved against the document as it is, then all changes apply together.
 func (d *docxDoc) Apply(edits []Edit) (*EditResult, error) {
-	e := &docxEdit{d: d, res: &EditResult{}, reps: map[*docxPara][]*rep{}, spans: map[*docxStory][]Span{}, removed: map[*docxPara]bool{}, touched: map[*docxPara]bool{}, nextID: d.maxAnnotationID() + 1}
+	e := &docxEdit{d: d, res: &EditResult{}, reps: map[*docxPara][]*rep{}, spans: map[*docxStory][]Span{}, removed: map[*docxPara]bool{}, touched: map[*docxPara]bool{}, c: NewChanges(), nextID: d.maxAnnotationID() + 1}
 	for i, ed := range edits {
 		var err error
 		switch ed.Op {
@@ -57,6 +61,10 @@ func (d *docxDoc) Apply(edits []Edit) (*EditResult, error) {
 			err = e.insert(ed)
 		case "delete_paragraph":
 			err = e.deleteParagraph(ed)
+		case "insert_image":
+			err = e.insertImage(ed)
+		case "replace_image":
+			err = e.replaceImage(ed)
 		case "add_comment":
 			err = e.addComment(ed)
 		case "delete_comment":
@@ -882,7 +890,7 @@ func paragraphContentGoes(p *docxPara, accept bool) bool {
 }
 
 func (e *docxEdit) finish() (*EditResult, error) {
-	c := NewChanges()
+	c := e.c
 	for p := range e.reps {
 		e.spans[p.story] = append(e.spans[p.story], e.rewriteRuns(p)...)
 	}
@@ -891,6 +899,9 @@ func (e *docxEdit) finish() (*EditResult, error) {
 			return nil, refuse("the edits of this batch overlap in %s; send them in separate calls", s.name)
 		}
 		c.Set[s.part] = Splice(s.xml.Data, spans)
+	}
+	if err := e.dropRels(); err != nil {
+		return nil, err
 	}
 	if len(e.comment) > 0 || len(e.cmtSpans) > 0 {
 		if err := e.writeComments(c); err != nil {
