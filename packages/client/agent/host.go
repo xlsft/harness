@@ -167,6 +167,9 @@ const ReminderTerminalDone = "terminal_command_done"
 // skill from it.
 const ReminderDemoRecorded = "demo_recorded"
 
+// demoRecordedFallback is the demo_recorded text for a bundle from before it existed.
+const demoRecordedFallback = "<system-reminder>\nThe user recorded a demo on this Mac for you to turn into a skill: recording {{recording_id}}, {{steps}} steps in {{apps}}. {{notes}}\nRead it with DemoRecording (ask for screenshots of the steps that are unclear), draft the skill, and propose it with DemoSkillSave; the user reviews it there before anything is saved. If the recording is too short or unclear to make a useful skill, say what is missing instead of guessing.\n</system-reminder>"
+
 // Background task completion notice: the tail of the output it carries.
 const (
 	taskDoneTailLines  = 10
@@ -398,6 +401,9 @@ func (a *Agent) injectReminders(promptID string) {
 		}
 		if r.id == ReminderSkillsListing {
 			tmpl, ok = bundle.Reminder(r.id, skillsListingFallback), true
+		}
+		if r.id == ReminderDemoRecorded {
+			tmpl, ok = bundle.Reminder(r.id, demoRecordedFallback), true
 		}
 		if fallback, known := schedulingFallbacks[r.id]; known {
 			tmpl, ok = bundle.Reminder(r.id, fallback), true
