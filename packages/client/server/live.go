@@ -111,6 +111,9 @@ type liveSession struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	bg     sync.WaitGroup
+
+	// setups are the worktree setups waiting for the user (worktreesetup.go).
+	setups worktreeSetups
 }
 
 var (

@@ -22,6 +22,12 @@ const ReminderWorkflowReport = "workflow_report"
 // ReminderLSPDiagnostics carries the errors language servers found after the agent's edits (package lsp).
 const ReminderLSPDiagnostics = "lsp_diagnostics"
 
+// worktreeSetupFallback is the worktree_setup reminder used when the prompt bundle has none.
+const worktreeSetupFallback = `<system-reminder>
+The setup of the worktree {{path}}, from the project's .harness/worktree.json:
+{{summary}}
+</system-reminder>`
+
 // lspDiagnosticsFallback is the lsp_diagnostics reminder used when the prompt bundle has none (a resumed session keeps
 // the bundle it started with).
 const lspDiagnosticsFallback = `<system-reminder>
@@ -69,7 +75,7 @@ func (a *Agent) Remind(id string, vars map[string]string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for i, r := range a.reminders {
-		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell && id != ReminderAgentReport && id != ReminderWorkflowReport && id != "monitor_match" && id != "monitor_stopped" && id != ReminderSessionMessage && id != ReminderSessionReport && id != ReminderScheduledWakeup && id != ReminderTeamMessage && id != ReminderScheduleTrigger && id != ReminderPRActivity && id != ReminderTerminalDone && id != ReminderHookContext && id != "mcp_tools_changed" && id != "mcp_instructions" {
+		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell && id != ReminderAgentReport && id != ReminderWorkflowReport && id != "monitor_match" && id != "monitor_stopped" && id != ReminderSessionMessage && id != ReminderSessionReport && id != ReminderScheduledWakeup && id != ReminderTeamMessage && id != ReminderScheduleTrigger && id != ReminderPRActivity && id != ReminderTerminalDone && id != ReminderHookContext && id != "mcp_tools_changed" && id != "mcp_instructions" && id != tools.ReminderWorktreeSetup {
 			if id == "environment_changed" || id == "session_moved" || id == ReminderSkillsListing {
 				a.reminders[i].vars = vars // the latest state replaces the pending one
 			}
@@ -394,6 +400,9 @@ func (a *Agent) injectReminders(promptID string) {
 		}
 		if r.id == ReminderSkillsListing {
 			tmpl, ok = bundle.Reminder(r.id, skillsListingFallback), true
+		}
+		if r.id == tools.ReminderWorktreeSetup {
+			tmpl, ok = bundle.Reminder(r.id, worktreeSetupFallback), true
 		}
 		if fallback, known := schedulingFallbacks[r.id]; known {
 			tmpl, ok = bundle.Reminder(r.id, fallback), true

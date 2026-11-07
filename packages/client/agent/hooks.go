@@ -42,24 +42,28 @@ func (a *Agent) AddHookContext(ev hooks.Event, texts ...string) {
 }
 
 // SetStartGate makes the next turn wait until gate closes: SessionStart hooks run in the background, so that opening a session
-// does not wait for them, and what they add must still reach the first request.
-func (a *Agent) SetStartGate(gate <-chan struct{}) {
+// does not wait for them, and what they add must still reach the first request. It adds to the gates already set.
+func (a *Agent) SetStartGate(gate <-chan struct{}) { a.AddStartGate(gate) }
+
+// AddStartGate makes the next turn wait until gate closes, too: the setup of a new worktree, whose result the first request
+// carries.
+func (a *Agent) AddStartGate(gate <-chan struct{}) {
 	a.mu.Lock()
-	a.startGate = gate
+	a.startGates = append(a.startGates, gate)
 	a.mu.Unlock()
 }
 
 func (a *Agent) waitStartHooks(ctx context.Context) {
 	a.mu.Lock()
-	gate := a.startGate
-	a.startGate = nil
+	gates := a.startGates
+	a.startGates = nil
 	a.mu.Unlock()
-	if gate == nil {
-		return
-	}
-	select {
-	case <-gate:
-	case <-ctx.Done():
+	for _, gate := range gates {
+		select {
+		case <-gate:
+		case <-ctx.Done():
+			return
+		}
 	}
 }
 

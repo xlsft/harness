@@ -369,7 +369,7 @@ type Agent struct {
 	skills skillState
 	// hook state (hooks.go): the gate the first turn waits at while SessionStart runs, whether SubagentStart has run, and
 	// what a handler's continue false said during the running turn.
-	startGate   <-chan struct{}
+	startGates  []<-chan struct{}
 	agentHooked bool
 	halted      bool
 	haltReason  string

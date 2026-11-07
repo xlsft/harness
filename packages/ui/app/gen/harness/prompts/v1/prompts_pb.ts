@@ -121,6 +121,8 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *                         terminal tab ended (TerminalRun); rides on the next model request, starts one when idle
    *   lsp_diagnostics       {{diagnostics}}        errors a language server found after the agent's edits, marked as data
    *   hook_context          {{event}} {{content}}  what a hook of the session's settings reports, marked as not the user's
+   *   worktree_setup        {{path}} {{summary}}   what the setup of a new worktree ran (.harness/worktree.json) and how
+   *                         each step ended, or that the user was offered one; so the agent does not install again
    *   compacted                                    first message after a compaction summary
    *   attribution           {{commit}} {{pr}}      commit / PR attribution lines
    *   output_style          {{name}} {{content}}   the active output style (sent at session start and on change)

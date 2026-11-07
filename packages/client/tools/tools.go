@@ -163,6 +163,8 @@ type Env struct {
 	ProjectOfFolder func(folder string) string
 	// Sandbox confines the commands the model runs (nil: nothing does).
 	Sandbox *sandbox.Session
+	// WorktreeSetup runs the setup of a worktree the session just created (nil: none runs).
+	WorktreeSetup WorktreeSetupFunc
 
 	push     pushThrottle
 	findings findingsState

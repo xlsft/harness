@@ -615,6 +615,9 @@ func (m *Manager) SpawnSubagent(ctx context.Context, o Options) (*Handle, error)
 		}
 		return nil, err
 	}
+	if a.wt != nil {
+		m.setUpWorktree(a)
+	}
 	input := []llm.ContentBlock{llm.TextBlock(m.contextText(a, t))}
 	if o.Fork {
 		input = append(input, llm.TextBlock(m.bundleOf(a).Reminder("agent_fork", agentForkFallback)))
@@ -804,10 +807,11 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 	env.Edits = lead.Edits
 	env.Skills = lead.Skills
 	env.Library = lead.Library
+	env.WorktreeSetup = lead.WorktreeSetup
 	if a.wt == nil {
 		// Checkpoints follow the session's folder; a worktree has git for that.
 		env.BeforeEdit = lead.BeforeEdit
-	env.BeforeEditChecked = lead.BeforeEditChecked
+		env.BeforeEditChecked = lead.BeforeEditChecked
 	}
 	if lead.Tasks != nil {
 		env.Tasks = tools.NewTaskManager(filepath.Join(scratch, "tasks"))

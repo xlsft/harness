@@ -174,6 +174,9 @@ const (
 	// AgentServiceStopShellCommandProcedure is the fully-qualified name of the AgentService's
 	// StopShellCommand RPC.
 	AgentServiceStopShellCommandProcedure = "/harness.agent.v1.AgentService/StopShellCommand"
+	// AgentServiceAnswerWorktreeSetupProcedure is the fully-qualified name of the AgentService's
+	// AnswerWorktreeSetup RPC.
+	AgentServiceAnswerWorktreeSetupProcedure = "/harness.agent.v1.AgentService/AnswerWorktreeSetup"
 	// AgentServiceListSideChatsProcedure is the fully-qualified name of the AgentService's
 	// ListSideChats RPC.
 	AgentServiceListSideChatsProcedure = "/harness.agent.v1.AgentService/ListSideChats"
@@ -585,6 +588,9 @@ type AgentServiceClient interface {
 	RunShellCommand(context.Context, *connect.Request[v1.RunShellCommandRequest]) (*connect.Response[v1.RunShellCommandResponse], error)
 	// Kills a running user shell command (UserShellFinished reason STOPPED). NOT_FOUND when it is not running.
 	StopShellCommand(context.Context, *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error)
+	// Answers a suggested worktree setup (worktree_setup.proto): accept writes .harness/worktree.json and runs it in the
+	// worktree, dismiss stops offering it for the repository on this device. NOT_FOUND when the suggestion is not pending.
+	AnswerWorktreeSetup(context.Context, *connect.Request[v1.AnswerWorktreeSetupRequest]) (*connect.Response[v1.AnswerWorktreeSetupResponse], error)
 	// Side chats (sidechat.proto): read-only conversations next to a session that see its conversation but never
 	// change it (no tools). Stored next to the session's transcript. Local open sessions only.
 	ListSideChats(context.Context, *connect.Request[v1.ListSideChatsRequest]) (*connect.Response[v1.ListSideChatsResponse], error)
@@ -1107,6 +1113,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			httpClient,
 			baseURL+AgentServiceStopShellCommandProcedure,
 			connect.WithSchema(agentServiceMethods.ByName("StopShellCommand")),
+			connect.WithClientOptions(opts...),
+		),
+		answerWorktreeSetup: connect.NewClient[v1.AnswerWorktreeSetupRequest, v1.AnswerWorktreeSetupResponse](
+			httpClient,
+			baseURL+AgentServiceAnswerWorktreeSetupProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("AnswerWorktreeSetup")),
 			connect.WithClientOptions(opts...),
 		),
 		listSideChats: connect.NewClient[v1.ListSideChatsRequest, v1.ListSideChatsResponse](
@@ -1711,6 +1723,7 @@ type agentServiceClient struct {
 	getGitStatus            *connect.Client[v1.GetGitStatusRequest, v1.GetGitStatusResponse]
 	runShellCommand         *connect.Client[v1.RunShellCommandRequest, v1.RunShellCommandResponse]
 	stopShellCommand        *connect.Client[v1.StopShellCommandRequest, v1.StopShellCommandResponse]
+	answerWorktreeSetup     *connect.Client[v1.AnswerWorktreeSetupRequest, v1.AnswerWorktreeSetupResponse]
 	listSideChats           *connect.Client[v1.ListSideChatsRequest, v1.ListSideChatsResponse]
 	createSideChat          *connect.Client[v1.CreateSideChatRequest, v1.CreateSideChatResponse]
 	getSideChat             *connect.Client[v1.GetSideChatRequest, v1.GetSideChatResponse]
@@ -2057,6 +2070,11 @@ func (c *agentServiceClient) RunShellCommand(ctx context.Context, req *connect.R
 // StopShellCommand calls harness.agent.v1.AgentService.StopShellCommand.
 func (c *agentServiceClient) StopShellCommand(ctx context.Context, req *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error) {
 	return c.stopShellCommand.CallUnary(ctx, req)
+}
+
+// AnswerWorktreeSetup calls harness.agent.v1.AgentService.AnswerWorktreeSetup.
+func (c *agentServiceClient) AnswerWorktreeSetup(ctx context.Context, req *connect.Request[v1.AnswerWorktreeSetupRequest]) (*connect.Response[v1.AnswerWorktreeSetupResponse], error) {
+	return c.answerWorktreeSetup.CallUnary(ctx, req)
 }
 
 // ListSideChats calls harness.agent.v1.AgentService.ListSideChats.
@@ -2651,6 +2669,9 @@ type AgentServiceHandler interface {
 	RunShellCommand(context.Context, *connect.Request[v1.RunShellCommandRequest]) (*connect.Response[v1.RunShellCommandResponse], error)
 	// Kills a running user shell command (UserShellFinished reason STOPPED). NOT_FOUND when it is not running.
 	StopShellCommand(context.Context, *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error)
+	// Answers a suggested worktree setup (worktree_setup.proto): accept writes .harness/worktree.json and runs it in the
+	// worktree, dismiss stops offering it for the repository on this device. NOT_FOUND when the suggestion is not pending.
+	AnswerWorktreeSetup(context.Context, *connect.Request[v1.AnswerWorktreeSetupRequest]) (*connect.Response[v1.AnswerWorktreeSetupResponse], error)
 	// Side chats (sidechat.proto): read-only conversations next to a session that see its conversation but never
 	// change it (no tools). Stored next to the session's transcript. Local open sessions only.
 	ListSideChats(context.Context, *connect.Request[v1.ListSideChatsRequest]) (*connect.Response[v1.ListSideChatsResponse], error)
@@ -3169,6 +3190,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		AgentServiceStopShellCommandProcedure,
 		svc.StopShellCommand,
 		connect.WithSchema(agentServiceMethods.ByName("StopShellCommand")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceAnswerWorktreeSetupHandler := connect.NewUnaryHandler(
+		AgentServiceAnswerWorktreeSetupProcedure,
+		svc.AnswerWorktreeSetup,
+		connect.WithSchema(agentServiceMethods.ByName("AnswerWorktreeSetup")),
 		connect.WithHandlerOptions(opts...),
 	)
 	agentServiceListSideChatsHandler := connect.NewUnaryHandler(
@@ -3821,6 +3848,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceRunShellCommandHandler.ServeHTTP(w, r)
 		case AgentServiceStopShellCommandProcedure:
 			agentServiceStopShellCommandHandler.ServeHTTP(w, r)
+		case AgentServiceAnswerWorktreeSetupProcedure:
+			agentServiceAnswerWorktreeSetupHandler.ServeHTTP(w, r)
 		case AgentServiceListSideChatsProcedure:
 			agentServiceListSideChatsHandler.ServeHTTP(w, r)
 		case AgentServiceCreateSideChatProcedure:
@@ -4214,6 +4243,10 @@ func (UnimplementedAgentServiceHandler) RunShellCommand(context.Context, *connec
 
 func (UnimplementedAgentServiceHandler) StopShellCommand(context.Context, *connect.Request[v1.StopShellCommandRequest]) (*connect.Response[v1.StopShellCommandResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.StopShellCommand is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) AnswerWorktreeSetup(context.Context, *connect.Request[v1.AnswerWorktreeSetupRequest]) (*connect.Response[v1.AnswerWorktreeSetupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.AnswerWorktreeSetup is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) ListSideChats(context.Context, *connect.Request[v1.ListSideChatsRequest]) (*connect.Response[v1.ListSideChatsResponse], error) {

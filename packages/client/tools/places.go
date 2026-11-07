@@ -115,6 +115,15 @@ func (*EnterWorktree) Run(ctx context.Context, env *Env, call Call) Result {
 	if created.IncludeProblem != "" {
 		text += fmt.Sprintf(" Some files named by %s did not come along: %s", worktree.IncludeFile, created.IncludeProblem)
 	}
+	if env.WorktreeSetup != nil {
+		var remind func(string, map[string]string)
+		if h := env.Host(); h != nil {
+			remind = h.Remind
+		}
+		if rep := env.WorktreeSetup(ctx, WorktreeSetupRequest{Worktree: created, AgentID: env.AgentID, Remind: remind}); rep.Summary != "" {
+			text += "\n\n" + rep.Summary
+		}
+	}
 	return moveResult(text, "Entered "+created.Branch, map[string]any{"cwd": created.Cwd, "worktreePath": created.Path, "branch": created.Branch, "baseRef": created.BaseRef})
 }
 

@@ -169,7 +169,7 @@ func (m *TaskManager) startWith(sh *Shell, command, description, toolUseID strin
 		return TaskInfo{}, err
 	}
 	cwd := sh.Cwd()
-	cmd, wrapped := sh.command(command, "", cwd, how, interpreter)
+	cmd, wrapped := sh.command(command, "", cwd, how, interpreter, nil)
 	cmd.Stdout, cmd.Stderr = f, f
 	var stdin io.WriteCloser
 	if withStdin {

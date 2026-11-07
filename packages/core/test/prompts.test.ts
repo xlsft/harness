@@ -101,6 +101,7 @@ describe("bundle builder", () => {
       terminal_command_done: ["tab_id", "title", "command", "status", "tail"],
       lsp_diagnostics: ["diagnostics"],
       hook_context: ["event", "content"],
+      worktree_setup: ["path", "summary"],
       scheduled_wakeup: ["id", "repeat", "note"],
       schedule_trigger: ["source", "detail"],
       loop_self_paced: ["prompt"],
