@@ -398,7 +398,7 @@ type diffBuilder struct {
 	repos []*diffRepo
 	// hookRepos are the folders outside git a VcsStatus hook answered for.
 	hookRepos []*hookRepo
-	files []*agentv1.FileDiff
+	files     []*agentv1.FileDiff
 	// seen holds the resolved paths already decided.
 	seen      map[string]bool
 	budget    int64
