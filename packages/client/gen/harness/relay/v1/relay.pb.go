@@ -566,6 +566,7 @@ type Command struct {
 	//	*Command_StopWorkflow
 	//	*Command_ListSlashCommands
 	//	*Command_DeliverAutoFixJob
+	//	*Command_ProjectRunControl
 	Payload isCommand_Payload `protobuf_oneof:"payload"`
 	// RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
 	ExpiresAt     string `protobuf:"bytes,7,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
@@ -913,6 +914,15 @@ func (x *Command) GetDeliverAutoFixJob() *v1.DeliverAutoFixJobRequest {
 	return nil
 }
 
+func (x *Command) GetProjectRunControl() *v1.ControlProjectRunRequest {
+	if x != nil {
+		if x, ok := x.Payload.(*Command_ProjectRunControl); ok {
+			return x.ProjectRunControl
+		}
+	}
+	return nil
+}
+
 func (x *Command) GetExpiresAt() string {
 	if x != nil {
 		return x.ExpiresAt
@@ -1042,6 +1052,11 @@ type Command_DeliverAutoFixJob struct {
 	DeliverAutoFixJob *v1.DeliverAutoFixJobRequest `protobuf:"bytes,150,opt,name=deliver_auto_fix_job,json=deliverAutoFixJob,proto3,oneof"`
 }
 
+type Command_ProjectRunControl struct {
+	// Project runs (project_runs.proto); numbered apart like the others.
+	ProjectRunControl *v1.ControlProjectRunRequest `protobuf:"bytes,310,opt,name=project_run_control,json=projectRunControl,proto3,oneof"`
+}
+
 func (*Command_SendUserMessage) isCommand_Payload() {}
 
 func (*Command_Interrupt) isCommand_Payload() {}
@@ -1099,6 +1114,8 @@ func (*Command_StopWorkflow) isCommand_Payload() {}
 func (*Command_ListSlashCommands) isCommand_Payload() {}
 
 func (*Command_DeliverAutoFixJob) isCommand_Payload() {}
+
+func (*Command_ProjectRunControl) isCommand_Payload() {}
 
 type SpawnSessionCommand struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1757,6 +1774,7 @@ type CommandAck struct {
 	//	*CommandAck_StopSubagent
 	//	*CommandAck_GetSubagentTranscript
 	//	*CommandAck_StopWorkflow
+	//	*CommandAck_ProjectRunControl
 	//	*CommandAck_ListSlashCommands
 	Result        isCommandAck_Result `protobuf_oneof:"result"`
 	unknownFields protoimpl.UnknownFields
@@ -1936,6 +1954,15 @@ func (x *CommandAck) GetStopWorkflow() *v1.StopWorkflowResponse {
 	return nil
 }
 
+func (x *CommandAck) GetProjectRunControl() *v1.ControlProjectRunResponse {
+	if x != nil {
+		if x, ok := x.Result.(*CommandAck_ProjectRunControl); ok {
+			return x.ProjectRunControl
+		}
+	}
+	return nil
+}
+
 func (x *CommandAck) GetListSlashCommands() *v1.ListSlashCommandsResponse {
 	if x != nil {
 		if x, ok := x.Result.(*CommandAck_ListSlashCommands); ok {
@@ -1997,6 +2024,10 @@ type CommandAck_StopWorkflow struct {
 	StopWorkflow *v1.StopWorkflowResponse `protobuf:"bytes,40,opt,name=stop_workflow,json=stopWorkflow,proto3,oneof"`
 }
 
+type CommandAck_ProjectRunControl struct {
+	ProjectRunControl *v1.ControlProjectRunResponse `protobuf:"bytes,310,opt,name=project_run_control,json=projectRunControl,proto3,oneof"`
+}
+
 type CommandAck_ListSlashCommands struct {
 	ListSlashCommands *v1.ListSlashCommandsResponse `protobuf:"bytes,110,opt,name=list_slash_commands,json=listSlashCommands,proto3,oneof"`
 }
@@ -2024,6 +2055,8 @@ func (*CommandAck_StopSubagent) isCommandAck_Result() {}
 func (*CommandAck_GetSubagentTranscript) isCommandAck_Result() {}
 
 func (*CommandAck_StopWorkflow) isCommandAck_Result() {}
+
+func (*CommandAck_ProjectRunControl) isCommandAck_Result() {}
 
 func (*CommandAck_ListSlashCommands) isCommandAck_Result() {}
 
@@ -6218,7 +6251,7 @@ var File_harness_relay_v1_relay_proto protoreflect.FileDescriptor
 
 const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\n" +
-	"\x1charness/relay/v1/relay.proto\x12\x10harness.relay.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1fharness/agent/v1/auto_fix.proto\x1a&harness/agent/v1/device_settings.proto\x1a$harness/agent/v1/session_links.proto\x1a%harness/agent/v1/slash_commands.proto\x1a harness/agent/v1/subagents.proto\x1a harness/agent/v1/workflows.proto\x1a\x1eharness/common/v1/errors.proto\x1a harness/relay/v1/workflows.proto\"\xc6\x01\n" +
+	"\x1charness/relay/v1/relay.proto\x12\x10harness.relay.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1fharness/agent/v1/auto_fix.proto\x1a&harness/agent/v1/device_settings.proto\x1a#harness/agent/v1/project_runs.proto\x1a$harness/agent/v1/session_links.proto\x1a%harness/agent/v1/slash_commands.proto\x1a harness/agent/v1/subagents.proto\x1a harness/agent/v1/workflows.proto\x1a\x1eharness/common/v1/errors.proto\x1a\x1charness/relay/v1/inbox.proto\x1a harness/relay/v1/workflows.proto\"\xc6\x01\n" +
 	"\x13RegisterHostRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12%\n" +
@@ -6236,7 +6269,7 @@ const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\acommand\x18\x01 \x01(\v2\x19.harness.relay.v1.CommandH\x00R\acommand\x12T\n" +
 	"\x12session_superseded\x18\x02 \x01(\v2#.harness.relay.v1.SessionSupersededH\x00R\x11sessionSuperseded\x12;\n" +
 	"\theartbeat\x18\x03 \x01(\v2\x1b.harness.relay.v1.HeartbeatH\x00R\theartbeatB\a\n" +
-	"\x05event\"\xd6\x14\n" +
+	"\x05event\"\xb5\x15\n" +
 	"\aCommand\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x1d\n" +
@@ -6279,7 +6312,8 @@ const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\x18resolve_session_proposal\x18L \x01(\v2/.harness.agent.v1.ResolveSessionProposalRequestH\x00R\x16resolveSessionProposal\x12L\n" +
 	"\rstop_workflow\x18Z \x01(\v2%.harness.agent.v1.StopWorkflowRequestH\x00R\fstopWorkflow\x12\\\n" +
 	"\x13list_slash_commands\x18n \x01(\v2*.harness.agent.v1.ListSlashCommandsRequestH\x00R\x11listSlashCommands\x12^\n" +
-	"\x14deliver_auto_fix_job\x18\x96\x01 \x01(\v2*.harness.agent.v1.DeliverAutoFixJobRequestH\x00R\x11deliverAutoFixJob\x12\x1d\n" +
+	"\x14deliver_auto_fix_job\x18\x96\x01 \x01(\v2*.harness.agent.v1.DeliverAutoFixJobRequestH\x00R\x11deliverAutoFixJob\x12]\n" +
+	"\x13project_run_control\x18\xb6\x02 \x01(\v2*.harness.agent.v1.ControlProjectRunRequestH\x00R\x11projectRunControl\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\a \x01(\tR\texpiresAtB\t\n" +
 	"\apayload\"\xc4\x01\n" +
@@ -6327,8 +6361,7 @@ const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\tacked_seq\x18\x01 \x01(\x03R\backedSeq\x12\x1e\n" +
 	"\n" +
 	"duplicates\x18\x02 \x01(\x05R\n" +
-	"duplicates\"\xe8\n" +
-	"\n" +
+	"duplicates\"\xc8\v\n" +
 	"\n" +
 	"CommandAck\x12\x1d\n" +
 	"\n" +
@@ -6350,7 +6383,8 @@ const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\x12list_output_styles\x18\x12 \x01(\v2*.harness.agent.v1.ListOutputStylesResponseH\x00R\x10listOutputStyles\x12M\n" +
 	"\rstop_subagent\x18\x1e \x01(\v2&.harness.agent.v1.StopSubagentResponseH\x00R\fstopSubagent\x12i\n" +
 	"\x17get_subagent_transcript\x18\x1f \x01(\v2/.harness.agent.v1.GetSubagentTranscriptResponseH\x00R\x15getSubagentTranscript\x12M\n" +
-	"\rstop_workflow\x18( \x01(\v2&.harness.agent.v1.StopWorkflowResponseH\x00R\fstopWorkflow\x12]\n" +
+	"\rstop_workflow\x18( \x01(\v2&.harness.agent.v1.StopWorkflowResponseH\x00R\fstopWorkflow\x12^\n" +
+	"\x13project_run_control\x18\xb6\x02 \x01(\v2+.harness.agent.v1.ControlProjectRunResponseH\x00R\x11projectRunControl\x12]\n" +
 	"\x13list_slash_commands\x18n \x01(\v2+.harness.agent.v1.ListSlashCommandsResponseH\x00R\x11listSlashCommands\"z\n" +
 	"\aOutcome\x12\x17\n" +
 	"\x13OUTCOME_UNSPECIFIED\x10\x00\x12\x0e\n" +
@@ -6626,7 +6660,7 @@ const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\x1aDELIVERY_STATE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15DELIVERY_STATE_QUEUED\x10\x01\x12\x18\n" +
 	"\x14DELIVERY_STATE_ACKED\x10\x02\x12\x1a\n" +
-	"\x16DELIVERY_STATE_EXPIRED\x10\x032\xbe \n" +
+	"\x16DELIVERY_STATE_EXPIRED\x10\x032\xac!\n" +
 	"\fRelayService\x12]\n" +
 	"\fRegisterHost\x12%.harness.relay.v1.RegisterHostRequest\x1a&.harness.relay.v1.RegisterHostResponse\x12e\n" +
 	"\x0eOpenHostStream\x12'.harness.relay.v1.OpenHostStreamRequest\x1a(.harness.relay.v1.OpenHostStreamResponse0\x01\x12f\n" +
@@ -6669,7 +6703,8 @@ const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\x15GetSubagentTranscript\x12..harness.relay.v1.GetSubagentTranscriptRequest\x1a/.harness.relay.v1.GetSubagentTranscriptResponse\x12f\n" +
 	"\x0fSendSessionNote\x12(.harness.relay.v1.SendSessionNoteRequest\x1a).harness.relay.v1.SendSessionNoteResponse\x12{\n" +
 	"\x16ResolveSessionProposal\x12/.harness.relay.v1.ResolveSessionProposalRequest\x1a0.harness.relay.v1.ResolveSessionProposalResponse\x12]\n" +
-	"\fStopWorkflow\x12%.harness.relay.v1.StopWorkflowRequest\x1a&.harness.relay.v1.StopWorkflowResponseB\xcb\x01\n" +
+	"\fStopWorkflow\x12%.harness.relay.v1.StopWorkflowRequest\x1a&.harness.relay.v1.StopWorkflowResponse\x12l\n" +
+	"\x11ControlProjectRun\x12*.harness.relay.v1.ControlProjectRunRequest\x1a+.harness.relay.v1.ControlProjectRunResponseB\xcb\x01\n" +
 	"\x14com.harness.relay.v1B\n" +
 	"RelayProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/relay/v1;relayv1\xa2\x02\x03HRX\xaa\x02\x10Harness.Relay.V1\xca\x02\x10Harness\\Relay\\V1\xe2\x02\x1cHarness\\Relay\\V1\\GPBMetadata\xea\x02\x12Harness::Relay::V1b\x06proto3"
 
@@ -6817,25 +6852,29 @@ var file_harness_relay_v1_relay_proto_goTypes = []any{
 	(*v1.StopWorkflowRequest)(nil),           // 126: harness.agent.v1.StopWorkflowRequest
 	(*v1.ListSlashCommandsRequest)(nil),      // 127: harness.agent.v1.ListSlashCommandsRequest
 	(*v1.DeliverAutoFixJobRequest)(nil),      // 128: harness.agent.v1.DeliverAutoFixJobRequest
-	(*v1.CreateSessionRequest)(nil),          // 129: harness.agent.v1.CreateSessionRequest
-	(*v1.SessionInfo)(nil),                   // 130: harness.agent.v1.SessionInfo
-	(*v1.SessionEvent)(nil),                  // 131: harness.agent.v1.SessionEvent
-	(*v11.ErrorInfo)(nil),                    // 132: harness.common.v1.ErrorInfo
-	(*v1.SuggestFilesResponse)(nil),          // 133: harness.agent.v1.SuggestFilesResponse
-	(*v1.CreateSessionResponse)(nil),         // 134: harness.agent.v1.CreateSessionResponse
-	(*v1.RemoveQueuedMessageResponse)(nil),   // 135: harness.agent.v1.RemoveQueuedMessageResponse
-	(*v1.CompactResponse)(nil),               // 136: harness.agent.v1.CompactResponse
-	(*v1.RewindResponse)(nil),                // 137: harness.agent.v1.RewindResponse
-	(*v1.ListCheckpointsResponse)(nil),       // 138: harness.agent.v1.ListCheckpointsResponse
-	(*v1.ListTasksResponse)(nil),             // 139: harness.agent.v1.ListTasksResponse
-	(*v1.ListOutputStylesResponse)(nil),      // 140: harness.agent.v1.ListOutputStylesResponse
-	(*v1.StopSubagentResponse)(nil),          // 141: harness.agent.v1.StopSubagentResponse
-	(*v1.GetSubagentTranscriptResponse)(nil), // 142: harness.agent.v1.GetSubagentTranscriptResponse
-	(*v1.StopWorkflowResponse)(nil),          // 143: harness.agent.v1.StopWorkflowResponse
-	(*v1.ListSlashCommandsResponse)(nil),     // 144: harness.agent.v1.ListSlashCommandsResponse
-	(v1.SessionStatus)(0),                    // 145: harness.agent.v1.SessionStatus
-	(*StopWorkflowRequest)(nil),              // 146: harness.relay.v1.StopWorkflowRequest
-	(*StopWorkflowResponse)(nil),             // 147: harness.relay.v1.StopWorkflowResponse
+	(*v1.ControlProjectRunRequest)(nil),      // 129: harness.agent.v1.ControlProjectRunRequest
+	(*v1.CreateSessionRequest)(nil),          // 130: harness.agent.v1.CreateSessionRequest
+	(*v1.SessionInfo)(nil),                   // 131: harness.agent.v1.SessionInfo
+	(*v1.SessionEvent)(nil),                  // 132: harness.agent.v1.SessionEvent
+	(*v11.ErrorInfo)(nil),                    // 133: harness.common.v1.ErrorInfo
+	(*v1.SuggestFilesResponse)(nil),          // 134: harness.agent.v1.SuggestFilesResponse
+	(*v1.CreateSessionResponse)(nil),         // 135: harness.agent.v1.CreateSessionResponse
+	(*v1.RemoveQueuedMessageResponse)(nil),   // 136: harness.agent.v1.RemoveQueuedMessageResponse
+	(*v1.CompactResponse)(nil),               // 137: harness.agent.v1.CompactResponse
+	(*v1.RewindResponse)(nil),                // 138: harness.agent.v1.RewindResponse
+	(*v1.ListCheckpointsResponse)(nil),       // 139: harness.agent.v1.ListCheckpointsResponse
+	(*v1.ListTasksResponse)(nil),             // 140: harness.agent.v1.ListTasksResponse
+	(*v1.ListOutputStylesResponse)(nil),      // 141: harness.agent.v1.ListOutputStylesResponse
+	(*v1.StopSubagentResponse)(nil),          // 142: harness.agent.v1.StopSubagentResponse
+	(*v1.GetSubagentTranscriptResponse)(nil), // 143: harness.agent.v1.GetSubagentTranscriptResponse
+	(*v1.StopWorkflowResponse)(nil),          // 144: harness.agent.v1.StopWorkflowResponse
+	(*v1.ControlProjectRunResponse)(nil),     // 145: harness.agent.v1.ControlProjectRunResponse
+	(*v1.ListSlashCommandsResponse)(nil),     // 146: harness.agent.v1.ListSlashCommandsResponse
+	(v1.SessionStatus)(0),                    // 147: harness.agent.v1.SessionStatus
+	(*StopWorkflowRequest)(nil),              // 148: harness.relay.v1.StopWorkflowRequest
+	(*ControlProjectRunRequest)(nil),         // 149: harness.relay.v1.ControlProjectRunRequest
+	(*StopWorkflowResponse)(nil),             // 150: harness.relay.v1.StopWorkflowResponse
+	(*ControlProjectRunResponse)(nil),        // 151: harness.relay.v1.ControlProjectRunResponse
 }
 var file_harness_relay_v1_relay_proto_depIdxs = []int32{
 	8,   // 0: harness.relay.v1.OpenHostStreamResponse.command:type_name -> harness.relay.v1.Command
@@ -6870,209 +6909,213 @@ var file_harness_relay_v1_relay_proto_depIdxs = []int32{
 	126, // 29: harness.relay.v1.Command.stop_workflow:type_name -> harness.agent.v1.StopWorkflowRequest
 	127, // 30: harness.relay.v1.Command.list_slash_commands:type_name -> harness.agent.v1.ListSlashCommandsRequest
 	128, // 31: harness.relay.v1.Command.deliver_auto_fix_job:type_name -> harness.agent.v1.DeliverAutoFixJobRequest
-	129, // 32: harness.relay.v1.SpawnSessionCommand.create:type_name -> harness.agent.v1.CreateSessionRequest
-	102, // 33: harness.relay.v1.SpawnSessionCommand.initial_message:type_name -> harness.agent.v1.SendUserMessageRequest
-	0,   // 34: harness.relay.v1.OpenTunnelCommand.kind:type_name -> harness.relay.v1.TunnelKind
-	130, // 35: harness.relay.v1.RegisterSessionRequest.session:type_name -> harness.agent.v1.SessionInfo
-	131, // 36: harness.relay.v1.EventEnvelope.event:type_name -> harness.agent.v1.SessionEvent
-	17,  // 37: harness.relay.v1.PublishEventsRequest.events:type_name -> harness.relay.v1.EventEnvelope
-	3,   // 38: harness.relay.v1.CommandAck.outcome:type_name -> harness.relay.v1.CommandAck.Outcome
-	132, // 39: harness.relay.v1.CommandAck.error:type_name -> harness.common.v1.ErrorInfo
-	133, // 40: harness.relay.v1.CommandAck.suggest_files:type_name -> harness.agent.v1.SuggestFilesResponse
-	134, // 41: harness.relay.v1.CommandAck.spawn_session:type_name -> harness.agent.v1.CreateSessionResponse
-	26,  // 42: harness.relay.v1.CommandAck.open_tunnel:type_name -> harness.relay.v1.Tunnel
-	135, // 43: harness.relay.v1.CommandAck.remove_queued_message:type_name -> harness.agent.v1.RemoveQueuedMessageResponse
-	136, // 44: harness.relay.v1.CommandAck.compact:type_name -> harness.agent.v1.CompactResponse
-	137, // 45: harness.relay.v1.CommandAck.rewind:type_name -> harness.agent.v1.RewindResponse
-	138, // 46: harness.relay.v1.CommandAck.list_checkpoints:type_name -> harness.agent.v1.ListCheckpointsResponse
-	139, // 47: harness.relay.v1.CommandAck.list_tasks:type_name -> harness.agent.v1.ListTasksResponse
-	140, // 48: harness.relay.v1.CommandAck.list_output_styles:type_name -> harness.agent.v1.ListOutputStylesResponse
-	141, // 49: harness.relay.v1.CommandAck.stop_subagent:type_name -> harness.agent.v1.StopSubagentResponse
-	142, // 50: harness.relay.v1.CommandAck.get_subagent_transcript:type_name -> harness.agent.v1.GetSubagentTranscriptResponse
-	143, // 51: harness.relay.v1.CommandAck.stop_workflow:type_name -> harness.agent.v1.StopWorkflowResponse
-	144, // 52: harness.relay.v1.CommandAck.list_slash_commands:type_name -> harness.agent.v1.ListSlashCommandsResponse
-	20,  // 53: harness.relay.v1.AckCommandsRequest.acks:type_name -> harness.relay.v1.CommandAck
-	24,  // 54: harness.relay.v1.HeartbeatRequest.sessions:type_name -> harness.relay.v1.HostSessionState
-	145, // 55: harness.relay.v1.HostSessionState.status:type_name -> harness.agent.v1.SessionStatus
-	11,  // 56: harness.relay.v1.HeartbeatResponse.superseded:type_name -> harness.relay.v1.SessionSuperseded
-	0,   // 57: harness.relay.v1.Tunnel.kind:type_name -> harness.relay.v1.TunnelKind
-	0,   // 58: harness.relay.v1.RegisterTunnelRequest.kind:type_name -> harness.relay.v1.TunnelKind
-	26,  // 59: harness.relay.v1.RegisterTunnelResponse.tunnel:type_name -> harness.relay.v1.Tunnel
-	33,  // 60: harness.relay.v1.ListHostsResponse.hosts:type_name -> harness.relay.v1.Host
-	130, // 61: harness.relay.v1.Host.sessions:type_name -> harness.agent.v1.SessionInfo
-	131, // 62: harness.relay.v1.SubscribeSessionResponse.session_event:type_name -> harness.agent.v1.SessionEvent
-	36,  // 63: harness.relay.v1.SubscribeSessionResponse.flush_complete:type_name -> harness.relay.v1.FlushComplete
-	37,  // 64: harness.relay.v1.SubscribeSessionResponse.host_state:type_name -> harness.relay.v1.HostState
-	38,  // 65: harness.relay.v1.SubscribeSessionResponse.presence:type_name -> harness.relay.v1.Presence
-	12,  // 66: harness.relay.v1.SubscribeSessionResponse.heartbeat:type_name -> harness.relay.v1.Heartbeat
-	39,  // 67: harness.relay.v1.Presence.viewers:type_name -> harness.relay.v1.Viewer
-	1,   // 68: harness.relay.v1.Viewer.state:type_name -> harness.relay.v1.PresenceState
-	1,   // 69: harness.relay.v1.UpdatePresenceRequest.state:type_name -> harness.relay.v1.PresenceState
-	2,   // 70: harness.relay.v1.CommandResult.delivery:type_name -> harness.relay.v1.DeliveryState
-	20,  // 71: harness.relay.v1.CommandResult.ack:type_name -> harness.relay.v1.CommandAck
-	102, // 72: harness.relay.v1.SendUserMessageRequest.request:type_name -> harness.agent.v1.SendUserMessageRequest
-	42,  // 73: harness.relay.v1.SendUserMessageRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 74: harness.relay.v1.SendUserMessageResponse.result:type_name -> harness.relay.v1.CommandResult
-	103, // 75: harness.relay.v1.InterruptRequest.request:type_name -> harness.agent.v1.InterruptRequest
-	42,  // 76: harness.relay.v1.InterruptRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 77: harness.relay.v1.InterruptResponse.result:type_name -> harness.relay.v1.CommandResult
-	104, // 78: harness.relay.v1.RespondToPermissionRequest.request:type_name -> harness.agent.v1.RespondToPermissionRequest
-	42,  // 79: harness.relay.v1.RespondToPermissionRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 80: harness.relay.v1.RespondToPermissionResponse.result:type_name -> harness.relay.v1.CommandResult
-	105, // 81: harness.relay.v1.AnswerQuestionRequest.request:type_name -> harness.agent.v1.AnswerQuestionRequest
-	42,  // 82: harness.relay.v1.AnswerQuestionRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 83: harness.relay.v1.AnswerQuestionResponse.result:type_name -> harness.relay.v1.CommandResult
-	106, // 84: harness.relay.v1.SetModelRequest.request:type_name -> harness.agent.v1.SetModelRequest
-	42,  // 85: harness.relay.v1.SetModelRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 86: harness.relay.v1.SetModelResponse.result:type_name -> harness.relay.v1.CommandResult
-	107, // 87: harness.relay.v1.SetEffortRequest.request:type_name -> harness.agent.v1.SetEffortRequest
-	42,  // 88: harness.relay.v1.SetEffortRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 89: harness.relay.v1.SetEffortResponse.result:type_name -> harness.relay.v1.CommandResult
-	108, // 90: harness.relay.v1.SetPermissionModeRequest.request:type_name -> harness.agent.v1.SetPermissionModeRequest
-	42,  // 91: harness.relay.v1.SetPermissionModeRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 92: harness.relay.v1.SetPermissionModeResponse.result:type_name -> harness.relay.v1.CommandResult
-	109, // 93: harness.relay.v1.SuggestFilesRequest.request:type_name -> harness.agent.v1.SuggestFilesRequest
-	133, // 94: harness.relay.v1.SuggestFilesResponse.response:type_name -> harness.agent.v1.SuggestFilesResponse
-	110, // 95: harness.relay.v1.SetOutputStyleRequest.request:type_name -> harness.agent.v1.SetOutputStyleRequest
-	42,  // 96: harness.relay.v1.SetOutputStyleRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 97: harness.relay.v1.SetOutputStyleResponse.result:type_name -> harness.relay.v1.CommandResult
-	120, // 98: harness.relay.v1.SetAutoContinueRequest.request:type_name -> harness.agent.v1.SetAutoContinueRequest
-	42,  // 99: harness.relay.v1.SetAutoContinueRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 100: harness.relay.v1.SetAutoContinueResponse.result:type_name -> harness.relay.v1.CommandResult
-	122, // 101: harness.relay.v1.StopSubagentRequest.request:type_name -> harness.agent.v1.StopSubagentRequest
-	141, // 102: harness.relay.v1.StopSubagentResponse.response:type_name -> harness.agent.v1.StopSubagentResponse
-	123, // 103: harness.relay.v1.GetSubagentTranscriptRequest.request:type_name -> harness.agent.v1.GetSubagentTranscriptRequest
-	142, // 104: harness.relay.v1.GetSubagentTranscriptResponse.response:type_name -> harness.agent.v1.GetSubagentTranscriptResponse
-	121, // 105: harness.relay.v1.SetKeepAwakeRequest.request:type_name -> harness.agent.v1.SetKeepAwakeRequest
-	42,  // 106: harness.relay.v1.SetKeepAwakeRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 107: harness.relay.v1.SetKeepAwakeResponse.result:type_name -> harness.relay.v1.CommandResult
-	124, // 108: harness.relay.v1.SendSessionNoteRequest.request:type_name -> harness.agent.v1.DeliverSessionNoteRequest
-	42,  // 109: harness.relay.v1.SendSessionNoteRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 110: harness.relay.v1.SendSessionNoteResponse.result:type_name -> harness.relay.v1.CommandResult
-	125, // 111: harness.relay.v1.ResolveSessionProposalRequest.request:type_name -> harness.agent.v1.ResolveSessionProposalRequest
-	42,  // 112: harness.relay.v1.ResolveSessionProposalRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 113: harness.relay.v1.ResolveSessionProposalResponse.result:type_name -> harness.relay.v1.CommandResult
-	111, // 114: harness.relay.v1.RemoveQueuedMessageRequest.request:type_name -> harness.agent.v1.RemoveQueuedMessageRequest
-	42,  // 115: harness.relay.v1.RemoveQueuedMessageRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 116: harness.relay.v1.RemoveQueuedMessageResponse.result:type_name -> harness.relay.v1.CommandResult
-	112, // 117: harness.relay.v1.RespondToPlanRequest.request:type_name -> harness.agent.v1.RespondToPlanRequest
-	42,  // 118: harness.relay.v1.RespondToPlanRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 119: harness.relay.v1.RespondToPlanResponse.result:type_name -> harness.relay.v1.CommandResult
-	113, // 120: harness.relay.v1.StopTaskRequest.request:type_name -> harness.agent.v1.StopTaskRequest
-	42,  // 121: harness.relay.v1.StopTaskRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 122: harness.relay.v1.StopTaskResponse.result:type_name -> harness.relay.v1.CommandResult
-	114, // 123: harness.relay.v1.CloseSessionRequest.request:type_name -> harness.agent.v1.CloseSessionRequest
-	42,  // 124: harness.relay.v1.CloseSessionRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 125: harness.relay.v1.CloseSessionResponse.result:type_name -> harness.relay.v1.CommandResult
-	115, // 126: harness.relay.v1.CompactRequest.request:type_name -> harness.agent.v1.CompactRequest
-	42,  // 127: harness.relay.v1.CompactRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 128: harness.relay.v1.CompactResponse.result:type_name -> harness.relay.v1.CommandResult
-	116, // 129: harness.relay.v1.RewindRequest.request:type_name -> harness.agent.v1.RewindRequest
-	42,  // 130: harness.relay.v1.RewindRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 131: harness.relay.v1.RewindResponse.result:type_name -> harness.relay.v1.CommandResult
-	117, // 132: harness.relay.v1.ListCheckpointsRequest.request:type_name -> harness.agent.v1.ListCheckpointsRequest
-	138, // 133: harness.relay.v1.ListCheckpointsResponse.response:type_name -> harness.agent.v1.ListCheckpointsResponse
-	118, // 134: harness.relay.v1.ListTasksRequest.request:type_name -> harness.agent.v1.ListTasksRequest
-	139, // 135: harness.relay.v1.ListTasksResponse.response:type_name -> harness.agent.v1.ListTasksResponse
-	119, // 136: harness.relay.v1.ListOutputStylesRequest.request:type_name -> harness.agent.v1.ListOutputStylesRequest
-	140, // 137: harness.relay.v1.ListOutputStylesResponse.response:type_name -> harness.agent.v1.ListOutputStylesResponse
-	127, // 138: harness.relay.v1.ListSlashCommandsRequest.request:type_name -> harness.agent.v1.ListSlashCommandsRequest
-	144, // 139: harness.relay.v1.ListSlashCommandsResponse.response:type_name -> harness.agent.v1.ListSlashCommandsResponse
-	9,   // 140: harness.relay.v1.SpawnSessionRequest.spawn:type_name -> harness.relay.v1.SpawnSessionCommand
-	42,  // 141: harness.relay.v1.SpawnSessionRequest.options:type_name -> harness.relay.v1.CommandOptions
-	130, // 142: harness.relay.v1.SpawnSessionResponse.session:type_name -> harness.agent.v1.SessionInfo
-	10,  // 143: harness.relay.v1.RequestTunnelRequest.open:type_name -> harness.relay.v1.OpenTunnelCommand
-	26,  // 144: harness.relay.v1.RequestTunnelResponse.tunnel:type_name -> harness.relay.v1.Tunnel
-	26,  // 145: harness.relay.v1.ListTunnelsResponse.tunnels:type_name -> harness.relay.v1.Tunnel
-	4,   // 146: harness.relay.v1.RelayService.RegisterHost:input_type -> harness.relay.v1.RegisterHostRequest
-	6,   // 147: harness.relay.v1.RelayService.OpenHostStream:input_type -> harness.relay.v1.OpenHostStreamRequest
-	13,  // 148: harness.relay.v1.RelayService.RegisterSession:input_type -> harness.relay.v1.RegisterSessionRequest
-	15,  // 149: harness.relay.v1.RelayService.UnregisterSession:input_type -> harness.relay.v1.UnregisterSessionRequest
-	18,  // 150: harness.relay.v1.RelayService.PublishEvents:input_type -> harness.relay.v1.PublishEventsRequest
-	21,  // 151: harness.relay.v1.RelayService.AckCommands:input_type -> harness.relay.v1.AckCommandsRequest
-	23,  // 152: harness.relay.v1.RelayService.Heartbeat:input_type -> harness.relay.v1.HeartbeatRequest
-	27,  // 153: harness.relay.v1.RelayService.RegisterTunnel:input_type -> harness.relay.v1.RegisterTunnelRequest
-	29,  // 154: harness.relay.v1.RelayService.CloseTunnel:input_type -> harness.relay.v1.CloseTunnelRequest
-	31,  // 155: harness.relay.v1.RelayService.ListHosts:input_type -> harness.relay.v1.ListHostsRequest
-	34,  // 156: harness.relay.v1.RelayService.SubscribeSession:input_type -> harness.relay.v1.SubscribeSessionRequest
-	40,  // 157: harness.relay.v1.RelayService.UpdatePresence:input_type -> harness.relay.v1.UpdatePresenceRequest
-	44,  // 158: harness.relay.v1.RelayService.SendUserMessage:input_type -> harness.relay.v1.SendUserMessageRequest
-	46,  // 159: harness.relay.v1.RelayService.Interrupt:input_type -> harness.relay.v1.InterruptRequest
-	48,  // 160: harness.relay.v1.RelayService.RespondToPermission:input_type -> harness.relay.v1.RespondToPermissionRequest
-	50,  // 161: harness.relay.v1.RelayService.AnswerQuestion:input_type -> harness.relay.v1.AnswerQuestionRequest
-	52,  // 162: harness.relay.v1.RelayService.SetModel:input_type -> harness.relay.v1.SetModelRequest
-	54,  // 163: harness.relay.v1.RelayService.SetEffort:input_type -> harness.relay.v1.SetEffortRequest
-	56,  // 164: harness.relay.v1.RelayService.SetPermissionMode:input_type -> harness.relay.v1.SetPermissionModeRequest
-	60,  // 165: harness.relay.v1.RelayService.SetOutputStyle:input_type -> harness.relay.v1.SetOutputStyleRequest
-	62,  // 166: harness.relay.v1.RelayService.SetAutoContinue:input_type -> harness.relay.v1.SetAutoContinueRequest
-	74,  // 167: harness.relay.v1.RelayService.RemoveQueuedMessage:input_type -> harness.relay.v1.RemoveQueuedMessageRequest
-	76,  // 168: harness.relay.v1.RelayService.RespondToPlan:input_type -> harness.relay.v1.RespondToPlanRequest
-	78,  // 169: harness.relay.v1.RelayService.StopTask:input_type -> harness.relay.v1.StopTaskRequest
-	80,  // 170: harness.relay.v1.RelayService.CloseSession:input_type -> harness.relay.v1.CloseSessionRequest
-	82,  // 171: harness.relay.v1.RelayService.Compact:input_type -> harness.relay.v1.CompactRequest
-	84,  // 172: harness.relay.v1.RelayService.Rewind:input_type -> harness.relay.v1.RewindRequest
-	58,  // 173: harness.relay.v1.RelayService.SuggestFiles:input_type -> harness.relay.v1.SuggestFilesRequest
-	86,  // 174: harness.relay.v1.RelayService.ListCheckpoints:input_type -> harness.relay.v1.ListCheckpointsRequest
-	88,  // 175: harness.relay.v1.RelayService.ListTasks:input_type -> harness.relay.v1.ListTasksRequest
-	90,  // 176: harness.relay.v1.RelayService.ListOutputStyles:input_type -> harness.relay.v1.ListOutputStylesRequest
-	92,  // 177: harness.relay.v1.RelayService.ListSlashCommands:input_type -> harness.relay.v1.ListSlashCommandsRequest
-	94,  // 178: harness.relay.v1.RelayService.SpawnSession:input_type -> harness.relay.v1.SpawnSessionRequest
-	96,  // 179: harness.relay.v1.RelayService.RequestTunnel:input_type -> harness.relay.v1.RequestTunnelRequest
-	98,  // 180: harness.relay.v1.RelayService.ListTunnels:input_type -> harness.relay.v1.ListTunnelsRequest
-	100, // 181: harness.relay.v1.RelayService.AuthorizeTunnel:input_type -> harness.relay.v1.AuthorizeTunnelRequest
-	68,  // 182: harness.relay.v1.RelayService.SetKeepAwake:input_type -> harness.relay.v1.SetKeepAwakeRequest
-	64,  // 183: harness.relay.v1.RelayService.StopSubagent:input_type -> harness.relay.v1.StopSubagentRequest
-	66,  // 184: harness.relay.v1.RelayService.GetSubagentTranscript:input_type -> harness.relay.v1.GetSubagentTranscriptRequest
-	70,  // 185: harness.relay.v1.RelayService.SendSessionNote:input_type -> harness.relay.v1.SendSessionNoteRequest
-	72,  // 186: harness.relay.v1.RelayService.ResolveSessionProposal:input_type -> harness.relay.v1.ResolveSessionProposalRequest
-	146, // 187: harness.relay.v1.RelayService.StopWorkflow:input_type -> harness.relay.v1.StopWorkflowRequest
-	5,   // 188: harness.relay.v1.RelayService.RegisterHost:output_type -> harness.relay.v1.RegisterHostResponse
-	7,   // 189: harness.relay.v1.RelayService.OpenHostStream:output_type -> harness.relay.v1.OpenHostStreamResponse
-	14,  // 190: harness.relay.v1.RelayService.RegisterSession:output_type -> harness.relay.v1.RegisterSessionResponse
-	16,  // 191: harness.relay.v1.RelayService.UnregisterSession:output_type -> harness.relay.v1.UnregisterSessionResponse
-	19,  // 192: harness.relay.v1.RelayService.PublishEvents:output_type -> harness.relay.v1.PublishEventsResponse
-	22,  // 193: harness.relay.v1.RelayService.AckCommands:output_type -> harness.relay.v1.AckCommandsResponse
-	25,  // 194: harness.relay.v1.RelayService.Heartbeat:output_type -> harness.relay.v1.HeartbeatResponse
-	28,  // 195: harness.relay.v1.RelayService.RegisterTunnel:output_type -> harness.relay.v1.RegisterTunnelResponse
-	30,  // 196: harness.relay.v1.RelayService.CloseTunnel:output_type -> harness.relay.v1.CloseTunnelResponse
-	32,  // 197: harness.relay.v1.RelayService.ListHosts:output_type -> harness.relay.v1.ListHostsResponse
-	35,  // 198: harness.relay.v1.RelayService.SubscribeSession:output_type -> harness.relay.v1.SubscribeSessionResponse
-	41,  // 199: harness.relay.v1.RelayService.UpdatePresence:output_type -> harness.relay.v1.UpdatePresenceResponse
-	45,  // 200: harness.relay.v1.RelayService.SendUserMessage:output_type -> harness.relay.v1.SendUserMessageResponse
-	47,  // 201: harness.relay.v1.RelayService.Interrupt:output_type -> harness.relay.v1.InterruptResponse
-	49,  // 202: harness.relay.v1.RelayService.RespondToPermission:output_type -> harness.relay.v1.RespondToPermissionResponse
-	51,  // 203: harness.relay.v1.RelayService.AnswerQuestion:output_type -> harness.relay.v1.AnswerQuestionResponse
-	53,  // 204: harness.relay.v1.RelayService.SetModel:output_type -> harness.relay.v1.SetModelResponse
-	55,  // 205: harness.relay.v1.RelayService.SetEffort:output_type -> harness.relay.v1.SetEffortResponse
-	57,  // 206: harness.relay.v1.RelayService.SetPermissionMode:output_type -> harness.relay.v1.SetPermissionModeResponse
-	61,  // 207: harness.relay.v1.RelayService.SetOutputStyle:output_type -> harness.relay.v1.SetOutputStyleResponse
-	63,  // 208: harness.relay.v1.RelayService.SetAutoContinue:output_type -> harness.relay.v1.SetAutoContinueResponse
-	75,  // 209: harness.relay.v1.RelayService.RemoveQueuedMessage:output_type -> harness.relay.v1.RemoveQueuedMessageResponse
-	77,  // 210: harness.relay.v1.RelayService.RespondToPlan:output_type -> harness.relay.v1.RespondToPlanResponse
-	79,  // 211: harness.relay.v1.RelayService.StopTask:output_type -> harness.relay.v1.StopTaskResponse
-	81,  // 212: harness.relay.v1.RelayService.CloseSession:output_type -> harness.relay.v1.CloseSessionResponse
-	83,  // 213: harness.relay.v1.RelayService.Compact:output_type -> harness.relay.v1.CompactResponse
-	85,  // 214: harness.relay.v1.RelayService.Rewind:output_type -> harness.relay.v1.RewindResponse
-	59,  // 215: harness.relay.v1.RelayService.SuggestFiles:output_type -> harness.relay.v1.SuggestFilesResponse
-	87,  // 216: harness.relay.v1.RelayService.ListCheckpoints:output_type -> harness.relay.v1.ListCheckpointsResponse
-	89,  // 217: harness.relay.v1.RelayService.ListTasks:output_type -> harness.relay.v1.ListTasksResponse
-	91,  // 218: harness.relay.v1.RelayService.ListOutputStyles:output_type -> harness.relay.v1.ListOutputStylesResponse
-	93,  // 219: harness.relay.v1.RelayService.ListSlashCommands:output_type -> harness.relay.v1.ListSlashCommandsResponse
-	95,  // 220: harness.relay.v1.RelayService.SpawnSession:output_type -> harness.relay.v1.SpawnSessionResponse
-	97,  // 221: harness.relay.v1.RelayService.RequestTunnel:output_type -> harness.relay.v1.RequestTunnelResponse
-	99,  // 222: harness.relay.v1.RelayService.ListTunnels:output_type -> harness.relay.v1.ListTunnelsResponse
-	101, // 223: harness.relay.v1.RelayService.AuthorizeTunnel:output_type -> harness.relay.v1.AuthorizeTunnelResponse
-	69,  // 224: harness.relay.v1.RelayService.SetKeepAwake:output_type -> harness.relay.v1.SetKeepAwakeResponse
-	65,  // 225: harness.relay.v1.RelayService.StopSubagent:output_type -> harness.relay.v1.StopSubagentResponse
-	67,  // 226: harness.relay.v1.RelayService.GetSubagentTranscript:output_type -> harness.relay.v1.GetSubagentTranscriptResponse
-	71,  // 227: harness.relay.v1.RelayService.SendSessionNote:output_type -> harness.relay.v1.SendSessionNoteResponse
-	73,  // 228: harness.relay.v1.RelayService.ResolveSessionProposal:output_type -> harness.relay.v1.ResolveSessionProposalResponse
-	147, // 229: harness.relay.v1.RelayService.StopWorkflow:output_type -> harness.relay.v1.StopWorkflowResponse
-	188, // [188:230] is the sub-list for method output_type
-	146, // [146:188] is the sub-list for method input_type
-	146, // [146:146] is the sub-list for extension type_name
-	146, // [146:146] is the sub-list for extension extendee
-	0,   // [0:146] is the sub-list for field type_name
+	129, // 32: harness.relay.v1.Command.project_run_control:type_name -> harness.agent.v1.ControlProjectRunRequest
+	130, // 33: harness.relay.v1.SpawnSessionCommand.create:type_name -> harness.agent.v1.CreateSessionRequest
+	102, // 34: harness.relay.v1.SpawnSessionCommand.initial_message:type_name -> harness.agent.v1.SendUserMessageRequest
+	0,   // 35: harness.relay.v1.OpenTunnelCommand.kind:type_name -> harness.relay.v1.TunnelKind
+	131, // 36: harness.relay.v1.RegisterSessionRequest.session:type_name -> harness.agent.v1.SessionInfo
+	132, // 37: harness.relay.v1.EventEnvelope.event:type_name -> harness.agent.v1.SessionEvent
+	17,  // 38: harness.relay.v1.PublishEventsRequest.events:type_name -> harness.relay.v1.EventEnvelope
+	3,   // 39: harness.relay.v1.CommandAck.outcome:type_name -> harness.relay.v1.CommandAck.Outcome
+	133, // 40: harness.relay.v1.CommandAck.error:type_name -> harness.common.v1.ErrorInfo
+	134, // 41: harness.relay.v1.CommandAck.suggest_files:type_name -> harness.agent.v1.SuggestFilesResponse
+	135, // 42: harness.relay.v1.CommandAck.spawn_session:type_name -> harness.agent.v1.CreateSessionResponse
+	26,  // 43: harness.relay.v1.CommandAck.open_tunnel:type_name -> harness.relay.v1.Tunnel
+	136, // 44: harness.relay.v1.CommandAck.remove_queued_message:type_name -> harness.agent.v1.RemoveQueuedMessageResponse
+	137, // 45: harness.relay.v1.CommandAck.compact:type_name -> harness.agent.v1.CompactResponse
+	138, // 46: harness.relay.v1.CommandAck.rewind:type_name -> harness.agent.v1.RewindResponse
+	139, // 47: harness.relay.v1.CommandAck.list_checkpoints:type_name -> harness.agent.v1.ListCheckpointsResponse
+	140, // 48: harness.relay.v1.CommandAck.list_tasks:type_name -> harness.agent.v1.ListTasksResponse
+	141, // 49: harness.relay.v1.CommandAck.list_output_styles:type_name -> harness.agent.v1.ListOutputStylesResponse
+	142, // 50: harness.relay.v1.CommandAck.stop_subagent:type_name -> harness.agent.v1.StopSubagentResponse
+	143, // 51: harness.relay.v1.CommandAck.get_subagent_transcript:type_name -> harness.agent.v1.GetSubagentTranscriptResponse
+	144, // 52: harness.relay.v1.CommandAck.stop_workflow:type_name -> harness.agent.v1.StopWorkflowResponse
+	145, // 53: harness.relay.v1.CommandAck.project_run_control:type_name -> harness.agent.v1.ControlProjectRunResponse
+	146, // 54: harness.relay.v1.CommandAck.list_slash_commands:type_name -> harness.agent.v1.ListSlashCommandsResponse
+	20,  // 55: harness.relay.v1.AckCommandsRequest.acks:type_name -> harness.relay.v1.CommandAck
+	24,  // 56: harness.relay.v1.HeartbeatRequest.sessions:type_name -> harness.relay.v1.HostSessionState
+	147, // 57: harness.relay.v1.HostSessionState.status:type_name -> harness.agent.v1.SessionStatus
+	11,  // 58: harness.relay.v1.HeartbeatResponse.superseded:type_name -> harness.relay.v1.SessionSuperseded
+	0,   // 59: harness.relay.v1.Tunnel.kind:type_name -> harness.relay.v1.TunnelKind
+	0,   // 60: harness.relay.v1.RegisterTunnelRequest.kind:type_name -> harness.relay.v1.TunnelKind
+	26,  // 61: harness.relay.v1.RegisterTunnelResponse.tunnel:type_name -> harness.relay.v1.Tunnel
+	33,  // 62: harness.relay.v1.ListHostsResponse.hosts:type_name -> harness.relay.v1.Host
+	131, // 63: harness.relay.v1.Host.sessions:type_name -> harness.agent.v1.SessionInfo
+	132, // 64: harness.relay.v1.SubscribeSessionResponse.session_event:type_name -> harness.agent.v1.SessionEvent
+	36,  // 65: harness.relay.v1.SubscribeSessionResponse.flush_complete:type_name -> harness.relay.v1.FlushComplete
+	37,  // 66: harness.relay.v1.SubscribeSessionResponse.host_state:type_name -> harness.relay.v1.HostState
+	38,  // 67: harness.relay.v1.SubscribeSessionResponse.presence:type_name -> harness.relay.v1.Presence
+	12,  // 68: harness.relay.v1.SubscribeSessionResponse.heartbeat:type_name -> harness.relay.v1.Heartbeat
+	39,  // 69: harness.relay.v1.Presence.viewers:type_name -> harness.relay.v1.Viewer
+	1,   // 70: harness.relay.v1.Viewer.state:type_name -> harness.relay.v1.PresenceState
+	1,   // 71: harness.relay.v1.UpdatePresenceRequest.state:type_name -> harness.relay.v1.PresenceState
+	2,   // 72: harness.relay.v1.CommandResult.delivery:type_name -> harness.relay.v1.DeliveryState
+	20,  // 73: harness.relay.v1.CommandResult.ack:type_name -> harness.relay.v1.CommandAck
+	102, // 74: harness.relay.v1.SendUserMessageRequest.request:type_name -> harness.agent.v1.SendUserMessageRequest
+	42,  // 75: harness.relay.v1.SendUserMessageRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 76: harness.relay.v1.SendUserMessageResponse.result:type_name -> harness.relay.v1.CommandResult
+	103, // 77: harness.relay.v1.InterruptRequest.request:type_name -> harness.agent.v1.InterruptRequest
+	42,  // 78: harness.relay.v1.InterruptRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 79: harness.relay.v1.InterruptResponse.result:type_name -> harness.relay.v1.CommandResult
+	104, // 80: harness.relay.v1.RespondToPermissionRequest.request:type_name -> harness.agent.v1.RespondToPermissionRequest
+	42,  // 81: harness.relay.v1.RespondToPermissionRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 82: harness.relay.v1.RespondToPermissionResponse.result:type_name -> harness.relay.v1.CommandResult
+	105, // 83: harness.relay.v1.AnswerQuestionRequest.request:type_name -> harness.agent.v1.AnswerQuestionRequest
+	42,  // 84: harness.relay.v1.AnswerQuestionRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 85: harness.relay.v1.AnswerQuestionResponse.result:type_name -> harness.relay.v1.CommandResult
+	106, // 86: harness.relay.v1.SetModelRequest.request:type_name -> harness.agent.v1.SetModelRequest
+	42,  // 87: harness.relay.v1.SetModelRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 88: harness.relay.v1.SetModelResponse.result:type_name -> harness.relay.v1.CommandResult
+	107, // 89: harness.relay.v1.SetEffortRequest.request:type_name -> harness.agent.v1.SetEffortRequest
+	42,  // 90: harness.relay.v1.SetEffortRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 91: harness.relay.v1.SetEffortResponse.result:type_name -> harness.relay.v1.CommandResult
+	108, // 92: harness.relay.v1.SetPermissionModeRequest.request:type_name -> harness.agent.v1.SetPermissionModeRequest
+	42,  // 93: harness.relay.v1.SetPermissionModeRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 94: harness.relay.v1.SetPermissionModeResponse.result:type_name -> harness.relay.v1.CommandResult
+	109, // 95: harness.relay.v1.SuggestFilesRequest.request:type_name -> harness.agent.v1.SuggestFilesRequest
+	134, // 96: harness.relay.v1.SuggestFilesResponse.response:type_name -> harness.agent.v1.SuggestFilesResponse
+	110, // 97: harness.relay.v1.SetOutputStyleRequest.request:type_name -> harness.agent.v1.SetOutputStyleRequest
+	42,  // 98: harness.relay.v1.SetOutputStyleRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 99: harness.relay.v1.SetOutputStyleResponse.result:type_name -> harness.relay.v1.CommandResult
+	120, // 100: harness.relay.v1.SetAutoContinueRequest.request:type_name -> harness.agent.v1.SetAutoContinueRequest
+	42,  // 101: harness.relay.v1.SetAutoContinueRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 102: harness.relay.v1.SetAutoContinueResponse.result:type_name -> harness.relay.v1.CommandResult
+	122, // 103: harness.relay.v1.StopSubagentRequest.request:type_name -> harness.agent.v1.StopSubagentRequest
+	142, // 104: harness.relay.v1.StopSubagentResponse.response:type_name -> harness.agent.v1.StopSubagentResponse
+	123, // 105: harness.relay.v1.GetSubagentTranscriptRequest.request:type_name -> harness.agent.v1.GetSubagentTranscriptRequest
+	143, // 106: harness.relay.v1.GetSubagentTranscriptResponse.response:type_name -> harness.agent.v1.GetSubagentTranscriptResponse
+	121, // 107: harness.relay.v1.SetKeepAwakeRequest.request:type_name -> harness.agent.v1.SetKeepAwakeRequest
+	42,  // 108: harness.relay.v1.SetKeepAwakeRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 109: harness.relay.v1.SetKeepAwakeResponse.result:type_name -> harness.relay.v1.CommandResult
+	124, // 110: harness.relay.v1.SendSessionNoteRequest.request:type_name -> harness.agent.v1.DeliverSessionNoteRequest
+	42,  // 111: harness.relay.v1.SendSessionNoteRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 112: harness.relay.v1.SendSessionNoteResponse.result:type_name -> harness.relay.v1.CommandResult
+	125, // 113: harness.relay.v1.ResolveSessionProposalRequest.request:type_name -> harness.agent.v1.ResolveSessionProposalRequest
+	42,  // 114: harness.relay.v1.ResolveSessionProposalRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 115: harness.relay.v1.ResolveSessionProposalResponse.result:type_name -> harness.relay.v1.CommandResult
+	111, // 116: harness.relay.v1.RemoveQueuedMessageRequest.request:type_name -> harness.agent.v1.RemoveQueuedMessageRequest
+	42,  // 117: harness.relay.v1.RemoveQueuedMessageRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 118: harness.relay.v1.RemoveQueuedMessageResponse.result:type_name -> harness.relay.v1.CommandResult
+	112, // 119: harness.relay.v1.RespondToPlanRequest.request:type_name -> harness.agent.v1.RespondToPlanRequest
+	42,  // 120: harness.relay.v1.RespondToPlanRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 121: harness.relay.v1.RespondToPlanResponse.result:type_name -> harness.relay.v1.CommandResult
+	113, // 122: harness.relay.v1.StopTaskRequest.request:type_name -> harness.agent.v1.StopTaskRequest
+	42,  // 123: harness.relay.v1.StopTaskRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 124: harness.relay.v1.StopTaskResponse.result:type_name -> harness.relay.v1.CommandResult
+	114, // 125: harness.relay.v1.CloseSessionRequest.request:type_name -> harness.agent.v1.CloseSessionRequest
+	42,  // 126: harness.relay.v1.CloseSessionRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 127: harness.relay.v1.CloseSessionResponse.result:type_name -> harness.relay.v1.CommandResult
+	115, // 128: harness.relay.v1.CompactRequest.request:type_name -> harness.agent.v1.CompactRequest
+	42,  // 129: harness.relay.v1.CompactRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 130: harness.relay.v1.CompactResponse.result:type_name -> harness.relay.v1.CommandResult
+	116, // 131: harness.relay.v1.RewindRequest.request:type_name -> harness.agent.v1.RewindRequest
+	42,  // 132: harness.relay.v1.RewindRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 133: harness.relay.v1.RewindResponse.result:type_name -> harness.relay.v1.CommandResult
+	117, // 134: harness.relay.v1.ListCheckpointsRequest.request:type_name -> harness.agent.v1.ListCheckpointsRequest
+	139, // 135: harness.relay.v1.ListCheckpointsResponse.response:type_name -> harness.agent.v1.ListCheckpointsResponse
+	118, // 136: harness.relay.v1.ListTasksRequest.request:type_name -> harness.agent.v1.ListTasksRequest
+	140, // 137: harness.relay.v1.ListTasksResponse.response:type_name -> harness.agent.v1.ListTasksResponse
+	119, // 138: harness.relay.v1.ListOutputStylesRequest.request:type_name -> harness.agent.v1.ListOutputStylesRequest
+	141, // 139: harness.relay.v1.ListOutputStylesResponse.response:type_name -> harness.agent.v1.ListOutputStylesResponse
+	127, // 140: harness.relay.v1.ListSlashCommandsRequest.request:type_name -> harness.agent.v1.ListSlashCommandsRequest
+	146, // 141: harness.relay.v1.ListSlashCommandsResponse.response:type_name -> harness.agent.v1.ListSlashCommandsResponse
+	9,   // 142: harness.relay.v1.SpawnSessionRequest.spawn:type_name -> harness.relay.v1.SpawnSessionCommand
+	42,  // 143: harness.relay.v1.SpawnSessionRequest.options:type_name -> harness.relay.v1.CommandOptions
+	131, // 144: harness.relay.v1.SpawnSessionResponse.session:type_name -> harness.agent.v1.SessionInfo
+	10,  // 145: harness.relay.v1.RequestTunnelRequest.open:type_name -> harness.relay.v1.OpenTunnelCommand
+	26,  // 146: harness.relay.v1.RequestTunnelResponse.tunnel:type_name -> harness.relay.v1.Tunnel
+	26,  // 147: harness.relay.v1.ListTunnelsResponse.tunnels:type_name -> harness.relay.v1.Tunnel
+	4,   // 148: harness.relay.v1.RelayService.RegisterHost:input_type -> harness.relay.v1.RegisterHostRequest
+	6,   // 149: harness.relay.v1.RelayService.OpenHostStream:input_type -> harness.relay.v1.OpenHostStreamRequest
+	13,  // 150: harness.relay.v1.RelayService.RegisterSession:input_type -> harness.relay.v1.RegisterSessionRequest
+	15,  // 151: harness.relay.v1.RelayService.UnregisterSession:input_type -> harness.relay.v1.UnregisterSessionRequest
+	18,  // 152: harness.relay.v1.RelayService.PublishEvents:input_type -> harness.relay.v1.PublishEventsRequest
+	21,  // 153: harness.relay.v1.RelayService.AckCommands:input_type -> harness.relay.v1.AckCommandsRequest
+	23,  // 154: harness.relay.v1.RelayService.Heartbeat:input_type -> harness.relay.v1.HeartbeatRequest
+	27,  // 155: harness.relay.v1.RelayService.RegisterTunnel:input_type -> harness.relay.v1.RegisterTunnelRequest
+	29,  // 156: harness.relay.v1.RelayService.CloseTunnel:input_type -> harness.relay.v1.CloseTunnelRequest
+	31,  // 157: harness.relay.v1.RelayService.ListHosts:input_type -> harness.relay.v1.ListHostsRequest
+	34,  // 158: harness.relay.v1.RelayService.SubscribeSession:input_type -> harness.relay.v1.SubscribeSessionRequest
+	40,  // 159: harness.relay.v1.RelayService.UpdatePresence:input_type -> harness.relay.v1.UpdatePresenceRequest
+	44,  // 160: harness.relay.v1.RelayService.SendUserMessage:input_type -> harness.relay.v1.SendUserMessageRequest
+	46,  // 161: harness.relay.v1.RelayService.Interrupt:input_type -> harness.relay.v1.InterruptRequest
+	48,  // 162: harness.relay.v1.RelayService.RespondToPermission:input_type -> harness.relay.v1.RespondToPermissionRequest
+	50,  // 163: harness.relay.v1.RelayService.AnswerQuestion:input_type -> harness.relay.v1.AnswerQuestionRequest
+	52,  // 164: harness.relay.v1.RelayService.SetModel:input_type -> harness.relay.v1.SetModelRequest
+	54,  // 165: harness.relay.v1.RelayService.SetEffort:input_type -> harness.relay.v1.SetEffortRequest
+	56,  // 166: harness.relay.v1.RelayService.SetPermissionMode:input_type -> harness.relay.v1.SetPermissionModeRequest
+	60,  // 167: harness.relay.v1.RelayService.SetOutputStyle:input_type -> harness.relay.v1.SetOutputStyleRequest
+	62,  // 168: harness.relay.v1.RelayService.SetAutoContinue:input_type -> harness.relay.v1.SetAutoContinueRequest
+	74,  // 169: harness.relay.v1.RelayService.RemoveQueuedMessage:input_type -> harness.relay.v1.RemoveQueuedMessageRequest
+	76,  // 170: harness.relay.v1.RelayService.RespondToPlan:input_type -> harness.relay.v1.RespondToPlanRequest
+	78,  // 171: harness.relay.v1.RelayService.StopTask:input_type -> harness.relay.v1.StopTaskRequest
+	80,  // 172: harness.relay.v1.RelayService.CloseSession:input_type -> harness.relay.v1.CloseSessionRequest
+	82,  // 173: harness.relay.v1.RelayService.Compact:input_type -> harness.relay.v1.CompactRequest
+	84,  // 174: harness.relay.v1.RelayService.Rewind:input_type -> harness.relay.v1.RewindRequest
+	58,  // 175: harness.relay.v1.RelayService.SuggestFiles:input_type -> harness.relay.v1.SuggestFilesRequest
+	86,  // 176: harness.relay.v1.RelayService.ListCheckpoints:input_type -> harness.relay.v1.ListCheckpointsRequest
+	88,  // 177: harness.relay.v1.RelayService.ListTasks:input_type -> harness.relay.v1.ListTasksRequest
+	90,  // 178: harness.relay.v1.RelayService.ListOutputStyles:input_type -> harness.relay.v1.ListOutputStylesRequest
+	92,  // 179: harness.relay.v1.RelayService.ListSlashCommands:input_type -> harness.relay.v1.ListSlashCommandsRequest
+	94,  // 180: harness.relay.v1.RelayService.SpawnSession:input_type -> harness.relay.v1.SpawnSessionRequest
+	96,  // 181: harness.relay.v1.RelayService.RequestTunnel:input_type -> harness.relay.v1.RequestTunnelRequest
+	98,  // 182: harness.relay.v1.RelayService.ListTunnels:input_type -> harness.relay.v1.ListTunnelsRequest
+	100, // 183: harness.relay.v1.RelayService.AuthorizeTunnel:input_type -> harness.relay.v1.AuthorizeTunnelRequest
+	68,  // 184: harness.relay.v1.RelayService.SetKeepAwake:input_type -> harness.relay.v1.SetKeepAwakeRequest
+	64,  // 185: harness.relay.v1.RelayService.StopSubagent:input_type -> harness.relay.v1.StopSubagentRequest
+	66,  // 186: harness.relay.v1.RelayService.GetSubagentTranscript:input_type -> harness.relay.v1.GetSubagentTranscriptRequest
+	70,  // 187: harness.relay.v1.RelayService.SendSessionNote:input_type -> harness.relay.v1.SendSessionNoteRequest
+	72,  // 188: harness.relay.v1.RelayService.ResolveSessionProposal:input_type -> harness.relay.v1.ResolveSessionProposalRequest
+	148, // 189: harness.relay.v1.RelayService.StopWorkflow:input_type -> harness.relay.v1.StopWorkflowRequest
+	149, // 190: harness.relay.v1.RelayService.ControlProjectRun:input_type -> harness.relay.v1.ControlProjectRunRequest
+	5,   // 191: harness.relay.v1.RelayService.RegisterHost:output_type -> harness.relay.v1.RegisterHostResponse
+	7,   // 192: harness.relay.v1.RelayService.OpenHostStream:output_type -> harness.relay.v1.OpenHostStreamResponse
+	14,  // 193: harness.relay.v1.RelayService.RegisterSession:output_type -> harness.relay.v1.RegisterSessionResponse
+	16,  // 194: harness.relay.v1.RelayService.UnregisterSession:output_type -> harness.relay.v1.UnregisterSessionResponse
+	19,  // 195: harness.relay.v1.RelayService.PublishEvents:output_type -> harness.relay.v1.PublishEventsResponse
+	22,  // 196: harness.relay.v1.RelayService.AckCommands:output_type -> harness.relay.v1.AckCommandsResponse
+	25,  // 197: harness.relay.v1.RelayService.Heartbeat:output_type -> harness.relay.v1.HeartbeatResponse
+	28,  // 198: harness.relay.v1.RelayService.RegisterTunnel:output_type -> harness.relay.v1.RegisterTunnelResponse
+	30,  // 199: harness.relay.v1.RelayService.CloseTunnel:output_type -> harness.relay.v1.CloseTunnelResponse
+	32,  // 200: harness.relay.v1.RelayService.ListHosts:output_type -> harness.relay.v1.ListHostsResponse
+	35,  // 201: harness.relay.v1.RelayService.SubscribeSession:output_type -> harness.relay.v1.SubscribeSessionResponse
+	41,  // 202: harness.relay.v1.RelayService.UpdatePresence:output_type -> harness.relay.v1.UpdatePresenceResponse
+	45,  // 203: harness.relay.v1.RelayService.SendUserMessage:output_type -> harness.relay.v1.SendUserMessageResponse
+	47,  // 204: harness.relay.v1.RelayService.Interrupt:output_type -> harness.relay.v1.InterruptResponse
+	49,  // 205: harness.relay.v1.RelayService.RespondToPermission:output_type -> harness.relay.v1.RespondToPermissionResponse
+	51,  // 206: harness.relay.v1.RelayService.AnswerQuestion:output_type -> harness.relay.v1.AnswerQuestionResponse
+	53,  // 207: harness.relay.v1.RelayService.SetModel:output_type -> harness.relay.v1.SetModelResponse
+	55,  // 208: harness.relay.v1.RelayService.SetEffort:output_type -> harness.relay.v1.SetEffortResponse
+	57,  // 209: harness.relay.v1.RelayService.SetPermissionMode:output_type -> harness.relay.v1.SetPermissionModeResponse
+	61,  // 210: harness.relay.v1.RelayService.SetOutputStyle:output_type -> harness.relay.v1.SetOutputStyleResponse
+	63,  // 211: harness.relay.v1.RelayService.SetAutoContinue:output_type -> harness.relay.v1.SetAutoContinueResponse
+	75,  // 212: harness.relay.v1.RelayService.RemoveQueuedMessage:output_type -> harness.relay.v1.RemoveQueuedMessageResponse
+	77,  // 213: harness.relay.v1.RelayService.RespondToPlan:output_type -> harness.relay.v1.RespondToPlanResponse
+	79,  // 214: harness.relay.v1.RelayService.StopTask:output_type -> harness.relay.v1.StopTaskResponse
+	81,  // 215: harness.relay.v1.RelayService.CloseSession:output_type -> harness.relay.v1.CloseSessionResponse
+	83,  // 216: harness.relay.v1.RelayService.Compact:output_type -> harness.relay.v1.CompactResponse
+	85,  // 217: harness.relay.v1.RelayService.Rewind:output_type -> harness.relay.v1.RewindResponse
+	59,  // 218: harness.relay.v1.RelayService.SuggestFiles:output_type -> harness.relay.v1.SuggestFilesResponse
+	87,  // 219: harness.relay.v1.RelayService.ListCheckpoints:output_type -> harness.relay.v1.ListCheckpointsResponse
+	89,  // 220: harness.relay.v1.RelayService.ListTasks:output_type -> harness.relay.v1.ListTasksResponse
+	91,  // 221: harness.relay.v1.RelayService.ListOutputStyles:output_type -> harness.relay.v1.ListOutputStylesResponse
+	93,  // 222: harness.relay.v1.RelayService.ListSlashCommands:output_type -> harness.relay.v1.ListSlashCommandsResponse
+	95,  // 223: harness.relay.v1.RelayService.SpawnSession:output_type -> harness.relay.v1.SpawnSessionResponse
+	97,  // 224: harness.relay.v1.RelayService.RequestTunnel:output_type -> harness.relay.v1.RequestTunnelResponse
+	99,  // 225: harness.relay.v1.RelayService.ListTunnels:output_type -> harness.relay.v1.ListTunnelsResponse
+	101, // 226: harness.relay.v1.RelayService.AuthorizeTunnel:output_type -> harness.relay.v1.AuthorizeTunnelResponse
+	69,  // 227: harness.relay.v1.RelayService.SetKeepAwake:output_type -> harness.relay.v1.SetKeepAwakeResponse
+	65,  // 228: harness.relay.v1.RelayService.StopSubagent:output_type -> harness.relay.v1.StopSubagentResponse
+	67,  // 229: harness.relay.v1.RelayService.GetSubagentTranscript:output_type -> harness.relay.v1.GetSubagentTranscriptResponse
+	71,  // 230: harness.relay.v1.RelayService.SendSessionNote:output_type -> harness.relay.v1.SendSessionNoteResponse
+	73,  // 231: harness.relay.v1.RelayService.ResolveSessionProposal:output_type -> harness.relay.v1.ResolveSessionProposalResponse
+	150, // 232: harness.relay.v1.RelayService.StopWorkflow:output_type -> harness.relay.v1.StopWorkflowResponse
+	151, // 233: harness.relay.v1.RelayService.ControlProjectRun:output_type -> harness.relay.v1.ControlProjectRunResponse
+	191, // [191:234] is the sub-list for method output_type
+	148, // [148:191] is the sub-list for method input_type
+	148, // [148:148] is the sub-list for extension type_name
+	148, // [148:148] is the sub-list for extension extendee
+	0,   // [0:148] is the sub-list for field type_name
 }
 
 func init() { file_harness_relay_v1_relay_proto_init() }
@@ -7080,6 +7123,7 @@ func file_harness_relay_v1_relay_proto_init() {
 	if File_harness_relay_v1_relay_proto != nil {
 		return
 	}
+	file_harness_relay_v1_inbox_proto_init()
 	file_harness_relay_v1_workflows_proto_init()
 	file_harness_relay_v1_relay_proto_msgTypes[3].OneofWrappers = []any{
 		(*OpenHostStreamResponse_Command)(nil),
@@ -7116,6 +7160,7 @@ func file_harness_relay_v1_relay_proto_init() {
 		(*Command_StopWorkflow)(nil),
 		(*Command_ListSlashCommands)(nil),
 		(*Command_DeliverAutoFixJob)(nil),
+		(*Command_ProjectRunControl)(nil),
 	}
 	file_harness_relay_v1_relay_proto_msgTypes[16].OneofWrappers = []any{
 		(*CommandAck_SuggestFiles)(nil),
@@ -7130,6 +7175,7 @@ func file_harness_relay_v1_relay_proto_init() {
 		(*CommandAck_StopSubagent)(nil),
 		(*CommandAck_GetSubagentTranscript)(nil),
 		(*CommandAck_StopWorkflow)(nil),
+		(*CommandAck_ProjectRunControl)(nil),
 		(*CommandAck_ListSlashCommands)(nil),
 	}
 	file_harness_relay_v1_relay_proto_msgTypes[31].OneofWrappers = []any{

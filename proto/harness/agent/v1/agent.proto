@@ -9,6 +9,7 @@ import "harness/agent/v1/device_settings.proto";
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/hooks.proto";
 import "harness/agent/v1/import.proto";
+import "harness/agent/v1/inbox.proto";
 import "harness/agent/v1/limits.proto";
 import "harness/agent/v1/localmodels.proto";
 import "harness/agent/v1/managed_policy.proto";
@@ -17,6 +18,7 @@ import "harness/agent/v1/pr.proto";
 import "harness/agent/v1/pr_create.proto";
 import "harness/agent/v1/preview.proto";
 import "harness/agent/v1/project_import.proto";
+import "harness/agent/v1/project_runs.proto";
 import "harness/agent/v1/real_browser.proto";
 import "harness/agent/v1/sandbox.proto";
 import "harness/agent/v1/schedules.proto";
@@ -420,6 +422,23 @@ service AgentService {
   rpc ListScheduleRuns(ListScheduleRunsRequest) returns (ListScheduleRunsResponse);
   rpc TrustSchedule(TrustScheduleRequest) returns (TrustScheduleResponse);
   rpc RotateScheduleWebhook(RotateScheduleWebhookRequest) returns (RotateScheduleWebhookResponse);
+
+  // The inbox (inbox.proto): every session and background agent of the user on every machine, grouped by what it needs.
+  // Local live sessions are folded here; the user's other machines and hosts come from the harness server.
+  rpc ListInbox(ListInboxRequest) returns (ListInboxResponse);
+  // Lists nothing itself: changes after the caller's ListInbox, starting with caught_up.
+  rpc WatchInbox(WatchInboxRequest) returns (stream WatchInboxResponse);
+  // Per user, on the harness server: read on one device, read on all.
+  rpc MarkInboxRead(MarkInboxReadRequest) returns (MarkInboxReadResponse);
+
+  // Project runs (project_runs.proto): a coordinator session and its workers.
+  rpc CreateProjectRun(CreateProjectRunRequest) returns (CreateProjectRunResponse);
+  rpc ListProjectRuns(ListProjectRunsRequest) returns (ListProjectRunsResponse);
+  rpc GetProjectRun(GetProjectRunRequest) returns (GetProjectRunResponse);
+  // Pause, resume, stop, limits. A run of another machine is reached through the relay.
+  rpc ControlProjectRun(ControlProjectRunRequest) returns (ControlProjectRunResponse);
+  // Forgets a run that ended (its sessions stay).
+  rpc DeleteProjectRun(DeleteProjectRunRequest) returns (DeleteProjectRunResponse);
 }
 
 message CreateObjectTicketRequest {}
@@ -878,6 +897,8 @@ message SessionEvent {
     // Goal mode and the task graph (teamwork.proto); numbered apart like the shell events.
     GoalUpdated goal_updated = 140;
     TaskGraphUpdated task_graph_updated = 141;
+    // The coordinator session's project run (project_runs.proto).
+    ProjectRunUpdated project_run_updated = 310;
   }
 }
 
@@ -1573,6 +1594,12 @@ message UserPreferences {
   ManagedPolicyView managed_policy = 16;
   // How requests use the models (settings keys speedTier, cacheTtl, advisorModel).
   ModelTuning model_tuning = 26;
+  // Workers a project run runs at once when it names no limit (settings key projectMaxWorkers), 1 to 32. Default 4. A
+  // policy value is a ceiling.
+  int32 project_max_workers = 50;
+  // The budget of a project run in USD when it names none (settings key projectBudgetUsd); 0: none. A policy value is a
+  // ceiling.
+  double project_budget_usd = 51;
 }
 
 // Choices about how a user's requests run. Sessions opened from then on follow them.
@@ -1623,6 +1650,10 @@ message UpdateUserPreferencesRequest {
   optional bool auto_memory_enabled = 24;
   optional bool schedules_enabled = 18;
   optional int32 goal_max_turns = 19;
+  // INVALID_ARGUMENT outside 1 to 32.
+  optional int32 project_max_workers = 50;
+  // INVALID_ARGUMENT below 0.
+  optional double project_budget_usd = 51;
 }
 
 message UpdateUserPreferencesResponse {

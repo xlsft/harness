@@ -440,6 +440,28 @@ const (
 	// AgentServiceRotateScheduleWebhookProcedure is the fully-qualified name of the AgentService's
 	// RotateScheduleWebhook RPC.
 	AgentServiceRotateScheduleWebhookProcedure = "/harness.agent.v1.AgentService/RotateScheduleWebhook"
+	// AgentServiceListInboxProcedure is the fully-qualified name of the AgentService's ListInbox RPC.
+	AgentServiceListInboxProcedure = "/harness.agent.v1.AgentService/ListInbox"
+	// AgentServiceWatchInboxProcedure is the fully-qualified name of the AgentService's WatchInbox RPC.
+	AgentServiceWatchInboxProcedure = "/harness.agent.v1.AgentService/WatchInbox"
+	// AgentServiceMarkInboxReadProcedure is the fully-qualified name of the AgentService's
+	// MarkInboxRead RPC.
+	AgentServiceMarkInboxReadProcedure = "/harness.agent.v1.AgentService/MarkInboxRead"
+	// AgentServiceCreateProjectRunProcedure is the fully-qualified name of the AgentService's
+	// CreateProjectRun RPC.
+	AgentServiceCreateProjectRunProcedure = "/harness.agent.v1.AgentService/CreateProjectRun"
+	// AgentServiceListProjectRunsProcedure is the fully-qualified name of the AgentService's
+	// ListProjectRuns RPC.
+	AgentServiceListProjectRunsProcedure = "/harness.agent.v1.AgentService/ListProjectRuns"
+	// AgentServiceGetProjectRunProcedure is the fully-qualified name of the AgentService's
+	// GetProjectRun RPC.
+	AgentServiceGetProjectRunProcedure = "/harness.agent.v1.AgentService/GetProjectRun"
+	// AgentServiceControlProjectRunProcedure is the fully-qualified name of the AgentService's
+	// ControlProjectRun RPC.
+	AgentServiceControlProjectRunProcedure = "/harness.agent.v1.AgentService/ControlProjectRun"
+	// AgentServiceDeleteProjectRunProcedure is the fully-qualified name of the AgentService's
+	// DeleteProjectRun RPC.
+	AgentServiceDeleteProjectRunProcedure = "/harness.agent.v1.AgentService/DeleteProjectRun"
 )
 
 // AgentServiceClient is a client for the harness.agent.v1.AgentService service.
@@ -779,6 +801,21 @@ type AgentServiceClient interface {
 	ListScheduleRuns(context.Context, *connect.Request[v1.ListScheduleRunsRequest]) (*connect.Response[v1.ListScheduleRunsResponse], error)
 	TrustSchedule(context.Context, *connect.Request[v1.TrustScheduleRequest]) (*connect.Response[v1.TrustScheduleResponse], error)
 	RotateScheduleWebhook(context.Context, *connect.Request[v1.RotateScheduleWebhookRequest]) (*connect.Response[v1.RotateScheduleWebhookResponse], error)
+	// The inbox (inbox.proto): every session and background agent of the user on every machine, grouped by what it needs.
+	// Local live sessions are folded here; the user's other machines and hosts come from the harness server.
+	ListInbox(context.Context, *connect.Request[v1.ListInboxRequest]) (*connect.Response[v1.ListInboxResponse], error)
+	// Lists nothing itself: changes after the caller's ListInbox, starting with caught_up.
+	WatchInbox(context.Context, *connect.Request[v1.WatchInboxRequest]) (*connect.ServerStreamForClient[v1.WatchInboxResponse], error)
+	// Per user, on the harness server: read on one device, read on all.
+	MarkInboxRead(context.Context, *connect.Request[v1.MarkInboxReadRequest]) (*connect.Response[v1.MarkInboxReadResponse], error)
+	// Project runs (project_runs.proto): a coordinator session and its workers.
+	CreateProjectRun(context.Context, *connect.Request[v1.CreateProjectRunRequest]) (*connect.Response[v1.CreateProjectRunResponse], error)
+	ListProjectRuns(context.Context, *connect.Request[v1.ListProjectRunsRequest]) (*connect.Response[v1.ListProjectRunsResponse], error)
+	GetProjectRun(context.Context, *connect.Request[v1.GetProjectRunRequest]) (*connect.Response[v1.GetProjectRunResponse], error)
+	// Pause, resume, stop, limits. A run of another machine is reached through the relay.
+	ControlProjectRun(context.Context, *connect.Request[v1.ControlProjectRunRequest]) (*connect.Response[v1.ControlProjectRunResponse], error)
+	// Forgets a run that ended (its sessions stay).
+	DeleteProjectRun(context.Context, *connect.Request[v1.DeleteProjectRunRequest]) (*connect.Response[v1.DeleteProjectRunResponse], error)
 }
 
 // NewAgentServiceClient constructs a client for the harness.agent.v1.AgentService service. By
@@ -1632,6 +1669,54 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("RotateScheduleWebhook")),
 			connect.WithClientOptions(opts...),
 		),
+		listInbox: connect.NewClient[v1.ListInboxRequest, v1.ListInboxResponse](
+			httpClient,
+			baseURL+AgentServiceListInboxProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListInbox")),
+			connect.WithClientOptions(opts...),
+		),
+		watchInbox: connect.NewClient[v1.WatchInboxRequest, v1.WatchInboxResponse](
+			httpClient,
+			baseURL+AgentServiceWatchInboxProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("WatchInbox")),
+			connect.WithClientOptions(opts...),
+		),
+		markInboxRead: connect.NewClient[v1.MarkInboxReadRequest, v1.MarkInboxReadResponse](
+			httpClient,
+			baseURL+AgentServiceMarkInboxReadProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("MarkInboxRead")),
+			connect.WithClientOptions(opts...),
+		),
+		createProjectRun: connect.NewClient[v1.CreateProjectRunRequest, v1.CreateProjectRunResponse](
+			httpClient,
+			baseURL+AgentServiceCreateProjectRunProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("CreateProjectRun")),
+			connect.WithClientOptions(opts...),
+		),
+		listProjectRuns: connect.NewClient[v1.ListProjectRunsRequest, v1.ListProjectRunsResponse](
+			httpClient,
+			baseURL+AgentServiceListProjectRunsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListProjectRuns")),
+			connect.WithClientOptions(opts...),
+		),
+		getProjectRun: connect.NewClient[v1.GetProjectRunRequest, v1.GetProjectRunResponse](
+			httpClient,
+			baseURL+AgentServiceGetProjectRunProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetProjectRun")),
+			connect.WithClientOptions(opts...),
+		),
+		controlProjectRun: connect.NewClient[v1.ControlProjectRunRequest, v1.ControlProjectRunResponse](
+			httpClient,
+			baseURL+AgentServiceControlProjectRunProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ControlProjectRun")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteProjectRun: connect.NewClient[v1.DeleteProjectRunRequest, v1.DeleteProjectRunResponse](
+			httpClient,
+			baseURL+AgentServiceDeleteProjectRunProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("DeleteProjectRun")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1777,6 +1862,14 @@ type agentServiceClient struct {
 	listScheduleRuns        *connect.Client[v1.ListScheduleRunsRequest, v1.ListScheduleRunsResponse]
 	trustSchedule           *connect.Client[v1.TrustScheduleRequest, v1.TrustScheduleResponse]
 	rotateScheduleWebhook   *connect.Client[v1.RotateScheduleWebhookRequest, v1.RotateScheduleWebhookResponse]
+	listInbox               *connect.Client[v1.ListInboxRequest, v1.ListInboxResponse]
+	watchInbox              *connect.Client[v1.WatchInboxRequest, v1.WatchInboxResponse]
+	markInboxRead           *connect.Client[v1.MarkInboxReadRequest, v1.MarkInboxReadResponse]
+	createProjectRun        *connect.Client[v1.CreateProjectRunRequest, v1.CreateProjectRunResponse]
+	listProjectRuns         *connect.Client[v1.ListProjectRunsRequest, v1.ListProjectRunsResponse]
+	getProjectRun           *connect.Client[v1.GetProjectRunRequest, v1.GetProjectRunResponse]
+	controlProjectRun       *connect.Client[v1.ControlProjectRunRequest, v1.ControlProjectRunResponse]
+	deleteProjectRun        *connect.Client[v1.DeleteProjectRunRequest, v1.DeleteProjectRunResponse]
 }
 
 // Initialize calls harness.agent.v1.AgentService.Initialize.
@@ -2479,6 +2572,46 @@ func (c *agentServiceClient) RotateScheduleWebhook(ctx context.Context, req *con
 	return c.rotateScheduleWebhook.CallUnary(ctx, req)
 }
 
+// ListInbox calls harness.agent.v1.AgentService.ListInbox.
+func (c *agentServiceClient) ListInbox(ctx context.Context, req *connect.Request[v1.ListInboxRequest]) (*connect.Response[v1.ListInboxResponse], error) {
+	return c.listInbox.CallUnary(ctx, req)
+}
+
+// WatchInbox calls harness.agent.v1.AgentService.WatchInbox.
+func (c *agentServiceClient) WatchInbox(ctx context.Context, req *connect.Request[v1.WatchInboxRequest]) (*connect.ServerStreamForClient[v1.WatchInboxResponse], error) {
+	return c.watchInbox.CallServerStream(ctx, req)
+}
+
+// MarkInboxRead calls harness.agent.v1.AgentService.MarkInboxRead.
+func (c *agentServiceClient) MarkInboxRead(ctx context.Context, req *connect.Request[v1.MarkInboxReadRequest]) (*connect.Response[v1.MarkInboxReadResponse], error) {
+	return c.markInboxRead.CallUnary(ctx, req)
+}
+
+// CreateProjectRun calls harness.agent.v1.AgentService.CreateProjectRun.
+func (c *agentServiceClient) CreateProjectRun(ctx context.Context, req *connect.Request[v1.CreateProjectRunRequest]) (*connect.Response[v1.CreateProjectRunResponse], error) {
+	return c.createProjectRun.CallUnary(ctx, req)
+}
+
+// ListProjectRuns calls harness.agent.v1.AgentService.ListProjectRuns.
+func (c *agentServiceClient) ListProjectRuns(ctx context.Context, req *connect.Request[v1.ListProjectRunsRequest]) (*connect.Response[v1.ListProjectRunsResponse], error) {
+	return c.listProjectRuns.CallUnary(ctx, req)
+}
+
+// GetProjectRun calls harness.agent.v1.AgentService.GetProjectRun.
+func (c *agentServiceClient) GetProjectRun(ctx context.Context, req *connect.Request[v1.GetProjectRunRequest]) (*connect.Response[v1.GetProjectRunResponse], error) {
+	return c.getProjectRun.CallUnary(ctx, req)
+}
+
+// ControlProjectRun calls harness.agent.v1.AgentService.ControlProjectRun.
+func (c *agentServiceClient) ControlProjectRun(ctx context.Context, req *connect.Request[v1.ControlProjectRunRequest]) (*connect.Response[v1.ControlProjectRunResponse], error) {
+	return c.controlProjectRun.CallUnary(ctx, req)
+}
+
+// DeleteProjectRun calls harness.agent.v1.AgentService.DeleteProjectRun.
+func (c *agentServiceClient) DeleteProjectRun(ctx context.Context, req *connect.Request[v1.DeleteProjectRunRequest]) (*connect.Response[v1.DeleteProjectRunResponse], error) {
+	return c.deleteProjectRun.CallUnary(ctx, req)
+}
+
 // AgentServiceHandler is an implementation of the harness.agent.v1.AgentService service.
 type AgentServiceHandler interface {
 	Initialize(context.Context, *connect.Request[v1.InitializeRequest]) (*connect.Response[v1.InitializeResponse], error)
@@ -2816,6 +2949,21 @@ type AgentServiceHandler interface {
 	ListScheduleRuns(context.Context, *connect.Request[v1.ListScheduleRunsRequest]) (*connect.Response[v1.ListScheduleRunsResponse], error)
 	TrustSchedule(context.Context, *connect.Request[v1.TrustScheduleRequest]) (*connect.Response[v1.TrustScheduleResponse], error)
 	RotateScheduleWebhook(context.Context, *connect.Request[v1.RotateScheduleWebhookRequest]) (*connect.Response[v1.RotateScheduleWebhookResponse], error)
+	// The inbox (inbox.proto): every session and background agent of the user on every machine, grouped by what it needs.
+	// Local live sessions are folded here; the user's other machines and hosts come from the harness server.
+	ListInbox(context.Context, *connect.Request[v1.ListInboxRequest]) (*connect.Response[v1.ListInboxResponse], error)
+	// Lists nothing itself: changes after the caller's ListInbox, starting with caught_up.
+	WatchInbox(context.Context, *connect.Request[v1.WatchInboxRequest], *connect.ServerStream[v1.WatchInboxResponse]) error
+	// Per user, on the harness server: read on one device, read on all.
+	MarkInboxRead(context.Context, *connect.Request[v1.MarkInboxReadRequest]) (*connect.Response[v1.MarkInboxReadResponse], error)
+	// Project runs (project_runs.proto): a coordinator session and its workers.
+	CreateProjectRun(context.Context, *connect.Request[v1.CreateProjectRunRequest]) (*connect.Response[v1.CreateProjectRunResponse], error)
+	ListProjectRuns(context.Context, *connect.Request[v1.ListProjectRunsRequest]) (*connect.Response[v1.ListProjectRunsResponse], error)
+	GetProjectRun(context.Context, *connect.Request[v1.GetProjectRunRequest]) (*connect.Response[v1.GetProjectRunResponse], error)
+	// Pause, resume, stop, limits. A run of another machine is reached through the relay.
+	ControlProjectRun(context.Context, *connect.Request[v1.ControlProjectRunRequest]) (*connect.Response[v1.ControlProjectRunResponse], error)
+	// Forgets a run that ended (its sessions stay).
+	DeleteProjectRun(context.Context, *connect.Request[v1.DeleteProjectRunRequest]) (*connect.Response[v1.DeleteProjectRunResponse], error)
 }
 
 // NewAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -3665,6 +3813,54 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("RotateScheduleWebhook")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceListInboxHandler := connect.NewUnaryHandler(
+		AgentServiceListInboxProcedure,
+		svc.ListInbox,
+		connect.WithSchema(agentServiceMethods.ByName("ListInbox")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceWatchInboxHandler := connect.NewServerStreamHandler(
+		AgentServiceWatchInboxProcedure,
+		svc.WatchInbox,
+		connect.WithSchema(agentServiceMethods.ByName("WatchInbox")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceMarkInboxReadHandler := connect.NewUnaryHandler(
+		AgentServiceMarkInboxReadProcedure,
+		svc.MarkInboxRead,
+		connect.WithSchema(agentServiceMethods.ByName("MarkInboxRead")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceCreateProjectRunHandler := connect.NewUnaryHandler(
+		AgentServiceCreateProjectRunProcedure,
+		svc.CreateProjectRun,
+		connect.WithSchema(agentServiceMethods.ByName("CreateProjectRun")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceListProjectRunsHandler := connect.NewUnaryHandler(
+		AgentServiceListProjectRunsProcedure,
+		svc.ListProjectRuns,
+		connect.WithSchema(agentServiceMethods.ByName("ListProjectRuns")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetProjectRunHandler := connect.NewUnaryHandler(
+		AgentServiceGetProjectRunProcedure,
+		svc.GetProjectRun,
+		connect.WithSchema(agentServiceMethods.ByName("GetProjectRun")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceControlProjectRunHandler := connect.NewUnaryHandler(
+		AgentServiceControlProjectRunProcedure,
+		svc.ControlProjectRun,
+		connect.WithSchema(agentServiceMethods.ByName("ControlProjectRun")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceDeleteProjectRunHandler := connect.NewUnaryHandler(
+		AgentServiceDeleteProjectRunProcedure,
+		svc.DeleteProjectRun,
+		connect.WithSchema(agentServiceMethods.ByName("DeleteProjectRun")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.AgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AgentServiceInitializeProcedure:
@@ -3947,6 +4143,22 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceTrustScheduleHandler.ServeHTTP(w, r)
 		case AgentServiceRotateScheduleWebhookProcedure:
 			agentServiceRotateScheduleWebhookHandler.ServeHTTP(w, r)
+		case AgentServiceListInboxProcedure:
+			agentServiceListInboxHandler.ServeHTTP(w, r)
+		case AgentServiceWatchInboxProcedure:
+			agentServiceWatchInboxHandler.ServeHTTP(w, r)
+		case AgentServiceMarkInboxReadProcedure:
+			agentServiceMarkInboxReadHandler.ServeHTTP(w, r)
+		case AgentServiceCreateProjectRunProcedure:
+			agentServiceCreateProjectRunHandler.ServeHTTP(w, r)
+		case AgentServiceListProjectRunsProcedure:
+			agentServiceListProjectRunsHandler.ServeHTTP(w, r)
+		case AgentServiceGetProjectRunProcedure:
+			agentServiceGetProjectRunHandler.ServeHTTP(w, r)
+		case AgentServiceControlProjectRunProcedure:
+			agentServiceControlProjectRunHandler.ServeHTTP(w, r)
+		case AgentServiceDeleteProjectRunProcedure:
+			agentServiceDeleteProjectRunHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -4514,4 +4726,36 @@ func (UnimplementedAgentServiceHandler) TrustSchedule(context.Context, *connect.
 
 func (UnimplementedAgentServiceHandler) RotateScheduleWebhook(context.Context, *connect.Request[v1.RotateScheduleWebhookRequest]) (*connect.Response[v1.RotateScheduleWebhookResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RotateScheduleWebhook is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListInbox(context.Context, *connect.Request[v1.ListInboxRequest]) (*connect.Response[v1.ListInboxResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListInbox is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) WatchInbox(context.Context, *connect.Request[v1.WatchInboxRequest], *connect.ServerStream[v1.WatchInboxResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.WatchInbox is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) MarkInboxRead(context.Context, *connect.Request[v1.MarkInboxReadRequest]) (*connect.Response[v1.MarkInboxReadResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.MarkInboxRead is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) CreateProjectRun(context.Context, *connect.Request[v1.CreateProjectRunRequest]) (*connect.Response[v1.CreateProjectRunResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.CreateProjectRun is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListProjectRuns(context.Context, *connect.Request[v1.ListProjectRunsRequest]) (*connect.Response[v1.ListProjectRunsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListProjectRuns is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetProjectRun(context.Context, *connect.Request[v1.GetProjectRunRequest]) (*connect.Response[v1.GetProjectRunResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetProjectRun is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ControlProjectRun(context.Context, *connect.Request[v1.ControlProjectRunRequest]) (*connect.Response[v1.ControlProjectRunResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ControlProjectRun is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) DeleteProjectRun(context.Context, *connect.Request[v1.DeleteProjectRunRequest]) (*connect.Response[v1.DeleteProjectRunResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.DeleteProjectRun is not implemented"))
 }
