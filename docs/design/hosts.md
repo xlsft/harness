@@ -29,6 +29,84 @@ Numbered so later changes can refer to them. A decision that changes is edited i
 19. **Schedules name an away host** (`Schedule.away_host_id`, `repository_key`). The host takes a schedule whose own machine has been away past the grace. A server-side claim per schedule and due time (`ClaimScheduleRun`) keeps the machine's catch-up and the host from both running one slot. If the claim can't be reached, the machine runs its own schedule and the host doesn't. Consent: a daemon allows these schedules without asking, because anyone who can edit the document can start any session on it anyway; `bypassPermissions` stays refused.
 20. **Policy.** Workers read the managed policy like any client, for their user. On top the server refuses work when policy requires the sandbox and the host reports no driver, and `personal_hosts_disabled` confines people to the hosts an admin registered.
 
+## Moving a session to a host
+
+A session open on the laptop goes on, on one of the user's hosts, from the same conversation and the same work. It is the
+hand-over of decision 18, started by the user: the work goes up as a branch, the host takes it from the queue like any other
+work, and forks the transcript the server has.
+
+21. **What moves is a branch and the server's transcript.** The laptop writes the session's working tree as one commit on top
+    of `HEAD`, through a temporary index (`git add -A` into it, so `.gitignore` holds), and pushes that commit to
+    `harness/<session id>`. The user's checkout, its index and its branch are not touched: what they had stays as it was.
+    Unpushed commits of the branch go up with it, being the parents. The push never forces, never names the base branch, and
+    runs with the hardened git of decision 12 (`packages/client/hostgit`). Then the uploader is flushed, so that the server has
+    the whole transcript, and the work is queued.
+22. **The laptop pushes with the credentials the host would get.** `IssueMoveCredentials` mints them for one move: the work
+    must be the caller's, of kind `MOVE` and still `AWAITING_PUSH`, and they follow decision 11 for the target host (the
+    user's own account first, the connection's identity only where that host's `allowed_repositories` say so). It is a method
+    of `HostAgentService`, the service that is never proxied to a frontend, so no screen can ask for a token. Any device of
+    the user may call these two methods; the rest of the service stays for hosts. The laptop's own `git` sign-in is not used:
+    it may reach another remote, or none, and the host is going to fetch from the connection anyway.
+23. **A move is work with one more state.** `StartHostWork` with `kind: MOVE`, the branch and `fork_session_id` makes a row
+    in `AWAITING_PUSH`, which no daemon claims. `QueueMovedWork` puts it in `QUEUED` once the push is done; a push that fails
+    cancels it. A row still waiting after 30 minutes expires. The daemon then does what it does for an auto-fix job: checks out
+    the existing branch, forks the transcript, and does not send a prompt unless the user wrote one for the host. Landing is a
+    branch by default (each turn's end pushes `harness/<session id>` again); the user can ask for a draft pull request.
+24. **The laptop's copy becomes read-only.** A `movedTo` record goes into its transcript (host, work, branch), the session
+    closes, and when it opens again it is read-only: messages, shell commands, compaction and rewinds are refused, and
+    `SessionInfo.moved` and the `SessionMoved` event tell the screens, which show where it went and a link. The link follows
+    the work row to the host's session, as for any host work (decision 2). The record names the session it belongs to, so
+    the fork on the host, which copies the transcript, is not read-only too.
+25. **Refused, with the reason, before anything is written:** a folder that is not in git; a repository without an `origin` on
+    a code host, or with a configuration that rewrites remote URLs; a session in the middle of a turn, unless the user said to
+    stop it; files that would go up and that a deny rule on `Read` covers, or that are well-known secret files (`.env`, keys,
+    `.netrc`, `.npmrc` and the like): those are listed, and nothing moves until they are gone or ignored; a submodule with
+    changes or commits of its own, which the host could not fetch (decision on submodules below); changes of the session
+    outside the repository it is in (another working directory, a file outside the checkout), which a branch can't carry; a
+    session with no transcript on the server (sync off); a folderless chat; a session of another machine, or one that moved
+    already. `CheckSessionMove` gives the same answer without doing anything, for the confirmation.
+26. **The user confirms first.** From the session menu, or `/move`, which only opens the confirmation (`ACTION_OPEN_MOVE`).
+    The confirmation shows the host, the branch, how many files and commits go up, the mode the host session gets, and the
+    reasons it can't, if any.
+27. **The host's mode is never more than the session's.** The session's permission mode goes with it, `bypassPermissions`
+    excepted: a bypass session moves in `auto` if the policy allows auto, and in `default` otherwise, and the confirmation says
+    so. The server refuses bypass for any work as before, the host reads the managed policy for the user, and the fresh
+    checkout is an untrusted folder (decision 15), so the project's hooks and MCP servers don't run there until the user
+    trusts it on that session.
+
+## Best-of-N
+
+One prompt, N attempts (2 to 5), each in a checkout and on a branch of its own, side by side; the user keeps one.
+
+28. **A group on the server, attempts as host work or local sessions.** `StartAttempts` makes an `attempt_group` with N
+    `attempt` rows. On a host, each attempt is host work of kind `ATTEMPT` (`harness/<work id>`, landing `BRANCH`), queued,
+    claimed and landed like any work; the group is how they are found again. Locally, the client makes N sessions, each in a
+    worktree of its own (`harness/attempt-<group>-<n>`), and reports each one's session and branch to the group. So there is one
+    record for both, from any device, and no queue apart from the host queue.
+29. **Limits.** At most 5 attempts. The managed policy can lower that (`max_attempts`), cap how many run at once
+    (`max_parallel_attempts`) and what one attempt may spend (`attempt_budget_usd`). The user's own settings
+    (`bestOfNParallel`, `bestOfNBudgetUsd`) choose within those. The server applies the caps when the group is made, and the
+    group carries what applies. An attempt that reaches the budget stops as a headless run does (`--max-budget-usd`). How
+    many run at once counts attempts that are working: on a host the claim leaves an attempt queued while that many of its
+    group are claimed or working (an attempt that finished its turn reports so and frees its place); locally the client
+    starts the next one when one finishes. A host's own capacity (decision 13) applies on top.
+30. **Test results.** The group may name a test command. When an attempt's turn ends, its session runs it in its own
+    checkout, in the OS sandbox where there is a driver, refused if a deny rule covers it, and reports the exit code and the
+    end of the output to the group (`ReportAttempt`), and to the session's viewers (`AttemptChecked`). The same code does it on
+    a laptop and on a host, because a host runs the same agent server.
+31. **Diffs are the Changes pane's.** The compare view shows each attempt's Changes pane, which reads `GetSessionDiff` as for
+    any session. For a session on a host that call goes through the relay, as a query like `ListCheckpoints`
+    (`get_session_diff`, `get_session_file_diff`), so the Changes pane of any session of another machine shows what is on its
+    disk now, not only what the transcript's edits did.
+32. **Keeping one deletes the others only when the user says so.** `KeepAttempt` marks the one kept. `DiscardAttempts`, after
+    a confirmation that names what goes, removes the others: a local attempt's session closes, its worktree and its branch
+    are removed by the client; a host attempt still queued is cancelled, and one with a session is handed to its daemon through
+    `ReportAgentHost` (`discard_work_ids`), which closes the session, removes the checkout and deletes its `harness/` branch on
+    the code host, then reports it done. A daemon deletes only a branch that it made for that work and that starts with
+    `harness/`. The kept attempt goes on as an ordinary session.
+33. **What a group shows is its owner's.** Groups and attempts are the caller's alone: other people, admins included, get
+    NOT_FOUND, as for sessions.
+
 ## Isolation between users
 
 Only team hosts have more than one user. What separates them, on a host that reports `uid`:
@@ -63,8 +141,13 @@ The agent's commands run under the OS sandbox where a driver exists (macOS today
 
 ## What is not there
 
-- A single session's move from a laptop to a host. A fork of its transcript by way of decision 18 is the nearest thing.
-- Network policy per session, environment setup scripts and best-of-N.
+- A move back from a host to the laptop. "Continue here" forks the host's session into a folder of the laptop, and
+  `git fetch` there brings its branch.
+- A move of an ACP agent's session, or of one with subagents still running: the move waits for, or stops, the turn, and
+  agents that were still running are not carried.
+- Local attempts of a group that had not started when the client quit stay waiting; the group shows them so.
+- Best-of-N across several hosts, or hosts and the laptop at once: a group runs on one host, or locally.
+- Network policy per session and environment setup scripts.
 - Per-user quotas for CPU, memory and disk on a team host, and a network namespace per user. Decided against for now: they need a cgroup and namespace setup that a container doesn't get without more privileges than the rest of this avoids.
 - Submodules: checkouts don't fetch them, because fetching what a repository names runs before anyone trusted it.
 - A mention of a session that was already handed over reaches the host session twice when the old session's metadata still matches the branch. It reads as the same comment twice.
