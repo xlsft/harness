@@ -62,6 +62,9 @@ func (s *Server) RunShellCommand(ctx context.Context, req *connect.Request[agent
 		}
 		return nil, err
 	}
+	if err := ls.readOnly(); err != nil {
+		return nil, err
+	}
 	command := strings.TrimSpace(req.Msg.GetCommand())
 	if command == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("command is empty"))

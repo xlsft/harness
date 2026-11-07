@@ -210,6 +210,9 @@ type Entry struct {
 	// AutoContinue is the session's "continue when limits return" switch (SetAutoContinue); the last one on record
 	// wins on resume.
 	AutoContinue *bool `json:"autoContinue,omitempty"`
+	// MovedTo records that the session moved to an always-on host and is read-only here (docs/design/hosts.md,
+	// decision 24).
+	MovedTo *MovedTo `json:"movedTo,omitempty"`
 	// HeldMessages are the user messages the usage limit holds, in order (the whole list; empty when it was
 	// emptied). The last one on record is held again on resume.
 	HeldMessages *[]HeldMessage `json:"heldMessages,omitempty"`
@@ -301,6 +304,29 @@ func ReadRemoteControl(entries []Entry) *bool {
 		}
 	}
 	return on
+}
+
+// MovedTo is where a session went. Session names the session that moved: a fork copies the record along with the
+// transcript, and is not read-only for it.
+type MovedTo struct {
+	Session  string `json:"session"`
+	HostID   string `json:"hostId"`
+	HostName string `json:"hostName,omitempty"`
+	WorkID   string `json:"workId"`
+	Branch   string `json:"branch,omitempty"`
+	At       string `json:"at,omitempty"`
+}
+
+// ReadMovedTo returns the record of the move of session id, nil when it did not move.
+func ReadMovedTo(entries []Entry, id string) *MovedTo {
+	var out *MovedTo
+	for i := range entries {
+		if e := &entries[i]; e.Type == TypeMeta && e.MovedTo != nil && e.MovedTo.Session == id {
+			m := *e.MovedTo
+			out = &m
+		}
+	}
+	return out
 }
 
 // ReadAutoContinue returns the last "continue when limits return" choice on record (off when none).

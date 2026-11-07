@@ -826,6 +826,37 @@ func (r Request) PromptName() string {
 	return r.ToolName
 }
 
+// DeniesRead returns the deny rule that covers reading path, "" when none does. A session that moves to a host takes no
+// file a rule keeps the agent from reading (docs/design/hosts.md, decision 25).
+func (e *Engine) DeniesRead(path string) string {
+	input, _ := json.Marshal(map[string]string{"file_path": path})
+	req := Request{ToolName: "Read", FilePath: path, Input: input, ReadOnly: true}
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	mc := matchContext{cwd: e.cwd, home: e.home}
+	in := decodeInput(input)
+	for _, r := range e.deny {
+		if r.matchesCall(req, in, mc, false) {
+			return r.String()
+		}
+	}
+	return ""
+}
+
+// DeniesCommand returns the deny rule that covers a Bash command line, "" when none does: a best-of-N group's test command
+// does not run against one (decision 30).
+func (e *Engine) DeniesCommand(command string) string {
+	input, _ := json.Marshal(map[string]string{"command": command})
+	d := e.Evaluate(Request{ToolName: "Bash", Command: command, Input: input})
+	if d.Behavior == Deny && d.ResolvedBy == "rule" {
+		if d.Rule != "" {
+			return d.Rule
+		}
+		return "a deny rule"
+	}
+	return ""
+}
+
 // Evaluate returns the static decision without consulting the asker.
 func (e *Engine) Evaluate(req Request) Decision {
 	// Read before the lock: the state comes from the session's settings, and a session that moves holds its own lock

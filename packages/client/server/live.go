@@ -94,6 +94,8 @@ type liveSession struct {
 	usage        usageWatch
 	autoContinue bool
 	heldOnRecord bool
+	// moved is where the session went when it moved to an always-on host; it is read-only here then (hostmove.go; ls.mu).
+	moved *agentv1.SessionMoved
 	// links are the sessions linked to this one and the notes waiting for it (sessionlinks.go).
 	links linkState
 	// goal is the session's goal (goal.go; goalMu). turnSeq counts the turns started; lastResult is how the latest ended
@@ -141,7 +143,7 @@ func (ls *liveSession) info() *agentv1.SessionInfo {
 		OutputStyle: ls.sess.ActiveOutputStyle(), Worktree: worktreeToProto(ls.sess.CurrentWorktree()), DiffStats: ls.diff,
 		NoFolder:   isNoFolder(ls.sess.ID, ls.sess.Dir()),
 		UsageLimit: ls.usageLimit, AutoContinue: ls.autoContinue, PullRequest: ls.sess.PR.Info(),
-		Effort: ls.sess.Agent.Effort(), KeepAwake: ls.srv.keepAwake().Wanted(ls.sess.ID),
+		Effort: ls.sess.Agent.Effort(), KeepAwake: ls.srv.keepAwake().Wanted(ls.sess.ID), Moved: ls.moved,
 	}
 	ls.relayStateLocked(info)
 	ls.srv.applyState(info)

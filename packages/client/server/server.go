@@ -33,6 +33,7 @@ import (
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/agent/v1/agentv1connect"
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
+	"github.com/xlsft/harness/packages/client/hostgit"
 	"github.com/xlsft/harness/packages/client/keepawake"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/localmodels"
@@ -114,6 +115,9 @@ type Server struct {
 
 	// importing holds the one running import (import.go).
 	importing atomic.Bool
+
+	// HostGit pushes a moved session's branch (hostmove.go); AllowFile lets tests use file:// remotes.
+	HostGit hostgit.Git
 
 	// HostMode is set on an always-on host: it runs schedules from checkouts of its own (schedules_host.go).
 	HostMode *HostMode
@@ -532,6 +536,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		}
 	}
 	if sess.Resumed && !m.GetFork() {
+		ls.restoreMoved(entries)
 		ls.loadGoal()
 		if list := sess.ToolEnv.TaskGraph.List(); len(list) > 0 {
 			ls.hub.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TaskGraphUpdated{TaskGraphUpdated: taskGraphProto(list)}})
@@ -800,6 +805,9 @@ const queuedMessageGrace = time.Second
 func (s *Server) SendUserMessage(ctx context.Context, req *connect.Request[agentv1.SendUserMessageRequest]) (*connect.Response[agentv1.SendUserMessageResponse], error) {
 	ls, err := s.get(req.Msg.GetSessionId())
 	if err != nil {
+		return nil, err
+	}
+	if err := ls.readOnly(); err != nil {
 		return nil, err
 	}
 	ls.userSpoke()
@@ -1150,6 +1158,9 @@ func (s *Server) Rewind(ctx context.Context, req *connect.Request[agentv1.Rewind
 	if err != nil {
 		return nil, err
 	}
+	if err := ls.readOnly(); err != nil {
+		return nil, err
+	}
 	var mode agent.RewindMode
 	switch req.Msg.GetMode() {
 	case agentv1.RewindRequest_MODE_CODE_AND_CONVERSATION:
@@ -1181,6 +1192,9 @@ func (s *Server) Rewind(ctx context.Context, req *connect.Request[agentv1.Rewind
 func (s *Server) Compact(ctx context.Context, req *connect.Request[agentv1.CompactRequest]) (*connect.Response[agentv1.CompactResponse], error) {
 	ls, err := s.get(req.Msg.GetSessionId())
 	if err != nil {
+		return nil, err
+	}
+	if err := ls.readOnly(); err != nil {
 		return nil, err
 	}
 	info, err := ls.runCompaction(func() (agent.CompactInfo, error) { return ls.sess.Agent.Compact(ctx, req.Msg.GetInstructions()) })

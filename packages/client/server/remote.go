@@ -782,6 +782,23 @@ func (r routed) ListCheckpoints(ctx context.Context, req *connect.Request[agentv
 		func(res *relayv1.ListCheckpointsResponse) *agentv1.ListCheckpointsResponse { return res.GetResponse() })
 }
 
+// GetSessionDiff shows what is on the disk of the session's machine (docs/design/hosts.md, decision 31).
+func (r routed) GetSessionDiff(ctx context.Context, req *connect.Request[agentv1.GetSessionDiffRequest]) (*connect.Response[agentv1.GetSessionDiffResponse], error) {
+	return forward(ctx, r, req.Msg.GetSessionId(), req, r.Server.GetSessionDiff, relayv1connect.RelayServiceClient.GetSessionDiff,
+		func(m *agentv1.GetSessionDiffRequest) *relayv1.GetSessionDiffRequest {
+			return &relayv1.GetSessionDiffRequest{Request: m}
+		},
+		func(res *relayv1.GetSessionDiffResponse) *agentv1.GetSessionDiffResponse { return res.GetResponse() })
+}
+
+func (r routed) GetSessionFileDiff(ctx context.Context, req *connect.Request[agentv1.GetSessionFileDiffRequest]) (*connect.Response[agentv1.GetSessionFileDiffResponse], error) {
+	return forward(ctx, r, req.Msg.GetSessionId(), req, r.Server.GetSessionFileDiff, relayv1connect.RelayServiceClient.GetSessionFileDiff,
+		func(m *agentv1.GetSessionFileDiffRequest) *relayv1.GetSessionFileDiffRequest {
+			return &relayv1.GetSessionFileDiffRequest{Request: m}
+		},
+		func(res *relayv1.GetSessionFileDiffResponse) *agentv1.GetSessionFileDiffResponse { return res.GetResponse() })
+}
+
 func (r routed) ListOutputStyles(ctx context.Context, req *connect.Request[agentv1.ListOutputStylesRequest]) (*connect.Response[agentv1.ListOutputStylesResponse], error) {
 	return forward(ctx, r, req.Msg.GetSessionId(), req, r.Server.ListOutputStyles, relayv1connect.RelayServiceClient.ListOutputStyles,
 		func(m *agentv1.ListOutputStylesRequest) *relayv1.ListOutputStylesRequest {

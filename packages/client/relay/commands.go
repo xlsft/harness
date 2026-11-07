@@ -306,6 +306,24 @@ func (h *Host) exec(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck
 			a.Result = &relayv1.CommandAck_ListCheckpoints{ListCheckpoints: res.Msg}
 		}
 		return a
+	case *relayv1.Command_GetSessionDiff:
+		m := clone(p.GetSessionDiff).(*agentv1.GetSessionDiffRequest)
+		m.SessionId = sid
+		res, err := b.GetSessionDiff(ctx, connect.NewRequest(m))
+		a := errAck(id, err, false)
+		if err == nil {
+			a.Result = &relayv1.CommandAck_GetSessionDiff{GetSessionDiff: res.Msg}
+		}
+		return a
+	case *relayv1.Command_GetSessionFileDiff:
+		m := clone(p.GetSessionFileDiff).(*agentv1.GetSessionFileDiffRequest)
+		m.SessionId = sid
+		res, err := b.GetSessionFileDiff(ctx, connect.NewRequest(m))
+		a := errAck(id, err, false)
+		if err == nil {
+			a.Result = &relayv1.CommandAck_GetSessionFileDiff{GetSessionFileDiff: res.Msg}
+		}
+		return a
 	case *relayv1.Command_ListTasks:
 		res, err := b.ListTasks(ctx, connect.NewRequest(&agentv1.ListTasksRequest{SessionId: sid}))
 		a := errAck(id, err, false)
