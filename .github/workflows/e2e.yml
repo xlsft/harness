@@ -37,3 +37,10 @@ jobs:
           cache-dependency-path: packages/core/pnpm-lock.yaml
       - name: Run end-to-end test
         run: scripts/e2e/run.sh
+      - name: An always-on host, end to end
+        run: scripts/e2e/hosts.sh
+      - name: A team host's workers under their own Unix users (needs root)
+        working-directory: packages/client
+        run: |
+          go test -c -o /tmp/harness-daemon-test ./daemon
+          sudo /tmp/harness-daemon-test -test.run 'TestUIDLauncherSeparatesWorkers|TestSharedIsRefusedWithoutRootOnLinux' -test.v

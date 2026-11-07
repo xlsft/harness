@@ -33,6 +33,10 @@ type Runner struct {
 	Store *Store
 	// DeviceID and DeviceName are this machine's.
 	DeviceID, DeviceName string
+	// Adopt says this machine takes a task that names another one, because that one is away (an always-on host).
+	Adopt func(Task) bool
+	// Claim asks whether this machine runs a due time of a task with an away host: its own machine and the host each ask.
+	Claim func(t Task, due time.Time) bool
 	// Start begins a run and returns soon.
 	Start func(Fire)
 	// Enabled says whether due tasks run at all (nil: they do).
@@ -138,7 +142,7 @@ func (r *Runner) Holding() bool { return r.holding.Load() }
 
 // Mine reports whether this machine runs the task.
 func (r *Runner) Mine(t Task) bool {
-	return t.DeviceLocal || (t.DeviceID != "" && t.DeviceID == r.DeviceID)
+	return t.DeviceLocal || (t.DeviceID != "" && t.DeviceID == r.DeviceID) || (r.Adopt != nil && r.Adopt(t))
 }
 
 // Blocked says what keeps a task of this machine from running ("" when nothing does).
@@ -241,6 +245,11 @@ func (r *Runner) Tick(now time.Time) {
 			}
 			if active >= limit {
 				continue // still due next tick
+			}
+			if t.AwayHostID != "" && r.Claim != nil && !r.Claim(t, next) {
+				// The other side has this one. Not a run here: only the time moves on.
+				r.advance(rec, now)
+				continue
 			}
 			active++
 			run := r.newRun(rec, StatusRunning, source, "", now)

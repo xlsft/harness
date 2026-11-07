@@ -7,6 +7,7 @@ import "harness/agent/v1/browser.proto";
 import "harness/agent/v1/computer_use.proto";
 import "harness/agent/v1/demo_recording.proto";
 import "harness/agent/v1/device_settings.proto";
+import "harness/agent/v1/diagnostics.proto";
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/hooks.proto";
 import "harness/agent/v1/import.proto";
@@ -425,6 +426,11 @@ service AgentService {
   // Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
   // (slash_commands.proto). Read when the menu or the Extensions screen opens; files on disk are read again every time.
   rpc ListSlashCommands(ListSlashCommandsRequest) returns (ListSlashCommandsResponse);
+  // The tools of a session (diagnostics.proto): what its model is offered right now, and why each other tool it knows is
+  // not. /tools and `harness-client debug tools` show it. Local sessions only.
+  rpc ListSessionTools(ListSessionToolsRequest) returns (ListSessionToolsResponse);
+  // A plain-text report of this client for a bug report (Settings > About > Copy diagnostics) and its log folder.
+  rpc GetDiagnostics(GetDiagnosticsRequest) returns (GetDiagnosticsResponse);
 
   // Scheduled tasks (schedules.proto): the Scheduled screen. Device-local schedules are this machine's; synced ones are
   // the user's, whichever machine runs them.
@@ -895,6 +901,8 @@ message SessionEvent {
     // Goal mode and the task graph (teamwork.proto); numbered apart like the shell events.
     GoalUpdated goal_updated = 140;
     TaskGraphUpdated task_graph_updated = 141;
+    // Always-on hosts (docs/design/hosts.md): what became of the session's work; numbered apart like the shell events.
+    HostWorkUpdated host_work_updated = 230;
     // Recording a demo (demo_recording.proto) and the iOS Simulator (simulator.proto); device-local like computer use,
     // left out of the relay mirror.
     DemoRecordingState demo_recording_state = 370;
@@ -902,6 +910,16 @@ message SessionEvent {
     DemoSkillReviewResolved demo_skill_review_resolved = 372;
     SimulatorActivity simulator_activity = 373;
   }
+}
+
+// A host pushed the session's work, opened a pull request, or could not. Stored and replayed like other events.
+message HostWorkUpdated {
+  // hwk_...; empty for a session that was reopened on the host and has no work row any more.
+  string work_id = 1;
+  string branch = 2;
+  string pull_request_url = 3;
+  // Why it did not land, for the session's viewers.
+  string error = 4;
 }
 
 message TurnStarted {

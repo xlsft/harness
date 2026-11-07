@@ -22,6 +22,7 @@ import { GatewayService } from "../../src/gen/harness/llm/v1/gateway_pb.ts";
 import { ProviderService } from "../../src/gen/harness/llm/v1/providers_pb.ts";
 import { McpService } from "../../src/gen/harness/mcp/v1/mcp_pb.ts";
 import { PromptService } from "../../src/gen/harness/prompts/v1/prompts_pb.ts";
+import { HostAgentService, HostsService } from "../../src/gen/harness/relay/v1/hosts_pb.ts";
 import { RelayService } from "../../src/gen/harness/relay/v1/relay_pb.ts";
 import { SyncService } from "../../src/gen/harness/sync/v1/sync_pb.ts";
 import { UsageService } from "../../src/gen/harness/llm/v1/usage_pb.ts";
@@ -50,6 +51,8 @@ export interface TestServer {
   sync: Client<typeof SyncService>;
   mcp: Client<typeof McpService>;
   relay: Client<typeof RelayService>;
+  hosts: Client<typeof HostsService>;
+  hostAgent: Client<typeof HostAgentService>;
   vcs: Client<typeof VcsService>;
   artifacts: Client<typeof ArtifactService>;
   knowledge: Client<typeof KnowledgeService>;
@@ -77,6 +80,8 @@ export interface TestServer {
     mcp: Client<typeof McpService>;
     skills: Client<typeof SkillSearchService>;
     relay: Client<typeof RelayService>;
+    hosts: Client<typeof HostsService>;
+    hostAgent: Client<typeof HostAgentService>;
     vcs: Client<typeof VcsService>;
     artifacts: Client<typeof ArtifactService>;
     knowledge: Client<typeof KnowledgeService>;
@@ -155,6 +160,8 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       mcp: createClient(McpService, transport),
       skills: createClient(SkillSearchService, transport),
       relay: createClient(RelayService, transport),
+      hosts: createClient(HostsService, transport),
+      hostAgent: createClient(HostAgentService, transport),
       vcs: createClient(VcsService, transport),
       artifacts: createClient(ArtifactService, transport),
       knowledge: createClient(KnowledgeService, transport),

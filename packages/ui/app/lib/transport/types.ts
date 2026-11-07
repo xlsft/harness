@@ -1,6 +1,7 @@
 // SessionTransport: everything the UI needs from a harness client (harness.agent.v1.AgentService).
 // Two implementations: MockTransport (scripted events, the default) and ConnectTransport (connect-web).
 
+import type { HostsApi } from '~/lib/hosts/types'
 import type { SshApi } from '~/lib/ssh'
 import type { VcsApi } from '~/lib/vcs/types'
 import type { OutgoingAttachment } from '~/lib/session/attachments'
@@ -413,6 +414,8 @@ export interface SessionTransport {
   updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences>
   // Everything runnable from the composer, with its details, as the client resolves it (ListSlashCommands).
   listSlashCommands(target: SlashTarget): Promise<SlashCatalog>
+  // A plain-text report of the client for a bug report, and the folder of its logs (GetDiagnostics).
+  getDiagnostics(): Promise<{ text: string, logsDir: string }>
   // One switch of the Extensions screen (a preference, synced).
   setSkillEnabled(name: string, enabled: boolean): Promise<void>
   getSandboxStatus(): Promise<SandboxStatus>
@@ -439,6 +442,7 @@ export interface SessionTransport {
   // Settings > Code hosts.
   vcs(): VcsApi
   enterprise(): EnterpriseApi
+  hosts(): HostsApi
 
   // The signed-in user's own profile, avatar, password and devices (harness.auth.v1.DeviceAuthService account
   // methods, forwarded to the server by the client).

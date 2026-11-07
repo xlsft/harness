@@ -13,6 +13,7 @@
 // - sessions on ACP agents (engine 'acp:<id>', ~/lib/acp/mock.ts) stream a reply with an Edit tool call behind a
 //   permission request; a claude-acp session waits for a sign-in first, codex reports subscription limits.
 
+import { MockHostsApi } from '~/lib/hosts/mock'
 import { MockSshApi } from '~/lib/ssh'
 import { MockVcsApi } from '~/lib/vcs/mock'
 import { SlashCommandResult_Action } from '~/gen/harness/agent/v1/slash_commands_pb'
@@ -382,6 +383,11 @@ export class MockTransport implements SessionTransport {
   }
 
   private enterpriseApi = new MockEnterpriseApi()
+  private hostsApi = new MockHostsApi()
+  hosts() {
+    return this.hostsApi
+  }
+
   enterprise() {
     return this.enterpriseApi
   }
@@ -548,6 +554,10 @@ export class MockTransport implements SessionTransport {
   async listSlashCommands(target: SlashTarget): Promise<SlashCatalog> {
     if ('sessionId' in target) this.get(target.sessionId)
     return mockSlashCatalog(this.disabledSkills)
+  }
+
+  async getDiagnostics() {
+    return { text: `xlsft's harness diagnostics (mock)\nclient: harness-client/mock\nopen sessions: ${this.sessions.size}\n`, logsDir: '/Users/you/.harness/logs' }
   }
 
   async setSkillEnabled(name: string, enabled: boolean) {

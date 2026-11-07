@@ -117,6 +117,39 @@ warning it prints: the connection is plain HTTP, and browsers refuse a plain HTT
 loopback, so put TLS in front of it. Safari is stricter and may refuse plain HTTP to loopback from an HTTPS page too; use another browser, or the
 desktop app.
 
+## Always-on hosts
+
+The server runs no agents. A host does: `harness-client daemon` on a server or in a container, which takes new sessions from the environment menu, schedules whose machine is away, and auto-fix jobs and @mentions, while laptops sleep. Design, decisions and the isolation limits: [docs/design/hosts.md](../docs/design/hosts.md).
+
+```bash
+docker build -f deploy/Dockerfile.host -t harness-host .   # from the repo root: git and a shell; add your toolchains on top
+```
+
+**A host for one person** is the default. Add it under Settings > Always-on hosts, or from a terminal with `harness-client daemon login https://harness.example.com`, and keep the token it gives:
+
+```bash
+cd deploy
+install -m 600 /dev/stdin host-token <<<"hdt_..."
+HARNESS_SERVER_URL=https://harness.example.com docker compose -f compose.host.yml up -d personal
+```
+
+Without Docker: `HARNESS_SERVER_URL=... HARNESS_DEVICE_TOKEN_FILE=... harness-client daemon --root /srv/harness`. Sessions land as a draft pull request (or a branch, or nothing: chosen in the menu). Git credentials come from your account on the server's code host connection, under Settings > Code hosts.
+
+**A host for a team**: an admin adds it for a group under Settings > Always-on hosts, and runs `compose.host.yml up -d team`. It runs as root in its container, with only the capabilities it needs to start each member's worker under a Unix user of its own, `--uid-base`, `--uid-count`. Where it can't do that (not Linux, not root) `--shared` refuses to start, and the server gives such a host no work. Read [what that separation does not cover](../docs/design/hosts.md#isolation-between-users): members share the kernel, the loopback network, and CPU and disk. If they must not trust each other, give each a host.
+
+What agents can use on a host is what is in the image. The OS sandbox applies where the client has a driver; the admin view says, and a policy requiring the sandbox refuses a host without one.
+
+| Flag | Default | |
+|---|---|---|
+| `--root` | `HARNESS_HOME/workspaces` | Where checkouts go. With `--shared`, where workers' homes go |
+| `--max-sessions` | what the app says, else 4 | Sessions working at once. What waits, queues |
+| `--idle-close` | 24 h | Close a session idle for this long; a job reopens it |
+| `--keep-workspaces` | 7 days | Remove a closed session's checkout after this long |
+| `--allowedTools` | none | Permission rules allowed without asking on this host |
+| `--name` | the machine's name | |
+
+On the server, `HARNESS_HOST_AWAY_GRACE_S` (120) is how long a session's machine is away before its pending jobs go to a host.
+
 ## Users and LDAP
 
 Admins manage accounts in the app: **Settings → Users** (the section is shown by role; the server decides what each role may

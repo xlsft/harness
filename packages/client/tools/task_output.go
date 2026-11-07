@@ -291,6 +291,7 @@ func (*TaskOutput) Run(ctx context.Context, env *Env, call Call) Result {
 		env.Tasks.MarkReported(in.TaskID)
 	}
 	out, dropped := scan.text()
+	out = StripTerminalCodes(out)
 
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "Task %s: %s\n", w.info.ID, TaskStatus(w.info))

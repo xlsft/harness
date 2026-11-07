@@ -236,6 +236,21 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
       </div>
 
       <h3 class="m-0 mt-2 text-[12.5px] font-semibold text-strong">
+        {{ tt('Always-on hosts') }}
+      </h3>
+      <div class="set-row">
+        <div class="set-label">
+          <span>{{ tt('Only hosts an admin registered') }}</span>
+          <span class="set-desc">{{ tt('Nobody registers a host of their own. Hosts need a sandbox driver when the sandbox is required.') }}</span>
+        </div>
+        <HToggle
+          v-model="policy.personalHostsDisabled"
+          :disabled="!writable"
+          :label="tt('Only hosts an admin registered')"
+        />
+      </div>
+
+      <h3 class="m-0 mt-2 text-[12.5px] font-semibold text-strong">
         {{ tt('MCP servers') }}
       </h3>
       <div class="set-row">

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Settings > About: the wordmark, the slogan, versions of this app, the client and the server it is
 // signed in to, whether newer ones exist, links, author and license.
-import { isDesktop, openExternal } from '~/lib/desktop'
+import { isDesktop, openExternal, openWithDefaultApp } from '~/lib/desktop'
 import { RELEASES_URL, isDevVersion, isNewer, latestReleaseTag, serverUpgradeCommands } from '~/lib/releases'
 
 const store = useSessionStore()
@@ -62,6 +62,31 @@ const LINKS = [
 function open(url: string) {
   if (desktop) openExternal(url)
   else window.open(url, '_blank', 'noopener')
+}
+
+// Troubleshooting: the client writes the report (versions, sync, what each open session's model lacks, the end of its
+// log, nothing secret); this page only copies it or opens the folder it names.
+const diagCopied = ref(false)
+const diagError = ref('')
+async function copyDiagnostics() {
+  diagError.value = ''
+  try {
+    const d = await store.transport!.getDiagnostics()
+    await navigator.clipboard.writeText(d.text)
+    diagCopied.value = true
+    setTimeout(() => (diagCopied.value = false), 1500)
+  } catch (e) {
+    diagError.value = e instanceof Error ? e.message : String(e)
+  }
+}
+async function openLogs() {
+  diagError.value = ''
+  try {
+    const d = await store.transport!.getDiagnostics()
+    await openWithDefaultApp(d.logsDir)
+  } catch (e) {
+    diagError.value = e instanceof Error ? e.message : String(e)
+  }
 }
 </script>
 
@@ -174,6 +199,37 @@ function open(url: string) {
       >
         {{ tt('Your server\'s admin updates it.') }}
       </p>
+    </div>
+
+    <div
+      v-if="store.transport"
+      class="flex flex-col"
+    >
+      <h3 class="m-0 mb-2 text-[11px] font-normal text-muted">
+        {{ tt('Troubleshooting') }}
+      </h3>
+      <div class="flex flex-col gap-3 border border-default px-4 py-3">
+        <p class="m-0 text-[11.5px] text-muted">
+          {{ tt('The client keeps a log on this machine. The diagnostics report has versions, sync and the tools each open session offers its model, without tokens or messages.') }}
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <HBtn @click="copyDiagnostics">
+            {{ diagCopied ? tt('Copied') : tt('Copy diagnostics') }}
+          </HBtn>
+          <HBtn
+            v-if="desktop"
+            @click="openLogs"
+          >
+            {{ tt('Open logs folder') }}
+          </HBtn>
+        </div>
+        <p
+          v-if="diagError"
+          class="m-0 text-[11.5px] text-bad"
+        >
+          {{ diagError }}
+        </p>
+      </div>
     </div>
 
     <div class="flex flex-col">

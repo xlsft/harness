@@ -727,7 +727,14 @@ func (s *Service) StartOAuth(ctx context.Context, connectionID string) (flowID, 
 	}
 	flowID = randomString(12)
 	srv := &http.Server{ReadHeaderTimeout: 5 * time.Second}
-	flow := &oauthFlow{close: func() { _ = srv.Close() }}
+	// Shutdown, not Close: the callback's own response must reach the browser before the listener goes.
+	flow := &oauthFlow{close: func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if srv.Shutdown(ctx) != nil {
+			_ = srv.Close()
+		}
+	}}
 	s.flowsMu.Lock()
 	if s.flows == nil {
 		s.flows = map[string]*oauthFlow{}
@@ -769,6 +776,9 @@ func (s *Service) StartOAuth(ctx context.Context, connectionID string) (flowID, 
 			fmt.Fprintf(w, "<!doctype html><meta charset=utf-8><title>Authorization failed</title><p>%s</p>", html.EscapeString(msg))
 		} else {
 			fmt.Fprint(w, "<!doctype html><meta charset=utf-8><title>Connected</title><p>The connection is authorized. You can close this window.</p>")
+		}
+		if fl, ok := w.(http.Flusher); ok {
+			fl.Flush()
 		}
 		finish(msg)
 	})

@@ -44,7 +44,20 @@ export async function publishEvents(inputs: EventInput[]): Promise<EventRow[]> {
   if (rows.some((r) => AUTOFIX_KINDS.has(r.kind) && !(r.detail as Record<string, unknown>)?.auto_fix && sessionsOf(r).length)) {
     background(() => autoFix(rows));
   }
+  for (const r of rows) {
+    const detail = (r.detail ?? {}) as Record<string, unknown>;
+    if (detail.mention && !detail.auto_fix && !sessionsOf(r).length && mentionListener) {
+      const listener = mentionListener;
+      background(() => listener(r));
+    }
+  }
   return rows;
+}
+
+/** An @mention by someone with write access on a pull request no session is on (relay/hosts.ts sends it to a host). */
+let mentionListener: ((row: EventRow) => Promise<void>) | undefined;
+export function onUnclaimedMention(fn: (row: EventRow) => Promise<void>): void {
+  mentionListener = fn;
 }
 
 /** Updates the PR badge of the given sessions (LinkSession, CreatePullRequest). */

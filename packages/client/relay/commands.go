@@ -367,10 +367,10 @@ func (h *Host) execHost(ctx context.Context, c *relayv1.Command) *relayv1.Comman
 	if !UnderRoots(cwd, h.o.AllowedRoots) {
 		return outcome(id, relayv1.CommandAck_OUTCOME_REJECTED, cwd+" is not under an allowed root")
 	}
-	if sp.GetWorktree() {
-		return outcome(id, relayv1.CommandAck_OUTCOME_REJECTED, "spawning into a new worktree is not supported yet")
-	}
 	create := proto.Clone(sp.GetCreate()).(*agentv1.CreateSessionRequest)
+	if sp.GetWorktree() && create.Worktree == nil {
+		create.Worktree = &agentv1.WorktreeOptions{}
+	}
 	res, err := h.o.Backend.CreateSession(ctx, connect.NewRequest(create))
 	if err != nil {
 		return errAck(id, err, false)

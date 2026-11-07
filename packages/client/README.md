@@ -69,7 +69,14 @@ harness-client serve --listen 127.0.0.1:7801       # ... for browsers (see packa
 harness-client import claude --dry-run              # preview the ~/.claude import (add --sessions for transcripts)
 harness-client import --project [folder] --dry-run  # preview bringing a folder's CLAUDE.md and .claude into AGENTS.md and .harness
 harness-client sync --watch                         # catch up the sync cache, upload sessions, follow changes
+harness-client debug tools --session <id>           # what the session's model is offered, and why other tools are not
+harness-client debug logs                           # the folder of the client's log files
 ```
+
+The client logs to `$HARNESS_HOME/logs/client.log` (rotated at 4 MiB, three older files kept; info and up, debug with
+`--verbose` or `HARNESS_DEBUG=1`; tokens and prompt text are redacted). The desktop app keeps the client's stdout and
+stderr beside it in `sidecar.log`. In a session, `/tools` lists the tools the model is offered right now. See
+[docs/design/diagnostics.md](../../docs/design/diagnostics.md).
 
 Environment variables:
 - `HARNESS_HOME` overrides `~/.harness`.
@@ -83,6 +90,8 @@ Environment variables:
 - `HARNESS_AUTOCOMPACT_PCT` sets the auto-compaction threshold as a share of the context window (`92` or `0.92`, default 92%).
 - `HARNESS_DISABLE_BACKGROUND_TASKS=1` disables `run_in_background` and auto-backgrounding.
 - `HARNESS_NO_MCP=1` disables MCP servers.
+- `HARNESS_NO_SYNC=1` runs sessions without server sync (no ArtifactPublish, KnowledgeSearch, KnowledgeRead or Issues; the session says so).
+- `HARNESS_NO_LOG_FILE=1` writes no log file.
 - `HARNESS_NO_INTERRUPT_REPLY=1` (or the setting `"interruptReply": false`) turns off the model's short reply after the user stops a turn.
 - `HARNESS_MCP_APPROVE=name1,name2` (or `*`) approves those stdio MCP servers for this run without asking (not remembered). Otherwise a stdio server asks on first use through the interactive frontend and the answer is stored per config hash.
 - `HARNESS_TOOL_SEARCH`: `auto` (default; defer MCP tools behind `ToolSearch` when their definitions exceed 10% of the context window, `auto:<percent>` to change the share), `always`, `never`.
@@ -122,7 +131,7 @@ When the client is signed in to a server, `harness-client serve` and the TUI reg
 - Events: the session's live log (the same `SessionEvent`s `Subscribe` serves) goes up in batches every 100 ms or 64 events. The server's seq continues the stored history of a resumed session (`acked_seq` from `RegisterSession`); the history replayed into a resumed session's log is sent only when the server has no events for the session yet. After a failure the host resends from `acked_seq`, never resending `AssistantDelta`s. A lost epoch (`FAILED_PRECONDITION`) re-registers the session.
 - Commands: run through the same `AgentService` methods local frontends call, in order per session (Compact and Rewind do not block later commands), deduplicated by `command_id` (a redelivered command is re-acked with its first outcome). Expired commands and `bypassPermissions` (as a mode or a spawn mode) are acked `OUTCOME_REJECTED`; an answer to a prompt that was already answered is `OUTCOME_ALREADY_RESOLVED`.
 - Liveness: heartbeats at the server's interval (~20 s), reconnect with exponential backoff and jitter. On `SessionSuperseded` (another device took the session over) the host stops mirroring that session.
-- Spawn: only with `Options.Daemon` and under `AllowedRoots` (no `harness daemon` command yet). Tunnels are not implemented.
+- Spawn: only with `Options.Daemon` and under `AllowedRoots`, which `harness-client daemon` sets to its workspace root (docs/design/hosts.md). Tunnels are not implemented.
 
 ## Worktree sessions and new-session pickers
 

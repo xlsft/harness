@@ -60,6 +60,28 @@ func (r *Record) AddRun(run Run) {
 	}
 }
 
+// MergeHistory adds runs this machine doesn't know, newest first: what its away host ran while it was gone.
+func (r *Record) MergeHistory(runs []Run) {
+	seen := make(map[string]bool, len(r.History))
+	for _, run := range r.History {
+		seen[run.ID] = true
+	}
+	added := false
+	for _, run := range runs {
+		if !seen[run.ID] {
+			r.History = append(r.History, run)
+			added = true
+		}
+	}
+	if !added {
+		return
+	}
+	sort.SliceStable(r.History, func(i, j int) bool { return r.History[i].StartedAt > r.History[j].StartedAt })
+	if len(r.History) > MaxHistory {
+		r.History = r.History[:MaxHistory]
+	}
+}
+
 // LastRun returns the newest run.
 func (r *Record) LastRun() (Run, bool) {
 	if len(r.History) == 0 {

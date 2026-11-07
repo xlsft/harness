@@ -25,6 +25,8 @@ export interface Principal {
   user: PublicUser;
   /** Set when authenticated with an access token. */
   deviceId?: string;
+  /** device.kind: set for an always-on host's device, whose rights are narrower (docs/design/hosts.md, decision 8). */
+  deviceKind?: string;
   via: "access_token" | "session";
 }
 
@@ -172,6 +174,24 @@ export async function pollDeviceToken(deviceCode: string | undefined, userAgent?
   };
 }
 
+/** A device for an always-on host, with a token nobody has to confirm in a browser: the person asking is signed in already. */
+export async function createHostDevice(userId: string, name: string, kind: "host" | "host_worker" | "host_supervisor", clientName: string): Promise<{ deviceId: string; deviceToken: string }> {
+  const deviceToken = newToken("hdt");
+  const deviceId = newId("dev");
+  const now = new Date();
+  await getDb().insert(schema.device).values({ id: deviceId, userId, name: clip(name, 200) ?? "host", clientName, kind, tokenHash: sha256(deviceToken), createdAt: now, lastSeenAt: now });
+  return { deviceId, deviceToken };
+}
+
+/** A new token for a device: the old one and its access tokens stop working. The device, and what names it, stay. */
+export async function rotateDeviceToken(deviceId: string): Promise<string> {
+  const deviceToken = newToken("hdt");
+  const db = getDb();
+  await db.update(schema.device).set({ tokenHash: sha256(deviceToken), revokedAt: null }).where(eq(schema.device.id, deviceId));
+  await db.delete(schema.accessToken).where(eq(schema.accessToken.deviceId, deviceId));
+  return deviceToken;
+}
+
 async function issueAccessToken(deviceId: string, userId: string) {
   const token = newToken("hat");
   const now = Date.now();
@@ -230,7 +250,10 @@ export async function authenticateAccessToken(token: string): Promise<Principal 
     lastSeenWrites.set(row.device.id, now);
     await db.update(schema.device).set({ lastSeenAt: new Date(now) }).where(eq(schema.device.id, row.device.id));
   }
-  return { user: toPublicUser(row.user), deviceId: row.device.id, via: "access_token" };
+  const user = toPublicUser(row.user);
+  // A host acts for its user but administers nothing: a token on a server must not carry an admin's role.
+  if (row.device.kind) user.role = "user";
+  return { user, deviceId: row.device.id, deviceKind: row.device.kind || undefined, via: "access_token" };
 }
 
 // --- GET /api/auth/me, POST /api/auth/device/logout -----------------------------------

@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1
+#
+# An always-on host: harness-client daemon in a container (docs/design/hosts.md, deploy/README.md).
+# One process, no server in it: it connects out to your server of xlsft`s harness.
+#
+# Build from the repo root:  docker build -f deploy/Dockerfile.host -t harness-host .
+#
+# What agents need to work with goes in this image, or one built on it: git and a shell are here; a toolchain is yours to add.
+# BuildKit reads deploy/Dockerfile.host.dockerignore for this file's context.
+
+ARG GO_VERSION=1.26
+ARG DEBIAN_TAG=trixie-slim
+
+FROM golang:${GO_VERSION}-trixie AS build
+WORKDIR /src
+COPY packages/client/go.mod packages/client/go.sum ./
+RUN --mount=type=cache,id=gomod,target=/go/pkg/mod go mod download
+COPY packages/client/ ./
+RUN --mount=type=cache,id=gomod,target=/go/pkg/mod --mount=type=cache,id=gobuild,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/harness-client ./cmd/harness-client
+
+FROM debian:${DEBIAN_TAG}
+RUN apt-get -o Acquire::Retries=5 update \
+    && apt-get install -y --no-install-recommends ca-certificates git openssh-client ripgrep procps \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=build /out/harness-client /usr/local/bin/harness-client
+# Who runs it by default: nobody special, for a host of one user. A team host's compose file starts it as root instead,
+# because it has to hand each member a Unix user of their own.
+RUN useradd --create-home --home-dir /home/harness --uid 10001 harness \
+    && mkdir -p /data && chown harness:harness /data
+ENV HARNESS_HOME=/data/home HARNESS_KEYRING=0
+VOLUME /data
+USER harness
+WORKDIR /data
+ENTRYPOINT ["harness-client", "daemon", "--root", "/data/workspaces"]

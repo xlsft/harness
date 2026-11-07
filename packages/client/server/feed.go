@@ -72,3 +72,22 @@ func (f Feed) Info() *agentv1.SessionInfo { return f.ls.info() }
 // (SetSessionRelay), else the merged settings ("remoteControl", default
 // true); never when policy settings turn it off.
 func (f Feed) RemoteControl() bool { return f.ls.relayWanted() }
+
+// PublishHostWork tells a session's viewers what an always-on host did with its work (a pushed branch, a pull request, or
+// why neither). Nothing happens for a session that isn't open.
+func (s *Server) PublishHostWork(id string, update *agentv1.HostWorkUpdated) {
+	s.mu.Lock()
+	ls := s.live[id]
+	s.mu.Unlock()
+	if ls != nil {
+		ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_HostWorkUpdated{HostWorkUpdated: update}})
+	}
+}
+
+// StartBackground starts what a server does beside answering frontends (PR watches, the scheduler), for a process that
+// serves no socket: an always-on host.
+func (s *Server) StartBackground() {
+	sweepFolderBaselines()
+	go s.prResume.Do(s.resumePRWatches)
+	s.startScheduler()
+}

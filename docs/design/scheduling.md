@@ -20,6 +20,8 @@ A schedule is a prompt and a trigger: once, interval, cron, changed files or a w
 
 **Asking another machine.** Run now on another machine and a webhook post both write a `DOCUMENT_KIND_SCHEDULE_TRIGGER` document, which waits in the feed for however long that machine is away. The machine marks it handled, runs it and deletes it, so a failed delete can't run it twice.
 
+**A machine that is away.** A schedule can name an always-on host (`away_host_id`) and a repository. The host runs it while its machine is away, on a checkout of its own, and lands the work as a branch. The machine and the host each ask the server for a due time, so one slot runs once; a machine that can't reach the server runs its own schedule, and a host doesn't. `docs/design/hosts.md`, decision 19.
+
 **Webhooks.** The URL is `<server>/api/schedules/webhook/<document id>.<secret>`. The server stores only the secret's hash, from the schedule document; the secret stays on the machine, which is the only one that can show the URL. A post is limited to 64 KB, to a burst of 30 and then one per two seconds per schedule, and to 100 waiting per user. What was posted reaches the run through the `schedule_trigger` reminder, marked as data, and never as the prompt. Event triggers refuse `bypassPermissions`.
 
 **When the client was down.** A time more than two minutes late is missed: it runs once if `catch_up` is on, marked as a catch-up, or is recorded as missed. A time that comes while the previous run works is recorded as skipped. Runs a stopped client left behind read as interrupted. A lease in the state file keeps a second client on the machine (the app and a terminal) from running the same schedule.

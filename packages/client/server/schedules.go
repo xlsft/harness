@@ -73,6 +73,10 @@ type scheduleHost struct {
 	prefAt    time.Time
 	prefValue bool
 
+	// machines is the last look at the user's machines, on an always-on host (schedules_host.go); machinesAt is when.
+	machines   machineSeen
+	machinesAt time.Time
+
 	stop func()
 	done chan struct{}
 }
@@ -102,7 +106,7 @@ func (s *Server) scheduler() *scheduleHost {
 		host, _ := os.Hostname()
 		h := &scheduleHost{s: s, store: schedule.Open(filepath.Join(config.Home(), "schedules")), active: map[string]*activeRun{}}
 		h.done = make(chan struct{})
-		h.runner = &schedule.Runner{Store: h.store, DeviceID: s.DeviceID, DeviceName: host, Start: h.start, Enabled: h.enabled, Every: s.ScheduleEvery, FilePoll: s.ScheduleFilePoll, Logger: s.log(), Clock: s.now, OnTick: h.onTick}
+		h.runner = &schedule.Runner{Store: h.store, DeviceID: s.DeviceID, DeviceName: host, Start: h.start, Enabled: h.enabled, Every: s.ScheduleEvery, FilePoll: s.ScheduleFilePoll, Logger: s.log(), Clock: s.now, OnTick: h.onTick, Adopt: h.adopts, Claim: h.claimRun}
 		s.sched.Store(h)
 	})
 	return s.sched.Load()
@@ -189,6 +193,10 @@ func (h *scheduleHost) onTick(now time.Time) {
 	}
 	h.sweep(now)
 	h.syncDocs(now)
+	if h.s.HostMode != nil && now.Sub(h.machinesAt) >= scheduleMachinesEvery {
+		h.machinesAt = now
+		go h.refreshMachines(h.s.ctx)
+	}
 }
 
 // ---- runs ----
@@ -230,6 +238,14 @@ func (h *scheduleHost) execute(f schedule.Fire) {
 		return
 	}
 	s := h.s
+	tracked, cwd, err := h.hostCheckout(f.Task)
+	if err != nil {
+		h.fail(f, err.Error())
+		return
+	}
+	if tracked != nil {
+		f.Task.Cwd, f.Task.Worktree = cwd, false
+	}
 	if f.Task.Cwd != "" {
 		if _, err := os.Stat(f.Task.Cwd); err != nil {
 			h.fail(f, "The folder isn't there: "+f.Task.Cwd)
@@ -252,6 +268,9 @@ func (h *scheduleHost) execute(f schedule.Fire) {
 		return
 	}
 	id := res.Msg.GetSession().GetId()
+	if tracked != nil {
+		tracked(s.ctx, id)
+	}
 	title := "Scheduled: " + scheduleLabel(f.Task)
 	if _, err := router.UpdateSession(ctx, connect.NewRequest(&agentv1.UpdateSessionRequest{SessionId: id, Title: &title})); err != nil {
 		s.log().Debug("schedules: naming the session failed", "err", err)
@@ -514,6 +533,7 @@ func (h *scheduleHost) applyFeed(cache *syncclient.Cache, now time.Time) {
 			t.DeviceLocal = false
 			seen[t.ID] = true
 			rec := st.Records[t.ID]
+			defer h.allowOnHost(st, t.ID)
 			switch {
 			case rec == nil:
 				st.Records[t.ID] = &schedule.Record{Task: t, DocID: d.GetId(), DocVersion: d.GetVersion()}
@@ -537,10 +557,14 @@ func (h *scheduleHost) applyFeed(cache *syncclient.Cache, now time.Time) {
 				continue
 			}
 			rec.HistoryDocID, rec.HistoryVersion = d.GetId(), d.GetVersion()
-			if h.runner.Mine(rec.Task) {
-				continue // ours: this machine knows better
-			}
 			var hd scheduleHistoryDoc
+			if h.runner.Mine(rec.Task) {
+				// Ours: this machine knows better, except of what its away host ran meanwhile.
+				if rec.Task.AwayHostID != "" && json.Unmarshal([]byte(d.GetContent()), &hd) == nil {
+					rec.MergeHistory(hd.Runs)
+				}
+				continue
+			}
 			if json.Unmarshal([]byte(d.GetContent()), &hd) == nil {
 				rec.History = hd.Runs
 				rec.Runs = max(rec.Runs, len(hd.Runs))
@@ -738,7 +762,7 @@ func (h *scheduleHost) toProto(rec *schedule.Record) *agentv1.Schedule {
 	mine := h.runner.Mine(t)
 	out := &agentv1.Schedule{
 		Id: t.ID, Name: t.Name, Prompt: t.Prompt, Cwd: t.Cwd, Model: t.Model, Effort: t.Effort, PermissionMode: t.Mode, Engine: t.Engine, Worktree: t.Worktree, CatchUp: t.CatchUp, Paused: t.Paused,
-		MaxRuns: int32(t.MaxRuns), ExpiresAt: t.ExpiresAt, SessionId: t.SessionID, DeviceId: t.DeviceID, DeviceName: t.DeviceName, DeviceLocal: t.DeviceLocal,
+		MaxRuns: int32(t.MaxRuns), ExpiresAt: t.ExpiresAt, SessionId: t.SessionID, DeviceId: t.DeviceID, DeviceName: t.DeviceName, DeviceLocal: t.DeviceLocal, AwayHostId: t.AwayHostID, RepositoryKey: t.RepositoryKey,
 		Origin: scheduleOrigins[t.Origin], ThisDevice: mine, Runs: int32(rec.Runs), Done: t.Done, CreatedAt: t.CreatedAt, UpdatedAt: t.UpdatedAt,
 		Trigger: &agentv1.ScheduleTrigger{Kind: triggerKinds[t.Trigger.Kind], At: t.Trigger.At, EverySeconds: t.Trigger.EverySeconds, Cron: t.Trigger.Cron, Timezone: t.Trigger.Timezone, Paths: t.Trigger.Paths, CooldownSeconds: t.Trigger.CooldownSeconds},
 	}
@@ -767,7 +791,7 @@ func (h *scheduleHost) toProto(rec *schedule.Record) *agentv1.Schedule {
 func taskFromProto(m *agentv1.Schedule) schedule.Task {
 	tr := m.GetTrigger()
 	t := schedule.Task{Name: strings.TrimSpace(m.GetName()), Prompt: m.GetPrompt(), Cwd: m.GetCwd(), Model: m.GetModel(), Effort: m.GetEffort(), Mode: m.GetPermissionMode(), Engine: m.GetEngine(),
-		Worktree: m.GetWorktree(), CatchUp: m.GetCatchUp(), Paused: m.GetPaused(), MaxRuns: int(m.GetMaxRuns()), ExpiresAt: m.GetExpiresAt(),
+		Worktree: m.GetWorktree(), CatchUp: m.GetCatchUp(), Paused: m.GetPaused(), MaxRuns: int(m.GetMaxRuns()), ExpiresAt: m.GetExpiresAt(), AwayHostID: m.GetAwayHostId(), RepositoryKey: m.GetRepositoryKey(),
 		Trigger: schedule.Trigger{At: tr.GetAt(), EverySeconds: tr.GetEverySeconds(), Cron: tr.GetCron(), Timezone: tr.GetTimezone(), Paths: tr.GetPaths(), CooldownSeconds: tr.GetCooldownSeconds()}}
 	for k, v := range triggerKinds {
 		if v == tr.GetKind() {
@@ -791,11 +815,17 @@ func (s *Server) checkTask(t schedule.Task) error {
 	if err := t.Validate(); err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, err)
 	}
+	if t.AwayHostID != "" && t.RepositoryKey == "" {
+		return connect.NewError(connect.CodeInvalidArgument, errors.New("a schedule with an away host needs a repository for the host to check out"))
+	}
 	return nil
 }
 
 // isDeviceLocal: a schedule stays on this machine when nothing else could run it, or there's nowhere to sync it to.
 func (s *Server) isDeviceLocal(t schedule.Task) bool {
+	if t.AwayHostID != "" {
+		return false // another machine runs it too
+	}
 	return s.ScheduleSync == nil || s.DeviceID == "" || t.SessionID != "" || t.Engine != "" || localmodels.IsLocal(t.Model)
 }
 
@@ -884,6 +914,7 @@ func (s *Server) ListSchedules(context.Context, *connect.Request[agentv1.ListSch
 func (s *Server) CreateSchedule(_ context.Context, req *connect.Request[agentv1.CreateScheduleRequest]) (*connect.Response[agentv1.CreateScheduleResponse], error) {
 	h := s.scheduler()
 	t := taskFromProto(req.Msg.GetSchedule())
+	fillRepositoryKey(&t)
 	if err := s.checkTask(t); err != nil {
 		return nil, err
 	}
@@ -929,6 +960,7 @@ func (s *Server) UpdateSchedule(_ context.Context, req *connect.Request[agentv1.
 	h := s.scheduler()
 	m := req.Msg.GetSchedule()
 	t := taskFromProto(m)
+	fillRepositoryKey(&t)
 	if err := s.checkTask(t); err != nil {
 		return nil, err
 	}

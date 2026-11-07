@@ -13,9 +13,30 @@ const running = computed(() => goal.value?.state === 'active')
 const resumable = computed(() => goal.value?.state === 'paused' || goal.value?.state === 'cap_reached')
 const shown = computed(() => !!goal.value && goal.value.state !== 'stopped' && (running.value || dismissed.value !== key.value))
 const send = (text: string) => store.quietly(store.send(props.session.meta.id, text))
+const hostWork = computed(() => props.session.hostWork)
 </script>
 
 <template>
+  <div
+    v-if="hostWork"
+    role="status"
+    data-host-work
+    class="flex items-center gap-2 border border-default bg-surface px-3 py-1.5 text-[12px] text-muted"
+  >
+    <template v-if="hostWork.error">
+      <span class="text-bad">{{ tt('The host could not land this work: {0}', [hostWork.error]) }}</span>
+    </template>
+    <template v-else>
+      <span class="min-w-0 truncate">{{ tt('Pushed to {0}', [hostWork.branch]) }}</span>
+      <a
+        v-if="hostWork.pullRequestUrl"
+        :href="hostWork.pullRequestUrl"
+        target="_blank"
+        rel="noopener"
+        class="text-accent"
+      >{{ tt('Pull request') }}</a>
+    </template>
+  </div>
   <div
     v-if="goal && shown"
     role="status"

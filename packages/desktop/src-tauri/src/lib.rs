@@ -166,6 +166,7 @@ fn agent_endpoint(shell: State<'_, Shell>) -> Result<Endpoint, String> {
     let port = free_port()?;
     let token = random_token()?;
     let addr = format!("127.0.0.1:{port}");
+    let out = sidecar_output().ok();
     let child = Command::new(sidecar()?)
         .args(["serve", "--listen", &addr])
         .env("HARNESS_AGENT_TOKEN", &token)
@@ -173,6 +174,9 @@ fn agent_endpoint(shell: State<'_, Shell>) -> Result<Endpoint, String> {
         // Exit when this app goes away without stopping it (crash, dev rebuild).
         .env("HARNESS_EXIT_WITH_PARENT", "1")
         .stdin(Stdio::null())
+        // Nobody reads an app's stdout and stderr: they go to the client's log folder, where its own log is.
+        .stdout(out.as_ref().and_then(|f| f.try_clone().ok()).map(Stdio::from).unwrap_or_else(Stdio::null))
+        .stderr(out.map(Stdio::from).unwrap_or_else(Stdio::null))
         .spawn()
         .map_err(|e| e.to_string())?;
     let endpoint = Endpoint { url: format!("http://{addr}"), token };
@@ -180,6 +184,78 @@ fn agent_endpoint(shell: State<'_, Shell>) -> Result<Endpoint, String> {
     wait_listening(&mut s.child, &addr)?;
     *serve = Some(s);
     Ok(endpoint)
+}
+
+/// The client's log folder: $HARNESS_HOME/logs, by default ~/.harness/logs (config.Home in packages/client).
+fn logs_dir() -> Option<PathBuf> {
+    let home = match std::env::var_os("HARNESS_HOME") {
+        Some(h) if !h.is_empty() => PathBuf::from(h),
+        _ => {
+            let user = std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })?;
+            PathBuf::from(user).join(".harness")
+        }
+    };
+    Some(home.join("logs"))
+}
+
+/// Size at which sidecar.log moves to sidecar.log.1 when the sidecar starts; SIDECAR_LOG_KEEP older files stay.
+const SIDECAR_LOG_MAX: u64 = 2 << 20;
+const SIDECAR_LOG_KEEP: u32 = 3;
+
+/// The sidecar's stdout and stderr (startup errors, panics; its log lines go to client.log beside it): appended to
+/// sidecar.log, which rotates when the sidecar starts once it has grown past SIDECAR_LOG_MAX.
+fn sidecar_output() -> std::io::Result<std::fs::File> {
+    let dir = logs_dir().ok_or_else(|| std::io::Error::other("no home folder"))?;
+    std::fs::create_dir_all(&dir)?;
+    let path = dir.join("sidecar.log");
+    rotate_log(&path, SIDECAR_LOG_MAX, SIDECAR_LOG_KEEP);
+    let mut opts = std::fs::OpenOptions::new();
+    opts.create(true).append(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        opts.mode(0o600);
+    }
+    opts.open(path)
+}
+
+/// Moves path to path.1 (and .1 to .2, ...) once it is larger than max, keeping keep older files.
+fn rotate_log(path: &std::path::Path, max: u64, keep: u32) {
+    let big = std::fs::metadata(path).map(|m| m.len() > max).unwrap_or(false);
+    if !big {
+        return;
+    }
+    let name = |i: u32| PathBuf::from(format!("{}.{i}", path.display()));
+    let _ = std::fs::remove_file(name(keep));
+    for i in (1..keep).rev() {
+        let _ = std::fs::rename(name(i), name(i + 1));
+    }
+    let _ = std::fs::rename(path, name(1));
+}
+
+#[cfg(test)]
+mod log_tests {
+    use super::rotate_log;
+
+    #[test]
+    fn rotates_past_the_cap_and_keeps_a_few() {
+        let dir = std::env::temp_dir().join(format!("harness-sidecar-log-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("sidecar.log");
+        for i in 0..5 {
+            std::fs::write(&path, format!("run {i} {}", "x".repeat(20))).unwrap();
+            rotate_log(&path, 10, 2);
+        }
+        assert!(!path.exists(), "rotated away");
+        assert!(std::fs::read_to_string(dir.join("sidecar.log.1")).unwrap().starts_with("run 4"));
+        assert!(std::fs::read_to_string(dir.join("sidecar.log.2")).unwrap().starts_with("run 3"));
+        assert!(!dir.join("sidecar.log.3").exists());
+        std::fs::write(&path, "small").unwrap();
+        rotate_log(&path, 10, 2);
+        assert!(path.exists(), "a small log stays");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }
 
 /// Waits until the sidecar accepts connections (or exits, e.g. when not signed in).

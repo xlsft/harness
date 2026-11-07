@@ -1,0 +1,4 @@
+# The host image (deploy/Dockerfile.host) needs only the client's sources.
+*
+!packages/client/
+**/.DS_Store

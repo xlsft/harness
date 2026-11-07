@@ -26,6 +26,8 @@ export const CAPABILITIES = [
   "directory.write",
   "limits.read",
   "limits.write",
+  "hosts.read",
+  "hosts.write",
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 

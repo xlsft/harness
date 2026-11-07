@@ -47,6 +47,7 @@ buf lint proto && buf generate                     # contracts and codegen
 (cd packages/client && go vet ./... && go test -race ./...)
 (cd packages/cli && go test ./... && go run ./cmd/harness demo)
 scripts/e2e/run.sh                                 # core + client end to end, scripted model
+scripts/e2e/hosts.sh                               # an always-on host end to end, over real git to a fake code host
 ```
 
 ## Local dev stack and real models

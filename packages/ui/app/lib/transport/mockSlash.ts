@@ -21,6 +21,7 @@ export function mockSlashCatalog(disabled: ReadonlySet<string>): SlashCatalog {
     builtin('code-review', 'Review the current diff for bugs and list the findings', '[range, files or focus]'),
     builtin('goal', 'Keep working until a condition holds, with a cap on the turns', '[--max N] <condition> | stop | resume', true),
     builtin('loop', 'Repeat a prompt or command here, on an interval or at the model\'s pace', '[interval] <prompt or /command> | stop | list', true),
+    builtin('tools', 'List the tools offered to the model now, and why others are not', '', true),
     builtin('schedule', 'Open Scheduled: tasks that run by themselves'),
     builtin('skills', 'Open Extensions: skills and commands, with their switches'),
     own('release-notes', 'Draft release notes from the commits since the last tag', SlashCommandKind.SKILL, '.harness/skills/release-notes/SKILL.md'),

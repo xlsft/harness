@@ -116,6 +116,11 @@ type Server struct {
 	// importing holds the one running import (import.go).
 	importing atomic.Bool
 
+	// HostMode is set on an always-on host: it runs schedules from checkouts of its own (schedules_host.go).
+	HostMode *HostMode
+	// ScheduleClaim asks the server who runs a schedule's due time; nil without a server (schedules_host.go).
+	ScheduleClaim ScheduleClaim
+
 	// DeviceID is this machine's device id (dev_...): sessions the server lists for another device are remote
 	// (remote.go). Empty when unknown; then only the local transcripts decide.
 	DeviceID string
@@ -245,6 +250,9 @@ func (s *Server) Close() {
 	s.browsers().Close()
 	s.previews().Close()
 	s.computerUse().StopAll()
+	if s.Base.SyncHub != nil {
+		s.Base.SyncHub.Close() // after the sessions: their last transcript uploads go through it
+	}
 }
 
 // ServeUnix serves AgentService over h2c on a unix socket until ctx ends.

@@ -41,8 +41,17 @@ const MCP = "harness.mcp.v1.McpService";
 const VCS = "harness.vcs.v1.VcsService";
 const SYNC = "harness.sync.v1.SyncService";
 const DEVICE = "harness.auth.v1.DeviceAuthService";
+const HOSTS = "harness.relay.v1.HostsService";
+const HOST_AGENT = "harness.relay.v1.HostAgentService";
 
 export const AUDITED: Record<string, Audited> = {
+  [`${HOSTS}/CreateAgentHost`]: { action: "host.create", targetType: "host", target: "name", details: ["scope", "groupId", "maxSessions", "maxSessionsPerUser", "allowedRepositories"] },
+  [`${HOSTS}/UpdateAgentHost`]: { action: "host.update", targetType: "host", target: "id", details: ["name", "draining", "maxSessions", "maxSessionsPerUser", "groupId", "allowedRepositories"] },
+  [`${HOSTS}/DeleteAgentHost`]: { action: "host.delete", targetType: "host", target: "id" },
+  [`${HOSTS}/StartHostWork`]: { action: "host.start_work", targetType: "host", target: "hostId", details: ["repositoryKey", "baseRef", "landing"] },
+  [`${HOSTS}/CancelHostWork`]: { action: "host.cancel_work", targetType: "host_work", target: "id" },
+  [`${HOST_AGENT}/IssueGitCredentials`]: { action: "host.git_credentials", targetType: "repository", target: "repositoryKey" },
+  [`${HOST_AGENT}/IssueWorkerToken`]: { action: "host.worker_token", targetType: "user", target: "userId" },
   [`${ADMIN}/CreateUser`]: { action: "user.create", targetType: "user", target: "email", details: ["name", "username", "role", "ldap", "generatePassword"] },
   [`${ADMIN}/ResetPassword`]: { action: "user.reset_password", targetType: "user", target: "userId", details: ["generate", "revokeSessions"] },
   [`${ADMIN}/SetRole`]: { action: "user.set_role", targetType: "user", target: "userId", details: ["role"] },

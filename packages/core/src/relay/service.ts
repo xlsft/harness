@@ -304,6 +304,8 @@ export async function* openHostStream(p: Principal, hostId: string, signal: Abor
       sent.add(`${cmd.commandId}/${cmd.epoch}`);
       yield { event: { case: "command", value: cmd } };
     }
+    // Right away: a client counts as connected once the stream's headers arrive, and nothing else sends them while idle.
+    yield { event: { case: "heartbeat", value: { serverTime: new Date().toISOString() } } };
     const interval = heartbeatMs();
     let lastSent = Date.now();
     while (!signal.aborted) {
@@ -1012,6 +1014,23 @@ export async function spawnSession(p: Principal, hostId: string, spawn: SpawnSes
   throwOnFailedAck(r.ack);
   if (r.ack.result.case !== "spawnSession" || !r.ack.result.value.session) throw new ApiError("internal", "The host acked without a session");
   return r.ack.result.value.session;
+}
+
+/** Whether a session's machine is up: false for a session no machine mirrors, or one whose machine went away. */
+export async function sessionMachineOnline(sessionId: string): Promise<boolean> {
+  const db = getDb();
+  const [s] = await db.select({ hostId: schema.relaySession.hostId }).from(schema.relaySession).where(eq(schema.relaySession.id, sessionId));
+  if (!s) return false;
+  const [h] = await db.select().from(schema.relayHost).where(eq(schema.relayHost.id, s.hostId));
+  return !!h && isOnline(h);
+}
+
+/** Takes back a server command still waiting for its machine, so it can't run as well as what replaces it. */
+export async function withdrawServerCommand(userId: string, key: string): Promise<void> {
+  await getDb()
+    .update(schema.relayCommand)
+    .set({ state: "withdrawn" })
+    .where(and(eq(schema.relayCommand.userId, userId), eq(schema.relayCommand.idempotencyKey, key), eq(schema.relayCommand.state, "queued")));
 }
 
 /** Test hook: drops in-process relay state between test files sharing a module instance. */

@@ -16,11 +16,12 @@ import { GetUserAuthStatusResponse_State, ProviderType } from "../gen/harness/vc
 import { ApiError } from "../lib/errors.ts";
 import type { Principal, PublicUser } from "../services/devices.ts";
 import { sessionView } from "../services/sessions.ts";
-import { getUserAuthStatus, invalidateUserToken, onUserAuthChanged } from "./auth.ts";
-import { systemClient, userClient } from "./clients.ts";
+import { getUserAuthStatus, getUserToken, invalidateUserToken, onUserAuthChanged } from "./auth.ts";
+import { systemClient, userClient, userClientWithToken } from "./clients.ts";
 import {
   allConnections,
   connectionForHost,
+  connSecrets,
   getConnectionRow,
   installUrl,
   onConnectionChanged,
@@ -31,7 +32,7 @@ import {
   type ConnectionRow,
 } from "./connections.ts";
 import { getStoredPr, linkedSessions, mergePr, prOf, savePr, sessionsOf, storedPrs, type EventRow } from "./events.ts";
-import { appJwt, GH_HEADERS, githubApiBase, hasAppCredentials } from "./github-app.ts";
+import { appJwt, GH_HEADERS, githubApiBase, hasAppCredentials, scopedInstallationToken } from "./github-app.ts";
 import { updateBadges } from "./pipeline.ts";
 import type { CreatePrInput, PrData, RepoRef, VcsProviderClient } from "./types.ts";
 import { hostOfBaseUrl, httpJson, httpRequest, isOpen, parseRepoKey } from "./util.ts";
@@ -184,6 +185,36 @@ async function bind(p: Principal, repositoryKey: string, mode: "read" | "write")
   return { repo, conn, client: sys, asUser: false };
 }
 
+/**
+ * The identity an always-on host works with on a repository (docs/design/hosts.md, decision 11): the user's own account on
+ * the connection, or the connection's identity if the host's admin allowed it for this repository. Laptops have their gh.
+ */
+export async function hostIdentity(userId: string, repositoryKey: string, connectionIdentityAllowed: boolean): Promise<{ repo: RepoRef; conn: ConnectionRow; client: VcsProviderClient; token: string; asUser: boolean }> {
+  const repo = parseRepoKey(repositoryKey);
+  const conn = await connectionForHost(repo.host);
+  if (!conn) throw new ApiError("failed_precondition", `No code host connection covers ${repo.host}; an admin adds one under Settings > Code hosts`);
+  const own = await getUserToken(userId, conn);
+  if (own) return { repo, conn, client: userClientWithToken(conn, own), token: own, asUser: true };
+  const client = systemClient(conn);
+  if (!connectionIdentityAllowed || !client) throw new ApiError("needs_auth", `Connect your ${providerName(conn.type)} account under Settings > Code hosts to work on ${repo.key} from a host`);
+  const token = conn.type === ProviderType.GITHUB ? await scopedInstallationToken(conn, repo.owner, repo.name) : connSecrets(conn).accessToken!;
+  return { repo, conn, client, token, asUser: false };
+}
+
+/** Opens a pull request of a host, or returns the one the branch already has. */
+export async function openPullRequestAs(userId: string, repositoryKey: string, connectionIdentityAllowed: boolean, input: CreatePrInput & { sessionId: string }): Promise<PrData> {
+  const { repo, conn, client } = await hostIdentity(userId, repositoryKey, connectionIdentityAllowed);
+  const open = (await client.listPullRequests(repo, { headBranch: input.headBranch, includeClosed: false })).find(isOpen);
+  const pr = open ?? (await client.createPullRequest(repo, input));
+  await cache({ repo, conn, client, asUser: true }, pr);
+  if (input.sessionId) {
+    // The transcript may not have reached the server yet; synced metadata links the session by its branch anyway.
+    await upsertLink(userId, input.sessionId, { repositoryKey: repo.key, branch: input.headBranch, prNumber: pr.number }).catch(() => {});
+  }
+  await updateBadges(await linkedSessions(repo.key, pr.headBranch, pr.number), pr);
+  return pr;
+}
+
 /** Runs an operation; a rejected user token is dropped so the status shows NOT_CONNECTED / ERROR. */
 async function run<T>(p: Principal, b: Bound, fn: (c: VcsProviderClient) => Promise<T>): Promise<T> {
   try {
@@ -332,6 +363,16 @@ export async function linkSession(p: Principal, req: { sessionId: string; reposi
     await updateBadges([{ sessionId: s.id, userId: p.user.id }], pr);
   }
   return pr;
+}
+
+/** Handed-over work: the link and its auto-fix switches go to the session on the host; the old one no longer gets the jobs. */
+export async function moveSessionLink(userId: string, fromSessionId: string, toSessionId: string): Promise<void> {
+  const l = schema.vcsSessionLink;
+  const from = await getDb().query.vcsSessionLink.findFirst({ where: and(eq(l.sessionId, fromSessionId), eq(l.userId, userId)) });
+  if (!from) return;
+  const { repositoryKey, branch, prNumber, autoFixCi, autoFixReviews, autoFixConflicts } = from;
+  await upsertLink(userId, toSessionId, { repositoryKey, branch, prNumber, autoFixCi, autoFixReviews, autoFixConflicts });
+  await getDb().delete(l).where(eq(l.sessionId, fromSessionId));
 }
 
 export async function setAutoFix(p: Principal, req: { sessionId: string; ciFailures: boolean; reviewComments: boolean; conflicts: boolean }): Promise<void> {
