@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/xlsft/harness/packages/client/auth"
@@ -13,6 +14,7 @@ import (
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/memory"
 	"github.com/xlsft/harness/packages/client/permissions"
+	"github.com/xlsft/harness/packages/client/rpc"
 	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/workspace"
@@ -20,11 +22,42 @@ import (
 
 // startSync opens the sync client (cache + watch loop) and the session uploader. It never fails the
 // session: without a server or with HARNESS_NO_SYNC=1 it returns nils and the session runs on local
-// files only.
-func startSync(ctx context.Context, o Options, url string, hc *http.Client, tokens auth.TokenSource, user *auth.User, log *slog.Logger) (*syncclient.Syncer, *syncclient.Uploader, context.CancelFunc) {
-	if o.NoSync || os.Getenv("HARNESS_NO_SYNC") == "1" || url == "" || tokens == nil {
-		return nil, nil, nil
+// files only; off then says why (SyncOff). A shared hub (serve) gives every session the same client.
+func startSync(ctx context.Context, o Options, url string, hc *http.Client, tokens auth.TokenSource, user *auth.User, log *slog.Logger) (syncer *syncclient.Syncer, up *syncclient.Uploader, stop context.CancelFunc, off string) {
+	if reason := syncDisabledReason(o, url, tokens); reason != "" {
+		return nil, nil, nil, reason
 	}
+	if o.SyncHub != nil {
+		syncer, up, err := o.SyncHub.get(ctx, log)
+		if err != nil {
+			log.Warn("sync unavailable, using local files only", "err", err)
+			return nil, nil, nil, "sync could not start: " + err.Error()
+		}
+		return syncer, up, nil, ""
+	}
+	syncer, up, stop, err := openSync(ctx, url, hc, tokens, user, log)
+	if err != nil {
+		log.Warn("sync unavailable, using local files only", "err", err)
+		return nil, nil, nil, "sync could not start: " + err.Error()
+	}
+	return syncer, up, stop, ""
+}
+
+// syncDisabledReason says why a session gets no sync client before trying to open one ("" when it should).
+func syncDisabledReason(o Options, url string, tokens auth.TokenSource) string {
+	switch {
+	case o.NoSync:
+		return "sync is turned off for this run"
+	case os.Getenv("HARNESS_NO_SYNC") == "1":
+		return "sync is turned off (HARNESS_NO_SYNC=1)"
+	case url == "" || tokens == nil:
+		return "not signed in to a harness server"
+	}
+	return ""
+}
+
+// openSync opens a sync client and an uploader that run until the returned function is called.
+func openSync(ctx context.Context, url string, hc *http.Client, tokens auth.TokenSource, user *auth.User, log *slog.Logger) (*syncclient.Syncer, *syncclient.Uploader, context.CancelFunc, error) {
 	identity := url
 	if user != nil && user.ID != "" {
 		identity += "|" + user.ID
@@ -34,16 +67,58 @@ func startSync(ctx context.Context, o Options, url string, hc *http.Client, toke
 		ServerURL: url, HTTP: hc, Tokens: tokens, Identity: identity, Source: "client:" + deviceID, Logger: log,
 	})
 	if err != nil {
-		log.Warn("sync unavailable, using local files only", "err", err)
-		return nil, nil, nil
+		return nil, nil, nil, err
 	}
-	// The watch loop and uploader outlive Open's ctx; Session.Close cancels them.
+	// The watch loop and uploader outlive Open's ctx; the returned function cancels them.
 	runCtx, cancel := context.WithCancel(context.Background())
 	go func() { _ = syncer.Run(runCtx) }()
 	host, _ := os.Hostname()
 	up := syncclient.NewUploader(syncclient.UploaderOptions{API: syncer.Client(), DeviceID: deviceID, DeviceName: host, Logger: log, Objects: syncclient.SharedObjectQueue(syncer.Client(), log)})
 	go func() { _ = up.Run(runCtx) }()
-	return syncer, up, cancel
+	return syncer, up, cancel, nil
+}
+
+// SyncHub is one sync client (cache, watch loop, transcript uploader) for all the sessions of a process: serve opens
+// sessions with shared adapters, and each session opening its own client would run as many watch streams on the same
+// cache directory. It opens on the first session that needs it; an attempt that failed is tried again by the next one.
+type SyncHub struct {
+	URL    string
+	HTTP   *http.Client
+	Tokens auth.TokenSource
+	User   *auth.User
+
+	mu     sync.Mutex
+	syncer *syncclient.Syncer
+	up     *syncclient.Uploader
+	stop   context.CancelFunc
+}
+
+func (h *SyncHub) get(ctx context.Context, log *slog.Logger) (*syncclient.Syncer, *syncclient.Uploader, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.syncer != nil {
+		return h.syncer, h.up, nil
+	}
+	hc := h.HTTP
+	if hc == nil {
+		hc = rpc.HTTPClient(h.URL)
+	}
+	syncer, up, stop, err := openSync(ctx, h.URL, hc, h.Tokens, h.User, log)
+	if err != nil {
+		return nil, nil, err
+	}
+	h.syncer, h.up, h.stop = syncer, up, stop
+	return syncer, up, nil
+}
+
+// Close stops the shared client.
+func (h *SyncHub) Close() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.stop != nil {
+		h.stop()
+	}
+	h.syncer, h.up, h.stop = nil, nil, nil
 }
 
 func deviceID() string {

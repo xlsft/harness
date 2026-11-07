@@ -45,9 +45,23 @@ func UserShellTimeout() time.Duration {
 // as they arrive.
 func (s *Shell) RunUser(ctx context.Context, command string, onOutput func(stream int, p []byte)) UserShellResult {
 	start := time.Now()
+	if onOutput != nil {
+		// Each stream has its own stripper: a sequence split between chunks is joined before it is removed.
+		var strippers [2]terminalStripper
+		raw := onOutput
+		onOutput = func(stream int, p []byte) {
+			if stream < 0 || stream > 1 {
+				raw(stream, p)
+				return
+			}
+			if b := strippers[stream].strip(p); len(b) > 0 {
+				raw(stream, b)
+			}
+		}
+	}
 	res, err := s.Run(ctx, command, ExecOptions{Timeout: UserShellTimeout(), OnOutput: onOutput})
 	r := UserShellResult{
-		Stdout: res.Stdout, Stderr: res.Stderr, ExitCode: res.ExitCode, Stopped: res.Interrupted, TimedOut: res.TimedOut,
+		Stdout: StripTerminalCodes(res.Stdout), Stderr: StripTerminalCodes(res.Stderr), ExitCode: res.ExitCode, Stopped: res.Interrupted, TimedOut: res.TimedOut,
 		Truncated: res.Truncated, Cwd: res.StartCwd, Duration: time.Since(start), Err: err,
 	}
 	if err != nil {

@@ -103,7 +103,10 @@ One prompt, N attempts (2 to 5), each in a checkout and on a branch of its own, 
     are removed by the client; a host attempt still queued is cancelled, and one with a session is handed to its daemon through
     `ReportAgentHost` (`discard_work_ids`), which closes the session, removes the checkout and deletes its `harness/` branch on
     the code host, then reports it done. A daemon deletes only a branch that it made for that work and that starts with
-    `harness/`. The kept attempt goes on as an ordinary session.
+    `harness/`. The kept attempt goes on as an ordinary session. So that a daemon need not wait for its next report, its
+    claim answers at once, with no work, while something of it is to be discarded; the daemon then reports straight away.
+    Frontends start and discard through the client's `LocalAttemptsService`, which passes a host group to the server; a
+    local attempt's branch is `harness/attempt-<group>-<n>`, the only kind of local branch that discarding deletes.
 33. **What a group shows is its owner's.** Groups and attempts are the caller's alone: other people, admins included, get
     NOT_FOUND, as for sessions.
 
@@ -146,6 +149,8 @@ The agent's commands run under the OS sandbox where a driver exists (macOS today
 - A move of an ACP agent's session, or of one with subagents still running: the move waits for, or stops, the turn, and
   agents that were still running are not carried.
 - Local attempts of a group that had not started when the client quit stay waiting; the group shows them so.
+- An attempt's budget applies to the run of the client or daemon that started it: a session reopened later runs without it.
+- The web console reaches the server directly, so it has neither moves (a move is the laptop's) nor local groups.
 - Best-of-N across several hosts, or hosts and the laptop at once: a group runs on one host, or locally.
 - Network policy per session and environment setup scripts.
 - Per-user quotas for CPU, memory and disk on a team host, and a network namespace per user. Decided against for now: they need a cgroup and namespace setup that a container doesn't get without more privileges than the rest of this avoids.

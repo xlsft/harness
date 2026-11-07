@@ -176,6 +176,10 @@ describe("best-of-N", () => {
     // The one still queued just goes; the one with a session waits for its daemon.
     expect(after.attempts.map((a) => a.state)).toEqual([AttemptState.IDLE, AttemptState.DISCARDING, AttemptState.DISCARDED]);
     expect(after.attempts[0]!.kept).toBe(true);
+    // A waiting claim answers at once, with no work, so that the daemon reports now.
+    const asked = Date.now();
+    expect((await D.claimHostWork({ waitSeconds: 20 })).work).toBeUndefined();
+    expect(Date.now() - asked).toBeLessThan(5000);
     const report = await D.reportAgentHost({ workingSessions: 1 });
     expect(report.discardWorkIds).toEqual([second.id]);
     // A late report does not bring it back.

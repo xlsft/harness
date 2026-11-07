@@ -99,6 +99,9 @@ func runCI(ctx context.Context, args []string) int {
 	base.Model, base.Effort, base.MaxTurns, base.MaxBudgetUSD = *f.model, *f.effort, *f.maxTurns, *f.maxBudget
 	base.Logger = newLogger(*f.verbose)
 	base.VCSProviders = nil
+	// A review run keeps to the gateway and prompts: no sync, transcript upload or MCP servers in CI (as before serve
+	// sessions got their server connection; docs/design/diagnostics.md).
+	base.Tokens, base.User, base.SyncHub, base.MCP = nil, nil, nil, nil
 	c := cibot.Config{
 		Bootstrap: base,
 		Runner:    runner,

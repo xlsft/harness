@@ -674,7 +674,7 @@ func (c nbReadCell) render(b *strings.Builder, index int) {
 		default:
 			text = nbOutputData(o.Data)
 		}
-		text = strings.TrimRight(ansiEscapeRe.ReplaceAllString(text, ""), "\n")
+		text = strings.TrimRight(StripTerminalCodes(text), "\n")
 		if text != "" {
 			b.WriteString(headTail(text, notebookOutputChars) + "\n")
 		}

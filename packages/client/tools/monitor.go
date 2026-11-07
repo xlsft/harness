@@ -39,8 +39,6 @@ var monitorPace = struct {
 	noisyNotices int
 }{poll: 250 * time.Millisecond, batch: time.Second, minGap: 5 * time.Second, noisyLines: 300, noisyNotices: 40}
 
-var ansiEscapeRe = regexp.MustCompile("\x1b\\[[0-9;?]*[ -/]*[@-~]")
-
 // monitor watches the output of one task and reports matching lines through TaskEventNotify.
 type monitor struct {
 	m      *TaskManager
@@ -207,7 +205,7 @@ func (w *monitor) drain(final bool) {
 }
 
 func (w *monitor) add(line string) {
-	line = ansiEscapeRe.ReplaceAllString(line, "")
+	line = StripTerminalCodes(line)
 	if w.out != nil {
 		fmt.Fprintln(w.out, line)
 	}

@@ -426,6 +426,11 @@ export class ConnectTransport implements SessionTransport {
     return this.client.listSlashCommands(target)
   }
 
+  async getDiagnostics() {
+    const res = await this.client.getDiagnostics({})
+    return { text: res.text, logsDir: res.logsDir }
+  }
+
   async setSkillEnabled(name: string, enabled: boolean) {
     await this.client.updateUserPreferences({ skillSwitch: { name, enabled } })
   }
