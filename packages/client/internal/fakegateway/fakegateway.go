@@ -80,6 +80,9 @@ type Server struct {
 	// number. When nil, title requests fail.
 	Title func(req *llm.Request) Reply
 
+	// Mount adds more services to the same address (e.g. a fake SyncService), as on the real server.
+	Mount func(mux *http.ServeMux)
+
 	// RejectTokens makes the next N authenticated calls fail with UNAUTHENTICATED.
 	RejectTokens atomic.Int32
 	// AccessToken is the token issued on login/refresh.
@@ -163,6 +166,9 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle(authv1connect.NewDeviceAuthServiceHandler(authHandler{s: s}))
 	mux.Handle(decisionv1connect.NewDecisionServiceHandler(decisionHandler{s: s}))
 	mux.Handle(searchv1connect.NewSearchServiceHandler(searchHandler{s: s}))
+	if s.Mount != nil {
+		s.Mount(mux)
+	}
 	return mux
 }
 

@@ -219,6 +219,12 @@ func sharedAdapters(serverURL string) (bootstrap.Options, string, error) {
 		DecisionService: decision.NewClient(url, hc, tokens),
 		Search:          web.NewSearchClient(url, hc, tokens),
 		VCSProviders:    vcs.WithServerProvider(vcs.SharedServerProvider(url, hc, tokens)),
+		MCP:             mcp.NewClient(url, hc, tokens),
+		// With the adapters shared, the sessions still need the credentials for their own server connection: sync (and the
+		// tools that need it: ArtifactPublish, KnowledgeSearch, ...), MCP and pull request polling.
+		Tokens:  tokens,
+		User:    user,
+		SyncHub: &bootstrap.SyncHub{URL: url, HTTP: hc, Tokens: tokens, User: user},
 	}, email, nil
 }
 
