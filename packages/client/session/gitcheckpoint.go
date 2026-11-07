@@ -292,14 +292,15 @@ func (h *FileHistory) resolveTargets(ctx context.Context, dirs []string) []gitTa
 	return out
 }
 
-// excluded: dir is, holds or is inside a directory never captured (the client's own files).
+// excluded: dir is or is inside a directory never captured (the client's own files). One that holds such a directory
+// is captured without it (addAndWrite leaves it out of the new files).
 func (h *FileHistory) excluded(dir string, exclude []string) bool {
 	for _, e := range append([]string{h.dir}, exclude...) {
 		if e == "" {
 			continue
 		}
 		e = resolvePath(e)
-		if e == dir || within(e, dir) || within(dir, e) {
+		if e == dir || within(e, dir) {
 			return true
 		}
 	}
