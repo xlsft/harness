@@ -73,6 +73,8 @@ type relayPresence struct {
 	names  map[string]string
 	// live are the sessions open on an online host, by session id (the host's view of the session).
 	live map[string]*agentv1.SessionInfo
+	// cloud are the containers' states of cloud sessions' devices, by device id.
+	cloud map[string]agentv1.CloudEnvironmentState
 }
 
 // RelayViewer is the viewer side of harness.relay.v1.RelayService: presence of the user's machines and remote
@@ -165,9 +167,12 @@ func (s *Server) refreshPresence(ctx context.Context) {
 		s.log().Debug("remote sessions: relay presence unavailable", "err", err)
 		return
 	}
-	p := relayPresence{at: time.Now(), online: map[string]bool{}, names: map[string]string{}, live: map[string]*agentv1.SessionInfo{}}
+	p := relayPresence{at: time.Now(), online: map[string]bool{}, names: map[string]string{}, live: map[string]*agentv1.SessionInfo{}, cloud: map[string]agentv1.CloudEnvironmentState{}}
 	for _, h := range res.GetHosts() {
 		dev := h.GetDeviceId()
+		if c := h.GetCloudEnvironment(); c != agentv1.CloudEnvironmentState_CLOUD_ENVIRONMENT_STATE_UNSPECIFIED {
+			p.cloud[dev] = c
+		}
 		p.online[dev] = p.online[dev] || h.GetOnline()
 		if h.GetDeviceName() != "" {
 			p.names[dev] = h.GetDeviceName()
@@ -267,6 +272,14 @@ func (s *Server) withOrigin(listed *agentv1.SessionInfo) *agentv1.SessionInfo {
 		}
 	} else if !online && (info.Status == agentv1.SessionStatus_SESSION_STATUS_WORKING || info.Status == agentv1.SessionStatus_SESSION_STATUS_NEEDS_INPUT) {
 		info.Status = agentv1.SessionStatus_SESSION_STATUS_WAITING_FOR_CONNECTION
+	}
+	// A cloud session: its container may be gone, and a message starts it again (docs/design/cloud-sessions.md, 7). So it
+	// takes commands whatever its machine is doing, until it has ended.
+	if c := p.cloud[info.GetDeviceId()]; c != agentv1.CloudEnvironmentState_CLOUD_ENVIRONMENT_STATE_UNSPECIFIED {
+		info.CloudEnvironment = c
+		if c != agentv1.CloudEnvironmentState_CLOUD_ENVIRONMENT_STATE_ENDED {
+			info.RemoteControllable = true
+		}
 	}
 	info.DeviceOnline = &online
 	return info

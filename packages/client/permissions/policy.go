@@ -101,6 +101,35 @@ type ModePolicy struct {
 	// The same documents can require the command sandbox and refuse running outside it (settings.PolicySandbox).
 	sandboxRequired, outsideRefused bool
 	managed                         ManagedPolicy
+	// forced stay disabled whatever Set is given: a cloud session's bypassPermissions (docs/design/cloud-sessions.md, 14).
+	forced map[Mode]bool
+	// requested is what Set was last given.
+	requested []Mode
+}
+
+// Unforce lets Set decide on modes again; they stay disabled until the next Set says otherwise.
+func (p *ModePolicy) Unforce(modes ...Mode) {
+	p.mu.Lock()
+	for _, m := range modes {
+		delete(p.forced, m)
+	}
+	requested := append([]Mode(nil), p.requested...)
+	p.mu.Unlock()
+	p.Set(requested)
+}
+
+// Force disables modes for good: later calls of Set keep them disabled.
+func (p *ModePolicy) Force(modes ...Mode) {
+	p.mu.Lock()
+	if p.forced == nil {
+		p.forced = map[Mode]bool{}
+	}
+	for _, m := range modes {
+		p.forced[m] = true
+	}
+	requested := append([]Mode(nil), p.requested...)
+	p.mu.Unlock()
+	p.Set(requested)
 }
 
 // SetSandbox records what the policy documents say of the command sandbox.
@@ -137,6 +166,10 @@ func (p *ModePolicy) Set(modes []Mode) bool {
 		}
 	}
 	p.mu.Lock()
+	p.requested = append([]Mode(nil), modes...)
+	for m := range p.forced {
+		next[m] = true
+	}
 	changed := len(next) != len(p.disabled)
 	for m := range next {
 		if !p.disabled[m] {

@@ -36,6 +36,8 @@ type fakeAPI struct {
 	kick     chan struct{}
 	// supervisor side
 	supervisor bool
+	cloud      bool
+	bypass     bool
 	wanted     []*relayv1.WantedWorker
 	stops      []string
 	issued     []string
@@ -56,7 +58,7 @@ func (f *fakeAPI) RegisterAgentHost(_ context.Context, req *connect.Request[rela
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.regs = append(f.regs, req.Msg)
-	return connect.NewResponse(&relayv1.RegisterAgentHostResponse{Host: &relayv1.AgentHost{Id: "ahs_1", Name: req.Msg.GetName()}, Supervisor: f.supervisor}), nil
+	return connect.NewResponse(&relayv1.RegisterAgentHostResponse{Host: &relayv1.AgentHost{Id: "ahs_1", Name: req.Msg.GetName()}, Supervisor: f.supervisor, Cloud: f.cloud, BypassPermissionsAllowed: f.bypass}), nil
 }
 
 func (f *fakeAPI) ReportAgentHost(_ context.Context, req *connect.Request[relayv1.ReportAgentHostRequest]) (*connect.Response[relayv1.ReportAgentHostResponse], error) {

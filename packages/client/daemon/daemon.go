@@ -77,6 +77,15 @@ type Options struct {
 	PollSeconds       int32
 	// Git overrides the git settings (tests allow file:// remotes).
 	Git Git
+
+	// Cloud runs one cloud session's container (cloud.go): only that session's work, resumed after the first time.
+	Cloud bool
+	// Restore writes the server's transcript of a session into the local store at cwd (cloud resumes).
+	Restore func(ctx context.Context, sessionID, cwd string) error
+	// Setup prepares a fresh checkout before its session starts (the project's setup, when there is one).
+	Setup func(ctx context.Context, dir string) error
+	// OnRegistered hears what the server said of this daemon, before any work.
+	OnRegistered func(*relayv1.RegisterAgentHostResponse)
 }
 
 // Runner takes and runs work.
@@ -85,12 +94,14 @@ type Runner struct {
 	api relayv1connect.HostAgentServiceClient
 	log *slog.Logger
 
-	mu         sync.Mutex
-	tracked    map[string]*tracked
-	watching   map[string]bool
-	preparing  int
-	hostID     string
-	reportKick chan struct{}
+	mu        sync.Mutex
+	tracked   map[string]*tracked
+	watching  map[string]bool
+	preparing int
+	hostID    string
+	// bypassAllowed: the policy lets this cloud session run in bypassPermissions.
+	bypassAllowed bool
+	reportKick    chan struct{}
 }
 
 // tracked is a session this daemon made a checkout for. It is on disk, because such a session can reopen weeks later for a
@@ -118,6 +129,10 @@ func New(o Options) *Runner {
 	}
 	if o.IdleClose <= 0 {
 		o.IdleClose = 24 * time.Hour
+	}
+	if o.Cloud {
+		// The runner removes an idle container; closing the session inside it would only cut off its viewers.
+		o.IdleClose = 100 * 365 * 24 * time.Hour
 	}
 	if o.KeepWorkspaces <= 0 {
 		o.KeepWorkspaces = 7 * 24 * time.Hour
@@ -231,9 +246,22 @@ func (r *Runner) Run(ctx context.Context) error {
 	if reg.GetSupervisor() {
 		return errors.New("this token is a team host's: run the daemon with --shared")
 	}
+	if reg.GetRunner() {
+		return errors.New("this token is a cloud runner's: run harness-client runner")
+	}
+	if reg.GetCloud() != r.o.Cloud {
+		if r.o.Cloud {
+			return errors.New("this token is not a cloud session's")
+		}
+		return errors.New("this token is a cloud session's: the runner starts it in its container with --cloud")
+	}
 	r.mu.Lock()
 	r.hostID = reg.GetHost().GetId()
+	r.bypassAllowed = reg.GetCloud() && reg.GetBypassPermissionsAllowed()
 	r.mu.Unlock()
+	if r.o.OnRegistered != nil {
+		r.o.OnRegistered(reg)
+	}
 	r.log.Info("registered", "host", reg.GetHost().GetId(), "name", reg.GetHost().GetName())
 	r.loadTracked()
 	r.reopenTracked(ctx)
@@ -267,6 +295,9 @@ func (r *Runner) claimLoop(ctx context.Context) {
 				defer r.addPreparing(-1)
 				r.runWork(ctx, w, res.GetGitName(), res.GetGitEmail())
 			}()
+			if r.o.Cloud {
+				return // a container has one session
+			}
 		}
 	}
 }
@@ -330,6 +361,12 @@ func (r *Runner) runWork(ctx context.Context, w *relayv1.HostWork, gitName, gitE
 			}
 		}
 	}()
+	if r.o.Cloud && w.GetSessionId() != "" {
+		if err := r.resumeCloudWork(renew, w, gitName, gitEmail); err != nil {
+			fail(err)
+		}
+		return
+	}
 	cred, err := r.credentials(renew, w.GetRepositoryKey())
 	if err != nil {
 		fail(err)
@@ -354,8 +391,16 @@ func (r *Runner) runWork(ctx context.Context, w *relayv1.HostWork, gitName, gitE
 		return
 	}
 	drop := func() { _ = r.o.Git.Remove(ctx, r.o.Root, w.GetRepositoryKey(), dir) }
+	if r.o.Setup != nil {
+		if err := r.o.Setup(renew, p.Dir); err != nil {
+			r.log.Warn("the project's setup failed; the session goes on without it", "err", err)
+		}
+	}
 	mode := w.GetPermissionMode()
-	if mode == agentv1.PermissionMode_PERMISSION_MODE_BYPASS_PERMISSIONS {
+	r.mu.Lock()
+	bypassAllowed := r.bypassAllowed
+	r.mu.Unlock()
+	if mode == agentv1.PermissionMode_PERMISSION_MODE_BYPASS_PERMISSIONS && !bypassAllowed {
 		drop()
 		fail(errors.New("bypassPermissions cannot be enabled remotely"))
 		return
@@ -373,7 +418,11 @@ func (r *Runner) runWork(ctx context.Context, w *relayv1.HostWork, gitName, gitE
 			r.log.Debug("naming the session failed", "session", id, "err", err)
 		}
 	}
-	t := &tracked{SessionID: id, WorkID: w.GetId(), RepositoryKey: w.GetRepositoryKey(), Dir: p.Dir, Branch: p.Branch, Base: p.Base, Landing: int32(w.GetLanding()), Title: w.GetTitle()}
+	landing := w.GetLanding()
+	if r.o.Cloud {
+		landing = cloudLanding(landing)
+	}
+	t := &tracked{SessionID: id, WorkID: w.GetId(), RepositoryKey: w.GetRepositoryKey(), Dir: p.Dir, Branch: p.Branch, Base: p.Base, Landing: int32(landing), Title: w.GetTitle()}
 	r.track(t)
 	cancelledNow := r.update(ctx, &relayv1.UpdateHostWorkRequest{WorkId: w.GetId(), State: relayv1.HostWorkState_HOST_WORK_STATE_RUNNING, SessionId: id, Branch: p.Branch})
 	if cancelledNow {
