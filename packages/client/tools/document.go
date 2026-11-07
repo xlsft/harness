@@ -45,6 +45,8 @@ type documentReadInput struct {
 	Pages     string `json:"pages"`
 	UseEngine bool   `json:"use_engine"`
 	TextOnly  bool   `json:"text_only"`
+	// Languages: for ocr, trained data to use, such as "eng" or "eng+rus".
+	Languages string `json:"languages"`
 	// RunOutsideSandbox: see Bash's. LibreOffice cannot run under the macOS sandbox, so this is the way to it there.
 	RunOutsideSandbox bool `json:"run_outside_sandbox"`
 }

@@ -9,9 +9,10 @@ import (
 	"strings"
 )
 
-// OCR: recognising text in scanned pages and pictures. No engine is built in: none that runs in pure Go or WebAssembly
-// under a permissive license was fit to ship (the evaluation is in docs/design/documents.md, "OCR"). This is the seam
-// one plugs into. With no engine, the operation says "not available", never an empty result that reads as "no text".
+// OCR: recognising text in scanned pages and pictures. The built-in engine is Tesseract compiled to WebAssembly
+// (ocr_tesseract.go); this is the seam it plugs into, and tests or embedders may plug in another (see
+// docs/design/documents.md, "OCR"). With no engine the operation says "not available", never an empty result that reads
+// as "no text".
 
 // OCREngine recognises printed text in an image.
 type OCREngine interface {
@@ -30,14 +31,17 @@ type OCRLine struct {
 	Confidence float64
 }
 
-// OCR is the engine in use; nil when there is none. Tests and embedders set it.
+// OCR is the engine in use: Tesseract, set in ocr_tesseract.go; nil means none. Tests and embedders may replace it.
 var OCR OCREngine
 
 // ErrNoOCR says no engine is there. It is never reported as a page without text.
-var ErrNoOCR = errors.New("not available: no OCR engine is built into xlsft`s harness. Render the pages instead and read them visually; scanned pages stay without a text layer")
+var ErrNoOCR = errors.New("not available: no OCR engine is in this build of xlsft`s harness. Render the pages instead and read them visually; scanned pages stay without a text layer")
 
 // OCRDPI is the resolution pages are rendered at for recognition.
 const OCRDPI = 300
+
+// OCRLowConfidence is the confidence below which a line is counted as doubtful.
+const OCRLowConfidence = 0.6
 
 // RecognizePDF renders the pages of a PDF and recognises their text.
 func RecognizePDF(ctx context.Context, pdf []byte, pages []int, langs []string) (string, error) {
@@ -50,7 +54,7 @@ func RecognizePDF(ctx context.Context, pdf []byte, pages []int, langs []string) 
 		if err != nil {
 			return "", fmt.Errorf("page %d could not be rendered for recognition: %v", n, err)
 		}
-		lines, err := OCR.Recognize(ctx, imgs[0], langs)
+		lines, err := OCR.Recognize(ctx, dpiImage{imgs[0], OCRDPI}, langs)
 		if err != nil {
 			return "", fmt.Errorf("page %d: %s: %v", n, OCR.Name(), err)
 		}
@@ -82,11 +86,12 @@ func ocrText(lines []OCRLine) string {
 	if len(lines) == 0 {
 		return "(no text recognised)\n"
 	}
+	// Each line leads with its confidence, so a doubtful line can be checked against the page on its own.
 	var b strings.Builder
 	low := 0
 	for _, l := range lines {
-		b.WriteString(l.Text + "\n")
-		if l.Confidence < 0.6 {
+		fmt.Fprintf(&b, "%3d%% %s\n", int(l.Confidence*100+0.5), l.Text)
+		if l.Confidence < OCRLowConfidence {
 			low++
 		}
 	}

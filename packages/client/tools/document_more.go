@@ -199,8 +199,21 @@ func documentOCR(ctx context.Context, env *Env, in documentReadInput) Result {
 	if documents.OCR == nil {
 		return ErrorResult("OCR is %v.", documents.ErrNoOCR)
 	}
+	var langs []string
+	if in.Languages != "" {
+		langs = []string{in.Languages}
+	}
+	if _, ok := documents.OCR.(documents.Tesseract); ok {
+		var err error
+		if langs, err = documents.NormalizeOCRLanguages(langs); err != nil {
+			return ErrorResult("%v", err)
+		}
+	}
 	structured := map[string]any{"type": "document", "filePath": path, "operation": "ocr", "engine": documents.OCR.Name()}
-	head := fmt.Sprintf("Recognised by %s (%s). OCR makes mistakes: check names and numbers against the page.\n", documents.OCR.Name(), documents.OCR.License())
+	if len(langs) > 0 {
+		structured["languages"] = langs
+	}
+	head := fmt.Sprintf("Recognised by %s (%s)%s. Each line starts with the engine's confidence. OCR makes mistakes: check names and numbers against the page.\n", documents.OCR.Name(), documents.OCR.License(), ocrLanguageNote(langs))
 	if isPicturePath(path) {
 		if env.ReadDenied != nil && env.ReadDenied(path) {
 			return ErrorResult("a permission rule denies reading %s", path)
@@ -209,7 +222,7 @@ func documentOCR(ctx context.Context, env *Env, in documentReadInput) Result {
 		if err != nil {
 			return ErrorResult("%s: %v", path, err)
 		}
-		text, err := documents.RecognizeImage(ctx, data, nil)
+		text, err := documents.RecognizeImage(ctx, data, langs)
 		if err != nil {
 			return ErrorResult("%s: %v", path, err)
 		}
@@ -251,7 +264,7 @@ func documentOCR(ctx context.Context, env *Env, in documentReadInput) Result {
 	if len(pages) > documentOCRMaxPages {
 		return ErrorResult("That is %d pages; one call recognises at most %d. Name fewer pages.", len(pages), documentOCRMaxPages)
 	}
-	text, err := documents.RecognizePDF(ctx, data, pages, nil)
+	text, err := documents.RecognizePDF(ctx, data, pages, langs)
 	if err != nil {
 		return ErrorResult("%v", err)
 	}
@@ -263,6 +276,22 @@ func documentOCR(ctx context.Context, env *Env, in documentReadInput) Result {
 
 // documentOCRMaxPages bounds one recognition call: each page is rendered at 300 dpi.
 const documentOCRMaxPages = 20
+
+// ocrLanguageNote names the languages recognition used, and how to ask for others.
+func ocrLanguageNote(langs []string) string {
+	if len(langs) == 0 {
+		return ""
+	}
+	names := make([]string, 0, len(langs))
+	for _, l := range langs {
+		if k, ok := documents.OCRLanguages[l]; ok {
+			names = append(names, k.Name)
+		} else {
+			names = append(names, l)
+		}
+	}
+	return " for " + strings.Join(names, " and ") + " (languages: " + strings.Join(langs, "+") + "; text in another language needs it named)"
+}
 
 func isPicturePath(p string) bool {
 	switch strings.ToLower(filepath.Ext(p)) {

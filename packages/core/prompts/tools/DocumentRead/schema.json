@@ -49,6 +49,10 @@
       "type": "boolean",
       "description": "For render: no images, just the rendered pages' text"
     },
+    "languages": {
+      "type": "string",
+      "description": "For ocr: languages of the text, \"eng\" (the default), \"rus\" or \"eng+rus\""
+    },
     "run_outside_sandbox": {
       "type": "boolean",
       "description": "Ask the user to run LibreOffice outside the OS sandbox. Only after a render or engine check said it needs that"
