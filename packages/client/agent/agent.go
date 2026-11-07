@@ -1560,11 +1560,26 @@ func sameCheckedInput(a, b json.RawMessage) bool {
 	return reflect.DeepEqual(x, y)
 }
 
+// waitCheckpoint holds a tool until the turn's git checkpoint is taken (bounded by its budget), so no edit, by any
+// tool, comes before it; the repositories it had to skip become notices.
+func (a *Agent) waitCheckpoint(ctx context.Context) {
+	if a.cfg.FileHistory == nil {
+		return
+	}
+	for _, text := range a.cfg.FileHistory.WaitCheckpoint(ctx) {
+		a.emit(Event{Kind: EventNotice, Notice: &Notice{Level: "warning", Kind: NoticeCheckpointSkipped, Text: text}})
+	}
+}
+
+// NoticeCheckpointSkipped: a turn's git checkpoint skipped a repository (session.FileHistory.WaitCheckpoint).
+const NoticeCheckpointSkipped = "checkpoint_skipped"
+
 func (a *Agent) runTool(ctx context.Context, t tools.Tool, id string, input json.RawMessage) (r tools.Result) {
 	defer func() {
 		if p := recover(); p != nil {
 			r = tools.ErrorResult("tool %s panicked: %v", t.Name(), p)
 		}
 	}()
+	a.waitCheckpoint(ctx)
 	return t.Run(ctx, a.cfg.ToolEnv, tools.Call{ID: id, Input: input})
 }

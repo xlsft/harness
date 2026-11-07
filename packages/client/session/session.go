@@ -116,6 +116,8 @@ type FileSnapshot struct {
 	MessageID          string                `json:"messageId"`
 	TrackedFileBackups map[string]FileBackup `json:"trackedFileBackups"`
 	Timestamp          string                `json:"timestamp"`
+	// GitTrees are the turn checkpoints of whole working trees (xlsft`s harness only; gitcheckpoint.go).
+	GitTrees []GitTree `json:"gitTrees,omitempty"`
 }
 
 // Message is the persisted message. Content is kept raw so user prompts can be

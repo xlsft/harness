@@ -2,6 +2,7 @@ package session
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -34,6 +35,8 @@ type FileHistory struct {
 	// failed holds the files whose last checkpoint could not back them up: their tracked backup is stale.
 	failed map[string]bool
 	max    int
+	// git takes the turn checkpoints of whole working trees (gitcheckpoint.go); nil when off.
+	git *gitState
 }
 
 // NewFileHistory opens the history in dir, restoring snapshots read from the
@@ -112,6 +115,7 @@ func (h *FileHistory) record(s *FileSnapshot, update bool) {
 	for k, v := range s.TrackedFileBackups {
 		cp.TrackedFileBackups[k] = v
 	}
+	cp.GitTrees = append([]GitTree(nil), s.GitTrees...)
 	_, _ = h.w.Append(Entry{Type: TypeFileHistorySnapshot, MessageID: s.MessageID, Snapshot: &cp, IsSnapshotUpdate: update})
 }
 
@@ -137,6 +141,7 @@ func (h *FileHistory) MakeCheckpoint(messageID string) FileSnapshot {
 	h.snapshots = append(h.snapshots, s)
 	h.record(s, false)
 	h.prune()
+	h.startGitCheckpoint(messageID)
 	return *s
 }
 
@@ -234,7 +239,7 @@ func (h *FileHistory) prune() {
 	}
 	entries, _ := os.ReadDir(h.dir)
 	for _, e := range entries {
-		if !keep[e.Name()] && !strings.HasPrefix(e.Name(), ".harness-history-") {
+		if !keep[e.Name()] && !strings.HasPrefix(e.Name(), ".harness-history-") && e.Name() != gitStateDir {
 			os.Remove(filepath.Join(h.dir, e.Name()))
 		}
 	}
@@ -311,15 +316,8 @@ func (h *FileHistory) targets(messageID string) (map[string]FileBackup, error) {
 	return out, nil
 }
 
-// HasChanges reports whether restoring checkpoint messageID would change
-// any file.
-func (h *FileHistory) HasChanges(messageID string) bool {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	t, err := h.targets(messageID)
-	if err != nil {
-		return false
-	}
+// filesChanged reports whether restoring the per-file backups t would change a file.
+func (h *FileHistory) filesChanged(t map[string]FileBackup) bool {
 	for p, b := range t {
 		cur, err := os.ReadFile(p)
 		exists := err == nil
@@ -340,6 +338,53 @@ func (h *FileHistory) HasChanges(messageID string) bool {
 	return false
 }
 
+// HasChanges reports whether restoring checkpoint messageID would change
+// any file.
+func (h *FileHistory) HasChanges(messageID string) bool {
+	return h.ChangedCheckpoints()[messageID]
+}
+
+// ChangedCheckpoints reports, per retained checkpoint, whether restoring it would change any file. The current state
+// of each repository is captured once for the whole list.
+func (h *FileHistory) ChangedCheckpoints() map[string]bool {
+	h.waitPending()
+	h.mu.Lock()
+	g := h.git
+	roots := map[string]GitTree{}
+	for _, s := range h.snapshots {
+		for _, gt := range s.GitTrees {
+			roots[gt.Root] = gt
+		}
+	}
+	h.mu.Unlock()
+	var cur map[string]string
+	if g != nil && len(roots) > 0 {
+		g.mu.Lock()
+		ctx, cancel := context.WithTimeout(context.Background(), g.opts.Budget)
+		cur = h.currentTrees(ctx, roots)
+		cancel()
+		g.mu.Unlock()
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	out := map[string]bool{}
+	for _, s := range h.snapshots {
+		changed := false
+		for _, gt := range s.GitTrees {
+			if c, ok := cur[gt.Root]; !ok || c != gt.Tree {
+				changed = true // unknown counts as changed: restoring finds out
+			}
+		}
+		if !changed {
+			if t, err := h.targets(s.MessageID); err == nil {
+				changed = h.filesChanged(t)
+			}
+		}
+		out[s.MessageID] = changed
+	}
+	return out
+}
+
 // RestoreResult reports a code rewind.
 type RestoreResult struct {
 	Restored []string
@@ -348,20 +393,60 @@ type RestoreResult struct {
 	Reasons map[string]string
 }
 
-// Restore puts every tracked file back to its state at checkpoint
-// messageID. Symlinks, hardlinks and files whose snapshot is gone are
-// skipped.
+// Restore puts the files back to their state at checkpoint messageID: each repository (or folder) with a git
+// checkpoint at that turn to its tree, whatever changed the files, then every file a file tool backed up that those
+// do not cover. The per-file step skips symlinks, hardlinks and files whose snapshot is gone.
 func (h *FileHistory) Restore(messageID string) (RestoreResult, error) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
+	h.waitPending()
 	res := RestoreResult{Reasons: map[string]string{}}
+	h.mu.Lock()
 	t, err := h.targets(messageID)
+	var trees []GitTree
+	for _, s := range h.snapshots {
+		if s.MessageID == messageID {
+			trees = s.GitTrees
+		}
+	}
+	g := h.git
+	h.mu.Unlock()
 	if err != nil {
 		return res, err
 	}
+	covered := map[string]bool{}
+	if len(trees) > 0 && gitAvailable() {
+		paths := make([]string, 0, len(t))
+		for p := range t {
+			paths = append(paths, p)
+		}
+		if g != nil {
+			g.mu.Lock()
+			defer g.mu.Unlock()
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), gitRestoreBudget)
+		defer cancel()
+		for _, gt := range trees {
+			c, ok := h.restoreGit(ctx, gt, paths, &res)
+			if !ok {
+				continue
+			}
+			for p := range c {
+				covered[p] = true
+			}
+		}
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.restoreFiles(t, covered, &res)
+	return res, nil
+}
+
+// restoreFiles is the per-file step of Restore.
+func (h *FileHistory) restoreFiles(t map[string]FileBackup, covered map[string]bool, res *RestoreResult) {
 	paths := make([]string, 0, len(t))
 	for p := range t {
-		paths = append(paths, p)
+		if !covered[p] {
+			paths = append(paths, p)
+		}
 	}
 	sort.Strings(paths)
 	skip := func(p, why string) {
@@ -413,7 +498,6 @@ func (h *FileHistory) Restore(messageID string) (RestoreResult, error) {
 		}
 		res.Restored = append(res.Restored, p)
 	}
-	return res, nil
 }
 
 // CopyDir copies a file-history directory (used when forking a session).

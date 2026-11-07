@@ -62,6 +62,7 @@ func (a *Agent) Checkpoints() []Checkpoint {
 		}
 	}
 	var out []Checkpoint
+	changed := fh.ChangedCheckpoints()
 	for _, s := range fh.Checkpoints() {
 		if !onChain[s.MessageID] {
 			continue
@@ -69,7 +70,7 @@ func (a *Agent) Checkpoints() []Checkpoint {
 		e := byUUID[s.MessageID]
 		created, _ := time.Parse("2006-01-02T15:04:05.000Z", s.Timestamp)
 		out = append(out, Checkpoint{ID: s.MessageID, UserMessageUUID: s.MessageID, PromptPreview: preview(e.Blocks()),
-			CreatedAt: created, HasCodeChanges: fh.HasChanges(s.MessageID)})
+			CreatedAt: created, HasCodeChanges: changed[s.MessageID]})
 	}
 	return out
 }

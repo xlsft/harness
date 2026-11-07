@@ -464,3 +464,36 @@ func TestSweepFolderBaselines(t *testing.T) {
 		t.Fatalf("a session with a transcript lost its snapshot: %v", err)
 	}
 }
+
+// An ignored file inside a repository that a file tool edited: git lists it nowhere, the file history does.
+func TestSessionDiffIgnoredFileEditedByATool(t *testing.T) {
+	repo := gittest.Init(t)
+	writeTree(t, filepath.Join(repo, ".gitignore"), "*.env\n")
+	gittest.Run(t, repo, "add", ".gitignore")
+	gittest.Run(t, repo, "commit", "-q", "-m", "ignore")
+	secret := filepath.Join(repo, "local.env")
+	writeTree(t, secret, "A=1\n")
+	hist := session.NewFileHistory(filepath.Join(t.TempDir(), "history"), nil, nil)
+	hist.MakeCheckpoint("m1")
+	hist.TrackEdit(secret)
+	hist.TrackEdit(filepath.Join(repo, "README.md")) // tracked: git lists it, once
+	src := func() *diffSources {
+		return &diffSources{cwd: repo, dirs: []string{repo}, baselines: hist.Baselines()}
+	}
+	if r := diffOf(t, src()); len(r.Files) != 0 {
+		t.Fatalf("nothing changed yet: %+v", r.Files)
+	}
+	writeTree(t, secret, "A=2\n")
+	writeTree(t, filepath.Join(repo, "README.md"), "hello\nmore\n")
+	writeTree(t, filepath.Join(repo, "other.env"), "ignored, never edited by a tool\n")
+	r := diffOf(t, src())
+	if f := wantDiff(t, r, "local.env"); f.Source != agentv1.FileDiffSource_FILE_DIFF_SOURCE_HISTORY || f.Additions != 1 || f.Deletions != 1 {
+		t.Fatalf("ignored file: %+v", f)
+	}
+	if f := wantDiff(t, r, "README.md"); f.Source != agentv1.FileDiffSource_FILE_DIFF_SOURCE_GIT {
+		t.Fatalf("tracked file: %+v", f)
+	}
+	if len(r.Files) != 2 {
+		t.Fatalf("files: %+v", r.Files)
+	}
+}

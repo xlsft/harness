@@ -274,7 +274,7 @@ func scanSessionDiff(ctx context.Context, src *diffSources, base *agentv1.DiffBa
 	}
 	// A commit is all there is to show under COMMIT: nothing on disk is involved.
 	if b.kind != agentv1.DiffBaseKind_DIFF_BASE_KIND_COMMIT {
-		b.scanHistory()
+		b.scanHistory(ctx)
 		if src.folderStore != "" {
 			for _, f := range folders {
 				b.scanFolder(ctx, f.clean, f.real)
@@ -597,34 +597,70 @@ func resolvedPath(path string) string {
 
 // --- Files outside repositories ---
 
-// scanHistory notes the files the file tools touched outside the repositories, to compare with their first snapshot.
-func (b *diffBuilder) scanHistory() {
+// scanHistory notes the files the file tools touched outside the repositories, and the ignored ones inside them (git
+// lists neither), to compare with their first snapshot.
+func (b *diffBuilder) scanHistory(ctx context.Context) {
 	paths := make([]string, 0, len(b.src.baselines))
 	for p := range b.src.baselines {
 		paths = append(paths, p)
 	}
 	sort.Strings(paths)
+	type inside struct{ path, real, rel string }
+	byRepo := map[*diffRepo][]inside{}
 	for _, p := range paths {
 		real := resolvedPath(p)
-		if b.seen[real] || b.inRepo(real) || removedWorktreeFile(p) {
+		if b.seen[real] || removedWorktreeFile(p) {
+			continue
+		}
+		if r := b.repoOf(real); r != nil {
+			if rel, ok := relWithin(r.top, real); ok {
+				byRepo[r] = append(byRepo[r], inside{p, real, rel})
+			}
 			continue
 		}
 		b.seen[real] = true
 		b.addCandidate(diskCandidate{path: p, real: real, baseline: b.src.baselines[p], source: agentv1.FileDiffSource_FILE_DIFF_SOURCE_HISTORY})
 	}
-}
-
-func (b *diffBuilder) inRepo(real string) bool {
 	for _, r := range b.repos {
-		if real == r.top {
-			return true
+		files := byRepo[r]
+		if len(files) == 0 {
+			continue
 		}
-		if _, ok := relWithin(r.top, real); ok {
-			return true
+		var in strings.Builder
+		for _, f := range files {
+			in.WriteString(f.rel)
+			in.WriteByte(0)
+		}
+		// Exit status 1 means none is ignored.
+		out, _ := diffGit(ctx, r.top, in.String(), "check-ignore", "-z", "--stdin")
+		ignored := map[string]bool{}
+		for _, rel := range strings.Split(string(out), "\x00") {
+			ignored[rel] = rel != ""
+		}
+		for _, f := range files {
+			if !ignored[f.rel] || b.seen[f.real] {
+				continue
+			}
+			b.seen[f.real] = true
+			b.addCandidate(diskCandidate{path: f.path, real: f.real, baseline: b.src.baselines[f.path], source: agentv1.FileDiffSource_FILE_DIFF_SOURCE_HISTORY})
 		}
 	}
-	return false
 }
+
+// repoOf returns the repository that holds the resolved path, nil for none.
+func (b *diffBuilder) repoOf(real string) *diffRepo {
+	for _, r := range b.repos {
+		if real == r.top {
+			return r
+		}
+		if _, ok := relWithin(r.top, real); ok {
+			return r
+		}
+	}
+	return nil
+}
+
+func (b *diffBuilder) inRepo(real string) bool { return b.repoOf(real) != nil }
 
 // scanNewFiles notes the files in dir (outside repositories) that have no snapshot, as new. internal, when set,
 // names paths (relative to dir) to leave out.

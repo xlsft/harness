@@ -447,6 +447,7 @@ func (s *Server) DeleteSession(ctx context.Context, req *connect.Request[agentv1
 		}
 		_ = os.RemoveAll(strings.TrimSuffix(path, ".jsonl"))
 	}
+	session.DropGitCheckpoints(bootstrap.FileHistoryDir(id), id)
 	_ = os.RemoveAll(bootstrap.FileHistoryDir(id))
 	_ = os.RemoveAll(bootstrap.FolderBaselineDir(id))
 	_ = os.RemoveAll(bootstrap.PlansDir(id))

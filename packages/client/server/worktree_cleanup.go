@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/xlsft/harness/packages/client/bootstrap"
+	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/worktree"
 )
@@ -33,7 +35,7 @@ func (s *Server) runWorktreeCleanup() {
 }
 
 // cleanupWorktrees runs worktree.Prune on every repository the local transcripts know of, under that repository's
-// cleanupPeriodDays. 0 turns it off.
+// cleanupPeriodDays (0 turns it off), and drops the turn checkpoint refs nobody needs (session.SweepGitCheckpoints).
 func (s *Server) cleanupWorktrees(ctx context.Context, now time.Time) {
 	seen := map[string]bool{}
 	for _, f := range recentTranscripts(worktreeCleanupTranscripts) {
@@ -54,11 +56,19 @@ func (s *Server) cleanupWorktrees(ctx context.Context, now time.Time) {
 			continue
 		}
 		seen[repo] = true
-		if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(worktree.Dir))); err != nil {
+		st, err := settings.Load(ctx, settings.Options{Cwd: repo})
+		if err != nil {
 			continue
 		}
-		st, err := settings.Load(ctx, settings.Options{Cwd: repo})
-		if err != nil || st.CleanupPeriodDays <= 0 {
+		// Turn checkpoints of sessions gone from this client, or idle past the cleanup period.
+		maxAge := time.Duration(st.CleanupPeriodDays) * 24 * time.Hour
+		for _, id := range session.SweepGitCheckpoints(ctx, repo, bootstrap.FileHistoryDir, maxAge, now) {
+			s.log().Info("dropped the turn checkpoints of a session", "repository", repo, "session", id)
+		}
+		if st.CleanupPeriodDays <= 0 {
+			continue
+		}
+		if _, err := os.Stat(filepath.Join(repo, filepath.FromSlash(worktree.Dir))); err != nil {
 			continue
 		}
 		pruned, err := worktree.Prune(ctx, repo, time.Duration(st.CleanupPeriodDays)*24*time.Hour, now, s.worktreeInUse)
