@@ -135,12 +135,12 @@ in them (a new note in Notes, TextEdit) and a throwaway test account where a sig
    composer, with the step count going up.
 4. In Notes: New Note, type a title, ⌘S or Return. Switch to Finder and click something (should become "Used another
    app (not recorded)"). Switch back to TextEdit and type a line.
-5. Password check: open a page or app with a password field inside a recorded app (or TextEdit's nothing: use a test
-   sign-in sheet in a recorded app), click into it and type a fake password. The step must read "Typed into a
+5. Password check: in a recorded app, open a password field (for example a test sign-in sheet, or System Settings is
+   not allowed, so use an app of your own with an `NSSecureTextField`), click into it and type a fake password. The step must read "Typed into a
    password field (not recorded)", and its screenshot must show the field black.
 6. Stop with ⌃⌥⌘. (hotkey); start another and stop it with the panel's Stop; start a third and stop it with Discard in
    the bar. The first two wake the agent with the `demo_recorded` reminder; the discarded one does not, and its folder
-   under `HARNESS_HOME/computer-use/demo-recordings/` is gone.
+   under `HARNESS_HOME/demo-recordings/` is gone.
 7. Let the agent read the recording and propose a skill. In the review card, edit a line, choose "My skills" or "This
    project", save. Check the file has your edit, and that saving the same name again is refused.
 8. Check nothing left the machine: the session on another device (or the server's transcript) shows no recording
