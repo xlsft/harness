@@ -155,8 +155,12 @@ type Env struct {
 	ReadDenied func(path string) bool
 	// Objects is the object store (nil without a server).
 	Objects ObjectStore
-	// Library is the server's artifacts, knowledge base and task tracker (nil without a server).
+	// Library is the server's artifacts, Knowledge and issues (nil without a server).
 	Library LibraryAPI
+	// Trackers is this device's side of trackers: Knowledge's merged view and issues on its connections (nil: the server only).
+	Trackers DeviceTrackers
+	// ProjectOfFolder is the project a folder is linked to on this device (nil: none).
+	ProjectOfFolder func(folder string) string
 	// Sandbox confines the commands the model runs (nil: nothing does).
 	Sandbox *sandbox.Session
 
@@ -362,7 +366,7 @@ func NewRegistry(ts ...Tool) *Registry {
 // Default returns the built-in tool set. Only tools the prompt bundle
 // defines are exposed to the model.
 func Default() *Registry {
-	return NewRegistry(&Bash{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{},
+	return NewRegistry(&Bash{}, &PowerShell{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{},
 		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Workflow{}, &Monitor{}, &NotebookEdit{}, &NotebookRun{}, &DocumentRead{}, &DocumentEdit{}, &PushNotification{}, &ReadNotifications{}, &SendUserFile{}, &ReportFindings{}, &Skill{}, &SettingsGet{}, &SettingsSet{}, &OpenInEditor{}, &RevealPath{}, &KeepAwake{}, &SessionSetModel{}, &SessionSetEffort{}, &SessionSetMode{}, &SessionSetTitle{}, &MultiEdit{}, &LS{}, &TaskInput{})
 }
 

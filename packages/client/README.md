@@ -200,3 +200,7 @@ HARNESS_HOME=/tmp/demo-home harness-client -p "fix the test" --allowedTools "Edi
 ## Code generation
 
 Go code in `gen/` is generated from `/proto` with `buf generate` (see the root `buf.gen.yaml`). If the remote buf plugins are not reachable, install `protoc-gen-go` and `protoc-gen-connect-go` locally and use the same template with `local:` plugins.
+
+## Trackers and Issues
+
+`tracker/` is this device's side of external trackers (`docs/design/tracker.md`): the provider interface (`provider.go`), YouTrack (`tracker/youtrack`, adapted from `xlsft/ymcp`, MIT), personal connections (`HARNESS_HOME/tracker-connections.json`, credentials in the system keychain under `tracker-connection:<id>`, never synced), folder links (`HARNESS_HOME/tracker-folder-projects.json`), the worker that does a personal board's work from here (`ClaimDeviceWork`, `ReportDeviceWork`, every 30 seconds) and Knowledge's merged view of sources. `server/trackers.go` serves it as `LocalTrackerService`. The `Issues` tool (`tools/issues_tool.go`) goes to the server for issues and to this package for what lives on a device connection.

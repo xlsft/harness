@@ -9,10 +9,12 @@ import (
 )
 
 // Policy is what one command may do, with every path resolved (Seatbelt compares the real path, so /tmp must be written
-// /private/tmp). SeatbeltProfile renders it; a Linux driver would render the same value.
+// /private/tmp). SeatbeltProfile renders it on macOS, bubblewrapArgs and planFiles on Linux.
 type Policy struct {
 	// Home is the user's home directory.
 	Home string
+	// Work are the working directories, resolved: where the protected names matter most (guard.go).
+	Work []string
 	// Write are the writable roots.
 	Write []string
 	// Mkdir are folders that may be created, and nothing else done to them.
@@ -37,6 +39,19 @@ type Policy struct {
 	Localhost, Server bool
 	// Tag marks this command's refusals in the system log, where a driver can read them (Reporter).
 	Tag string
+
+	// What a Preparer sets, for the drivers that need it and for explaining failures.
+
+	// ProxySocket is the proxy's unix socket, for a command in a network namespace of its own.
+	ProxySocket string
+	// PrivateLoopback says the command has a loopback interface of its own: nothing on this machine is reachable on it.
+	PrivateLoopback bool
+	// GuardNames says the kernel cannot hold the protected names in the writable roots here, so the guard looks at them.
+	GuardNames bool
+	// FilesByPermission says a refused file access shows as EACCES, as Landlock's does, and not as EPERM.
+	FilesByPermission bool
+	// PortRules says a refused connection shows as EACCES, as Landlock's does.
+	PortRules bool
 }
 
 // The file patterns that apply at any depth. They are POSIX extended regular expressions, which RE2 reads the same way, so
@@ -78,6 +93,7 @@ var homeWriteDeny = []string{
 	".config/fish", ".gitconfig", ".config/git",
 	".claude", ".harness",
 	"Library/LaunchAgents",
+	".config/autostart", ".config/systemd/user", ".config/environment.d", ".pam_environment",
 }
 
 // homeReadDeny are the credential stores under the home directory, also closed for writing. decision.IsSecretPath knows
@@ -86,7 +102,7 @@ var homeWriteDeny = []string{
 var homeReadDeny = []string{
 	".ssh", ".aws", ".gnupg", "Library/Keychains",
 	".netrc", ".npmrc", ".pypirc", ".git-credentials", ".docker/config.json", ".kube/config",
-	".config/gcloud", ".config/gh/hosts.yml", ".azure", ".password-store",
+	".config/gcloud", ".config/gh/hosts.yml", ".azure", ".password-store", ".local/share/keyrings",
 }
 
 // harnessSecrets are what HARNESS_HOME holds of credentials: sign-in, the loopback token, provider keys, folder
@@ -96,8 +112,10 @@ var harnessSecrets = []string{
 	"credentials.json", "agent-token", "local-provider-keys.json", "pr-marker-salt", "environments", "browser", "acp",
 }
 
-// systemReadDeny are the keychains outside the home directory.
-var systemReadDeny = []string{"/Library/Keychains", "/Network/Library/Keychains"}
+// systemReadDeny are the credential stores outside the home directory: the keychains of macOS; on Linux the password
+// hashes, which a command that runs as root in a container could otherwise read, and the secrets Docker and Kubernetes mount
+// into one.
+var systemReadDeny = []string{"/Library/Keychains", "/Network/Library/Keychains", "/etc/shadow", "/etc/gshadow", "/run/secrets", "/var/run/secrets"}
 
 // PolicyInput is what a policy is built from.
 type PolicyInput struct {
@@ -138,6 +156,7 @@ func BuildPolicy(in PolicyInput) Policy {
 	}
 	for _, d := range in.WorkDirs {
 		addRoot(d)
+		p.Work = appendUnique(p.Work, canon(d))
 	}
 	addRoot(in.ScratchDir)
 	addRoot(in.TempDir)
@@ -218,8 +237,8 @@ func BuildPolicy(in PolicyInput) Policy {
 	return p
 }
 
-// systemTmp is /tmp as the kernel sees it on macOS.
-const systemTmp = "/private/tmp"
+// systemTmp is /tmp as the kernel sees it: /private/tmp on macOS.
+var systemTmp = canon("/tmp")
 
 // gitDirs returns the git directories a folder works with: for the nearest .git at or above dir, the directory it names
 // and the common directory of a linked worktree. No git command runs: this is about what a command could do to them.

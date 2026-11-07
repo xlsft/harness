@@ -96,6 +96,13 @@ describe("Anthropic request mapping", () => {
     expect(body.messages).toHaveLength(2); // assistant message emptied by dropping thinking is removed
     expect(body.thinking).toBeUndefined();
   });
+
+  it("asks for summarized thinking with adaptive thinking and leaves a budget as it is", () => {
+    const adaptive = req({ thinking: { type: "adaptive" } });
+    expect(toAnthropicBody(adaptive, target(adaptive)).thinking).toEqual({ type: "adaptive", display: "summarized" });
+    const budget = req({ thinking: { type: "enabled", budget_tokens: 2048 } });
+    expect(toAnthropicBody(budget, target(budget)).thinking).toEqual({ type: "enabled", budget_tokens: 2048 });
+  });
 });
 
 describe("OpenAI request mapping", () => {

@@ -284,6 +284,28 @@ func TestBareBashDenyRemovesTerminalRun(t *testing.T) {
 	}
 }
 
+// PowerShell goes with Bash when Bash is removed, and otherwise has its own rules: the Bash ones read POSIX shell.
+func TestPowerShellRules(t *testing.T) {
+	e := New(Config{Cwd: t.TempDir(), Deny: []string{"Bash"}})
+	if !e.IsDisabled("PowerShell") {
+		t.Fatal("deny Bash leaves PowerShell")
+	}
+	if e = New(Config{Cwd: t.TempDir(), Deny: []string{"Bash(rm *)"}}); e.IsDisabled("PowerShell") {
+		t.Fatal("a rule with a pattern keeps the tool")
+	}
+	input := json.RawMessage(`{"command":"echo (Remove-Item x)","description":"d"}`)
+	for _, allow := range [][]string{nil, {"Bash"}, {"Bash(echo:*)"}, {"Bash(echo *)"}} {
+		e := New(Config{Cwd: t.TempDir(), Allow: allow})
+		if d := e.Evaluate(Request{ToolName: "PowerShell", Input: input}); d.Behavior != Ask {
+			t.Errorf("allow %v: %+v", allow, d)
+		}
+	}
+	e = New(Config{Cwd: t.TempDir(), Allow: []string{"PowerShell"}})
+	if d := e.Evaluate(Request{ToolName: "PowerShell", Input: input}); d.Behavior != Allow {
+		t.Errorf("a rule that names it: %+v", d)
+	}
+}
+
 // A label changes what the prompt shows and nothing the rules see.
 func TestLabelOnlyChangesThePromptName(t *testing.T) {
 	e := New(Config{Cwd: t.TempDir(), Deny: []string{"Bash(rm *)"}, Allow: []string{"Bash(touch *)"}})

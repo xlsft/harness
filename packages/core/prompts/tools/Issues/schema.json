@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "operation": {
+      "type": "string",
+      "enum": [
+        "projects",
+        "boards",
+        "list",
+        "get",
+        "create",
+        "update",
+        "move",
+        "comment",
+        "link",
+        "relate",
+        "retry",
+        "delete"
+      ],
+      "description": "What to do"
+    },
+    "id": {
+      "type": "string",
+      "description": "The issue, by key such as ABC-12"
+    },
+    "project": {
+      "type": "string",
+      "description": "The project's ticker. Default: the one linked to this session's folder"
+    },
+    "board": {
+      "type": "string",
+      "description": "A board's id"
+    },
+    "stage": {
+      "type": "string",
+      "description": "A stage of the board, by name"
+    },
+    "title": {
+      "type": "string",
+      "description": "The title. Required for create"
+    },
+    "description": {
+      "type": "string",
+      "description": "What the work is, enough to pick it up without this session"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "normal",
+        "high",
+        "urgent"
+      ],
+      "description": "The priority"
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Labels. On update it replaces the list"
+    },
+    "assignees": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "User ids, or me. On update it replaces the list"
+    },
+    "due": {
+      "type": "string",
+      "description": "Due date, RFC 3339. Empty clears it"
+    },
+    "query": {
+      "type": "string",
+      "description": "With list: words of the title or description, or a key"
+    },
+    "mine": {
+      "type": "boolean",
+      "description": "With list: only what is assigned to this user"
+    },
+    "text": {
+      "type": "string",
+      "description": "With comment: the text"
+    },
+    "on_external": {
+      "type": "boolean",
+      "description": "With comment: post on the linked external issue"
+    },
+    "relation": {
+      "type": "string",
+      "enum": [
+        "blocks",
+        "blocked_by",
+        "relates",
+        "duplicates"
+      ],
+      "description": "With relate: how the issues relate"
+    },
+    "other": {
+      "type": "string",
+      "description": "With relate: the other issue's key"
+    },
+    "remove": {
+      "type": "boolean",
+      "description": "With relate: take the relation off"
+    },
+    "pr_url": {
+      "type": "string",
+      "description": "With link: a pull request's URL"
+    },
+    "branch": {
+      "type": "string",
+      "description": "With link: the branch"
+    },
+    "connection": {
+      "type": "string",
+      "description": "With link: the connection the external issue is on"
+    },
+    "external_id": {
+      "type": "string",
+      "description": "With link: the external issue's own id"
+    }
+  },
+  "required": [
+    "operation"
+  ],
+  "additionalProperties": false
+}

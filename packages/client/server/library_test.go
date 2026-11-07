@@ -398,7 +398,7 @@ func TestTCPGuardLetsOnlyTheArtifactRouteThrough(t *testing.T) {
 }
 
 func TestCoreProxyForwardsTheLibraryScreens(t *testing.T) {
-	for _, want := range []string{"harness.library.v1.ArtifactService", "harness.library.v1.KnowledgeService", "harness.library.v1.TrackerService"} {
+	for _, want := range []string{"harness.library.v1.ArtifactService", "harness.library.v1.KnowledgeService", "harness.library.v1.BoardService", "harness.library.v1.ProjectService", "harness.library.v1.TrackerConnectionService"} {
 		found := false
 		for _, s := range coreProxyServices {
 			found = found || s == want

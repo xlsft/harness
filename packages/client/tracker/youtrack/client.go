@@ -1,0 +1,465 @@
+// Adapted from internal/youtrack of github.com/xlsft/ymcp (MIT). See LICENSE.ymcp in this directory.
+
+// Package youtrack is a thin client for the YouTrack REST API.
+package youtrack
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"log/slog"
+	"net"
+	"net/http"
+	"net/url"
+	"regexp"
+	"strconv"
+	"strings"
+	"sync/atomic"
+	"time"
+)
+
+// Client talks to a single YouTrack instance on behalf of one user.
+type Client struct {
+	baseURL *url.URL
+	auth    *hubAuth
+	http    *http.Client
+	log     *slog.Logger
+	// retryDelays are the waits before each retry; see retryable.
+	retryDelays []time.Duration
+}
+
+// defaultRetryDelays give a busy or restarting YouTrack about 3.5 s.
+var defaultRetryDelays = []time.Duration{500 * time.Millisecond, time.Second, 2 * time.Second}
+
+// maxRetryAfter caps how long a Retry-After header can make a call wait.
+const maxRetryAfter = 10 * time.Second
+
+// Options configures a Client.
+type Options struct {
+	// BaseURL is the instance root, e.g. https://youtrack.example.com.
+	// A trailing /api is tolerated.
+	BaseURL string
+	// Login and Password of the YouTrack (Hub) account, LDAP included.
+	Login    string
+	Password string
+	// Token is a permanent token; it takes the place of Login and Password.
+	Token string
+	// OAuth is a connection authorized through Authorization Code; it takes the place of Login and Password.
+	OAuth *OAuthOptions
+	// Proxy selects the outbound proxy: "" honours HTTP(S)_PROXY,
+	// "none" connects directly, anything else is used as the proxy URL.
+	Proxy string
+	// Timeout per request; zero means 30s.
+	Timeout time.Duration
+	// Logger receives sign-in events (info) and every request (debug);
+	// nil discards them.
+	Logger *slog.Logger
+}
+
+// OAuthOptions is what signing in with OAuth takes.
+type OAuthOptions struct {
+	ClientID     string
+	ClientSecret string
+	AccessToken  string
+	RefreshToken string
+	Expires      time.Time
+	// OnTokens stores refreshed tokens.
+	OnTokens func(access, refresh string, expires time.Time)
+}
+
+// New validates opts and builds a Client.
+func New(opts Options) (*Client, error) {
+	if opts.BaseURL == "" {
+		return nil, fmt.Errorf("youtrack: base URL is required")
+	}
+	if opts.Token == "" && opts.OAuth == nil && (opts.Login == "" || opts.Password == "") {
+		return nil, fmt.Errorf("youtrack: a token, OAuth or a login and password are required")
+	}
+	u, err := url.Parse(NormalizeURL(opts.BaseURL))
+	if err != nil {
+		return nil, fmt.Errorf("youtrack: parse base URL: %w", err)
+	}
+	if u.Scheme == "" || u.Host == "" {
+		return nil, fmt.Errorf("youtrack: base URL must be absolute, got %q", opts.BaseURL)
+	}
+	u.Path = strings.TrimSuffix(u.Path, "/api")
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DialContext = dialIPv4First
+	var bypass *atomic.Bool
+	switch opts.Proxy {
+	case "":
+		// The environment's proxy, unless it turns out not to reach YouTrack
+		// (see hubAuth.discover).
+		bypass = new(atomic.Bool)
+		transport.Proxy = func(r *http.Request) (*url.URL, error) {
+			if bypass.Load() {
+				return nil, nil
+			}
+			return envProxy(r)
+		}
+	case "none", "direct":
+		transport.Proxy = nil
+	default:
+		p, err := url.Parse(opts.Proxy)
+		if err != nil {
+			return nil, fmt.Errorf("youtrack: parse proxy URL: %w", err)
+		}
+		transport.Proxy = http.ProxyURL(p)
+	}
+
+	timeout := opts.Timeout
+	if timeout == 0 {
+		timeout = 30 * time.Second
+	}
+	logger := opts.Logger
+	if logger == nil {
+		logger = slog.New(slog.DiscardHandler)
+	}
+	auth := newHubAuth(u, opts.Login, opts.Password, transport, timeout)
+	auth.log = logger
+	auth.bypassProxy = bypass
+	auth.static = opts.Token
+	if o := opts.OAuth; o != nil {
+		auth.oauth = &oauthState{clientID: o.ClientID, clientSecret: o.ClientSecret, access: o.AccessToken, refresh: o.RefreshToken, expires: o.Expires, onTokens: o.OnTokens}
+	}
+	return &Client{
+		baseURL: u,
+		auth:    auth,
+		http:    &http.Client{Transport: transport, Timeout: timeout},
+		log:     logger,
+
+		retryDelays: defaultRetryDelays,
+	}, nil
+}
+
+// NormalizeURL trims an instance URL and adds https:// when only a host
+// (youtrack.example.com) was given.
+func NormalizeURL(raw string) string {
+	raw = strings.TrimRight(strings.TrimSpace(raw), "/")
+	if raw != "" && !strings.Contains(raw, "://") {
+		raw = "https://" + raw
+	}
+	return raw
+}
+
+// envProxy finds the proxy from HTTP(S)_PROXY and NO_PROXY; tests replace it.
+var envProxy = http.ProxyFromEnvironment
+
+// dialIPv4First connects over IPv4 first and falls back to dual stack.
+//
+// A dual-stack dial asks the system resolver for A and AAAA records; corporate
+// DNS servers that don't answer AAAA (common behind VPNs) stall every first
+// connection for the 5 s resolver timeout. An IPv4-only lookup still goes
+// through the system resolver, so VPN split-DNS keeps working; IPv6-only
+// hosts are reached through the fallback.
+func dialIPv4First(ctx context.Context, network, addr string) (net.Conn, error) {
+	d := &net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}
+	if network == "tcp" {
+		if conn, err := d.DialContext(ctx, "tcp4", addr); err == nil {
+			return conn, nil
+		}
+	}
+	return d.DialContext(ctx, network, addr)
+}
+
+// BaseURL returns the instance root without a trailing slash.
+func (c *Client) BaseURL() string { return c.baseURL.String() }
+
+// Error is a non-2xx response from YouTrack or Hub.
+type Error struct {
+	Method      string `json:"-"`
+	Path        string `json:"-"`
+	Status      int    `json:"-"`
+	Code        string `json:"error"`
+	Description string `json:"error_description"`
+	Body        string `json:"-"`
+}
+
+func (e *Error) Error() string {
+	prefix := fmt.Sprintf("youtrack: %s %s: %d", e.Method, e.Path, e.Status)
+	switch {
+	case e.Description != "" && e.Code != "":
+		return fmt.Sprintf("%s %s: %s", prefix, e.Code, e.Description)
+	case e.Description != "":
+		return fmt.Sprintf("%s: %s", prefix, e.Description)
+	case e.Code != "":
+		return fmt.Sprintf("%s %s", prefix, e.Code)
+	default:
+		return fmt.Sprintf("%s %s", prefix, bodySummary(e.Body))
+	}
+}
+
+var (
+	htmlTitle = regexp.MustCompile(`(?is)<title[^>]*>(.*?)</title>`)
+	htmlTag   = regexp.MustCompile(`(?s)<[^>]*>`)
+	spaces    = regexp.MustCompile(`\s+`)
+)
+
+// bodySummary keeps an error body readable: an HTML page, as a proxy or a
+// gateway answers, becomes its title or text, and long bodies are cut.
+func bodySummary(body string) string {
+	body = strings.TrimSpace(body)
+	if lower := strings.ToLower(body); strings.HasPrefix(lower, "<!doctype html") || strings.Contains(lower, "<html") {
+		text := ""
+		if m := htmlTitle.FindStringSubmatch(body); m != nil {
+			text = m[1]
+		} else {
+			text = htmlTag.ReplaceAllString(body, " ")
+		}
+		body = "(HTML page) " + strings.TrimSpace(spaces.ReplaceAllString(text, " "))
+	}
+	if r := []rune(body); len(r) > 300 {
+		body = string(r[:300]) + "…"
+	}
+	return body
+}
+
+// Do performs a request against /api/<path>. body is JSON-encoded when
+// non-nil; the response is decoded into out when out is non-nil.
+func (c *Client) Do(ctx context.Context, method, path string, query url.Values, body, out any) error {
+	u := *c.baseURL
+	u.Path = u.Path + "/api/" + strings.TrimLeft(path, "/")
+	u.RawQuery = query.Encode()
+	return c.do(ctx, "", method, &u, body, out)
+}
+
+// HubGet performs a GET against the Hub REST API, <hub>/api/rest/<path>,
+// with a Hub-scoped token.
+func (c *Client) HubGet(ctx context.Context, path string, query url.Values, out any) error {
+	return c.HubDo(ctx, http.MethodGet, path, query, nil, out)
+}
+
+// HubDo is Do for the Hub REST API, <hub>/api/rest/<path>.
+func (c *Client) HubDo(ctx context.Context, method, path string, query url.Values, body, out any) error {
+	u, err := c.auth.HubURL(ctx)
+	if err != nil {
+		return err
+	}
+	u.Path = strings.TrimRight(u.Path, "/") + "/api/rest/" + strings.TrimLeft(path, "/")
+	u.RawQuery = query.Encode()
+	return c.do(ctx, HubScope, method, u, body, out)
+}
+
+func (c *Client) do(ctx context.Context, scope, method string, u *url.URL, body, out any) error {
+	var payload []byte
+	contentType := ""
+	if body != nil {
+		var err error
+		if payload, err = json.Marshal(body); err != nil {
+			return fmt.Errorf("youtrack: encode body: %w", err)
+		}
+		contentType = "application/json"
+	}
+	resp, data, err := c.exchange(ctx, scope, method, u, contentType, payload)
+	if err != nil {
+		return err
+	}
+	return decode(resp, data, u.Host, out)
+}
+
+// exchange sends a request, logs in again once on 401, and turns non-2xx
+// answers into *Error.
+func (c *Client) exchange(ctx context.Context, scope, method string, u *url.URL, contentType string, payload []byte) (*http.Response, []byte, error) {
+	var resp *http.Response
+	var data []byte
+	var err error
+	for attempt := 0; ; attempt++ {
+		resp, data, err = c.attempt(ctx, scope, method, u, contentType, payload)
+		if attempt >= len(c.retryDelays) || !retryable(method, resp, err) || ctx.Err() != nil {
+			break
+		}
+		wait := c.retryDelays[attempt]
+		if resp != nil {
+			if secs, perr := strconv.Atoi(resp.Header.Get("Retry-After")); perr == nil && secs >= 0 {
+				wait = min(time.Duration(secs)*time.Second, maxRetryAfter)
+			}
+		}
+		why := any(err)
+		if resp != nil {
+			why = resp.Status
+		}
+		c.log.Info("retrying youtrack request", "method", method, "path", u.Path, "after", why, "wait", wait, "retry", attempt+1)
+		select {
+		case <-ctx.Done():
+			return nil, nil, ctx.Err()
+		case <-time.After(wait):
+		}
+	}
+	if err == nil && scope == "" && resp.StatusCode == http.StatusUnauthorized && needsHubScope(data) {
+		c.log.Info("retrying youtrack request with a Hub-scoped token", "method", method, "path", u.Path)
+		resp, data, err = c.attempt(ctx, youtrackAndHub, method, u, contentType, payload)
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	if resp.StatusCode/100 != 2 {
+		e := &Error{Method: method, Path: u.Path, Status: resp.StatusCode, Body: string(data)}
+		_ = json.Unmarshal(data, e)
+		return nil, nil, e
+	}
+	return resp, data, nil
+}
+
+// attempt is one request, logged, with a fresh login if the token was
+// revoked before its expiry.
+func (c *Client) attempt(ctx context.Context, scope, method string, u *url.URL, contentType string, payload []byte) (*http.Response, []byte, error) {
+	start := time.Now()
+	resp, data, err := c.send(ctx, scope, method, u, contentType, payload)
+	if resp != nil {
+		c.log.Debug("youtrack request", "method", method, "path", u.Path, "status", resp.StatusCode,
+			"bytes", len(data), "took", time.Since(start).Round(time.Millisecond))
+	}
+	if resp != nil && resp.StatusCode == http.StatusUnauthorized {
+		resp, data, err = c.send(ctx, scope, method, u, contentType, payload)
+	}
+	return resp, data, err
+}
+
+// needsHubScope reports whether YouTrack refused a token for lacking the
+// Hub scope: The operation requires the "0-0-0-0-0" scope, but the token
+// is granted for [<service>]; the quotes come JSON-escaped.
+func needsHubScope(body []byte) bool {
+	s := string(body)
+	return strings.Contains(s, "requires the") && strings.Contains(s, HubScope) && strings.Contains(s, "scope")
+}
+
+// retryable reports whether a failed request may be sent again. 429 and
+// 503 mean YouTrack didn't take it, so any method retries; 502, 504 and
+// network failures may have happened after YouTrack acted, so only
+// requests that are safe to repeat retry, plus any whose connection never
+// opened. A POST that may have created an issue is never sent twice.
+func retryable(method string, resp *http.Response, err error) bool {
+	idempotent := method == http.MethodGet || method == http.MethodHead || method == http.MethodPut ||
+		method == http.MethodDelete || method == http.MethodOptions
+	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return false
+		}
+		var opErr *net.OpError
+		if errors.As(err, &opErr) && opErr.Op == "dial" {
+			return true
+		}
+		var netErr net.Error
+		return idempotent && (errors.As(err, &netErr) || errors.Is(err, io.ErrUnexpectedEOF))
+	}
+	switch resp.StatusCode {
+	case http.StatusTooManyRequests, http.StatusServiceUnavailable:
+		return true
+	case http.StatusBadGateway, http.StatusGatewayTimeout:
+		return idempotent
+	}
+	return false
+}
+
+// decode reads a JSON answer into out.
+func decode(resp *http.Response, data []byte, host string, out any) error {
+	if ct := resp.Header.Get("Content-Type"); len(data) > 0 && !strings.Contains(ct, "json") {
+		// A proxy or captive portal answered instead of YouTrack.
+		return fmt.Errorf("youtrack: unexpected %q response from %s (check URL, VPN and proxy settings)", ct, host)
+	}
+	if out == nil || len(data) == 0 {
+		return nil
+	}
+	if raw, ok := out.(*json.RawMessage); ok {
+		*raw = append((*raw)[:0], data...)
+		return nil
+	}
+	if err := json.Unmarshal(data, out); err != nil {
+		return fmt.Errorf("youtrack: decode response: %w", err)
+	}
+	return nil
+}
+
+// send makes one authenticated attempt and returns the full response body.
+func (c *Client) send(ctx context.Context, scope, method string, u *url.URL, contentType string, payload []byte) (*http.Response, []byte, error) {
+	token, err := c.auth.Token(ctx, scope)
+	if err != nil {
+		return nil, nil, err
+	}
+	var rdr io.Reader
+	if payload != nil {
+		rdr = bytes.NewReader(payload)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, u.String(), rdr)
+	if err != nil {
+		return nil, nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Accept", "application/json")
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("youtrack: %s %s: %w", method, u.Path, err)
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("youtrack: read response: %w", err)
+	}
+	if resp.StatusCode == http.StatusUnauthorized {
+		c.auth.Invalidate(scope, token)
+	}
+	return resp, data, nil
+}
+
+// Get is Do with GET.
+func (c *Client) Get(ctx context.Context, path string, query url.Values, out any) error {
+	return c.Do(ctx, http.MethodGet, path, query, nil, out)
+}
+
+// Post is Do with POST.
+func (c *Client) Post(ctx context.Context, path string, query url.Values, body, out any) error {
+	return c.Do(ctx, http.MethodPost, path, query, body, out)
+}
+
+// Delete is Do with DELETE.
+func (c *Client) Delete(ctx context.Context, path string, query url.Values) error {
+	return c.Do(ctx, http.MethodDelete, path, query, nil, nil)
+}
+
+// AuthorizeURL builds the address of Authorization Code with PKCE for a browser. access_type=offline gives a refresh token.
+func (c *Client) AuthorizeURL(ctx context.Context, clientID, redirectURI, state, challenge string) (string, error) {
+	c.auth.mu.Lock()
+	defer c.auth.mu.Unlock()
+	if err := c.auth.discover(ctx); err != nil {
+		return "", err
+	}
+	u := c.auth.hubURL.JoinPath("api", "rest", "oauth2", "auth")
+	u.RawQuery = url.Values{
+		"response_type":         {"code"},
+		"client_id":             {clientID},
+		"scope":                 {c.auth.serviceID},
+		"redirect_uri":          {redirectURI},
+		"access_type":           {"offline"},
+		"state":                 {state},
+		"code_challenge":        {challenge},
+		"code_challenge_method": {"S256"},
+	}.Encode()
+	return u.String(), nil
+}
+
+// ExchangeCode finishes Authorization Code.
+func (c *Client) ExchangeCode(ctx context.Context, clientID, clientSecret, code, redirectURI, verifier string) (access, refresh string, expires time.Time, err error) {
+	c.auth.mu.Lock()
+	defer c.auth.mu.Unlock()
+	if err := c.auth.discover(ctx); err != nil {
+		return "", "", time.Time{}, err
+	}
+	return c.auth.tokenEndpoint(ctx, clientID, clientSecret, url.Values{"grant_type": {"authorization_code"}, "code": {code}, "redirect_uri": {redirectURI}, "code_verifier": {verifier}})
+}
+
+// Fields builds the common ?fields=... query.
+func Fields(fields string) url.Values {
+	q := url.Values{}
+	if fields != "" {
+		q.Set("fields", fields)
+	}
+	return q
+}
