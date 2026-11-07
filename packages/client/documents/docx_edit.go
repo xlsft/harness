@@ -43,13 +43,15 @@ type docxEdit struct {
 	c         *Changes
 	maybeDrop []docxDrop
 	docPrID   int
+	// removedRows are rows this batch deletes or moves.
+	removedRows map[*docxRow]bool
 }
 
-var docxEditOps = "replace_text, set_text, insert_after, insert_before, delete_paragraph, insert_image, replace_image, add_comment, delete_comment, accept_change, reject_change"
+var docxEditOps = "replace_text, set_text, insert_after, insert_before, delete_paragraph, delete_row, move_row, insert_image, replace_image, add_comment, delete_comment, accept_change, reject_change"
 
 // Apply implements Document. Every target is resolved against the document as it is, then all changes apply together.
 func (d *docxDoc) Apply(edits []Edit) (*EditResult, error) {
-	e := &docxEdit{d: d, res: &EditResult{}, reps: map[*docxPara][]*rep{}, spans: map[*docxStory][]Span{}, removed: map[*docxPara]bool{}, touched: map[*docxPara]bool{}, c: NewChanges(), nextID: d.maxAnnotationID() + 1}
+	e := &docxEdit{d: d, res: &EditResult{}, reps: map[*docxPara][]*rep{}, spans: map[*docxStory][]Span{}, removed: map[*docxPara]bool{}, touched: map[*docxPara]bool{}, c: NewChanges(), removedRows: map[*docxRow]bool{}, nextID: d.maxAnnotationID() + 1}
 	for i, ed := range edits {
 		var err error
 		switch ed.Op {
@@ -58,7 +60,15 @@ func (d *docxDoc) Apply(edits []Edit) (*EditResult, error) {
 		case "set_text":
 			err = e.setText(ed)
 		case "insert_after", "insert_before":
-			err = e.insert(ed)
+			if docxRowRe.MatchString(ed.Target) {
+				err = e.insertRows(ed)
+			} else {
+				err = e.insert(ed)
+			}
+		case "delete_row":
+			err = e.deleteRow(ed)
+		case "move_row":
+			err = e.moveRow(ed)
 		case "delete_paragraph":
 			err = e.deleteParagraph(ed)
 		case "insert_image":
@@ -825,9 +835,26 @@ func (e *docxEdit) resolveChange(ed Edit) error {
 		case "moveFrom", "moveTo":
 			return refuse("change:%s is a tracked move; resolve moves in Word", c.id)
 		case "ins", "del":
-			inRowProps := n.Parent != nil && n.Parent.Local == "trPr"
-			if inRowProps {
-				return refuse("change:%s tracks a table row; resolve it in Word", c.id)
+			if n.Parent != nil && n.Parent.Local == "trPr" {
+				// A whole row was inserted or deleted: it goes, or its mark does.
+				if (accept && n.Local == "del") || (!accept && n.Local == "ins") {
+					tr := n.Parent.Parent
+					if tr == nil || tr.Local != "tr" {
+						return refuse("change:%s marks a row that is not in a table", c.id)
+					}
+					if tbl := tr.Parent; tbl != nil && len(tbl.KidsNamed("tr")) <= 1 {
+						return refuse("change:%s would remove the only row of its table; resolve it in Word", c.id)
+					}
+					removed[tr] = true
+					todo = append(todo, pending{func() {
+						if !covered(tr, removed) {
+							e.spans[c.story] = append(e.spans[c.story], Span{tr.Start, tr.End, ""})
+						}
+					}})
+				} else {
+					removeWhole()
+				}
+				break
 			}
 			isMark := n.Parent != nil && n.Parent.Local == "rPr" && n.Parent.Parent != nil && n.Parent.Parent.Local == "pPr"
 			if isMark {
@@ -843,7 +870,12 @@ func (e *docxEdit) resolveChange(ed Edit) error {
 				}
 				pn := para.node
 				removed[pn] = true
-				todo = append(todo, pending{func() { e.spans[c.story] = append(e.spans[c.story], Span{pn.Start, pn.End, ""}) }})
+				todo = append(todo, pending{func() {
+					if covered(pn, removed) {
+						return
+					}
+					e.spans[c.story] = append(e.spans[c.story], Span{pn.Start, pn.End, ""})
+				}})
 				break
 			}
 			if (accept && n.Local == "ins") || (!accept && n.Local == "del") {

@@ -63,6 +63,7 @@ type docxStory struct {
 	name, part string
 	xml        *XMLDoc
 	paras      []*docxPara
+	tables     []*docxTable
 	state      *fieldState
 }
 
@@ -272,7 +273,10 @@ func (d *docxDoc) scanParas(s *docxStory) {
 			case isW(k) && k.Local == "tbl":
 				t := tableCount
 				tableCount++
+				tbl := &docxTable{story: s, index: t, node: k}
+				s.tables = append(s.tables, tbl)
 				for ri, tr := range k.KidsNamed("tr") {
+					tbl.rows = append(tbl.rows, &docxRow{table: tbl, index: ri, node: tr, fp: Fingerprint(tr.Raw(s.xml.Data))})
 					for ci, tc := range tr.KidsNamed("tc") {
 						cellCtx := fmt.Sprintf("t%d r%d c%d", t, ri, ci)
 						if ctx != "" {
@@ -581,6 +585,16 @@ func (d *docxDoc) Structure() string {
 			fmt.Fprintf(&b, "  comment:%s by %s: %s\n", c.id, c.author, oneLine(c.text, 120))
 		}
 	}
+	if tl := d.tableLines(); len(tl) > 0 {
+		b.WriteString("Tables (read story:tN for rows):\n")
+		for i, l := range tl {
+			if i == 50 {
+				fmt.Fprintf(&b, "  … %d more\n", len(tl)-50)
+				break
+			}
+			b.WriteString("  " + l + "\n")
+		}
+	}
 	if pics := d.imageLines(); len(pics) > 0 {
 		b.WriteString("Pictures (replace_image takes the paragraph and position):\n")
 		for i, l := range pics {
@@ -648,7 +662,15 @@ func (d *docxDoc) Read(sel Selector) (string, error) {
 			}
 		}
 	default:
-		if m := docxRangeRe.FindStringSubmatch(rng); m != nil {
+		if m := docxTableRe.FindStringSubmatch(rng); m != nil {
+			t, err := d.table(m[1], m[2])
+			if err != nil {
+				return "", err
+			}
+			for _, r := range t.rows {
+				lines = append(lines, d.rowLine(r))
+			}
+		} else if m := docxRangeRe.FindStringSubmatch(rng); m != nil {
 			s := d.byName[m[1]]
 			if s == nil {
 				return "", fmt.Errorf("no story %q; stories: %s", m[1], strings.Join(d.storyNames(), ", "))
@@ -669,7 +691,7 @@ func (d *docxDoc) Read(sel Selector) (string, error) {
 				lines = append(lines, p.line())
 			}
 		} else {
-			return "", fmt.Errorf("range %q: use a story (%s), story:pN, story:pN-pM, comments, changes or images", rng, strings.Join(d.storyNames(), ", "))
+			return "", fmt.Errorf("range %q: use a story (%s), story:pN, story:pN-pM, story:tN (a table's rows), comments, changes or images", rng, strings.Join(d.storyNames(), ", "))
 		}
 	}
 	return pageLines(d.viewNote(), lines, sel), nil
