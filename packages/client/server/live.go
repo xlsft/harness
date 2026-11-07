@@ -189,6 +189,7 @@ func (ls *liveSession) publish(ev *agentv1.SessionEvent) {
 	ls.updatedAt = time.Now()
 	ls.mu.Unlock()
 	ls.hub.publish(ev)
+	ls.srv.inboxObserve(ls, ev)
 }
 
 func (ls *liveSession) notice(level agentv1.Notice_Level, kind, text string) {

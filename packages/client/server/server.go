@@ -166,6 +166,9 @@ type Server struct {
 	ComputerUse  *computeruse.Manager
 	computerOnce sync.Once
 
+	// inbox is the inbox of this client's sessions (inbox.go).
+	inbox inboxState
+
 	// sides tracks the running side chat answers (sidechats.go).
 	sides sideChatRuns
 

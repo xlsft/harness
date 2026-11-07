@@ -79,6 +79,7 @@ type relayPresence struct {
 // control of the sessions open on them.
 type RelayViewer struct {
 	rpc    relayv1connect.RelayServiceClient
+	inbox  relayv1connect.InboxServiceClient
 	tokens rpc.Tokens
 }
 
@@ -88,7 +89,9 @@ func NewRelayViewer(baseURL string, hc *http.Client, tokens rpc.Tokens) *RelayVi
 	if hc == nil {
 		hc = rpc.HTTPClient(baseURL)
 	}
-	return &RelayViewer{rpc: relayv1connect.NewRelayServiceClient(hc, strings.TrimRight(baseURL, "/"), rpc.ClientOptions()...), tokens: tokens}
+	base := strings.TrimRight(baseURL, "/")
+	return &RelayViewer{rpc: relayv1connect.NewRelayServiceClient(hc, base, rpc.ClientOptions()...),
+		inbox: relayv1connect.NewInboxServiceClient(hc, base, rpc.ClientOptions()...), tokens: tokens}
 }
 
 // relayCall runs a unary RelayService call with the bearer token, refreshing it once on UNAUTHENTICATED. Errors
@@ -234,7 +237,11 @@ func (s *Server) remoteInfo(id string) *agentv1.SessionInfo {
 	s.stateMu.Lock()
 	info := s.listed[id]
 	s.stateMu.Unlock()
-	if info == nil || !s.isRemote(info, true) {
+	if info == nil {
+		// Not listed yet: the inbox may know it from the server.
+		return s.inboxRemoteInfo(id)
+	}
+	if !s.isRemote(info, true) {
 		return nil
 	}
 	return s.withOrigin(info)
