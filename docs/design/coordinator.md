@@ -31,10 +31,16 @@ Idle sessions that the user has read and that have no report do not show; the si
 ### Where the state comes from
 
 - **The server** (`packages/core/src/relay/inbox.ts`) folds the relay events of each mirrored session into one `relay_inbox` row: group, pending requests (permission: tool, a one-line summary of the input, suggested rules; question: the questions and options; plan: the first lines), subagents (id, name, state, report), last report, usage of the last turn, title, folder, device, parent. It is updated in `PublishEvents`, `RegisterSession`, `UnregisterSession` and `Heartbeat`. Host presence is read at list time, so an item of a machine that went away says so.
-- **The local client** (`packages/client/server/inbox.go`) folds the events of its own live sessions with the same rules (Go and TypeScript reducers share fixtures in their tests). This covers sessions that are not mirrored (no server, remote control off by policy or switch) and is fresher for the ones that are.
+- **The local client** (`packages/client/server/inboxfold.go`, `inbox.go`) folds the events of its own live sessions with the same rules (the Go and TypeScript folds are tested on the same scenarios: `inboxfold_test.go`, `packages/core/test/inbox.test.ts`; packages stay self-contained, so no shared fixture file). This covers sessions that are not mirrored (no server, remote control off by policy or switch) and is fresher for the ones that are.
 - `AgentService.ListInbox` merges the two: local items win for local sessions; server items cover the user's other machines and always-on hosts. Without a server it is local only.
 
 **Decision: fold events, do not query hosts.** Asking every host for its pending prompts at list time would make the inbox as slow as the slowest machine and empty for a machine that is asleep. Folding the events the relay already stores costs one row update per batch and lists in one query.
+
+**Decision: attention is server time, except for history.** `attention_at` (the column) is the server's clock when the fold sees something new, since read markers are server time and machines' clocks drift. An event more than ten minutes old is history a resumed session replays to the relay: it keeps its own time, so reopening an old session doesn't make it unread again.
+
+**Decision: offset paging.** The order (unread first, then attention) changes as items are read, so a keyset cursor would not be stable either. Pages are offsets; a frontend follows `WatchInbox` and lists again on `resync`. The client puts its own live sessions on the first page of their group and drops the server's copies of them from every page; counts are the server's plus the local sessions the server doesn't mirror.
+
+**Decision: answers use the existing RPCs.** The inbox has no answer RPC of its own: `RespondToPermission`, `AnswerQuestion`, `RespondToPlan`, `Interrupt` with the item's session id. For a session of another machine the client's router sends them through the relay as before; a session the client's listing doesn't know yet is known from the inbox item (`inboxRemoteInfo`).
 
 **Decision: the reducer keeps only what the inbox shows.** Tool input is cut to a summary (400 characters), a report to 600, questions to their text and option labels. The full request stays in the event log, which the session view reads.
 
@@ -86,7 +92,7 @@ A worker is a session started with the existing `StartSession` path (local, `her
 ### Limits
 
 - **Parallel workers**: `max_workers` of the run (default the `projectMaxWorkers` preference, 4; 1 to 32). A start over it is refused with the count.
-- **Budget**: `budget_usd` and `budget_tokens` (0: none; default the `projectBudgetUsd` preference). Usage is the coordinator's own plus every worker's, from their `TurnFinished` events (local) or inbox rows (remote). At the limit no worker starts, running workers are told to stop after their turn, and the run is `paused` with a notice; the user raises the limit or stops.
+- **Budget**: `budget_usd` and `budget_tokens` (0: none; default the `projectBudgetUsd` preference). Usage is the coordinator's own plus every worker's, from their inbox items (the local fold for local sessions, the server's for remote ones). At the limit no worker starts and the run is `paused` with a notice; workers that run finish their turn (interrupting them mid-edit would leave half-done work), and the user raises the limit or stops. **Decision**: a budget is checked between turns, not inside a model request, so a run can go over it by the last turns that were already running.
 - **Managed policy**: a policy document can set `disableProjectRuns`, and `projectMaxWorkers` / `projectBudgetUsd` as ceilings: the run takes the lower of the policy and the user's value. Worker sessions load settings like any session, so every other rule of the policy applies to them.
 - **Permissions**: a worker gets the coordinator's permission mode and rules, never more. The coordinator's mode is the one the user chose. `bypassPermissions` is never passed to a worker on another machine (the relay refuses it anyway); it becomes `default` there. Disabled modes of the policy fall back to `default`. The coordinator cannot set a worker's mode.
 
@@ -107,7 +113,15 @@ The record is written on every change. At start the client reads the records: a 
 
 All logic is in the client and the server; the screens show and send.
 
+### Workers on other machines
+
+A remote worker is spawned with relay `SpawnSession` on a daemon host (the spawn now honours `worktree`: a new worktree of the repository at `cwd`, which stays under the host's allowed roots). It is not a linked child: the coordinator's machine follows it through the server's inbox, every 30 seconds while some remote worker works (and on every `ProjectStatus`), closes its graph task when it settles and hands the coordinator its report as a `SessionNote`, the same channel local workers use.
+
 ## What is not done
+
+- Controlling a run from another device reaches it only while its coordinator session is open on its machine (relay commands are routed to open sessions). After a restart the run is paused there until resumed on that machine.
+- Other machines of the user that are not daemon hosts don't accept workers; they show as unavailable targets with the reason.
+- The Settings screen has no fields for `projectMaxWorkers` and `projectBudgetUsd` yet; `UpdateUserPreferences` and the settings files take them.
 
 - A team across sessions in the subagent sense (shared `SendMessage` namespace) is not a thing; workers talk to the coordinator through notes.
 - Merging remote workers' branches: the coordinator gets their branch names and pushes are up to them; `ProjectWorkerMerge` works for local worktrees only.

@@ -41,8 +41,8 @@ Plan names in brackets are the lowest tier the vendor lists. Codex rows cover al
 | Issue tracker surface | No | ? | Yes (Linear) |
 | Separate knowledge-work mode | No | Yes (Cowork) | Yes (Work mode) |
 | Deep links into the app | Partial: web `?session=<id>` | Yes (`claude-cli://`) | Yes |
-| Multi-agent inbox across sessions | Partial: sidebar and session tree | Yes (`claude agents`) | Yes (`codex agents`) |
-| Project coordinator over many cloud sessions | No | Yes, beta (Projects) | ? |
+| Multi-agent inbox across sessions | Yes: Inbox screen and `harness-client agents`, across machines and always-on hosts | Yes (`claude agents`) | Yes (`codex agents`) |
+| Project coordinator over many cloud sessions | Yes: project runs, workers in worktrees or on always-on hosts, with limits | Yes, beta (Projects) | ? |
 | Message from phone that spawns a desktop session | No | Yes (Dispatch) | ? |
 
 ## Install and updates
