@@ -350,5 +350,19 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE UNIQUE INDEX \"chat_thread_ref_idx\" ON \"chat_thread\" USING btree (\"provider\",\"team_id\",\"channel\",\"thread_id\");",
       "CREATE INDEX \"chat_thread_session_idx\" ON \"chat_thread\" USING btree (\"session_id\");"
     ]
+  },
+  {
+    "id": "0019_typical_blob",
+    "statements": [
+      "CREATE TABLE \"chat_bot\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"provider\" integer NOT NULL,\n\t\"enabled\" boolean DEFAULT true NOT NULL,\n\t\"bot_user_id\" text NOT NULL,\n\t\"bot_username\" text DEFAULT '' NOT NULL,\n\t\"delivery\" integer DEFAULT 0 NOT NULL,\n\t\"secrets_enc\" text NOT NULL,\n\t\"last_event_at\" timestamp with time zone,\n\t\"last_error\" text DEFAULT '' NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"chat_button\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"value\" text NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL\n);",
+      "ALTER TABLE \"chat_app\" ADD COLUMN \"delivery\" integer DEFAULT 0 NOT NULL;",
+      "ALTER TABLE \"chat_thread\" ADD COLUMN \"app_key\" text DEFAULT '' NOT NULL;",
+      "ALTER TABLE \"chat_thread\" ADD COLUMN \"host_work_id\" text DEFAULT '' NOT NULL;",
+      "ALTER TABLE \"chat_bot\" ADD CONSTRAINT \"chat_bot_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "CREATE UNIQUE INDEX \"chat_bot_user_idx\" ON \"chat_bot\" USING btree (\"user_id\",\"provider\");",
+      "CREATE UNIQUE INDEX \"chat_bot_bot_idx\" ON \"chat_bot\" USING btree (\"provider\",\"bot_user_id\");",
+      "CREATE INDEX \"chat_button_created_idx\" ON \"chat_button\" USING btree (\"created_at\");"
+    ]
   }
 ];

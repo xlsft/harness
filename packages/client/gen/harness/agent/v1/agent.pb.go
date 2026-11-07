@@ -8710,8 +8710,12 @@ type ChatDefaults struct {
 	Folder   string `protobuf:"bytes,2,opt,name=folder,proto3" json:"folder,omitempty"`
 	// A permission mode name as in settings ("default", "acceptEdits", "plan", "auto", "dontAsk"); never bypassPermissions.
 	PermissionMode string `protobuf:"bytes,3,opt,name=permission_mode,json=permissionMode,proto3" json:"permission_mode,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// An always-on host (harness.relay.v1.AgentHost id) to run on instead of a machine; then repository_key
+	// ("host/owner/name") says what it checks out. Takes precedence over device_id.
+	AgentHostId   string `protobuf:"bytes,4,opt,name=agent_host_id,json=agentHostId,proto3" json:"agent_host_id,omitempty"`
+	RepositoryKey string `protobuf:"bytes,5,opt,name=repository_key,json=repositoryKey,proto3" json:"repository_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ChatDefaults) Reset() {
@@ -8761,6 +8765,20 @@ func (x *ChatDefaults) GetFolder() string {
 func (x *ChatDefaults) GetPermissionMode() string {
 	if x != nil {
 		return x.PermissionMode
+	}
+	return ""
+}
+
+func (x *ChatDefaults) GetAgentHostId() string {
+	if x != nil {
+		return x.AgentHostId
+	}
+	return ""
+}
+
+func (x *ChatDefaults) GetRepositoryKey() string {
+	if x != nil {
+		return x.RepositoryKey
 	}
 	return ""
 }
@@ -11870,11 +11888,13 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\"\x1b\n" +
 	"\x19GetUserPreferencesRequest\"a\n" +
 	"\x1aGetUserPreferencesResponse\x12C\n" +
-	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"l\n" +
+	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xb7\x01\n" +
 	"\fChatDefaults\x12\x1b\n" +
 	"\tdevice_id\x18\x01 \x01(\tR\bdeviceId\x12\x16\n" +
 	"\x06folder\x18\x02 \x01(\tR\x06folder\x12'\n" +
-	"\x0fpermission_mode\x18\x03 \x01(\tR\x0epermissionMode\"\x80\n" +
+	"\x0fpermission_mode\x18\x03 \x01(\tR\x0epermissionMode\x12\"\n" +
+	"\ragent_host_id\x18\x04 \x01(\tR\vagentHostId\x12%\n" +
+	"\x0erepository_key\x18\x05 \x01(\tR\rrepositoryKey\"\x80\n" +
 	"\n" +
 	"\x1cUpdateUserPreferencesRequest\x127\n" +
 	"\x15compact_idle_sessions\x18\x01 \x01(\bH\x00R\x13compactIdleSessions\x88\x01\x01\x12=\n" +

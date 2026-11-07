@@ -1628,6 +1628,10 @@ message ChatDefaults {
   string folder = 2;
   // A permission mode name as in settings ("default", "acceptEdits", "plan", "auto", "dontAsk"); never bypassPermissions.
   string permission_mode = 3;
+  // An always-on host (harness.relay.v1.AgentHost id) to run on instead of a machine; then repository_key
+  // ("host/owner/name") says what it checks out. Takes precedence over device_id.
+  string agent_host_id = 4;
+  string repository_key = 5;
 }
 
 message UpdateUserPreferencesRequest {

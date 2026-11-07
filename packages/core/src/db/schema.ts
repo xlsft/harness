@@ -1688,8 +1688,10 @@ export const chatApp = pgTable("chat_app", {
   teamId: text("team_id").notNull().default(""),
   teamName: text("team_name").notNull().default(""),
   botUserId: text("bot_user_id").notNull().default(""),
-  /** Encrypted JSON {botToken, signingSecret}. */
+  /** Encrypted JSON {botToken, signingSecret}; for Telegram signingSecret is the webhook's secret token. */
   secretsEnc: text("secrets_enc").notNull().default(""),
+  /** Telegram: harness.chat.v1.ChatDelivery the admin chose (0: by the public URL). */
+  delivery: integer("delivery").notNull().default(0),
   lastEventAt: ts("last_event_at"),
   lastError: text("last_error").notNull().default(""),
   createdAt: ts("created_at").notNull(),
@@ -1747,6 +1749,10 @@ export const chatThread = pgTable(
     lastSeq: int8("last_seq").notNull().default(0),
     /** The progress message being edited ("" when none). */
     progressId: text("progress_id").notNull().default(""),
+    /** Which app the thread came through: "" the organization's, else a chat_bot id (a personal bot). */
+    appKey: text("app_key").notNull().default(""),
+    /** Work queued on an always-on host while the thread waits for its session ("" when it started on a machine). */
+    hostWorkId: text("host_work_id").notNull().default(""),
     createdAt: ts("created_at").notNull(),
     updatedAt: ts("updated_at").notNull(),
   },
@@ -1758,3 +1764,37 @@ export const chatDelivery = pgTable("chat_delivery", {
   key: text("key").primaryKey(),
   createdAt: ts("created_at").notNull(),
 });
+
+/** A chat bot a person brought (Telegram): only its owner uses, sees or changes it. Token encrypted like chat_app's. */
+export const chatBot = pgTable(
+  "chat_bot",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    provider: integer("provider").notNull(),
+    enabled: boolean("enabled").notNull().default(true),
+    botUserId: text("bot_user_id").notNull(),
+    botUsername: text("bot_username").notNull().default(""),
+    delivery: integer("delivery").notNull().default(0),
+    /** Encrypted JSON {botToken, signingSecret}. */
+    secretsEnc: text("secrets_enc").notNull(),
+    lastEventAt: ts("last_event_at"),
+    lastError: text("last_error").notNull().default(""),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [uniqueIndex("chat_bot_user_idx").on(t.userId, t.provider), uniqueIndex("chat_bot_bot_idx").on(t.provider, t.botUserId)],
+);
+
+/** Button values too long for the provider (Telegram's callback_data is 64 bytes): the button carries the id. */
+export const chatButton = pgTable(
+  "chat_button",
+  {
+    id: text("id").primaryKey(),
+    value: text("value").notNull(),
+    createdAt: ts("created_at").notNull(),
+  },
+  (t) => [index("chat_button_created_idx").on(t.createdAt)],
+);

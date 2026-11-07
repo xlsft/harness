@@ -11,6 +11,7 @@
  *   disablePersonalHosts, sandbox.enabled true                         enforced here too for always-on hosts (relay/hosts.ts)
  *   disableChatApps, disableRemoteStarts                               enforced here (chat apps, relay spawns); clients stop
  *                                                                      offering remote starts too
+ *   disablePersonalChatBots                                            enforced here (chat/app.ts: personal Telegram bots)
  *   strictKnownMarketplaces, blockedMarketplaces, extraKnownMarketplaces, enabledPlugins
  *                                                                      enforced by clients (packages/client/plugins): plugins are a device's
  * The server cannot be talked out of what it enforces itself, whatever a modified client does; permission rules and the
@@ -53,6 +54,7 @@ export interface ManagedPolicy {
   personal_hosts_disabled: boolean;
   chat_apps_disabled: boolean;
   remote_starts_disabled: boolean;
+  personal_chat_bots_disabled: boolean;
 }
 
 const isObject = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
@@ -157,6 +159,7 @@ export function managedOf(content: Json): ManagedPolicy {
     ...skillFields(content),
     chat_apps_disabled: content.disableChatApps === true,
     remote_starts_disabled: content.disableRemoteStarts === true,
+    personal_chat_bots_disabled: content.disablePersonalChatBots === true,
   };
 }
 
@@ -200,6 +203,7 @@ export function withManaged(content: Json, p: ManagedPolicy): Json {
   setOrDelete(next, "disableExternalSkillSearch", true, p.external_skill_search_disabled);
   setOrDelete(next, "disableChatApps", true, p.chat_apps_disabled);
   setOrDelete(next, "disableRemoteStarts", true, p.remote_starts_disabled);
+  setOrDelete(next, "disablePersonalChatBots", true, p.personal_chat_bots_disabled);
   return next;
 }
 
@@ -294,6 +298,7 @@ export interface ServerPolicy {
   sandboxRequired: boolean;
   chatAppsDisabled: boolean;
   remoteStartsDisabled: boolean;
+  personalChatBotsDisabled: boolean;
 }
 
 function intersect(a: string[] | undefined, b: string[]): string[] {
@@ -308,7 +313,7 @@ export async function serverPolicyFor(user: Pick<PublicUser, "role">): Promise<S
     .select({ content: d.content, targetRoles: d.targetRoles })
     .from(d)
     .where(and(eq(d.scope, Scope.ORG), eq(d.kind, DocumentKind.POLICY), isNull(d.deletedAt)));
-  const out: ServerPolicy = { personalProvidersDisabled: false, externalSkillSearchDisabled: false, personalHostsDisabled: false, sandboxRequired: false, chatAppsDisabled: false, remoteStartsDisabled: false };
+  const out: ServerPolicy = { personalProvidersDisabled: false, externalSkillSearchDisabled: false, personalHostsDisabled: false, sandboxRequired: false, chatAppsDisabled: false, remoteStartsDisabled: false, personalChatBotsDisabled: false };
   for (const r of rows) {
     const roles = Array.isArray(r.targetRoles) ? (r.targetRoles as string[]) : [];
     if (roles.length && !roles.includes(user.role)) continue;
@@ -321,6 +326,7 @@ export async function serverPolicyFor(user: Pick<PublicUser, "role">): Promise<S
     out.sandboxRequired ||= m.sandbox_required;
     out.chatAppsDisabled ||= m.chat_apps_disabled;
     out.remoteStartsDisabled ||= m.remote_starts_disabled;
+    out.personalChatBotsDisabled ||= m.personal_chat_bots_disabled;
   }
   return out;
 }

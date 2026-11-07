@@ -132,6 +132,8 @@ class SlackClient implements ChatProviderClient {
 export const slack: ChatProvider = {
   id: ChatProviderId.SLACK,
   name: "Slack",
+  threading: "thread",
+  startHint: "Mention me or write to me",
 
   verify(headers: Headers, raw: string, signingSecret: string, now = Date.now()): ChatVerifyResult {
     const sig = headers.get("x-slack-signature") ?? "";

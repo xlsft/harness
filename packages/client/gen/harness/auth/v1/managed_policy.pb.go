@@ -69,8 +69,10 @@ type ManagedPolicy struct {
 	// disableRemoteStarts: no session starts through the relay (phone, chat apps, daemon hosts); the server refuses and
 	// clients stop offering it.
 	RemoteStartsDisabled bool `protobuf:"varint,281,opt,name=remote_starts_disabled,json=remoteStartsDisabled,proto3" json:"remote_starts_disabled,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// disablePersonalChatBots: nobody connects a chat bot of their own (Telegram); the organization's bot still works.
+	PersonalChatBotsDisabled bool `protobuf:"varint,380,opt,name=personal_chat_bots_disabled,json=personalChatBotsDisabled,proto3" json:"personal_chat_bots_disabled,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -267,6 +269,13 @@ func (x *ManagedPolicy) GetChatAppsDisabled() bool {
 func (x *ManagedPolicy) GetRemoteStartsDisabled() bool {
 	if x != nil {
 		return x.RemoteStartsDisabled
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetPersonalChatBotsDisabled() bool {
+	if x != nil {
+		return x.PersonalChatBotsDisabled
 	}
 	return false
 }
@@ -529,7 +538,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\x8f\t\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xcf\t\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -557,7 +566,8 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\x1eexternal_skill_search_disabled\x18\x15 \x01(\bR\x1bexternalSkillSearchDisabled\x127\n" +
 	"\x17personal_hosts_disabled\x18\xe6\x01 \x01(\bR\x15personalHostsDisabled\x12-\n" +
 	"\x12chat_apps_disabled\x18\x98\x02 \x01(\bR\x10chatAppsDisabled\x125\n" +
-	"\x16remote_starts_disabled\x18\x99\x02 \x01(\bR\x14remoteStartsDisabled\"\x19\n" +
+	"\x16remote_starts_disabled\x18\x99\x02 \x01(\bR\x14remoteStartsDisabled\x12>\n" +
+	"\x1bpersonal_chat_bots_disabled\x18\xfc\x02 \x01(\bR\x18personalChatBotsDisabled\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +
 	"\x06policy\x18\x01 \x01(\v2\x1e.harness.auth.v1.ManagedPolicyR\x06policy\x12\x1d\n" +

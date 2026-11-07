@@ -10,12 +10,14 @@ import { flushForwarders, kickForwarders } from "../../audit/forward.ts";
 import { purgeAudit } from "../../audit/log.ts";
 import { startTelemetry, stopTelemetry } from "../../telemetry/otel.ts";
 import { resumeChatWatchers, stopChatWatchers } from "../../chat/service.ts";
+import { resumeTelegramDelivery, stopTelegramDelivery } from "../../chat/telegram-delivery.ts";
 
 export default definePlugin(async (nitroApp) => {
   // Graceful shutdown (SIGTERM/SIGINT): end the pg pool, or close PGlite so its data dir is left clean.
   startTelemetry();
   nitroApp.hooks.hook("close", async () => {
     stopChatWatchers();
+    stopTelegramDelivery();
     await flushForwarders().catch(() => {});
     await stopTelemetry().catch(() => {});
     await closeDb();
@@ -30,6 +32,8 @@ export default definePlugin(async (nitroApp) => {
   startBoardSync();
   // Chat threads whose sessions were being followed when the server stopped.
   void resumeChatWatchers().catch((err) => console.error("[harness] could not resume chat threads", err));
+  // Telegram bots: webhooks set again (the public URL may have changed), polling started.
+  void resumeTelegramDelivery().catch((err) => console.error("[harness] could not start Telegram delivery", err));
   // Events written while a SIEM was unreachable or the server was down go out now; old ones past the retention go.
   kickForwarders();
   void purgeAudit().catch(() => {});

@@ -49,6 +49,15 @@ const (
 	// ChatServiceUnlinkChatIdentityProcedure is the fully-qualified name of the ChatService's
 	// UnlinkChatIdentity RPC.
 	ChatServiceUnlinkChatIdentityProcedure = "/harness.chat.v1.ChatService/UnlinkChatIdentity"
+	// ChatServiceGetMyChatBotProcedure is the fully-qualified name of the ChatService's GetMyChatBot
+	// RPC.
+	ChatServiceGetMyChatBotProcedure = "/harness.chat.v1.ChatService/GetMyChatBot"
+	// ChatServicePutMyChatBotProcedure is the fully-qualified name of the ChatService's PutMyChatBot
+	// RPC.
+	ChatServicePutMyChatBotProcedure = "/harness.chat.v1.ChatService/PutMyChatBot"
+	// ChatServiceDeleteMyChatBotProcedure is the fully-qualified name of the ChatService's
+	// DeleteMyChatBot RPC.
+	ChatServiceDeleteMyChatBotProcedure = "/harness.chat.v1.ChatService/DeleteMyChatBot"
 )
 
 // ChatServiceClient is a client for the harness.chat.v1.ChatService service.
@@ -64,6 +73,13 @@ type ChatServiceClient interface {
 	// A one-time code (single use, 15 minutes) the caller sends to the bot as "link <code>" to link that chat identity.
 	StartChatLink(context.Context, *connect.Request[v1.StartChatLinkRequest]) (*connect.Response[v1.StartChatLinkResponse], error)
 	UnlinkChatIdentity(context.Context, *connect.Request[v1.UnlinkChatIdentityRequest]) (*connect.Response[v1.UnlinkChatIdentityResponse], error)
+	// --- The caller's own bot (Telegram) ---
+	// A bot of the caller's own, used instead of or next to the organization's. Only its owner can use it, see it or
+	// change it. The managed policy can turn personal bots off (disablePersonalChatBots).
+	GetMyChatBot(context.Context, *connect.Request[v1.GetMyChatBotRequest]) (*connect.Response[v1.GetMyChatBotResponse], error)
+	// The token is write-only and checked with the provider (Telegram getMe) before anything is stored.
+	PutMyChatBot(context.Context, *connect.Request[v1.PutMyChatBotRequest]) (*connect.Response[v1.PutMyChatBotResponse], error)
+	DeleteMyChatBot(context.Context, *connect.Request[v1.DeleteMyChatBotRequest]) (*connect.Response[v1.DeleteMyChatBotResponse], error)
 }
 
 // NewChatServiceClient constructs a client for the harness.chat.v1.ChatService service. By default,
@@ -113,6 +129,24 @@ func NewChatServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(chatServiceMethods.ByName("UnlinkChatIdentity")),
 			connect.WithClientOptions(opts...),
 		),
+		getMyChatBot: connect.NewClient[v1.GetMyChatBotRequest, v1.GetMyChatBotResponse](
+			httpClient,
+			baseURL+ChatServiceGetMyChatBotProcedure,
+			connect.WithSchema(chatServiceMethods.ByName("GetMyChatBot")),
+			connect.WithClientOptions(opts...),
+		),
+		putMyChatBot: connect.NewClient[v1.PutMyChatBotRequest, v1.PutMyChatBotResponse](
+			httpClient,
+			baseURL+ChatServicePutMyChatBotProcedure,
+			connect.WithSchema(chatServiceMethods.ByName("PutMyChatBot")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteMyChatBot: connect.NewClient[v1.DeleteMyChatBotRequest, v1.DeleteMyChatBotResponse](
+			httpClient,
+			baseURL+ChatServiceDeleteMyChatBotProcedure,
+			connect.WithSchema(chatServiceMethods.ByName("DeleteMyChatBot")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -124,6 +158,9 @@ type chatServiceClient struct {
 	listMyChatIdentities *connect.Client[v1.ListMyChatIdentitiesRequest, v1.ListMyChatIdentitiesResponse]
 	startChatLink        *connect.Client[v1.StartChatLinkRequest, v1.StartChatLinkResponse]
 	unlinkChatIdentity   *connect.Client[v1.UnlinkChatIdentityRequest, v1.UnlinkChatIdentityResponse]
+	getMyChatBot         *connect.Client[v1.GetMyChatBotRequest, v1.GetMyChatBotResponse]
+	putMyChatBot         *connect.Client[v1.PutMyChatBotRequest, v1.PutMyChatBotResponse]
+	deleteMyChatBot      *connect.Client[v1.DeleteMyChatBotRequest, v1.DeleteMyChatBotResponse]
 }
 
 // GetChatApp calls harness.chat.v1.ChatService.GetChatApp.
@@ -156,6 +193,21 @@ func (c *chatServiceClient) UnlinkChatIdentity(ctx context.Context, req *connect
 	return c.unlinkChatIdentity.CallUnary(ctx, req)
 }
 
+// GetMyChatBot calls harness.chat.v1.ChatService.GetMyChatBot.
+func (c *chatServiceClient) GetMyChatBot(ctx context.Context, req *connect.Request[v1.GetMyChatBotRequest]) (*connect.Response[v1.GetMyChatBotResponse], error) {
+	return c.getMyChatBot.CallUnary(ctx, req)
+}
+
+// PutMyChatBot calls harness.chat.v1.ChatService.PutMyChatBot.
+func (c *chatServiceClient) PutMyChatBot(ctx context.Context, req *connect.Request[v1.PutMyChatBotRequest]) (*connect.Response[v1.PutMyChatBotResponse], error) {
+	return c.putMyChatBot.CallUnary(ctx, req)
+}
+
+// DeleteMyChatBot calls harness.chat.v1.ChatService.DeleteMyChatBot.
+func (c *chatServiceClient) DeleteMyChatBot(ctx context.Context, req *connect.Request[v1.DeleteMyChatBotRequest]) (*connect.Response[v1.DeleteMyChatBotResponse], error) {
+	return c.deleteMyChatBot.CallUnary(ctx, req)
+}
+
 // ChatServiceHandler is an implementation of the harness.chat.v1.ChatService service.
 type ChatServiceHandler interface {
 	// --- Admin: the app ---
@@ -169,6 +221,13 @@ type ChatServiceHandler interface {
 	// A one-time code (single use, 15 minutes) the caller sends to the bot as "link <code>" to link that chat identity.
 	StartChatLink(context.Context, *connect.Request[v1.StartChatLinkRequest]) (*connect.Response[v1.StartChatLinkResponse], error)
 	UnlinkChatIdentity(context.Context, *connect.Request[v1.UnlinkChatIdentityRequest]) (*connect.Response[v1.UnlinkChatIdentityResponse], error)
+	// --- The caller's own bot (Telegram) ---
+	// A bot of the caller's own, used instead of or next to the organization's. Only its owner can use it, see it or
+	// change it. The managed policy can turn personal bots off (disablePersonalChatBots).
+	GetMyChatBot(context.Context, *connect.Request[v1.GetMyChatBotRequest]) (*connect.Response[v1.GetMyChatBotResponse], error)
+	// The token is write-only and checked with the provider (Telegram getMe) before anything is stored.
+	PutMyChatBot(context.Context, *connect.Request[v1.PutMyChatBotRequest]) (*connect.Response[v1.PutMyChatBotResponse], error)
+	DeleteMyChatBot(context.Context, *connect.Request[v1.DeleteMyChatBotRequest]) (*connect.Response[v1.DeleteMyChatBotResponse], error)
 }
 
 // NewChatServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -214,6 +273,24 @@ func NewChatServiceHandler(svc ChatServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(chatServiceMethods.ByName("UnlinkChatIdentity")),
 		connect.WithHandlerOptions(opts...),
 	)
+	chatServiceGetMyChatBotHandler := connect.NewUnaryHandler(
+		ChatServiceGetMyChatBotProcedure,
+		svc.GetMyChatBot,
+		connect.WithSchema(chatServiceMethods.ByName("GetMyChatBot")),
+		connect.WithHandlerOptions(opts...),
+	)
+	chatServicePutMyChatBotHandler := connect.NewUnaryHandler(
+		ChatServicePutMyChatBotProcedure,
+		svc.PutMyChatBot,
+		connect.WithSchema(chatServiceMethods.ByName("PutMyChatBot")),
+		connect.WithHandlerOptions(opts...),
+	)
+	chatServiceDeleteMyChatBotHandler := connect.NewUnaryHandler(
+		ChatServiceDeleteMyChatBotProcedure,
+		svc.DeleteMyChatBot,
+		connect.WithSchema(chatServiceMethods.ByName("DeleteMyChatBot")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.chat.v1.ChatService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ChatServiceGetChatAppProcedure:
@@ -228,6 +305,12 @@ func NewChatServiceHandler(svc ChatServiceHandler, opts ...connect.HandlerOption
 			chatServiceStartChatLinkHandler.ServeHTTP(w, r)
 		case ChatServiceUnlinkChatIdentityProcedure:
 			chatServiceUnlinkChatIdentityHandler.ServeHTTP(w, r)
+		case ChatServiceGetMyChatBotProcedure:
+			chatServiceGetMyChatBotHandler.ServeHTTP(w, r)
+		case ChatServicePutMyChatBotProcedure:
+			chatServicePutMyChatBotHandler.ServeHTTP(w, r)
+		case ChatServiceDeleteMyChatBotProcedure:
+			chatServiceDeleteMyChatBotHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -259,4 +342,16 @@ func (UnimplementedChatServiceHandler) StartChatLink(context.Context, *connect.R
 
 func (UnimplementedChatServiceHandler) UnlinkChatIdentity(context.Context, *connect.Request[v1.UnlinkChatIdentityRequest]) (*connect.Response[v1.UnlinkChatIdentityResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.chat.v1.ChatService.UnlinkChatIdentity is not implemented"))
+}
+
+func (UnimplementedChatServiceHandler) GetMyChatBot(context.Context, *connect.Request[v1.GetMyChatBotRequest]) (*connect.Response[v1.GetMyChatBotResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.chat.v1.ChatService.GetMyChatBot is not implemented"))
+}
+
+func (UnimplementedChatServiceHandler) PutMyChatBot(context.Context, *connect.Request[v1.PutMyChatBotRequest]) (*connect.Response[v1.PutMyChatBotResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.chat.v1.ChatService.PutMyChatBot is not implemented"))
+}
+
+func (UnimplementedChatServiceHandler) DeleteMyChatBot(context.Context, *connect.Request[v1.DeleteMyChatBotRequest]) (*connect.Response[v1.DeleteMyChatBotResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.chat.v1.ChatService.DeleteMyChatBot is not implemented"))
 }

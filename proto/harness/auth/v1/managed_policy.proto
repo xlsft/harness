@@ -60,6 +60,8 @@ message ManagedPolicy {
   // disableRemoteStarts: no session starts through the relay (phone, chat apps, daemon hosts); the server refuses and
   // clients stop offering it.
   bool remote_starts_disabled = 281;
+  // disablePersonalChatBots: nobody connects a chat bot of their own (Telegram); the organization's bot still works.
+  bool personal_chat_bots_disabled = 380;
 }
 
 message GetManagedPolicyRequest {}

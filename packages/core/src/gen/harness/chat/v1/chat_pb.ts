@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/chat/v1/chat.proto.
  */
 export const file_harness_chat_v1_chat: GenFile = /*@__PURE__*/
-  fileDesc("ChpoYXJuZXNzL2NoYXQvdjEvY2hhdC5wcm90bxIPaGFybmVzcy5jaGF0LnYxIowCCgdDaGF0QXBwEi8KCHByb3ZpZGVyGAEgASgOMh0uaGFybmVzcy5jaGF0LnYxLkNoYXRQcm92aWRlchISCgpjb25maWd1cmVkGAIgASgIEg8KB2VuYWJsZWQYAyABKAgSDwoHdGVhbV9pZBgEIAEoCRIRCgl0ZWFtX25hbWUYBSABKAkSEwoLYm90X3VzZXJfaWQYBiABKAkSEwoLcmVxdWVzdF91cmwYByABKAkSFgoObWF0Y2hfYnlfZW1haWwYCCABKAgSFQoNbGFzdF9ldmVudF9hdBgJIAEoCRISCgpsYXN0X2Vycm9yGAogASgJEhoKEmRpc2FibGVkX2J5X3BvbGljeRgLIAEoCCJEChFHZXRDaGF0QXBwUmVxdWVzdBIvCghwcm92aWRlchgBIAEoDjIdLmhhcm5lc3MuY2hhdC52MS5DaGF0UHJvdmlkZXIiOwoSR2V0Q2hhdEFwcFJlc3BvbnNlEiUKA2FwcBgBIAEoCzIYLmhhcm5lc3MuY2hhdC52MS5DaGF0QXBwIpgBChFQdXRDaGF0QXBwUmVxdWVzdBIvCghwcm92aWRlchgBIAEoDjIdLmhhcm5lc3MuY2hhdC52MS5DaGF0UHJvdmlkZXISEQoJYm90X3Rva2VuGAIgASgJEhYKDnNpZ25pbmdfc2VjcmV0GAMgASgJEg8KB2VuYWJsZWQYBCABKAgSFgoObWF0Y2hfYnlfZW1haWwYBSABKAgiOwoSUHV0Q2hhdEFwcFJlc3BvbnNlEiUKA2FwcBgBIAEoCzIYLmhhcm5lc3MuY2hhdC52MS5DaGF0QXBwIkcKFERlbGV0ZUNoYXRBcHBSZXF1ZXN0Ei8KCHByb3ZpZGVyGAEgASgOMh0uaGFybmVzcy5jaGF0LnYxLkNoYXRQcm92aWRlciIXChVEZWxldGVDaGF0QXBwUmVzcG9uc2UipwEKDENoYXRJZGVudGl0eRIvCghwcm92aWRlchgBIAEoDjIdLmhhcm5lc3MuY2hhdC52MS5DaGF0UHJvdmlkZXISDwoHdGVhbV9pZBgCIAEoCRIYChBleHRlcm5hbF91c2VyX2lkGAMgASgJEhQKDGRpc3BsYXlfbmFtZRgEIAEoCRISCgpsaW5rZWRfdmlhGAUgASgJEhEKCWxpbmtlZF9hdBgGIAEoCSIdChtMaXN0TXlDaGF0SWRlbnRpdGllc1JlcXVlc3QiZAocTGlzdE15Q2hhdElkZW50aXRpZXNSZXNwb25zZRIxCgppZGVudGl0aWVzGAEgAygLMh0uaGFybmVzcy5jaGF0LnYxLkNoYXRJZGVudGl0eRIRCglhdmFpbGFibGUYAiABKAgiRwoUU3RhcnRDaGF0TGlua1JlcXVlc3QSLwoIcHJvdmlkZXIYASABKA4yHS5oYXJuZXNzLmNoYXQudjEuQ2hhdFByb3ZpZGVyIjkKFVN0YXJ0Q2hhdExpbmtSZXNwb25zZRIMCgRjb2RlGAEgASgJEhIKCmV4cGlyZXNfYXQYAiABKAkidwoZVW5saW5rQ2hhdElkZW50aXR5UmVxdWVzdBIvCghwcm92aWRlchgBIAEoDjIdLmhhcm5lc3MuY2hhdC52MS5DaGF0UHJvdmlkZXISDwoHdGVhbV9pZBgCIAEoCRIYChBleHRlcm5hbF91c2VyX2lkGAMgASgJIhwKGlVubGlua0NoYXRJZGVudGl0eVJlc3BvbnNlKl8KDENoYXRQcm92aWRlchIdChlDSEFUX1BST1ZJREVSX1VOU1BFQ0lGSUVEEAASFwoTQ0hBVF9QUk9WSURFUl9TTEFDSxABEhcKE0NIQVRfUFJPVklERVJfVEVBTVMQAjLfBAoLQ2hhdFNlcnZpY2USVQoKR2V0Q2hhdEFwcBIiLmhhcm5lc3MuY2hhdC52MS5HZXRDaGF0QXBwUmVxdWVzdBojLmhhcm5lc3MuY2hhdC52MS5HZXRDaGF0QXBwUmVzcG9uc2USVQoKUHV0Q2hhdEFwcBIiLmhhcm5lc3MuY2hhdC52MS5QdXRDaGF0QXBwUmVxdWVzdBojLmhhcm5lc3MuY2hhdC52MS5QdXRDaGF0QXBwUmVzcG9uc2USXgoNRGVsZXRlQ2hhdEFwcBIlLmhhcm5lc3MuY2hhdC52MS5EZWxldGVDaGF0QXBwUmVxdWVzdBomLmhhcm5lc3MuY2hhdC52MS5EZWxldGVDaGF0QXBwUmVzcG9uc2UScwoUTGlzdE15Q2hhdElkZW50aXRpZXMSLC5oYXJuZXNzLmNoYXQudjEuTGlzdE15Q2hhdElkZW50aXRpZXNSZXF1ZXN0Gi0uaGFybmVzcy5jaGF0LnYxLkxpc3RNeUNoYXRJZGVudGl0aWVzUmVzcG9uc2USXgoNU3RhcnRDaGF0TGluaxIlLmhhcm5lc3MuY2hhdC52MS5TdGFydENoYXRMaW5rUmVxdWVzdBomLmhhcm5lc3MuY2hhdC52MS5TdGFydENoYXRMaW5rUmVzcG9uc2USbQoSVW5saW5rQ2hhdElkZW50aXR5EiouaGFybmVzcy5jaGF0LnYxLlVubGlua0NoYXRJZGVudGl0eVJlcXVlc3QaKy5oYXJuZXNzLmNoYXQudjEuVW5saW5rQ2hhdElkZW50aXR5UmVzcG9uc2VCwwEKE2NvbS5oYXJuZXNzLmNoYXQudjFCCUNoYXRQcm90b1ABWkNnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2NoYXQvdjE7Y2hhdHYxogIDSENYqgIPSGFybmVzcy5DaGF0LlYxygIPSGFybmVzc1xDaGF0XFYx4gIbSGFybmVzc1xDaGF0XFYxXEdQQk1ldGFkYXRh6gIRSGFybmVzczo6Q2hhdDo6VjFiBnByb3RvMw");
+  fileDesc("ChpoYXJuZXNzL2NoYXQvdjEvY2hhdC5wcm90bxIPaGFybmVzcy5jaGF0LnYxIvUCCgdDaGF0QXBwEi8KCHByb3ZpZGVyGAEgASgOMh0uaGFybmVzcy5jaGF0LnYxLkNoYXRQcm92aWRlchISCgpjb25maWd1cmVkGAIgASgIEg8KB2VuYWJsZWQYAyABKAgSDwoHdGVhbV9pZBgEIAEoCRIRCgl0ZWFtX25hbWUYBSABKAkSEwoLYm90X3VzZXJfaWQYBiABKAkSEwoLcmVxdWVzdF91cmwYByABKAkSFgoObWF0Y2hfYnlfZW1haWwYCCABKAgSFQoNbGFzdF9ldmVudF9hdBgJIAEoCRISCgpsYXN0X2Vycm9yGAogASgJEhoKEmRpc2FibGVkX2J5X3BvbGljeRgLIAEoCBIvCghkZWxpdmVyeRgMIAEoDjIdLmhhcm5lc3MuY2hhdC52MS5DaGF0RGVsaXZlcnkSNgoPYWN0aXZlX2RlbGl2ZXJ5GA0gASgOMh0uaGFybmVzcy5jaGF0LnYxLkNoYXREZWxpdmVyeSJEChFHZXRDaGF0QXBwUmVxdWVzdBIvCghwcm92aWRlchgBIAEoDjIdLmhhcm5lc3MuY2hhdC52MS5DaGF0UHJvdmlkZXIiOwoSR2V0Q2hhdEFwcFJlc3BvbnNlEiUKA2FwcBgBIAEoCzIYLmhhcm5lc3MuY2hhdC52MS5DaGF0QXBwIskBChFQdXRDaGF0QXBwUmVxdWVzdBIvCghwcm92aWRlchgBIAEoDjIdLmhhcm5lc3MuY2hhdC52MS5DaGF0UHJvdmlkZXISEQoJYm90X3Rva2VuGAIgASgJEhYKDnNpZ25pbmdfc2VjcmV0GAMgASgJEg8KB2VuYWJsZWQYBCABKAgSFgoObWF0Y2hfYnlfZW1haWwYBSABKAgSLwoIZGVsaXZlcnkYBiABKA4yHS5oYXJuZXNzLmNoYXQudjEuQ2hhdERlbGl2ZXJ5IjsKElB1dENoYXRBcHBSZXNwb25zZRIlCgNhcHAYASABKAsyGC5oYXJuZXNzLmNoYXQudjEuQ2hhdEFwcCJHChREZWxldGVDaGF0QXBwUmVxdWVzdBIvCghwcm92aWRlchgBIAEoDjIdLmhhcm5lc3MuY2hhdC52MS5DaGF0UHJvdmlkZXIiFwoVRGVsZXRlQ2hhdEFwcFJlc3BvbnNlIqcBCgxDaGF0SWRlbnRpdHkSLwoIcHJvdmlkZXIYASABKA4yHS5oYXJuZXNzLmNoYXQudjEuQ2hhdFByb3ZpZGVyEg8KB3RlYW1faWQYAiABKAkSGAoQZXh0ZXJuYWxfdXNlcl9pZBgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSEgoKbGlua2VkX3ZpYRgFIAEoCRIRCglsaW5rZWRfYXQYBiABKAkiHQobTGlzdE15Q2hhdElkZW50aXRpZXNSZXF1ZXN0Ir8BChxMaXN0TXlDaGF0SWRlbnRpdGllc1Jlc3BvbnNlEjEKCmlkZW50aXRpZXMYASADKAsyHS5oYXJuZXNzLmNoYXQudjEuQ2hhdElkZW50aXR5EhEKCWF2YWlsYWJsZRgCIAEoCBI6ChNhdmFpbGFibGVfcHJvdmlkZXJzGAMgAygOMh0uaGFybmVzcy5jaGF0LnYxLkNoYXRQcm92aWRlchIdChV0ZWxlZ3JhbV9ib3RfdXNlcm5hbWUYBCABKAkiXQoUU3RhcnRDaGF0TGlua1JlcXVlc3QSLwoIcHJvdmlkZXIYASABKA4yHS5oYXJuZXNzLmNoYXQudjEuQ2hhdFByb3ZpZGVyEhQKDHBlcnNvbmFsX2JvdBgCIAEoCCJMChVTdGFydENoYXRMaW5rUmVzcG9uc2USDAoEY29kZRgBIAEoCRISCgpleHBpcmVzX2F0GAIgASgJEhEKCWRlZXBfbGluaxgDIAEoCSJ3ChlVbmxpbmtDaGF0SWRlbnRpdHlSZXF1ZXN0Ei8KCHByb3ZpZGVyGAEgASgOMh0uaGFybmVzcy5jaGF0LnYxLkNoYXRQcm92aWRlchIPCgd0ZWFtX2lkGAIgASgJEhgKEGV4dGVybmFsX3VzZXJfaWQYAyABKAkiHAoaVW5saW5rQ2hhdElkZW50aXR5UmVzcG9uc2UiqwIKB0NoYXRCb3QSLwoIcHJvdmlkZXIYASABKA4yHS5oYXJuZXNzLmNoYXQudjEuQ2hhdFByb3ZpZGVyEgoKAmlkGAIgASgJEg8KB2VuYWJsZWQYAyABKAgSEwoLYm90X3VzZXJfaWQYBCABKAkSFAoMYm90X3VzZXJuYW1lGAUgASgJEi8KCGRlbGl2ZXJ5GAYgASgOMh0uaGFybmVzcy5jaGF0LnYxLkNoYXREZWxpdmVyeRI2Cg9hY3RpdmVfZGVsaXZlcnkYByABKA4yHS5oYXJuZXNzLmNoYXQudjEuQ2hhdERlbGl2ZXJ5EhMKC3JlcXVlc3RfdXJsGAggASgJEhUKDWxhc3RfZXZlbnRfYXQYCSABKAkSEgoKbGFzdF9lcnJvchgKIAEoCSJGChNHZXRNeUNoYXRCb3RSZXF1ZXN0Ei8KCHByb3ZpZGVyGAEgASgOMh0uaGFybmVzcy5jaGF0LnYxLkNoYXRQcm92aWRlciJOChRHZXRNeUNoYXRCb3RSZXNwb25zZRIlCgNib3QYASABKAsyGC5oYXJuZXNzLmNoYXQudjEuQ2hhdEJvdBIPCgdhbGxvd2VkGAIgASgIIpsBChNQdXRNeUNoYXRCb3RSZXF1ZXN0Ei8KCHByb3ZpZGVyGAEgASgOMh0uaGFybmVzcy5jaGF0LnYxLkNoYXRQcm92aWRlchIRCglib3RfdG9rZW4YAiABKAkSDwoHZW5hYmxlZBgDIAEoCBIvCghkZWxpdmVyeRgEIAEoDjIdLmhhcm5lc3MuY2hhdC52MS5DaGF0RGVsaXZlcnkiPQoUUHV0TXlDaGF0Qm90UmVzcG9uc2USJQoDYm90GAEgASgLMhguaGFybmVzcy5jaGF0LnYxLkNoYXRCb3QiSQoWRGVsZXRlTXlDaGF0Qm90UmVxdWVzdBIvCghwcm92aWRlchgBIAEoDjIdLmhhcm5lc3MuY2hhdC52MS5DaGF0UHJvdmlkZXIiGQoXRGVsZXRlTXlDaGF0Qm90UmVzcG9uc2UqewoMQ2hhdFByb3ZpZGVyEh0KGUNIQVRfUFJPVklERVJfVU5TUEVDSUZJRUQQABIXChNDSEFUX1BST1ZJREVSX1NMQUNLEAESFwoTQ0hBVF9QUk9WSURFUl9URUFNUxACEhoKFkNIQVRfUFJPVklERVJfVEVMRUdSQU0QAypjCgxDaGF0RGVsaXZlcnkSHQoZQ0hBVF9ERUxJVkVSWV9VTlNQRUNJRklFRBAAEhkKFUNIQVRfREVMSVZFUllfV0VCSE9PSxABEhkKFUNIQVRfREVMSVZFUllfUE9MTElORxACMv8GCgtDaGF0U2VydmljZRJVCgpHZXRDaGF0QXBwEiIuaGFybmVzcy5jaGF0LnYxLkdldENoYXRBcHBSZXF1ZXN0GiMuaGFybmVzcy5jaGF0LnYxLkdldENoYXRBcHBSZXNwb25zZRJVCgpQdXRDaGF0QXBwEiIuaGFybmVzcy5jaGF0LnYxLlB1dENoYXRBcHBSZXF1ZXN0GiMuaGFybmVzcy5jaGF0LnYxLlB1dENoYXRBcHBSZXNwb25zZRJeCg1EZWxldGVDaGF0QXBwEiUuaGFybmVzcy5jaGF0LnYxLkRlbGV0ZUNoYXRBcHBSZXF1ZXN0GiYuaGFybmVzcy5jaGF0LnYxLkRlbGV0ZUNoYXRBcHBSZXNwb25zZRJzChRMaXN0TXlDaGF0SWRlbnRpdGllcxIsLmhhcm5lc3MuY2hhdC52MS5MaXN0TXlDaGF0SWRlbnRpdGllc1JlcXVlc3QaLS5oYXJuZXNzLmNoYXQudjEuTGlzdE15Q2hhdElkZW50aXRpZXNSZXNwb25zZRJeCg1TdGFydENoYXRMaW5rEiUuaGFybmVzcy5jaGF0LnYxLlN0YXJ0Q2hhdExpbmtSZXF1ZXN0GiYuaGFybmVzcy5jaGF0LnYxLlN0YXJ0Q2hhdExpbmtSZXNwb25zZRJtChJVbmxpbmtDaGF0SWRlbnRpdHkSKi5oYXJuZXNzLmNoYXQudjEuVW5saW5rQ2hhdElkZW50aXR5UmVxdWVzdBorLmhhcm5lc3MuY2hhdC52MS5VbmxpbmtDaGF0SWRlbnRpdHlSZXNwb25zZRJbCgxHZXRNeUNoYXRCb3QSJC5oYXJuZXNzLmNoYXQudjEuR2V0TXlDaGF0Qm90UmVxdWVzdBolLmhhcm5lc3MuY2hhdC52MS5HZXRNeUNoYXRCb3RSZXNwb25zZRJbCgxQdXRNeUNoYXRCb3QSJC5oYXJuZXNzLmNoYXQudjEuUHV0TXlDaGF0Qm90UmVxdWVzdBolLmhhcm5lc3MuY2hhdC52MS5QdXRNeUNoYXRCb3RSZXNwb25zZRJkCg9EZWxldGVNeUNoYXRCb3QSJy5oYXJuZXNzLmNoYXQudjEuRGVsZXRlTXlDaGF0Qm90UmVxdWVzdBooLmhhcm5lc3MuY2hhdC52MS5EZWxldGVNeUNoYXRCb3RSZXNwb25zZULDAQoTY29tLmhhcm5lc3MuY2hhdC52MUIJQ2hhdFByb3RvUAFaQ2dpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvY2hhdC92MTtjaGF0djGiAgNIQ1iqAg9IYXJuZXNzLkNoYXQuVjHKAg9IYXJuZXNzXENoYXRcVjHiAhtIYXJuZXNzXENoYXRcVjFcR1BCTWV0YWRhdGHqAhFIYXJuZXNzOjpDaGF0OjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message harness.chat.v1.ChatApp
@@ -85,6 +85,18 @@ export type ChatApp = Message<"harness.chat.v1.ChatApp"> & {
    * @generated from field: bool disabled_by_policy = 11;
    */
   disabledByPolicy: boolean;
+
+  /**
+   * Telegram: what the admin chose, and what is in use (never UNSPECIFIED once configured).
+   *
+   * @generated from field: harness.chat.v1.ChatDelivery delivery = 12;
+   */
+  delivery: ChatDelivery;
+
+  /**
+   * @generated from field: harness.chat.v1.ChatDelivery active_delivery = 13;
+   */
+  activeDelivery: ChatDelivery;
 };
 
 /**
@@ -160,6 +172,13 @@ export type PutChatAppRequest = Message<"harness.chat.v1.PutChatAppRequest"> & {
    * @generated from field: bool match_by_email = 5;
    */
   matchByEmail: boolean;
+
+  /**
+   * Telegram only.
+   *
+   * @generated from field: harness.chat.v1.ChatDelivery delivery = 6;
+   */
+  delivery: ChatDelivery;
 };
 
 /**
@@ -292,6 +311,20 @@ export type ListMyChatIdentitiesResponse = Message<"harness.chat.v1.ListMyChatId
    * @generated from field: bool available = 2;
    */
   available: boolean;
+
+  /**
+   * Each provider the caller can use: the organization's app, or for Telegram also the caller's own bot.
+   *
+   * @generated from field: repeated harness.chat.v1.ChatProvider available_providers = 3;
+   */
+  availableProviders: ChatProvider[];
+
+  /**
+   * Telegram: the organization bot's username (without @), for a t.me link. Empty when there is none.
+   *
+   * @generated from field: string telegram_bot_username = 4;
+   */
+  telegramBotUsername: string;
 };
 
 /**
@@ -309,6 +342,13 @@ export type StartChatLinkRequest = Message<"harness.chat.v1.StartChatLinkRequest
    * @generated from field: harness.chat.v1.ChatProvider provider = 1;
    */
   provider: ChatProvider;
+
+  /**
+   * Telegram: the deep link opens the caller's own bot instead of the organization's.
+   *
+   * @generated from field: bool personal_bot = 2;
+   */
+  personalBot: boolean;
 };
 
 /**
@@ -335,6 +375,13 @@ export type StartChatLinkResponse = Message<"harness.chat.v1.StartChatLinkRespon
    * @generated from field: string expires_at = 2;
    */
   expiresAt: string;
+
+  /**
+   * Telegram: https://t.me/<bot>?start=<code>, which sends the code to the bot when opened. Empty for Slack.
+   *
+   * @generated from field: string deep_link = 3;
+   */
+  deepLink: string;
 };
 
 /**
@@ -385,6 +432,200 @@ export const UnlinkChatIdentityResponseSchema: GenMessage<UnlinkChatIdentityResp
   messageDesc(file_harness_chat_v1_chat, 13);
 
 /**
+ * A bot the caller brought (Telegram). Never carries the token.
+ *
+ * @generated from message harness.chat.v1.ChatBot
+ */
+export type ChatBot = Message<"harness.chat.v1.ChatBot"> & {
+  /**
+   * @generated from field: harness.chat.v1.ChatProvider provider = 1;
+   */
+  provider: ChatProvider;
+
+  /**
+   * @generated from field: string id = 2;
+   */
+  id: string;
+
+  /**
+   * @generated from field: bool enabled = 3;
+   */
+  enabled: boolean;
+
+  /**
+   * The bot's Telegram user id and username (without @).
+   *
+   * @generated from field: string bot_user_id = 4;
+   */
+  botUserId: string;
+
+  /**
+   * @generated from field: string bot_username = 5;
+   */
+  botUsername: string;
+
+  /**
+   * @generated from field: harness.chat.v1.ChatDelivery delivery = 6;
+   */
+  delivery: ChatDelivery;
+
+  /**
+   * @generated from field: harness.chat.v1.ChatDelivery active_delivery = 7;
+   */
+  activeDelivery: ChatDelivery;
+
+  /**
+   * Where Telegram sends updates when the delivery is a webhook.
+   *
+   * @generated from field: string request_url = 8;
+   */
+  requestUrl: string;
+
+  /**
+   * RFC 3339, UTC; empty: none yet.
+   *
+   * @generated from field: string last_event_at = 9;
+   */
+  lastEventAt: string;
+
+  /**
+   * @generated from field: string last_error = 10;
+   */
+  lastError: string;
+};
+
+/**
+ * Describes the message harness.chat.v1.ChatBot.
+ * Use `create(ChatBotSchema)` to create a new message.
+ */
+export const ChatBotSchema: GenMessage<ChatBot> = /*@__PURE__*/
+  messageDesc(file_harness_chat_v1_chat, 14);
+
+/**
+ * @generated from message harness.chat.v1.GetMyChatBotRequest
+ */
+export type GetMyChatBotRequest = Message<"harness.chat.v1.GetMyChatBotRequest"> & {
+  /**
+   * @generated from field: harness.chat.v1.ChatProvider provider = 1;
+   */
+  provider: ChatProvider;
+};
+
+/**
+ * Describes the message harness.chat.v1.GetMyChatBotRequest.
+ * Use `create(GetMyChatBotRequestSchema)` to create a new message.
+ */
+export const GetMyChatBotRequestSchema: GenMessage<GetMyChatBotRequest> = /*@__PURE__*/
+  messageDesc(file_harness_chat_v1_chat, 15);
+
+/**
+ * @generated from message harness.chat.v1.GetMyChatBotResponse
+ */
+export type GetMyChatBotResponse = Message<"harness.chat.v1.GetMyChatBotResponse"> & {
+  /**
+   * Unset when the caller has none.
+   *
+   * @generated from field: harness.chat.v1.ChatBot bot = 1;
+   */
+  bot?: ChatBot | undefined;
+
+  /**
+   * False when the managed policy turns personal bots or chat apps off.
+   *
+   * @generated from field: bool allowed = 2;
+   */
+  allowed: boolean;
+};
+
+/**
+ * Describes the message harness.chat.v1.GetMyChatBotResponse.
+ * Use `create(GetMyChatBotResponseSchema)` to create a new message.
+ */
+export const GetMyChatBotResponseSchema: GenMessage<GetMyChatBotResponse> = /*@__PURE__*/
+  messageDesc(file_harness_chat_v1_chat, 16);
+
+/**
+ * @generated from message harness.chat.v1.PutMyChatBotRequest
+ */
+export type PutMyChatBotRequest = Message<"harness.chat.v1.PutMyChatBotRequest"> & {
+  /**
+   * @generated from field: harness.chat.v1.ChatProvider provider = 1;
+   */
+  provider: ChatProvider;
+
+  /**
+   * From @BotFather. Empty keeps the stored token.
+   *
+   * @generated from field: string bot_token = 2;
+   */
+  botToken: string;
+
+  /**
+   * @generated from field: bool enabled = 3;
+   */
+  enabled: boolean;
+
+  /**
+   * @generated from field: harness.chat.v1.ChatDelivery delivery = 4;
+   */
+  delivery: ChatDelivery;
+};
+
+/**
+ * Describes the message harness.chat.v1.PutMyChatBotRequest.
+ * Use `create(PutMyChatBotRequestSchema)` to create a new message.
+ */
+export const PutMyChatBotRequestSchema: GenMessage<PutMyChatBotRequest> = /*@__PURE__*/
+  messageDesc(file_harness_chat_v1_chat, 17);
+
+/**
+ * @generated from message harness.chat.v1.PutMyChatBotResponse
+ */
+export type PutMyChatBotResponse = Message<"harness.chat.v1.PutMyChatBotResponse"> & {
+  /**
+   * @generated from field: harness.chat.v1.ChatBot bot = 1;
+   */
+  bot?: ChatBot | undefined;
+};
+
+/**
+ * Describes the message harness.chat.v1.PutMyChatBotResponse.
+ * Use `create(PutMyChatBotResponseSchema)` to create a new message.
+ */
+export const PutMyChatBotResponseSchema: GenMessage<PutMyChatBotResponse> = /*@__PURE__*/
+  messageDesc(file_harness_chat_v1_chat, 18);
+
+/**
+ * @generated from message harness.chat.v1.DeleteMyChatBotRequest
+ */
+export type DeleteMyChatBotRequest = Message<"harness.chat.v1.DeleteMyChatBotRequest"> & {
+  /**
+   * @generated from field: harness.chat.v1.ChatProvider provider = 1;
+   */
+  provider: ChatProvider;
+};
+
+/**
+ * Describes the message harness.chat.v1.DeleteMyChatBotRequest.
+ * Use `create(DeleteMyChatBotRequestSchema)` to create a new message.
+ */
+export const DeleteMyChatBotRequestSchema: GenMessage<DeleteMyChatBotRequest> = /*@__PURE__*/
+  messageDesc(file_harness_chat_v1_chat, 19);
+
+/**
+ * @generated from message harness.chat.v1.DeleteMyChatBotResponse
+ */
+export type DeleteMyChatBotResponse = Message<"harness.chat.v1.DeleteMyChatBotResponse"> & {
+};
+
+/**
+ * Describes the message harness.chat.v1.DeleteMyChatBotResponse.
+ * Use `create(DeleteMyChatBotResponseSchema)` to create a new message.
+ */
+export const DeleteMyChatBotResponseSchema: GenMessage<DeleteMyChatBotResponse> = /*@__PURE__*/
+  messageDesc(file_harness_chat_v1_chat, 20);
+
+/**
  * @generated from enum harness.chat.v1.ChatProvider
  */
 export enum ChatProvider {
@@ -404,6 +645,11 @@ export enum ChatProvider {
    * @generated from enum value: CHAT_PROVIDER_TEAMS = 2;
    */
   TEAMS = 2,
+
+  /**
+   * @generated from enum value: CHAT_PROVIDER_TELEGRAM = 3;
+   */
+  TELEGRAM = 3,
 }
 
 /**
@@ -413,16 +659,51 @@ export const ChatProviderSchema: GenEnum<ChatProvider> = /*@__PURE__*/
   enumDesc(file_harness_chat_v1_chat, 0);
 
 /**
- * ChatService connects the server to chat apps (Slack today; the provider enum leaves room for Microsoft Teams). People
- * mention the bot or write to it, and a session starts on one of their own machines through the relay; the thread gets
- * progress, permission prompts as buttons and the final answer, and replies steer the session. docs/design/chat.md is
- * the spec.
+ * How a Telegram bot's updates reach the server.
  *
- * Inbound traffic from the chat app is plain HTTP, signature-checked: POST /api/chat/slack/events (Event Subscriptions
- * and Interactivity may both point there).
+ * @generated from enum harness.chat.v1.ChatDelivery
+ */
+export enum ChatDelivery {
+  /**
+   * A webhook when the server's public URL is HTTPS, long polling otherwise.
+   *
+   * @generated from enum value: CHAT_DELIVERY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * setWebhook with a secret token the server checks on every request.
+   *
+   * @generated from enum value: CHAT_DELIVERY_WEBHOOK = 1;
+   */
+  WEBHOOK = 1,
+
+  /**
+   * getUpdates from the server (no public URL needed; one server replica).
+   *
+   * @generated from enum value: CHAT_DELIVERY_POLLING = 2;
+   */
+  POLLING = 2,
+}
+
+/**
+ * Describes the enum harness.chat.v1.ChatDelivery.
+ */
+export const ChatDeliverySchema: GenEnum<ChatDelivery> = /*@__PURE__*/
+  enumDesc(file_harness_chat_v1_chat, 1);
+
+/**
+ * ChatService connects the server to chat apps (Slack and Telegram; the provider enum leaves room for Microsoft Teams).
+ * People mention the bot or write to it, and a session starts on one of their own machines (or an always-on host)
+ * through the relay; the thread or chat gets progress, permission prompts as buttons and the final answer, and replies
+ * steer the session. docs/design/chat.md is the spec.
  *
- * Requires `Authorization: Bearer <access token>`. The app RPCs are admin-only; the identity RPCs act on the caller's
- * own links only (no one else, admins included, can list them).
+ * Inbound traffic from the chat app is plain HTTP: POST /api/chat/slack/events (Event Subscriptions and Interactivity
+ * may both point there; signature-checked) and POST /api/chat/telegram/webhook/{org|<bot id>} (Telegram's secret token
+ * header checked). A Telegram bot may instead be long-polled by the server when it has no public HTTPS URL.
+ *
+ * Requires `Authorization: Bearer <access token>`. The app RPCs are admin-only; the identity and personal bot RPCs act
+ * on the caller's own links and bot only (no one else, admins included, can list them).
  *
  * @generated from service harness.chat.v1.ChatService
  */
@@ -483,6 +764,36 @@ export const ChatService: GenService<{
     methodKind: "unary";
     input: typeof UnlinkChatIdentityRequestSchema;
     output: typeof UnlinkChatIdentityResponseSchema;
+  },
+  /**
+   * --- The caller's own bot (Telegram) ---
+   * A bot of the caller's own, used instead of or next to the organization's. Only its owner can use it, see it or
+   * change it. The managed policy can turn personal bots off (disablePersonalChatBots).
+   *
+   * @generated from rpc harness.chat.v1.ChatService.GetMyChatBot
+   */
+  getMyChatBot: {
+    methodKind: "unary";
+    input: typeof GetMyChatBotRequestSchema;
+    output: typeof GetMyChatBotResponseSchema;
+  },
+  /**
+   * The token is write-only and checked with the provider (Telegram getMe) before anything is stored.
+   *
+   * @generated from rpc harness.chat.v1.ChatService.PutMyChatBot
+   */
+  putMyChatBot: {
+    methodKind: "unary";
+    input: typeof PutMyChatBotRequestSchema;
+    output: typeof PutMyChatBotResponseSchema;
+  },
+  /**
+   * @generated from rpc harness.chat.v1.ChatService.DeleteMyChatBot
+   */
+  deleteMyChatBot: {
+    methodKind: "unary";
+    input: typeof DeleteMyChatBotRequestSchema;
+    output: typeof DeleteMyChatBotResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_chat_v1_chat, 0);

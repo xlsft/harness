@@ -1,6 +1,6 @@
 /**
- * What every chat app provider implements (docs/design/chat.md). Slack is in slack.ts; a Teams provider implements the same
- * interface and gets its own route, and service.ts stays as it is.
+ * What every chat app provider implements (docs/design/chat.md). Slack is in slack.ts, Telegram in telegram.ts; a Teams
+ * provider implements the same interface and gets its own route, and service.ts stays as it is.
  */
 
 /** Where a message lives: a conversation and the thread in it. */
@@ -39,9 +39,22 @@ export type ChatInbound =
       text: string;
       /** A mention of the bot or a direct message: may start a session. A plain thread reply only steers. */
       addressed: boolean;
+      /** The sender's name when the request carries it (Telegram); otherwise the service asks profile(). */
+      userName?: string;
+      /** A command the provider recognized: "help" answers with what the bot does, "new" starts a new session even
+       *  where one is going on (chat threading). */
+      command?: "help" | "new";
     }
   /** Someone pressed a button. */
-  | { kind: "action"; place: ChatPlace; messageId: string; userId: string; value: string }
+  | {
+      kind: "action";
+      place: ChatPlace;
+      messageId: string;
+      userId: string;
+      value: string;
+      /** The press to acknowledge (Telegram callback_query id); see ChatProviderClient.answerAction. */
+      ackId?: string;
+    }
   /** Nothing to do (other event types, the bot's own messages, edits). */
   | { kind: "ignore" };
 
@@ -77,12 +90,23 @@ export interface ChatProviderClient {
   /** A message only `userId` sees. */
   ephemeral(place: ChatPlace, userId: string, text: string): Promise<void>;
   profile(userId: string): Promise<ChatProfile>;
+  /** Acknowledges a button press, with a short notice only the presser sees. Providers that need no acknowledgement
+   *  (Slack) leave it out, and the service uses ephemeral() for the notice. */
+  answerAction?(ackId: string, text?: string): Promise<void>;
 }
 
 export interface ChatProvider {
   /** harness.chat.v1.ChatProvider. */
   readonly id: number;
   readonly name: string;
+  /**
+   * How messages map to sessions. "thread": each thread is one session (Slack). "chat": a conversation has no threads,
+   * so the latest session started in it is the one later messages steer, until a "new" command starts another
+   * (Telegram private chats).
+   */
+  readonly threading: "thread" | "chat";
+  /** How a person starts a session, for the bot's own messages ("Mention me", "Write to me"). */
+  readonly startHint: string;
   /** Signature, timestamp and replay key of an inbound request, with the stored signing secret. */
   verify(headers: Headers, raw: string, signingSecret: string, now?: number): ChatVerifyResult;
   /** The inbound request as items (after verify). */

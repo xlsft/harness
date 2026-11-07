@@ -73,6 +73,8 @@ export const routes: RouteDef[] = [
   { route: "/api/tracker/oauth/callback", method: "get", handler: "./src/http/routes/tracker-oauth-callback.ts" },
   // Chat apps (src/chat): Slack events and button presses, signature-checked
   { route: "/api/chat/slack/events", method: "post", handler: "./src/http/routes/chat-slack-events.ts" },
+  // Telegram updates by webhook (secret token header checked); polling needs no route
+  { route: "/api/chat/telegram/webhook/:key", method: "post", handler: "./src/http/routes/chat-telegram-webhook.ts" },
 
   // A scheduled task's webhook (services/schedule-webhook.ts): the secret in the URL is the authentication
   { route: "/api/schedules/webhook/:token", method: "post", handler: "./src/http/routes/schedule-webhook.ts" },
