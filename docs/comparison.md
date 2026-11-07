@@ -37,7 +37,7 @@ Plan names in brackets are the lowest tier the vendor lists. Codex rows cover al
 | CLI on Linux | Partial: compiles in CI, no release | Yes (incl. Alpine) | Yes |
 | CLI on Windows native | Partial: compiles in CI, no release | Yes | Yes |
 | WSL | Partial: Linux build, no release | Yes (WSL 1, 2) | Yes (WSL2) |
-| Chat app surface (Slack etc.) | Partial: Slack, tested against a fake Slack API only; Teams not built ([design](design/chat.md)) | Yes (Slack) | Yes (Slack, Teams) |
+| Chat app surface (Slack etc.) | Partial: Slack and Telegram, tested against fake Slack and Bot APIs only; Teams not built ([design](design/chat.md)) | Yes (Slack) | Yes (Slack, Teams) |
 | Issue tracker surface | No | ? | Yes (Linear) |
 | Separate knowledge-work mode | No | Yes (Cowork) | Yes (Work mode) |
 | Deep links into the app | Partial: web `?session=<id>` | Yes (`claude-cli://`) | Yes |
@@ -467,7 +467,7 @@ Plan names in brackets are the lowest tier the vendor lists. Codex rows cover al
 | MCP Apps UI | No | Partial: recognized | ? |
 | Agent exposed as an MCP server | No | Yes | No (removed) |
 | IDE MCP server | No | Yes | ? |
-| Channels inbound (Telegram etc.) | No | Yes, preview | ? |
+| Channels inbound (Telegram etc.) | Partial: Telegram private chats start and steer sessions, tested against a fake Bot API only ([design](design/chat.md)) | Yes, preview | ? |
 | MCP store or browser in UI | No | No | Partial: plugin directory |
 | MCP settings screen | No (import, RPC, files) | Yes (`/mcp`, Desktop) | Yes (`/mcp`) |
 | Audit of MCP calls | Partial: written to DB, no read UI or route | ? | ? |
