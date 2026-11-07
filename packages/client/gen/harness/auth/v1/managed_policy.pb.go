@@ -62,8 +62,13 @@ type ManagedPolicy struct {
 	BlockedSkills []string `protobuf:"bytes,20,rep,name=blocked_skills,json=blockedSkills,proto3" json:"blocked_skills,omitempty"`
 	// disableExternalSkillSearch: no search of public skill directories, on the server and on clients.
 	ExternalSkillSearchDisabled bool `protobuf:"varint,21,opt,name=external_skill_search_disabled,json=externalSkillSearchDisabled,proto3" json:"external_skill_search_disabled,omitempty"`
-	unknownFields               protoimpl.UnknownFields
-	sizeCache                   protoimpl.SizeCache
+	// disableChatApps: chat apps (Slack) start and steer no sessions; inbound requests get a short notice.
+	ChatAppsDisabled bool `protobuf:"varint,280,opt,name=chat_apps_disabled,json=chatAppsDisabled,proto3" json:"chat_apps_disabled,omitempty"`
+	// disableRemoteStarts: no session starts through the relay (phone, chat apps, daemon hosts); the server refuses and
+	// clients stop offering it.
+	RemoteStartsDisabled bool `protobuf:"varint,281,opt,name=remote_starts_disabled,json=remoteStartsDisabled,proto3" json:"remote_starts_disabled,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -239,6 +244,20 @@ func (x *ManagedPolicy) GetBlockedSkills() []string {
 func (x *ManagedPolicy) GetExternalSkillSearchDisabled() bool {
 	if x != nil {
 		return x.ExternalSkillSearchDisabled
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetChatAppsDisabled() bool {
+	if x != nil {
+		return x.ChatAppsDisabled
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetRemoteStartsDisabled() bool {
+	if x != nil {
+		return x.RemoteStartsDisabled
 	}
 	return false
 }
@@ -501,7 +520,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xf0\a\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xd6\b\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -526,7 +545,9 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\x0frestrict_skills\x18\x12 \x01(\bR\x0erestrictSkills\x12%\n" +
 	"\x0eallowed_skills\x18\x13 \x03(\tR\rallowedSkills\x12%\n" +
 	"\x0eblocked_skills\x18\x14 \x03(\tR\rblockedSkills\x12C\n" +
-	"\x1eexternal_skill_search_disabled\x18\x15 \x01(\bR\x1bexternalSkillSearchDisabled\"\x19\n" +
+	"\x1eexternal_skill_search_disabled\x18\x15 \x01(\bR\x1bexternalSkillSearchDisabled\x12-\n" +
+	"\x12chat_apps_disabled\x18\x98\x02 \x01(\bR\x10chatAppsDisabled\x125\n" +
+	"\x16remote_starts_disabled\x18\x99\x02 \x01(\bR\x14remoteStartsDisabled\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +
 	"\x06policy\x18\x01 \x01(\v2\x1e.harness.auth.v1.ManagedPolicyR\x06policy\x12\x1d\n" +
