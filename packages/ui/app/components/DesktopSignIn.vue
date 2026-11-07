@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Desktop sign-in: the server URL, then the device-flow code. The shell opens the verification page in the
-// browser; this screen shows the code to confirm and waits. The last server is remembered.
-import { cancelLogin, login, openExternal, type LoginEvent } from '~/lib/desktop'
+// browser; this screen shows the code to confirm and waits. The last server is remembered, unless the machine's
+// administrator set one (serverUrl, deploy/mdm): then that one is the only choice.
+import { cancelLogin, login, machineConfig, openExternal, type LoginEvent } from '~/lib/desktop'
 
 const props = defineProps<{ error?: string }>()
 const emit = defineEmits<{ signedIn: [] }>()
@@ -13,16 +14,26 @@ const LINKS = [
   { label: tt('Self-host the server'), url: 'https://github.com/xlsft/harness/tree/main/deploy' }
 ]
 const server = ref('')
+const managed = ref(false)
 const code = ref<{ uri: string, code: string } | null>(null)
 const busy = ref(false)
 const error = ref(props.error ?? '')
 let stop: (() => void) | undefined
 
-onMounted(() => {
+onMounted(async () => {
   try {
     server.value = localStorage.getItem(LAST_SERVER) || 'http://localhost:3737'
   } catch {
     server.value = 'http://localhost:3737'
+  }
+  try {
+    const machine = await machineConfig()
+    if (machine.serverUrl) {
+      server.value = machine.serverUrl
+      managed.value = true
+    }
+  } catch {
+    // An older shell, or none: the user picks.
   }
 })
 onBeforeUnmount(() => stop?.())
@@ -92,10 +103,15 @@ async function cancel() {
               type="url"
               spellcheck="false"
               autocomplete="url"
+              :readonly="managed"
               :aria-label="tt('Server URL')"
               placeholder="https://harness.example.com"
-              class="h-9 border border-accented bg-surface px-2.5 text-[12.5px] text-strong outline-none placeholder:text-dimmed focus:border-accent"
+              class="h-9 border border-accented bg-surface px-2.5 text-[12.5px] text-strong outline-none placeholder:text-dimmed focus:border-accent read-only:text-toned"
             >
+            <span
+              v-if="managed"
+              class="text-[11.5px] text-muted"
+            >{{ tt('Set by your administrator') }}</span>
           </label>
           <button
             type="submit"

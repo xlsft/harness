@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 use tauri::test::{mock_builder, mock_context, noop_assets};
 use tauri_plugin_updater::UpdaterExt;
 
-use super::unavailable;
+use super::{mirror_endpoint, unavailable};
 
 const B64: base64::engine::GeneralPurpose = base64::engine::general_purpose::STANDARD;
 
@@ -100,8 +100,8 @@ fn serve(release: Release) -> String {
     base
 }
 
-/// Checks and installs the way update_check and update_install do. The plugin is configured from the app's real
-/// tauri.conf.json, so requireSignedVersion is what the shipped app has.
+/// Checks and installs the way update_check and update_install do, with the fake server as the update mirror. The plugin
+/// is configured from the app's real tauri.conf.json, so requireSignedVersion is what the shipped app has.
 fn update(key: &Key, base: &str, exe: &Path) -> Result<Option<String>, String> {
     let mut shipped: serde_json::Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
     shipped["plugins"]["updater"]["dangerousInsecureTransportProtocol"] = true.into();
@@ -112,7 +112,7 @@ fn update(key: &Key, base: &str, exe: &Path) -> Result<Option<String>, String> {
         .updater_builder()
         .pubkey(key.public.clone())
         .executable_path(exe)
-        .endpoints(vec![format!("{base}/latest.json").parse().unwrap()])
+        .endpoints(vec![mirror_endpoint(&format!("{base}/")).unwrap().parse().unwrap()])
         .unwrap()
         .build()
         .map_err(|e| e.to_string())?;
@@ -127,10 +127,31 @@ fn update(key: &Key, base: &str, exe: &Path) -> Result<Option<String>, String> {
 
 #[test]
 fn says_why_a_build_cannot_update() {
-    assert_eq!(unavailable("", false).as_deref(), Some("built without an update key"));
-    assert_eq!(unavailable("  ", false).as_deref(), Some("built without an update key"));
-    assert_eq!(unavailable("key", true).as_deref(), Some("development build"));
-    assert_eq!(unavailable("key", false), None);
+    assert_eq!(unavailable("", false, false).as_deref(), Some("built without an update key"));
+    assert_eq!(unavailable("  ", false, false).as_deref(), Some("built without an update key"));
+    assert_eq!(unavailable("key", true, false).as_deref(), Some("development build"));
+    assert_eq!(unavailable("key", false, true).as_deref(), Some("updates are turned off by your administrator"));
+    assert_eq!(unavailable("key", false, false), None);
+}
+
+#[test]
+fn a_mirror_replaces_the_endpoint() {
+    assert_eq!(mirror_endpoint("https://mirror.example.com/harness/").as_deref(), Some("https://mirror.example.com/harness/latest.json"));
+    assert_eq!(mirror_endpoint("  "), None);
+    assert_eq!(mirror_endpoint(""), None);
+}
+
+#[test]
+fn reads_what_the_client_prints() {
+    let m: crate::Machine = serde_json::from_str(
+        r#"{"serverUrl":"https://h.example.com","disableUpdates":true,"updateMirrorUrl":"https://m.example.com","origins":{"serverUrl":"x"}}"#,
+    )
+    .unwrap();
+    assert_eq!(m.server_url, "https://h.example.com");
+    assert!(m.disable_updates);
+    assert_eq!(m.update_mirror_url, "https://m.example.com");
+    let empty: crate::Machine = serde_json::from_str("{}").unwrap();
+    assert!(!empty.disable_updates && empty.server_url.is_empty());
 }
 
 #[test]

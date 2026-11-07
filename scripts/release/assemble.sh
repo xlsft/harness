@@ -2,7 +2,8 @@
 # Puts a release together from what the builds left in a directory: notes, latest.json, a source SBOM, checksums.txt and
 # its signature with the updater key (what `harness-client update` verifies). Publishes nothing.
 #
-# Usage: assemble.sh <tag> <directory> <work directory>   Leaves notes.md, changes.md and signing in the work directory.
+# Usage: assemble.sh <tag> <directory> <work directory>   Leaves notes.md, changes.md, signing and pkg-signing in the work
+# directory.
 # Needs TAURI_SIGNING_PRIVATE_KEY (and _PASSWORD, if the key has one), node, npx; syft for the SBOM.
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -22,13 +23,22 @@ for f in "$dist"/signing*.txt; do
 done
 [[ -n "$signing" ]] || { echo "no signing.txt from a desktop build in $dist" >&2; exit 1; }
 echo "$signing" >"$work/signing"
+pkg_signing=""
+for f in "$dist"/pkg-signing*.txt; do
+  s="$(cat "$f")"
+  [[ -z "$pkg_signing" || "$pkg_signing" == "$s" ]] || { echo "desktop builds disagree on package signing: $pkg_signing, $s" >&2; exit 1; }
+  pkg_signing="$s"
+  rm "$f"
+done
+[[ -n "$pkg_signing" ]] || { echo "no pkg-signing.txt from a desktop build in $dist" >&2; exit 1; }
+echo "$pkg_signing" >"$work/pkg-signing"
 
-for need in "harness_${version}_darwin_arm64.dmg" "harness_${version}_darwin_amd64.dmg" "harness-client_${version}_darwin_arm64.tar.gz" "harness-client_${version}_darwin_amd64.tar.gz"; do
+for need in "harness_${version}_darwin_arm64.dmg" "harness_${version}_darwin_amd64.dmg" "harness_${version}_darwin_arm64.pkg" "harness_${version}_darwin_amd64.pkg" "harness-client_${version}_darwin_arm64.tar.gz" "harness-client_${version}_darwin_amd64.tar.gz"; do
   [[ -f "$dist/$need" ]] || { echo "$need is missing from $dist" >&2; exit 1; }
 done
 
 "$root/scripts/release/notes.sh" changes "$tag" >"$work/changes.md"
-"$root/scripts/release/notes.sh" full "$tag" "$signing" >"$work/notes.md"
+"$root/scripts/release/notes.sh" full "$tag" "$signing" "$pkg_signing" >"$work/notes.md"
 node "$root/scripts/release/latest-json.mjs" "$tag" "$dist" "$work/changes.md"
 
 # The lockfiles of everything that went in: the app has no single binary an SBOM tool can read its dependencies from.
