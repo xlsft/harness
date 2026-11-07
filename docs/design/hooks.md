@@ -43,6 +43,8 @@ Common fields: `timeout` in seconds (default 10 minutes for a command, 30 second
 
 Input always has `session_id`, `transcript_path`, `cwd`, `permission_mode`, `hook_event_name`, and `agent_id` and `agent_type` in a subagent. Each event adds its own fields below.
 
+The four VCS events read stdout by a contract of their own, run only from the settings' hooks (never a skill's or agent's), and `VcsStatus` and `VcsDiff` show in the transcript only when they fail ([vcs-hooks.md](vcs-hooks.md)).
+
 Exit codes of a command: **0** reads stdout; **2** refuses, with stderr as the reason, where the event can refuse, and is a failure elsewhere; **anything else** is a failure, shown in the transcript and otherwise ignored. So are a timeout and stdout that starts with `{` and is not JSON.
 
 Stdout on exit 0 is plain text, or JSON with any of: `continue: false` with `stopReason` (the agent stops working after this point, the reason goes to the user), `systemMessage` (for the user), `suppressOutput`, `decision: "block"` with `reason`, `hookSpecificOutput`. Text and context for the model reach it marked as not the user's words, 10,000 characters per handler at most.
@@ -65,6 +67,10 @@ Stdout on exit 0 is plain text, or JSON with any of: `continue: false` with `sto
 | `PostCompact` | as above | `trigger`, `compact_summary` | Nothing |
 | `Notification` | `permission_prompt`, `question`, `plan_approval`, `push` | `notification_type`, `title`, `message` | Nothing. Never holds anything up |
 | `CwdChanged` | | `old_cwd`, `new_cwd` | Nothing. Fires from the new folder's set when the session moves |
+| `WorktreeCreate` | | `name`, `source_dir`, `worktree_kind`, `base_revision` | Make an isolated working copy in place of a git worktree: print its path. See [vcs-hooks.md](vcs-hooks.md) |
+| `WorktreeRemove` | | `worktree_path`, `name`, `source_dir`, `worktree_kind`, `force` | Take such a copy away |
+| `VcsStatus` | | | List a folder's changes outside git, as JSON, for the Changes pane |
+| `VcsDiff` | | `paths` | Print the unified diff of those changes |
 
 Where handlers disagree the strictest wins (deny, then ask, then allow), whichever finished first; a rewrite comes from the last handler in configuration order, which is the highest settings level.
 
