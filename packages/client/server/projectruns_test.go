@@ -128,7 +128,9 @@ func TestProjectRunCoordinatesWorkers(t *testing.T) {
 			}
 		}
 	}()
-	done := h.waitRun(run.GetId(), "done", func(r *agentv1.ProjectRun) bool { return r.GetState() == agentv1.ProjectRunState_PROJECT_RUN_STATE_DONE })
+	done := h.waitRun(run.GetId(), "done", func(r *agentv1.ProjectRun) bool {
+		return r.GetState() == agentv1.ProjectRunState_PROJECT_RUN_STATE_DONE
+	})
 	if len(done.GetWorkers()) != 1 {
 		t.Fatalf("one worker within the limit, got %+v", done.GetWorkers())
 	}

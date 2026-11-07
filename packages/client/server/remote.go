@@ -764,7 +764,9 @@ func (r routed) ControlProjectRun(ctx context.Context, req *connect.Request[agen
 		func(m *agentv1.ControlProjectRunRequest) *relayv1.ControlProjectRunRequest {
 			return &relayv1.ControlProjectRunRequest{Request: m}
 		},
-		func(res *relayv1.ControlProjectRunResponse) *agentv1.ControlProjectRunResponse { return res.GetResponse() })
+		func(res *relayv1.ControlProjectRunResponse) *agentv1.ControlProjectRunResponse {
+			return res.GetResponse()
+		})
 }
 
 // GetSubagentTranscript reads a remote agent's transcript from the machine running it when it can be reached (it has

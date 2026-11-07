@@ -67,6 +67,7 @@ import { MockPluginsApi } from '~/lib/plugins/mock'
 import { MockExtensionsApi, type MockScenario } from '~/lib/extensions/mock'
 import { MockLibraryApi } from '~/lib/library/mock'
 import { MockSchedulesApi } from '~/lib/schedule/mock'
+import { MockInboxApi, MockProjectRunsApi } from '~/lib/inbox/mock'
 import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import { MockClaudeImportApi, type MockImportedSession } from '~/lib/import/mock'
@@ -374,6 +375,16 @@ export class MockTransport implements SessionTransport {
   private schedulesApi = new MockSchedulesApi()
   schedules() {
     return this.schedulesApi
+  }
+
+  private inboxApi = new MockInboxApi()
+  inbox() {
+    return this.inboxApi
+  }
+
+  private projectRunsApi = new MockProjectRunsApi()
+  projectRuns() {
+    return this.projectRunsApi
   }
 
   providers() {
@@ -1068,6 +1079,10 @@ export class MockTransport implements SessionTransport {
   }
 
   async interrupt(sessionId: string) {
+    if (sessionId.startsWith('mock-')) {
+      this.inboxApi.stop(sessionId)
+      return { idle: false }
+    }
     const s = this.get(sessionId)
     if (!s.working) return { idle: true }
     for (const t of s.timers) clearTimeout(t)
@@ -1140,11 +1155,13 @@ export class MockTransport implements SessionTransport {
   }
 
   async respondToPermission(sessionId: string, requestId: string, decision: RespondToPermissionRequest_Decision) {
+    if (sessionId.startsWith('mock-')) return this.inboxApi.resolve(sessionId, requestId)
     this.resume(sessionId, requestId, decision)
   }
 
   // Like the client: a message answer takes the queued messages (all, or the given ones) out of the queue.
   async answerQuestion(sessionId: string, requestId: string, reply: QuestionReply) {
+    if (sessionId.startsWith('mock-')) return this.inboxApi.resolve(sessionId, requestId)
     const s = this.get(sessionId)
     if (reply.outcome !== 'message') return this.resume(sessionId, requestId, 1, reply)
     const want = reply.messageUuids?.length ? new Set(reply.messageUuids) : null

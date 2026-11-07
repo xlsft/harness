@@ -24,7 +24,7 @@ import (
 
 const (
 	// inboxClosedKeep is how long a closed session stays while unread (as on the server).
-	inboxClosedKeep = 14 * 24 * time.Hour
+	inboxClosedKeep  = 14 * 24 * time.Hour
 	inboxPageDefault = 50
 	inboxPageMax     = 200
 	// inboxWatchBuffer is how many changes a watcher may fall behind before it is told to list again.

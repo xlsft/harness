@@ -5,6 +5,7 @@
 import { ConnectSshApi } from '~/lib/ssh'
 import { ResolveSessionProposalRequest_Action } from '~/gen/harness/agent/v1/session_links_pb'
 import type { SchedulesApi } from '~/lib/schedule/types'
+import type { InboxApi, ProjectRunsApi } from '~/lib/inbox/types'
 import type { ComputerUseStatus } from '~/gen/harness/agent/v1/computer_use_pb'
 import { permissionVM, profileMessage, profileVM, tierName } from '~/lib/session/computer'
 import type { ComputerProfileVM, EffortName, QuestionReply } from '~/lib/session/types'
@@ -157,6 +158,39 @@ export class ConnectTransport implements SessionTransport {
       runs: async id => (await c.listScheduleRuns({ id })).runs,
       trust: async id => (await c.trustSchedule({ id })).schedule!,
       rotateWebhook: async id => (await c.rotateScheduleWebhook({ id })).schedule!
+    }
+  }
+
+  inbox(): InboxApi {
+    const c = this.client
+    return {
+      list: async (group, pageToken = '', pageSize = 50) => c.listInbox({ group, pageToken, pageSize }),
+      watch: async (h, signal) => {
+        try {
+          for await (const r of c.watchInbox({}, { signal })) {
+            if (r.event.case === 'change') h.onChange(r.event.value, r.counts)
+            else if (r.event.case === 'resync') h.onResync()
+          }
+        } catch (err) {
+          if (!signal.aborted) throw err
+        }
+      },
+      markRead: async (sessionIds, read) => {
+        await c.markInboxRead({ sessionIds, read })
+      }
+    }
+  }
+
+  projectRuns(): ProjectRunsApi {
+    const c = this.client
+    return {
+      list: async includeRemote => (await c.listProjectRuns({ includeRemote })).runs,
+      get: async id => (await c.getProjectRun({ id })).run!,
+      create: async req => (await c.createProjectRun(req)).run!,
+      control: async (id, action, limits, sessionId = '') => (await c.controlProjectRun({ id, action, limits, sessionId })).run!,
+      remove: async (id) => {
+        await c.deleteProjectRun({ id })
+      }
     }
   }
 

@@ -183,7 +183,7 @@ type Options struct {
 
 // Session is a ready-to-run session.
 type Session struct {
-	ID          string
+	ID string
 	// Coordinator: the session coordinates a project run (server/projectruns.go); its tools are offered only then.
 	Coordinator atomic.Bool
 	Cwd         string
