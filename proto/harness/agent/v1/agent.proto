@@ -448,6 +448,23 @@ enum PermissionMode {
   PERMISSION_MODE_AUTO = 6;
 }
 
+// The container of a cloud session (docs/design/cloud-sessions.md).
+enum CloudEnvironmentState {
+  CLOUD_ENVIRONMENT_STATE_UNSPECIFIED = 0;
+  // Wanted: a runner is creating its container, or will when it has room.
+  CLOUD_ENVIRONMENT_STATE_STARTING = 1;
+  // The container is up and a turn is running.
+  CLOUD_ENVIRONMENT_STATE_RUNNING = 2;
+  // The container is up and nothing runs; it is removed after the idle timeout.
+  CLOUD_ENVIRONMENT_STATE_IDLE = 3;
+  // No container: the next message starts one.
+  CLOUD_ENVIRONMENT_STATE_REMOVED = 4;
+  // Starting failed; the next message tries again.
+  CLOUD_ENVIRONMENT_STATE_FAILED = 5;
+  // The work was cancelled or deleted: it never starts again.
+  CLOUD_ENVIRONMENT_STATE_ENDED = 6;
+}
+
 enum SessionStatus {
   SESSION_STATUS_UNSPECIFIED = 0;
   SESSION_STATUS_IDLE = 1;
@@ -585,6 +602,9 @@ message SessionInfo {
   string effort = 60;
   // "Keep computer awake" is on for the session (SetKeepAwake). Live sessions only.
   bool keep_awake = 61;
+  // A cloud session (docs/design/cloud-sessions.md): the state of its container, as relay presence says. Unspecified for any
+  // other session. A cloud session whose container is gone still takes messages: the next one starts it again.
+  CloudEnvironmentState cloud_environment = 450;
 }
 
 // A git worktree a session runs in. `cwd` of the session is inside `path`.

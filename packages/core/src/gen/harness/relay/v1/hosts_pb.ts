@@ -4,7 +4,7 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { PermissionMode } from "../../agent/v1/agent_pb";
+import type { CloudEnvironmentState, PermissionMode } from "../../agent/v1/agent_pb";
 import { file_harness_agent_v1_agent } from "../../agent/v1/agent_pb";
 import type { AutoFixJob } from "../../agent/v1/auto_fix_pb";
 import { file_harness_agent_v1_auto_fix } from "../../agent/v1/auto_fix_pb";
@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/relay/v1/hosts.proto.
  */
 export const file_harness_relay_v1_hosts: GenFile = /*@__PURE__*/
-  fileDesc("ChxoYXJuZXNzL3JlbGF5L3YxL2hvc3RzLnByb3RvEhBoYXJuZXNzLnJlbGF5LnYxIp0FCglBZ2VudEhvc3QSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIvCgVzY29wZRgDIAEoDjIgLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0U2NvcGUSFQoNb3duZXJfdXNlcl9pZBgEIAEoCRISCgpvd25lcl9uYW1lGAUgASgJEhAKCGdyb3VwX2lkGAYgASgJEhIKCmdyb3VwX25hbWUYByABKAkSDgoGb25saW5lGAggASgIEhAKCGRyYWluaW5nGAkgASgIEhoKEnVuYXZhaWxhYmxlX3JlYXNvbhgKIAEoCRIUCgxtYXhfc2Vzc2lvbnMYCyABKAUSHQoVbWF4X3Nlc3Npb25zX3Blcl91c2VyGAwgASgFEhgKEHdvcmtpbmdfc2Vzc2lvbnMYDSABKAUSEwoLcXVldWVkX3dvcmsYDiABKAUSNwoJaXNvbGF0aW9uGA8gASgOMiQuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3RJc29sYXRpb24SFgoOc2FuZGJveF9kcml2ZXIYECABKAkSCgoCb3MYESABKAkSDAoEYXJjaBgSIAEoCRIWCg5jbGllbnRfdmVyc2lvbhgTIAEoCRIRCgljcHVfY291bnQYFCABKAUSFAoMbG9hZF9hdmVyYWdlGBUgASgBEhcKD2Rpc2tfZnJlZV9ieXRlcxgWIAEoAxIcChRhbGxvd2VkX3JlcG9zaXRvcmllcxgXIAMoCRIRCglhd2F5X2hvc3QYGCABKAgSFAoMbGFzdF9zZWVuX2F0GBkgASgJEhIKCmNyZWF0ZWRfYXQYGiABKAkSMgoHd29ya2VycxgbIAMoCzIhLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0V29ya2VyInIKD0FnZW50SG9zdFdvcmtlchIPCgd1c2VyX2lkGAEgASgJEhEKCXVzZXJfbmFtZRgCIAEoCRIRCglkZXZpY2VfaWQYAyABKAkSDgoGb25saW5lGAQgASgIEhgKEHdvcmtpbmdfc2Vzc2lvbnMYBSABKAUiJAoVTGlzdEFnZW50SG9zdHNSZXF1ZXN0EgsKA2FsbBgBIAEoCCJEChZMaXN0QWdlbnRIb3N0c1Jlc3BvbnNlEioKBWhvc3RzGAEgAygLMhsuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3QivAEKFkNyZWF0ZUFnZW50SG9zdFJlcXVlc3QSDAoEbmFtZRgBIAEoCRIvCgVzY29wZRgCIAEoDjIgLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0U2NvcGUSEAoIZ3JvdXBfaWQYAyABKAkSFAoMbWF4X3Nlc3Npb25zGAQgASgFEh0KFW1heF9zZXNzaW9uc19wZXJfdXNlchgFIAEoBRIcChRhbGxvd2VkX3JlcG9zaXRvcmllcxgGIAMoCSJaChdDcmVhdGVBZ2VudEhvc3RSZXNwb25zZRIpCgRob3N0GAEgASgLMhsuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3QSFAoMZGV2aWNlX3Rva2VuGAIgASgJIrICChZVcGRhdGVBZ2VudEhvc3RSZXF1ZXN0EgoKAmlkGAEgASgJEhEKBG5hbWUYAiABKAlIAIgBARIVCghkcmFpbmluZxgDIAEoCEgBiAEBEhkKDG1heF9zZXNzaW9ucxgEIAEoBUgCiAEBEiIKFW1heF9zZXNzaW9uc19wZXJfdXNlchgFIAEoBUgDiAEBEhUKCGdyb3VwX2lkGAYgASgJSASIAQESIAoYc2V0X2FsbG93ZWRfcmVwb3NpdG9yaWVzGAcgASgIEhwKFGFsbG93ZWRfcmVwb3NpdG9yaWVzGAggAygJQgcKBV9uYW1lQgsKCV9kcmFpbmluZ0IPCg1fbWF4X3Nlc3Npb25zQhgKFl9tYXhfc2Vzc2lvbnNfcGVyX3VzZXJCCwoJX2dyb3VwX2lkIkQKF1VwZGF0ZUFnZW50SG9zdFJlc3BvbnNlEikKBGhvc3QYASABKAsyGy5oYXJuZXNzLnJlbGF5LnYxLkFnZW50SG9zdCIkChZEZWxldGVBZ2VudEhvc3RSZXF1ZXN0EgoKAmlkGAEgASgJIhkKF0RlbGV0ZUFnZW50SG9zdFJlc3BvbnNlIvgECghIb3N0V29yaxIKCgJpZBgBIAEoCRIPCgdob3N0X2lkGAIgASgJEhEKCWhvc3RfbmFtZRgDIAEoCRIPCgd1c2VyX2lkGAQgASgJEiwKBGtpbmQYBSABKA4yHi5oYXJuZXNzLnJlbGF5LnYxLkhvc3RXb3JrS2luZBIuCgVzdGF0ZRgGIAEoDjIfLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmtTdGF0ZRIWCg5yZXBvc2l0b3J5X2tleRgHIAEoCRIQCghiYXNlX3JlZhgIIAEoCRIOCgZicmFuY2gYCSABKAkSMgoHbGFuZGluZxgKIAEoDjIhLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmtMYW5kaW5nEhMKC2ZyZXNoX2Nsb25lGAsgASgIEg4KBnByb21wdBgMIAEoCRINCgV0aXRsZRgNIAEoCRINCgVtb2RlbBgOIAEoCRImCgZlZmZvcnQYDyABKA4yFi5oYXJuZXNzLmxsbS52MS5FZmZvcnQSOQoPcGVybWlzc2lvbl9tb2RlGBAgASgOMiAuaGFybmVzcy5hZ2VudC52MS5QZXJtaXNzaW9uTW9kZRIpCgNqb2IYESABKAsyHC5oYXJuZXNzLmFnZW50LnYxLkF1dG9GaXhKb2ISFwoPZm9ya19zZXNzaW9uX2lkGBIgASgJEhIKCnNlc3Npb25faWQYEyABKAkSGAoQcHVsbF9yZXF1ZXN0X3VybBgUIAEoCRINCgVlcnJvchgVIAEoCRIQCghhdHRlbXB0cxgWIAEoBRISCgpjcmVhdGVkX2F0GBcgASgJEhIKCnVwZGF0ZWRfYXQYGCABKAkixAIKFFN0YXJ0SG9zdFdvcmtSZXF1ZXN0Eg8KB2hvc3RfaWQYASABKAkSFgoOcmVwb3NpdG9yeV9rZXkYAiABKAkSEAoIYmFzZV9yZWYYAyABKAkSDgoGcHJvbXB0GAQgASgJEg0KBXRpdGxlGAUgASgJEg0KBW1vZGVsGAYgASgJEiYKBmVmZm9ydBgHIAEoDjIWLmhhcm5lc3MubGxtLnYxLkVmZm9ydBI5Cg9wZXJtaXNzaW9uX21vZGUYCCABKA4yIC5oYXJuZXNzLmFnZW50LnYxLlBlcm1pc3Npb25Nb2RlEjIKB2xhbmRpbmcYCSABKA4yIS5oYXJuZXNzLnJlbGF5LnYxLkhvc3RXb3JrTGFuZGluZxITCgtmcmVzaF9jbG9uZRgKIAEoCBIXCg9pZGVtcG90ZW5jeV9rZXkYCyABKAkiQQoVU3RhcnRIb3N0V29ya1Jlc3BvbnNlEigKBHdvcmsYASABKAsyGi5oYXJuZXNzLnJlbGF5LnYxLkhvc3RXb3JrIiAKEkdldEhvc3RXb3JrUmVxdWVzdBIKCgJpZBgBIAEoCSI/ChNHZXRIb3N0V29ya1Jlc3BvbnNlEigKBHdvcmsYASABKAsyGi5oYXJuZXNzLnJlbGF5LnYxLkhvc3RXb3JrIjUKE0xpc3RIb3N0V29ya1JlcXVlc3QSDwoHaG9zdF9pZBgBIAEoCRINCgVsaW1pdBgCIAEoBSJAChRMaXN0SG9zdFdvcmtSZXNwb25zZRIoCgR3b3JrGAEgAygLMhouaGFybmVzcy5yZWxheS52MS5Ib3N0V29yayIjChVDYW5jZWxIb3N0V29ya1JlcXVlc3QSCgoCaWQYASABKAkiQgoWQ2FuY2VsSG9zdFdvcmtSZXNwb25zZRIoCgR3b3JrGAEgASgLMhouaGFybmVzcy5yZWxheS52MS5Ib3N0V29yayIlChJTZXRBd2F5SG9zdFJlcXVlc3QSDwoHaG9zdF9pZBgBIAEoCSIVChNTZXRBd2F5SG9zdFJlc3BvbnNlIj4KF0NsYWltU2NoZWR1bGVSdW5SZXF1ZXN0EhMKC3NjaGVkdWxlX2lkGAEgASgJEg4KBmR1ZV9hdBgCIAEoCSIrChhDbGFpbVNjaGVkdWxlUnVuUmVzcG9uc2USDwoHZ3JhbnRlZBgBIAEoCCLUAQoYUmVnaXN0ZXJBZ2VudEhvc3RSZXF1ZXN0EgwKBG5hbWUYASABKAkSNwoJaXNvbGF0aW9uGAIgASgOMiQuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3RJc29sYXRpb24SFgoOc2FuZGJveF9kcml2ZXIYAyABKAkSCgoCb3MYBCABKAkSDAoEYXJjaBgFIAEoCRIWCg5jbGllbnRfdmVyc2lvbhgGIAEoCRIRCgljcHVfY291bnQYByABKAUSFAoMbWF4X3Nlc3Npb25zGAggASgFIloKGVJlZ2lzdGVyQWdlbnRIb3N0UmVzcG9uc2USKQoEaG9zdBgBIAEoCzIbLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0EhIKCnN1cGVydmlzb3IYAiABKAgiYQoWUmVwb3J0QWdlbnRIb3N0UmVxdWVzdBIYChB3b3JraW5nX3Nlc3Npb25zGAEgASgFEhQKDGxvYWRfYXZlcmFnZRgCIAEoARIXCg9kaXNrX2ZyZWVfYnl0ZXMYAyABKAMiQQoXUmVwb3J0QWdlbnRIb3N0UmVzcG9uc2USEAoIZHJhaW5pbmcYASABKAgSFAoMbWF4X3Nlc3Npb25zGAIgASgFIiwKFENsYWltSG9zdFdvcmtSZXF1ZXN0EhQKDHdhaXRfc2Vjb25kcxgBIAEoBSJmChVDbGFpbUhvc3RXb3JrUmVzcG9uc2USKAoEd29yaxgBIAEoCzIaLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmsSEAoIZ2l0X25hbWUYAiABKAkSEQoJZ2l0X2VtYWlsGAMgASgJIqUBChVVcGRhdGVIb3N0V29ya1JlcXVlc3QSDwoHd29ya19pZBgBIAEoCRIuCgVzdGF0ZRgCIAEoDjIfLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmtTdGF0ZRISCgpzZXNzaW9uX2lkGAMgASgJEg4KBmJyYW5jaBgEIAEoCRIYChBwdWxsX3JlcXVlc3RfdXJsGAUgASgJEg0KBWVycm9yGAYgASgJIisKFlVwZGF0ZUhvc3RXb3JrUmVzcG9uc2USEQoJY2FuY2VsbGVkGAEgASgIIjQKGklzc3VlR2l0Q3JlZGVudGlhbHNSZXF1ZXN0EhYKDnJlcG9zaXRvcnlfa2V5GAEgASgJInkKG0lzc3VlR2l0Q3JlZGVudGlhbHNSZXNwb25zZRIRCgljbG9uZV91cmwYASABKAkSEAoIdXNlcm5hbWUYAiABKAkSEAoIcGFzc3dvcmQYAyABKAkSEgoKZXhwaXJlc19hdBgEIAEoCRIPCgdhc191c2VyGAUgASgIIp4BChpPcGVuSG9zdFB1bGxSZXF1ZXN0UmVxdWVzdBIWCg5yZXBvc2l0b3J5X2tleRgBIAEoCRITCgtoZWFkX2JyYW5jaBgCIAEoCRITCgtiYXNlX2JyYW5jaBgDIAEoCRINCgV0aXRsZRgEIAEoCRIMCgRib2R5GAUgASgJEg0KBWRyYWZ0GAYgASgIEhIKCnNlc3Npb25faWQYByABKAkiOgobT3Blbkhvc3RQdWxsUmVxdWVzdFJlc3BvbnNlEgsKA3VybBgBIAEoCRIOCgZudW1iZXIYAiABKAMiMAoYTGlzdFdhbnRlZFdvcmtlcnNSZXF1ZXN0EhQKDHdhaXRfc2Vjb25kcxgBIAEoBSIyCgxXYW50ZWRXb3JrZXISDwoHdXNlcl9pZBgBIAEoCRIRCglkZXZpY2VfaWQYAiABKAkiYwoZTGlzdFdhbnRlZFdvcmtlcnNSZXNwb25zZRIvCgd3b3JrZXJzGAEgAygLMh4uaGFybmVzcy5yZWxheS52MS5XYW50ZWRXb3JrZXISFQoNc3RvcF91c2VyX2lkcxgCIAMoCSIqChdJc3N1ZVdvcmtlclRva2VuUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJIkMKGElzc3VlV29ya2VyVG9rZW5SZXNwb25zZRIRCglkZXZpY2VfaWQYASABKAkSFAoMZGV2aWNlX3Rva2VuGAIgASgJKmgKDkFnZW50SG9zdFNjb3BlEiAKHEFHRU5UX0hPU1RfU0NPUEVfVU5TUEVDSUZJRUQQABIZChVBR0VOVF9IT1NUX1NDT1BFX1VTRVIQARIZChVBR0VOVF9IT1NUX1NDT1BFX1RFQU0QAip3ChJBZ2VudEhvc3RJc29sYXRpb24SJAogQUdFTlRfSE9TVF9JU09MQVRJT05fVU5TUEVDSUZJRUQQABIdChlBR0VOVF9IT1NUX0lTT0xBVElPTl9OT05FEAESHAoYQUdFTlRfSE9TVF9JU09MQVRJT05fVUlEEAIqhwEKDEhvc3RXb3JrS2luZBIeChpIT1NUX1dPUktfS0lORF9VTlNQRUNJRklFRBAAEh4KGkhPU1RfV09SS19LSU5EX05FV19TRVNTSU9OEAESGwoXSE9TVF9XT1JLX0tJTkRfQVVUT19GSVgQAhIaChZIT1NUX1dPUktfS0lORF9NRU5USU9OEAMq+AEKDUhvc3RXb3JrU3RhdGUSHwobSE9TVF9XT1JLX1NUQVRFX1VOU1BFQ0lGSUVEEAASGgoWSE9TVF9XT1JLX1NUQVRFX1FVRVVFRBABEhsKF0hPU1RfV09SS19TVEFURV9DTEFJTUVEEAISGwoXSE9TVF9XT1JLX1NUQVRFX1JVTk5JTkcQAxIYChRIT1NUX1dPUktfU1RBVEVfRE9ORRAEEhoKFkhPU1RfV09SS19TVEFURV9GQUlMRUQQBRIdChlIT1NUX1dPUktfU1RBVEVfQ0FOQ0VMTEVEEAYSGwoXSE9TVF9XT1JLX1NUQVRFX0VYUElSRUQQByqSAQoPSG9zdFdvcmtMYW5kaW5nEiEKHUhPU1RfV09SS19MQU5ESU5HX1VOU1BFQ0lGSUVEEAASIgoeSE9TVF9XT1JLX0xBTkRJTkdfUFVMTF9SRVFVRVNUEAESHAoYSE9TVF9XT1JLX0xBTkRJTkdfQlJBTkNIEAISGgoWSE9TVF9XT1JLX0xBTkRJTkdfTk9ORRADMvQHCgxIb3N0c1NlcnZpY2USYwoOTGlzdEFnZW50SG9zdHMSJy5oYXJuZXNzLnJlbGF5LnYxLkxpc3RBZ2VudEhvc3RzUmVxdWVzdBooLmhhcm5lc3MucmVsYXkudjEuTGlzdEFnZW50SG9zdHNSZXNwb25zZRJmCg9DcmVhdGVBZ2VudEhvc3QSKC5oYXJuZXNzLnJlbGF5LnYxLkNyZWF0ZUFnZW50SG9zdFJlcXVlc3QaKS5oYXJuZXNzLnJlbGF5LnYxLkNyZWF0ZUFnZW50SG9zdFJlc3BvbnNlEmYKD1VwZGF0ZUFnZW50SG9zdBIoLmhhcm5lc3MucmVsYXkudjEuVXBkYXRlQWdlbnRIb3N0UmVxdWVzdBopLmhhcm5lc3MucmVsYXkudjEuVXBkYXRlQWdlbnRIb3N0UmVzcG9uc2USZgoPRGVsZXRlQWdlbnRIb3N0EiguaGFybmVzcy5yZWxheS52MS5EZWxldGVBZ2VudEhvc3RSZXF1ZXN0GikuaGFybmVzcy5yZWxheS52MS5EZWxldGVBZ2VudEhvc3RSZXNwb25zZRJgCg1TdGFydEhvc3RXb3JrEiYuaGFybmVzcy5yZWxheS52MS5TdGFydEhvc3RXb3JrUmVxdWVzdBonLmhhcm5lc3MucmVsYXkudjEuU3RhcnRIb3N0V29ya1Jlc3BvbnNlEloKC0dldEhvc3RXb3JrEiQuaGFybmVzcy5yZWxheS52MS5HZXRIb3N0V29ya1JlcXVlc3QaJS5oYXJuZXNzLnJlbGF5LnYxLkdldEhvc3RXb3JrUmVzcG9uc2USXQoMTGlzdEhvc3RXb3JrEiUuaGFybmVzcy5yZWxheS52MS5MaXN0SG9zdFdvcmtSZXF1ZXN0GiYuaGFybmVzcy5yZWxheS52MS5MaXN0SG9zdFdvcmtSZXNwb25zZRJjCg5DYW5jZWxIb3N0V29yaxInLmhhcm5lc3MucmVsYXkudjEuQ2FuY2VsSG9zdFdvcmtSZXF1ZXN0GiguaGFybmVzcy5yZWxheS52MS5DYW5jZWxIb3N0V29ya1Jlc3BvbnNlEloKC1NldEF3YXlIb3N0EiQuaGFybmVzcy5yZWxheS52MS5TZXRBd2F5SG9zdFJlcXVlc3QaJS5oYXJuZXNzLnJlbGF5LnYxLlNldEF3YXlIb3N0UmVzcG9uc2USaQoQQ2xhaW1TY2hlZHVsZVJ1bhIpLmhhcm5lc3MucmVsYXkudjEuQ2xhaW1TY2hlZHVsZVJ1blJlcXVlc3QaKi5oYXJuZXNzLnJlbGF5LnYxLkNsYWltU2NoZWR1bGVSdW5SZXNwb25zZTLwBgoQSG9zdEFnZW50U2VydmljZRJsChFSZWdpc3RlckFnZW50SG9zdBIqLmhhcm5lc3MucmVsYXkudjEuUmVnaXN0ZXJBZ2VudEhvc3RSZXF1ZXN0GisuaGFybmVzcy5yZWxheS52MS5SZWdpc3RlckFnZW50SG9zdFJlc3BvbnNlEmYKD1JlcG9ydEFnZW50SG9zdBIoLmhhcm5lc3MucmVsYXkudjEuUmVwb3J0QWdlbnRIb3N0UmVxdWVzdBopLmhhcm5lc3MucmVsYXkudjEuUmVwb3J0QWdlbnRIb3N0UmVzcG9uc2USYAoNQ2xhaW1Ib3N0V29yaxImLmhhcm5lc3MucmVsYXkudjEuQ2xhaW1Ib3N0V29ya1JlcXVlc3QaJy5oYXJuZXNzLnJlbGF5LnYxLkNsYWltSG9zdFdvcmtSZXNwb25zZRJjCg5VcGRhdGVIb3N0V29yaxInLmhhcm5lc3MucmVsYXkudjEuVXBkYXRlSG9zdFdvcmtSZXF1ZXN0GiguaGFybmVzcy5yZWxheS52MS5VcGRhdGVIb3N0V29ya1Jlc3BvbnNlEnIKE0lzc3VlR2l0Q3JlZGVudGlhbHMSLC5oYXJuZXNzLnJlbGF5LnYxLklzc3VlR2l0Q3JlZGVudGlhbHNSZXF1ZXN0Gi0uaGFybmVzcy5yZWxheS52MS5Jc3N1ZUdpdENyZWRlbnRpYWxzUmVzcG9uc2UScgoTT3Blbkhvc3RQdWxsUmVxdWVzdBIsLmhhcm5lc3MucmVsYXkudjEuT3Blbkhvc3RQdWxsUmVxdWVzdFJlcXVlc3QaLS5oYXJuZXNzLnJlbGF5LnYxLk9wZW5Ib3N0UHVsbFJlcXVlc3RSZXNwb25zZRJsChFMaXN0V2FudGVkV29ya2VycxIqLmhhcm5lc3MucmVsYXkudjEuTGlzdFdhbnRlZFdvcmtlcnNSZXF1ZXN0GisuaGFybmVzcy5yZWxheS52MS5MaXN0V2FudGVkV29ya2Vyc1Jlc3BvbnNlEmkKEElzc3VlV29ya2VyVG9rZW4SKS5oYXJuZXNzLnJlbGF5LnYxLklzc3VlV29ya2VyVG9rZW5SZXF1ZXN0GiouaGFybmVzcy5yZWxheS52MS5Jc3N1ZVdvcmtlclRva2VuUmVzcG9uc2VCywEKFGNvbS5oYXJuZXNzLnJlbGF5LnYxQgpIb3N0c1Byb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvcmVsYXkvdjE7cmVsYXl2MaICA0hSWKoCEEhhcm5lc3MuUmVsYXkuVjHKAhBIYXJuZXNzXFJlbGF5XFYx4gIcSGFybmVzc1xSZWxheVxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OlJlbGF5OjpWMWIGcHJvdG8z", [file_harness_agent_v1_agent, file_harness_agent_v1_auto_fix, file_harness_llm_v1_content]);
+  fileDesc("ChxoYXJuZXNzL3JlbGF5L3YxL2hvc3RzLnByb3RvEhBoYXJuZXNzLnJlbGF5LnYxIowGCglBZ2VudEhvc3QSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIvCgVzY29wZRgDIAEoDjIgLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0U2NvcGUSFQoNb3duZXJfdXNlcl9pZBgEIAEoCRISCgpvd25lcl9uYW1lGAUgASgJEhAKCGdyb3VwX2lkGAYgASgJEhIKCmdyb3VwX25hbWUYByABKAkSDgoGb25saW5lGAggASgIEhAKCGRyYWluaW5nGAkgASgIEhoKEnVuYXZhaWxhYmxlX3JlYXNvbhgKIAEoCRIUCgxtYXhfc2Vzc2lvbnMYCyABKAUSHQoVbWF4X3Nlc3Npb25zX3Blcl91c2VyGAwgASgFEhgKEHdvcmtpbmdfc2Vzc2lvbnMYDSABKAUSEwoLcXVldWVkX3dvcmsYDiABKAUSNwoJaXNvbGF0aW9uGA8gASgOMiQuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3RJc29sYXRpb24SFgoOc2FuZGJveF9kcml2ZXIYECABKAkSCgoCb3MYESABKAkSDAoEYXJjaBgSIAEoCRIWCg5jbGllbnRfdmVyc2lvbhgTIAEoCRIRCgljcHVfY291bnQYFCABKAUSFAoMbG9hZF9hdmVyYWdlGBUgASgBEhcKD2Rpc2tfZnJlZV9ieXRlcxgWIAEoAxIcChRhbGxvd2VkX3JlcG9zaXRvcmllcxgXIAMoCRIRCglhd2F5X2hvc3QYGCABKAgSFAoMbGFzdF9zZWVuX2F0GBkgASgJEhIKCmNyZWF0ZWRfYXQYGiABKAkSMgoHd29ya2VycxgbIAMoCzIhLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0V29ya2VyEjMKBWNsb3VkGMIDIAEoCzIjLmhhcm5lc3MucmVsYXkudjEuQ2xvdWRSdW5uZXJDb25maWcSOAoLY2xvdWRfc3RhdHMYwwMgASgLMiIuaGFybmVzcy5yZWxheS52MS5DbG91ZFJ1bm5lclN0YXRzInIKD0FnZW50SG9zdFdvcmtlchIPCgd1c2VyX2lkGAEgASgJEhEKCXVzZXJfbmFtZRgCIAEoCRIRCglkZXZpY2VfaWQYAyABKAkSDgoGb25saW5lGAQgASgIEhgKEHdvcmtpbmdfc2Vzc2lvbnMYBSABKAUiJAoVTGlzdEFnZW50SG9zdHNSZXF1ZXN0EgsKA2FsbBgBIAEoCCJEChZMaXN0QWdlbnRIb3N0c1Jlc3BvbnNlEioKBWhvc3RzGAEgAygLMhsuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3Qi8QEKFkNyZWF0ZUFnZW50SG9zdFJlcXVlc3QSDAoEbmFtZRgBIAEoCRIvCgVzY29wZRgCIAEoDjIgLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0U2NvcGUSEAoIZ3JvdXBfaWQYAyABKAkSFAoMbWF4X3Nlc3Npb25zGAQgASgFEh0KFW1heF9zZXNzaW9uc19wZXJfdXNlchgFIAEoBRIcChRhbGxvd2VkX3JlcG9zaXRvcmllcxgGIAMoCRIzCgVjbG91ZBjCAyABKAsyIy5oYXJuZXNzLnJlbGF5LnYxLkNsb3VkUnVubmVyQ29uZmlnIloKF0NyZWF0ZUFnZW50SG9zdFJlc3BvbnNlEikKBGhvc3QYASABKAsyGy5oYXJuZXNzLnJlbGF5LnYxLkFnZW50SG9zdBIUCgxkZXZpY2VfdG9rZW4YAiABKAki5wIKFlVwZGF0ZUFnZW50SG9zdFJlcXVlc3QSCgoCaWQYASABKAkSEQoEbmFtZRgCIAEoCUgAiAEBEhUKCGRyYWluaW5nGAMgASgISAGIAQESGQoMbWF4X3Nlc3Npb25zGAQgASgFSAKIAQESIgoVbWF4X3Nlc3Npb25zX3Blcl91c2VyGAUgASgFSAOIAQESFQoIZ3JvdXBfaWQYBiABKAlIBIgBARIgChhzZXRfYWxsb3dlZF9yZXBvc2l0b3JpZXMYByABKAgSHAoUYWxsb3dlZF9yZXBvc2l0b3JpZXMYCCADKAkSMwoFY2xvdWQYwgMgASgLMiMuaGFybmVzcy5yZWxheS52MS5DbG91ZFJ1bm5lckNvbmZpZ0IHCgVfbmFtZUILCglfZHJhaW5pbmdCDwoNX21heF9zZXNzaW9uc0IYChZfbWF4X3Nlc3Npb25zX3Blcl91c2VyQgsKCV9ncm91cF9pZCJEChdVcGRhdGVBZ2VudEhvc3RSZXNwb25zZRIpCgRob3N0GAEgASgLMhsuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3QiJAoWRGVsZXRlQWdlbnRIb3N0UmVxdWVzdBIKCgJpZBgBIAEoCSIZChdEZWxldGVBZ2VudEhvc3RSZXNwb25zZSLiBQoISG9zdFdvcmsSCgoCaWQYASABKAkSDwoHaG9zdF9pZBgCIAEoCRIRCglob3N0X25hbWUYAyABKAkSDwoHdXNlcl9pZBgEIAEoCRIsCgRraW5kGAUgASgOMh4uaGFybmVzcy5yZWxheS52MS5Ib3N0V29ya0tpbmQSLgoFc3RhdGUYBiABKA4yHy5oYXJuZXNzLnJlbGF5LnYxLkhvc3RXb3JrU3RhdGUSFgoOcmVwb3NpdG9yeV9rZXkYByABKAkSEAoIYmFzZV9yZWYYCCABKAkSDgoGYnJhbmNoGAkgASgJEjIKB2xhbmRpbmcYCiABKA4yIS5oYXJuZXNzLnJlbGF5LnYxLkhvc3RXb3JrTGFuZGluZxITCgtmcmVzaF9jbG9uZRgLIAEoCBIOCgZwcm9tcHQYDCABKAkSDQoFdGl0bGUYDSABKAkSDQoFbW9kZWwYDiABKAkSJgoGZWZmb3J0GA8gASgOMhYuaGFybmVzcy5sbG0udjEuRWZmb3J0EjkKD3Blcm1pc3Npb25fbW9kZRgQIAEoDjIgLmhhcm5lc3MuYWdlbnQudjEuUGVybWlzc2lvbk1vZGUSKQoDam9iGBEgASgLMhwuaGFybmVzcy5hZ2VudC52MS5BdXRvRml4Sm9iEhcKD2Zvcmtfc2Vzc2lvbl9pZBgSIAEoCRISCgpzZXNzaW9uX2lkGBMgASgJEhgKEHB1bGxfcmVxdWVzdF91cmwYFCABKAkSDQoFZXJyb3IYFSABKAkSEAoIYXR0ZW1wdHMYFiABKAUSEgoKY3JlYXRlZF9hdBgXIAEoCRISCgp1cGRhdGVkX2F0GBggASgJEg4KBWNsb3VkGMIDIAEoCBI9CgtjbG91ZF9zdGF0ZRjDAyABKA4yJy5oYXJuZXNzLmFnZW50LnYxLkNsb3VkRW52aXJvbm1lbnRTdGF0ZRIZChBjbG91ZF9zZXNzaW9uX2lkGMQDIAEoCSLkAgoUU3RhcnRIb3N0V29ya1JlcXVlc3QSDwoHaG9zdF9pZBgBIAEoCRIWCg5yZXBvc2l0b3J5X2tleRgCIAEoCRIQCghiYXNlX3JlZhgDIAEoCRIOCgZwcm9tcHQYBCABKAkSDQoFdGl0bGUYBSABKAkSDQoFbW9kZWwYBiABKAkSJgoGZWZmb3J0GAcgASgOMhYuaGFybmVzcy5sbG0udjEuRWZmb3J0EjkKD3Blcm1pc3Npb25fbW9kZRgIIAEoDjIgLmhhcm5lc3MuYWdlbnQudjEuUGVybWlzc2lvbk1vZGUSMgoHbGFuZGluZxgJIAEoDjIhLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmtMYW5kaW5nEhMKC2ZyZXNoX2Nsb25lGAogASgIEhcKD2lkZW1wb3RlbmN5X2tleRgLIAEoCRIOCgVjbG91ZBjCAyABKAgSDgoFaW1hZ2UYwwMgASgJIkEKFVN0YXJ0SG9zdFdvcmtSZXNwb25zZRIoCgR3b3JrGAEgASgLMhouaGFybmVzcy5yZWxheS52MS5Ib3N0V29yayIgChJHZXRIb3N0V29ya1JlcXVlc3QSCgoCaWQYASABKAkiPwoTR2V0SG9zdFdvcmtSZXNwb25zZRIoCgR3b3JrGAEgASgLMhouaGFybmVzcy5yZWxheS52MS5Ib3N0V29yayI1ChNMaXN0SG9zdFdvcmtSZXF1ZXN0Eg8KB2hvc3RfaWQYASABKAkSDQoFbGltaXQYAiABKAUiQAoUTGlzdEhvc3RXb3JrUmVzcG9uc2USKAoEd29yaxgBIAMoCzIaLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmsiIwoVQ2FuY2VsSG9zdFdvcmtSZXF1ZXN0EgoKAmlkGAEgASgJIkIKFkNhbmNlbEhvc3RXb3JrUmVzcG9uc2USKAoEd29yaxgBIAEoCzIaLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmsiJQoSU2V0QXdheUhvc3RSZXF1ZXN0Eg8KB2hvc3RfaWQYASABKAkiFQoTU2V0QXdheUhvc3RSZXNwb25zZSI+ChdDbGFpbVNjaGVkdWxlUnVuUmVxdWVzdBITCgtzY2hlZHVsZV9pZBgBIAEoCRIOCgZkdWVfYXQYAiABKAkiKwoYQ2xhaW1TY2hlZHVsZVJ1blJlc3BvbnNlEg8KB2dyYW50ZWQYASABKAgi1AEKGFJlZ2lzdGVyQWdlbnRIb3N0UmVxdWVzdBIMCgRuYW1lGAEgASgJEjcKCWlzb2xhdGlvbhgCIAEoDjIkLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0SXNvbGF0aW9uEhYKDnNhbmRib3hfZHJpdmVyGAMgASgJEgoKAm9zGAQgASgJEgwKBGFyY2gYBSABKAkSFgoOY2xpZW50X3ZlcnNpb24YBiABKAkSEQoJY3B1X2NvdW50GAcgASgFEhQKDG1heF9zZXNzaW9ucxgIIAEoBSKgAQoZUmVnaXN0ZXJBZ2VudEhvc3RSZXNwb25zZRIpCgRob3N0GAEgASgLMhsuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3QSEgoKc3VwZXJ2aXNvchgCIAEoCBIPCgZydW5uZXIYwgMgASgIEg4KBWNsb3VkGMMDIAEoCBIjChpieXBhc3NfcGVybWlzc2lvbnNfYWxsb3dlZBjEAyABKAgiYQoWUmVwb3J0QWdlbnRIb3N0UmVxdWVzdBIYChB3b3JraW5nX3Nlc3Npb25zGAEgASgFEhQKDGxvYWRfYXZlcmFnZRgCIAEoARIXCg9kaXNrX2ZyZWVfYnl0ZXMYAyABKAMiQQoXUmVwb3J0QWdlbnRIb3N0UmVzcG9uc2USEAoIZHJhaW5pbmcYASABKAgSFAoMbWF4X3Nlc3Npb25zGAIgASgFIiwKFENsYWltSG9zdFdvcmtSZXF1ZXN0EhQKDHdhaXRfc2Vjb25kcxgBIAEoBSJmChVDbGFpbUhvc3RXb3JrUmVzcG9uc2USKAoEd29yaxgBIAEoCzIaLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmsSEAoIZ2l0X25hbWUYAiABKAkSEQoJZ2l0X2VtYWlsGAMgASgJIqUBChVVcGRhdGVIb3N0V29ya1JlcXVlc3QSDwoHd29ya19pZBgBIAEoCRIuCgVzdGF0ZRgCIAEoDjIfLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmtTdGF0ZRISCgpzZXNzaW9uX2lkGAMgASgJEg4KBmJyYW5jaBgEIAEoCRIYChBwdWxsX3JlcXVlc3RfdXJsGAUgASgJEg0KBWVycm9yGAYgASgJIisKFlVwZGF0ZUhvc3RXb3JrUmVzcG9uc2USEQoJY2FuY2VsbGVkGAEgASgIIjQKGklzc3VlR2l0Q3JlZGVudGlhbHNSZXF1ZXN0EhYKDnJlcG9zaXRvcnlfa2V5GAEgASgJInkKG0lzc3VlR2l0Q3JlZGVudGlhbHNSZXNwb25zZRIRCgljbG9uZV91cmwYASABKAkSEAoIdXNlcm5hbWUYAiABKAkSEAoIcGFzc3dvcmQYAyABKAkSEgoKZXhwaXJlc19hdBgEIAEoCRIPCgdhc191c2VyGAUgASgIIp4BChpPcGVuSG9zdFB1bGxSZXF1ZXN0UmVxdWVzdBIWCg5yZXBvc2l0b3J5X2tleRgBIAEoCRITCgtoZWFkX2JyYW5jaBgCIAEoCRITCgtiYXNlX2JyYW5jaBgDIAEoCRINCgV0aXRsZRgEIAEoCRIMCgRib2R5GAUgASgJEg0KBWRyYWZ0GAYgASgIEhIKCnNlc3Npb25faWQYByABKAkiOgobT3Blbkhvc3RQdWxsUmVxdWVzdFJlc3BvbnNlEgsKA3VybBgBIAEoCRIOCgZudW1iZXIYAiABKAMiMAoYTGlzdFdhbnRlZFdvcmtlcnNSZXF1ZXN0EhQKDHdhaXRfc2Vjb25kcxgBIAEoBSIyCgxXYW50ZWRXb3JrZXISDwoHdXNlcl9pZBgBIAEoCRIRCglkZXZpY2VfaWQYAiABKAkiYwoZTGlzdFdhbnRlZFdvcmtlcnNSZXNwb25zZRIvCgd3b3JrZXJzGAEgAygLMh4uaGFybmVzcy5yZWxheS52MS5XYW50ZWRXb3JrZXISFQoNc3RvcF91c2VyX2lkcxgCIAMoCSIqChdJc3N1ZVdvcmtlclRva2VuUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJIkMKGElzc3VlV29ya2VyVG9rZW5SZXNwb25zZRIRCglkZXZpY2VfaWQYASABKAkSFAoMZGV2aWNlX3Rva2VuGAIgASgJIpsCChFDbG91ZFJ1bm5lckNvbmZpZxINCgVpbWFnZRgBIAEoCRIWCg5hbGxvd2VkX2ltYWdlcxgCIAMoCRIPCgdydW50aW1lGAMgASgJEhIKCmNwdV9taWxsaXMYBCABKAUSFAoMbWVtb3J5X2J5dGVzGAUgASgDEhIKCmRpc2tfYnl0ZXMYBiABKAMSDAoEcGlkcxgHIAEoBRIcChRpZGxlX3RpbWVvdXRfc2Vjb25kcxgIIAEoBRIcChRtYXhfbGlmZXRpbWVfc2Vjb25kcxgJIAEoBRIXCg9jYWNoZV9tYXhfYnl0ZXMYCiABKAMSEwoLY2FjaGVfc2NvcGUYCyABKAkSGAoQc3RvcmFnZV9vcHRfc2l6ZRgMIAEoCCJkChBDbG91ZFJ1bm5lclN0YXRzEhAKCHN0YXJ0aW5nGAEgASgFEg8KB3J1bm5pbmcYAiABKAUSDAoEaWRsZRgDIAEoBRIPCgdyZW1vdmVkGAQgASgFEg4KBmZhaWxlZBgFIAEoBSKDAwoMQ2xvdWRTZXNzaW9uEgoKAmlkGAEgASgJEg8KB2hvc3RfaWQYAiABKAkSEQoJaG9zdF9uYW1lGAMgASgJEg8KB3VzZXJfaWQYBCABKAkSEQoJdXNlcl9uYW1lGAUgASgJEg8KB3dvcmtfaWQYBiABKAkSEgoKc2Vzc2lvbl9pZBgHIAEoCRI2CgVzdGF0ZRgIIAEoDjInLmhhcm5lc3MuYWdlbnQudjEuQ2xvdWRFbnZpcm9ubWVudFN0YXRlEhQKDGNvbnRhaW5lcl9pZBgJIAEoCRINCgVpbWFnZRgKIAEoCRIWCg5yZXBvc2l0b3J5X2tleRgLIAEoCRINCgVlcnJvchgMIAEoCRISCgpkaXNrX2J5dGVzGA0gASgDEg4KBnN0YXJ0cxgOIAEoBRISCgpzdGFydGVkX2F0GA8gASgJEhYKDmxhc3RfYWN0aXZlX2F0GBAgASgJEhIKCmNyZWF0ZWRfYXQYESABKAkSEgoKdXBkYXRlZF9hdBgSIAEoCSI6ChhMaXN0Q2xvdWRTZXNzaW9uc1JlcXVlc3QSDwoHaG9zdF9pZBgBIAEoCRINCgVsaW1pdBgCIAEoBSJNChlMaXN0Q2xvdWRTZXNzaW9uc1Jlc3BvbnNlEjAKCHNlc3Npb25zGAEgAygLMh4uaGFybmVzcy5yZWxheS52MS5DbG91ZFNlc3Npb24iMgoXU3RvcENsb3VkU2Vzc2lvblJlcXVlc3QSCgoCaWQYASABKAkSCwoDZW5kGAIgASgIIksKGFN0b3BDbG91ZFNlc3Npb25SZXNwb25zZRIvCgdzZXNzaW9uGAEgASgLMh4uaGFybmVzcy5yZWxheS52MS5DbG91ZFNlc3Npb24ieQoOQ2xvdWRDb250YWluZXISGAoQY2xvdWRfc2Vzc2lvbl9pZBgBIAEoCRIUCgxjb250YWluZXJfaWQYAiABKAkSDwoHcnVubmluZxgDIAEoCBISCgpjcmVhdGVkX2F0GAQgASgJEhIKCmRpc2tfYnl0ZXMYBSABKAMidgoWUG9sbENsb3VkUnVubmVyUmVxdWVzdBIUCgx3YWl0X3NlY29uZHMYASABKAUSNAoKY29udGFpbmVycxgCIAMoCzIgLmhhcm5lc3MucmVsYXkudjEuQ2xvdWRDb250YWluZXISEAoIY3JlYXRpbmcYAyADKAkiUAoSQ2xvdWRDb250YWluZXJTcGVjEhgKEGNsb3VkX3Nlc3Npb25faWQYASABKAkSDQoFaW1hZ2UYAiABKAkSEQoJY2FjaGVfa2V5GAMgASgJIlcKFUNsb3VkQ29udGFpbmVyUmVtb3ZhbBIYChBjbG91ZF9zZXNzaW9uX2lkGAEgASgJEhQKDGNvbnRhaW5lcl9pZBgCIAEoCRIOCgZyZWFzb24YAyABKAkiNgoLQ2xvdWRFZ3Jlc3MSGAoQY2xvdWRfc2Vzc2lvbl9pZBgBIAEoCRINCgVhbGxvdxgCIAMoCSKBAgoXUG9sbENsb3VkUnVubmVyUmVzcG9uc2USMwoGY29uZmlnGAEgASgLMiMuaGFybmVzcy5yZWxheS52MS5DbG91ZFJ1bm5lckNvbmZpZxIzCgVzdGFydBgCIAMoCzIkLmhhcm5lc3MucmVsYXkudjEuQ2xvdWRDb250YWluZXJTcGVjEjcKBnJlbW92ZRgDIAMoCzInLmhhcm5lc3MucmVsYXkudjEuQ2xvdWRDb250YWluZXJSZW1vdmFsEi0KBmVncmVzcxgEIAMoCzIdLmhhcm5lc3MucmVsYXkudjEuQ2xvdWRFZ3Jlc3MSFAoMbWF4X3Nlc3Npb25zGAUgASgFIjkKHUlzc3VlQ2xvdWRTZXNzaW9uVG9rZW5SZXF1ZXN0EhgKEGNsb3VkX3Nlc3Npb25faWQYASABKAkiSQoeSXNzdWVDbG91ZFNlc3Npb25Ub2tlblJlc3BvbnNlEhEKCWRldmljZV9pZBgBIAEoCRIUCgxkZXZpY2VfdG9rZW4YAiABKAkikgEKGVVwZGF0ZUNsb3VkU2Vzc2lvblJlcXVlc3QSGAoQY2xvdWRfc2Vzc2lvbl9pZBgBIAEoCRI2CgVzdGF0ZRgCIAEoDjInLmhhcm5lc3MuYWdlbnQudjEuQ2xvdWRFbnZpcm9ubWVudFN0YXRlEhQKDGNvbnRhaW5lcl9pZBgDIAEoCRINCgVlcnJvchgEIAEoCSIsChpVcGRhdGVDbG91ZFNlc3Npb25SZXNwb25zZRIOCgZyZW1vdmUYASABKAgqhQEKDkFnZW50SG9zdFNjb3BlEiAKHEFHRU5UX0hPU1RfU0NPUEVfVU5TUEVDSUZJRUQQABIZChVBR0VOVF9IT1NUX1NDT1BFX1VTRVIQARIZChVBR0VOVF9IT1NUX1NDT1BFX1RFQU0QAhIbChZBR0VOVF9IT1NUX1NDT1BFX0NMT1VEEMIDKpwBChJBZ2VudEhvc3RJc29sYXRpb24SJAogQUdFTlRfSE9TVF9JU09MQVRJT05fVU5TUEVDSUZJRUQQABIdChlBR0VOVF9IT1NUX0lTT0xBVElPTl9OT05FEAESHAoYQUdFTlRfSE9TVF9JU09MQVRJT05fVUlEEAISIwoeQUdFTlRfSE9TVF9JU09MQVRJT05fQ09OVEFJTkVSEMIDKocBCgxIb3N0V29ya0tpbmQSHgoaSE9TVF9XT1JLX0tJTkRfVU5TUEVDSUZJRUQQABIeChpIT1NUX1dPUktfS0lORF9ORVdfU0VTU0lPThABEhsKF0hPU1RfV09SS19LSU5EX0FVVE9fRklYEAISGgoWSE9TVF9XT1JLX0tJTkRfTUVOVElPThADKvgBCg1Ib3N0V29ya1N0YXRlEh8KG0hPU1RfV09SS19TVEFURV9VTlNQRUNJRklFRBAAEhoKFkhPU1RfV09SS19TVEFURV9RVUVVRUQQARIbChdIT1NUX1dPUktfU1RBVEVfQ0xBSU1FRBACEhsKF0hPU1RfV09SS19TVEFURV9SVU5OSU5HEAMSGAoUSE9TVF9XT1JLX1NUQVRFX0RPTkUQBBIaChZIT1NUX1dPUktfU1RBVEVfRkFJTEVEEAUSHQoZSE9TVF9XT1JLX1NUQVRFX0NBTkNFTExFRBAGEhsKF0hPU1RfV09SS19TVEFURV9FWFBJUkVEEAcqkgEKD0hvc3RXb3JrTGFuZGluZxIhCh1IT1NUX1dPUktfTEFORElOR19VTlNQRUNJRklFRBAAEiIKHkhPU1RfV09SS19MQU5ESU5HX1BVTExfUkVRVUVTVBABEhwKGEhPU1RfV09SS19MQU5ESU5HX0JSQU5DSBACEhoKFkhPU1RfV09SS19MQU5ESU5HX05PTkUQAzLNCQoMSG9zdHNTZXJ2aWNlEmMKDkxpc3RBZ2VudEhvc3RzEicuaGFybmVzcy5yZWxheS52MS5MaXN0QWdlbnRIb3N0c1JlcXVlc3QaKC5oYXJuZXNzLnJlbGF5LnYxLkxpc3RBZ2VudEhvc3RzUmVzcG9uc2USZgoPQ3JlYXRlQWdlbnRIb3N0EiguaGFybmVzcy5yZWxheS52MS5DcmVhdGVBZ2VudEhvc3RSZXF1ZXN0GikuaGFybmVzcy5yZWxheS52MS5DcmVhdGVBZ2VudEhvc3RSZXNwb25zZRJmCg9VcGRhdGVBZ2VudEhvc3QSKC5oYXJuZXNzLnJlbGF5LnYxLlVwZGF0ZUFnZW50SG9zdFJlcXVlc3QaKS5oYXJuZXNzLnJlbGF5LnYxLlVwZGF0ZUFnZW50SG9zdFJlc3BvbnNlEmYKD0RlbGV0ZUFnZW50SG9zdBIoLmhhcm5lc3MucmVsYXkudjEuRGVsZXRlQWdlbnRIb3N0UmVxdWVzdBopLmhhcm5lc3MucmVsYXkudjEuRGVsZXRlQWdlbnRIb3N0UmVzcG9uc2USYAoNU3RhcnRIb3N0V29yaxImLmhhcm5lc3MucmVsYXkudjEuU3RhcnRIb3N0V29ya1JlcXVlc3QaJy5oYXJuZXNzLnJlbGF5LnYxLlN0YXJ0SG9zdFdvcmtSZXNwb25zZRJaCgtHZXRIb3N0V29yaxIkLmhhcm5lc3MucmVsYXkudjEuR2V0SG9zdFdvcmtSZXF1ZXN0GiUuaGFybmVzcy5yZWxheS52MS5HZXRIb3N0V29ya1Jlc3BvbnNlEl0KDExpc3RIb3N0V29yaxIlLmhhcm5lc3MucmVsYXkudjEuTGlzdEhvc3RXb3JrUmVxdWVzdBomLmhhcm5lc3MucmVsYXkudjEuTGlzdEhvc3RXb3JrUmVzcG9uc2USYwoOQ2FuY2VsSG9zdFdvcmsSJy5oYXJuZXNzLnJlbGF5LnYxLkNhbmNlbEhvc3RXb3JrUmVxdWVzdBooLmhhcm5lc3MucmVsYXkudjEuQ2FuY2VsSG9zdFdvcmtSZXNwb25zZRJaCgtTZXRBd2F5SG9zdBIkLmhhcm5lc3MucmVsYXkudjEuU2V0QXdheUhvc3RSZXF1ZXN0GiUuaGFybmVzcy5yZWxheS52MS5TZXRBd2F5SG9zdFJlc3BvbnNlEmkKEENsYWltU2NoZWR1bGVSdW4SKS5oYXJuZXNzLnJlbGF5LnYxLkNsYWltU2NoZWR1bGVSdW5SZXF1ZXN0GiouaGFybmVzcy5yZWxheS52MS5DbGFpbVNjaGVkdWxlUnVuUmVzcG9uc2USbAoRTGlzdENsb3VkU2Vzc2lvbnMSKi5oYXJuZXNzLnJlbGF5LnYxLkxpc3RDbG91ZFNlc3Npb25zUmVxdWVzdBorLmhhcm5lc3MucmVsYXkudjEuTGlzdENsb3VkU2Vzc2lvbnNSZXNwb25zZRJpChBTdG9wQ2xvdWRTZXNzaW9uEikuaGFybmVzcy5yZWxheS52MS5TdG9wQ2xvdWRTZXNzaW9uUmVxdWVzdBoqLmhhcm5lc3MucmVsYXkudjEuU3RvcENsb3VkU2Vzc2lvblJlc3BvbnNlMsYJChBIb3N0QWdlbnRTZXJ2aWNlEmwKEVJlZ2lzdGVyQWdlbnRIb3N0EiouaGFybmVzcy5yZWxheS52MS5SZWdpc3RlckFnZW50SG9zdFJlcXVlc3QaKy5oYXJuZXNzLnJlbGF5LnYxLlJlZ2lzdGVyQWdlbnRIb3N0UmVzcG9uc2USZgoPUmVwb3J0QWdlbnRIb3N0EiguaGFybmVzcy5yZWxheS52MS5SZXBvcnRBZ2VudEhvc3RSZXF1ZXN0GikuaGFybmVzcy5yZWxheS52MS5SZXBvcnRBZ2VudEhvc3RSZXNwb25zZRJgCg1DbGFpbUhvc3RXb3JrEiYuaGFybmVzcy5yZWxheS52MS5DbGFpbUhvc3RXb3JrUmVxdWVzdBonLmhhcm5lc3MucmVsYXkudjEuQ2xhaW1Ib3N0V29ya1Jlc3BvbnNlEmMKDlVwZGF0ZUhvc3RXb3JrEicuaGFybmVzcy5yZWxheS52MS5VcGRhdGVIb3N0V29ya1JlcXVlc3QaKC5oYXJuZXNzLnJlbGF5LnYxLlVwZGF0ZUhvc3RXb3JrUmVzcG9uc2UScgoTSXNzdWVHaXRDcmVkZW50aWFscxIsLmhhcm5lc3MucmVsYXkudjEuSXNzdWVHaXRDcmVkZW50aWFsc1JlcXVlc3QaLS5oYXJuZXNzLnJlbGF5LnYxLklzc3VlR2l0Q3JlZGVudGlhbHNSZXNwb25zZRJyChNPcGVuSG9zdFB1bGxSZXF1ZXN0EiwuaGFybmVzcy5yZWxheS52MS5PcGVuSG9zdFB1bGxSZXF1ZXN0UmVxdWVzdBotLmhhcm5lc3MucmVsYXkudjEuT3Blbkhvc3RQdWxsUmVxdWVzdFJlc3BvbnNlEmwKEUxpc3RXYW50ZWRXb3JrZXJzEiouaGFybmVzcy5yZWxheS52MS5MaXN0V2FudGVkV29ya2Vyc1JlcXVlc3QaKy5oYXJuZXNzLnJlbGF5LnYxLkxpc3RXYW50ZWRXb3JrZXJzUmVzcG9uc2USaQoQSXNzdWVXb3JrZXJUb2tlbhIpLmhhcm5lc3MucmVsYXkudjEuSXNzdWVXb3JrZXJUb2tlblJlcXVlc3QaKi5oYXJuZXNzLnJlbGF5LnYxLklzc3VlV29ya2VyVG9rZW5SZXNwb25zZRJmCg9Qb2xsQ2xvdWRSdW5uZXISKC5oYXJuZXNzLnJlbGF5LnYxLlBvbGxDbG91ZFJ1bm5lclJlcXVlc3QaKS5oYXJuZXNzLnJlbGF5LnYxLlBvbGxDbG91ZFJ1bm5lclJlc3BvbnNlEnsKFklzc3VlQ2xvdWRTZXNzaW9uVG9rZW4SLy5oYXJuZXNzLnJlbGF5LnYxLklzc3VlQ2xvdWRTZXNzaW9uVG9rZW5SZXF1ZXN0GjAuaGFybmVzcy5yZWxheS52MS5Jc3N1ZUNsb3VkU2Vzc2lvblRva2VuUmVzcG9uc2USbwoSVXBkYXRlQ2xvdWRTZXNzaW9uEisuaGFybmVzcy5yZWxheS52MS5VcGRhdGVDbG91ZFNlc3Npb25SZXF1ZXN0GiwuaGFybmVzcy5yZWxheS52MS5VcGRhdGVDbG91ZFNlc3Npb25SZXNwb25zZULLAQoUY29tLmhhcm5lc3MucmVsYXkudjFCCkhvc3RzUHJvdG9QAVpFZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9yZWxheS92MTtyZWxheXYxogIDSFJYqgIQSGFybmVzcy5SZWxheS5WMcoCEEhhcm5lc3NcUmVsYXlcVjHiAhxIYXJuZXNzXFJlbGF5XFYxXEdQQk1ldGFkYXRh6gISSGFybmVzczo6UmVsYXk6OlYxYgZwcm90bzM", [file_harness_agent_v1_agent, file_harness_agent_v1_auto_fix, file_harness_llm_v1_content]);
 
 /**
  * @generated from message harness.relay.v1.AgentHost
@@ -177,6 +177,18 @@ export type AgentHost = Message<"harness.relay.v1.AgentHost"> & {
    * @generated from field: repeated harness.relay.v1.AgentHostWorker workers = 27;
    */
   workers: AgentHostWorker[];
+
+  /**
+   * Runners (scope CLOUD).
+   *
+   * @generated from field: harness.relay.v1.CloudRunnerConfig cloud = 450;
+   */
+  cloud?: CloudRunnerConfig | undefined;
+
+  /**
+   * @generated from field: harness.relay.v1.CloudRunnerStats cloud_stats = 451;
+   */
+  cloudStats?: CloudRunnerStats | undefined;
 };
 
 /**
@@ -290,6 +302,13 @@ export type CreateAgentHostRequest = Message<"harness.relay.v1.CreateAgentHostRe
    * @generated from field: repeated string allowed_repositories = 6;
    */
   allowedRepositories: string[];
+
+  /**
+   * A runner (scope CLOUD): its configuration. Admins only.
+   *
+   * @generated from field: harness.relay.v1.CloudRunnerConfig cloud = 450;
+   */
+  cloud?: CloudRunnerConfig | undefined;
 };
 
 /**
@@ -368,6 +387,13 @@ export type UpdateAgentHostRequest = Message<"harness.relay.v1.UpdateAgentHostRe
    * @generated from field: repeated string allowed_repositories = 8;
    */
   allowedRepositories: string[];
+
+  /**
+   * A runner's configuration, replaced as a whole when present. Admins only.
+   *
+   * @generated from field: harness.relay.v1.CloudRunnerConfig cloud = 450;
+   */
+  cloud?: CloudRunnerConfig | undefined;
 };
 
 /**
@@ -567,6 +593,23 @@ export type HostWork = Message<"harness.relay.v1.HostWork"> & {
    * @generated from field: string updated_at = 24;
    */
   updatedAt: string;
+
+  /**
+   * Work of a cloud session: its container's state.
+   *
+   * @generated from field: bool cloud = 450;
+   */
+  cloud: boolean;
+
+  /**
+   * @generated from field: harness.agent.v1.CloudEnvironmentState cloud_state = 451;
+   */
+  cloudState: CloudEnvironmentState;
+
+  /**
+   * @generated from field: string cloud_session_id = 452;
+   */
+  cloudSessionId: string;
 };
 
 /**
@@ -638,6 +681,20 @@ export type StartHostWorkRequest = Message<"harness.relay.v1.StartHostWorkReques
    * @generated from field: string idempotency_key = 11;
    */
   idempotencyKey: string;
+
+  /**
+   * A cloud session: host_id may be empty (the server picks a runner the caller may use), or name a runner.
+   *
+   * @generated from field: bool cloud = 450;
+   */
+  cloud: boolean;
+
+  /**
+   * One of the runner's images; empty: its default.
+   *
+   * @generated from field: string image = 451;
+   */
+  image: string;
 };
 
 /**
@@ -911,6 +968,27 @@ export type RegisterAgentHostResponse = Message<"harness.relay.v1.RegisterAgentH
    * @generated from field: bool supervisor = 2;
    */
   supervisor: boolean;
+
+  /**
+   * A runner's device: `harness-client runner`, which takes no work itself either.
+   *
+   * @generated from field: bool runner = 450;
+   */
+  runner: boolean;
+
+  /**
+   * A cloud session's device: `harness-client daemon --cloud` in its container, which takes only that session's work.
+   *
+   * @generated from field: bool cloud = 451;
+   */
+  cloud: boolean;
+
+  /**
+   * Cloud: the policy lets this session run in bypassPermissions.
+   *
+   * @generated from field: bool bypass_permissions_allowed = 452;
+   */
+  bypassPermissionsAllowed: boolean;
 };
 
 /**
@@ -1320,6 +1398,617 @@ export const IssueWorkerTokenResponseSchema: GenMessage<IssueWorkerTokenResponse
   messageDesc(file_harness_relay_v1_hosts, 39);
 
 /**
+ * What a runner does with its containers. Zero values take the defaults named.
+ *
+ * @generated from message harness.relay.v1.CloudRunnerConfig
+ */
+export type CloudRunnerConfig = Message<"harness.relay.v1.CloudRunnerConfig"> & {
+  /**
+   * The default image, e.g. "ghcr.io/acme/harness-agent:1". Empty: "harness-agent".
+   *
+   * @generated from field: string image = 1;
+   */
+  image: string;
+
+  /**
+   * Other images a session may ask for (StartHostWorkRequest.image).
+   *
+   * @generated from field: repeated string allowed_images = 2;
+   */
+  allowedImages: string[];
+
+  /**
+   * The engine's runtime: "" (its default, runc) or "runsc" (gVisor).
+   *
+   * @generated from field: string runtime = 3;
+   */
+  runtime: string;
+
+  /**
+   * Per container. Defaults: 2 CPUs, 4 GiB, 20 GiB of disk, 1024 processes.
+   *
+   * @generated from field: int32 cpu_millis = 4;
+   */
+  cpuMillis: number;
+
+  /**
+   * @generated from field: int64 memory_bytes = 5;
+   */
+  memoryBytes: bigint;
+
+  /**
+   * @generated from field: int64 disk_bytes = 6;
+   */
+  diskBytes: bigint;
+
+  /**
+   * @generated from field: int32 pids = 7;
+   */
+  pids: number;
+
+  /**
+   * Defaults: an hour idle, a day in all.
+   *
+   * @generated from field: int32 idle_timeout_seconds = 8;
+   */
+  idleTimeoutSeconds: number;
+
+  /**
+   * @generated from field: int32 max_lifetime_seconds = 9;
+   */
+  maxLifetimeSeconds: number;
+
+  /**
+   * Per cache scope. Default 10 GiB.
+   *
+   * @generated from field: int64 cache_max_bytes = 10;
+   */
+  cacheMaxBytes: bigint;
+
+  /**
+   * "user" (the default): caches shared by one user's sessions. "runner": by everyone's on this runner.
+   *
+   * @generated from field: string cache_scope = 11;
+   */
+  cacheScope: string;
+
+  /**
+   * The engine enforces disk_bytes on the writable layer (overlay2 on xfs with pquota, btrfs, zfs). Otherwise the runner
+   * measures it and removes a container that is over.
+   *
+   * @generated from field: bool storage_opt_size = 12;
+   */
+  storageOptSize: boolean;
+};
+
+/**
+ * Describes the message harness.relay.v1.CloudRunnerConfig.
+ * Use `create(CloudRunnerConfigSchema)` to create a new message.
+ */
+export const CloudRunnerConfigSchema: GenMessage<CloudRunnerConfig> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 40);
+
+/**
+ * @generated from message harness.relay.v1.CloudRunnerStats
+ */
+export type CloudRunnerStats = Message<"harness.relay.v1.CloudRunnerStats"> & {
+  /**
+   * @generated from field: int32 starting = 1;
+   */
+  starting: number;
+
+  /**
+   * @generated from field: int32 running = 2;
+   */
+  running: number;
+
+  /**
+   * @generated from field: int32 idle = 3;
+   */
+  idle: number;
+
+  /**
+   * Over the last 24 hours.
+   *
+   * @generated from field: int32 removed = 4;
+   */
+  removed: number;
+
+  /**
+   * @generated from field: int32 failed = 5;
+   */
+  failed: number;
+};
+
+/**
+ * Describes the message harness.relay.v1.CloudRunnerStats.
+ * Use `create(CloudRunnerStatsSchema)` to create a new message.
+ */
+export const CloudRunnerStatsSchema: GenMessage<CloudRunnerStats> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 41);
+
+/**
+ * @generated from message harness.relay.v1.CloudSession
+ */
+export type CloudSession = Message<"harness.relay.v1.CloudSession"> & {
+  /**
+   * cls_...
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string host_id = 2;
+   */
+  hostId: string;
+
+  /**
+   * @generated from field: string host_name = 3;
+   */
+  hostName: string;
+
+  /**
+   * @generated from field: string user_id = 4;
+   */
+  userId: string;
+
+  /**
+   * @generated from field: string user_name = 5;
+   */
+  userName: string;
+
+  /**
+   * @generated from field: string work_id = 6;
+   */
+  workId: string;
+
+  /**
+   * @generated from field: string session_id = 7;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: harness.agent.v1.CloudEnvironmentState state = 8;
+   */
+  state: CloudEnvironmentState;
+
+  /**
+   * @generated from field: string container_id = 9;
+   */
+  containerId: string;
+
+  /**
+   * @generated from field: string image = 10;
+   */
+  image: string;
+
+  /**
+   * @generated from field: string repository_key = 11;
+   */
+  repositoryKey: string;
+
+  /**
+   * @generated from field: string error = 12;
+   */
+  error: string;
+
+  /**
+   * The writable layer, as the runner last measured it; 0 unknown.
+   *
+   * @generated from field: int64 disk_bytes = 13;
+   */
+  diskBytes: bigint;
+
+  /**
+   * How many containers it has had.
+   *
+   * @generated from field: int32 starts = 14;
+   */
+  starts: number;
+
+  /**
+   * RFC 3339, UTC.
+   *
+   * @generated from field: string started_at = 15;
+   */
+  startedAt: string;
+
+  /**
+   * @generated from field: string last_active_at = 16;
+   */
+  lastActiveAt: string;
+
+  /**
+   * @generated from field: string created_at = 17;
+   */
+  createdAt: string;
+
+  /**
+   * @generated from field: string updated_at = 18;
+   */
+  updatedAt: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.CloudSession.
+ * Use `create(CloudSessionSchema)` to create a new message.
+ */
+export const CloudSessionSchema: GenMessage<CloudSession> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 42);
+
+/**
+ * @generated from message harness.relay.v1.ListCloudSessionsRequest
+ */
+export type ListCloudSessionsRequest = Message<"harness.relay.v1.ListCloudSessionsRequest"> & {
+  /**
+   * @generated from field: string host_id = 1;
+   */
+  hostId: string;
+
+  /**
+   * @generated from field: int32 limit = 2;
+   */
+  limit: number;
+};
+
+/**
+ * Describes the message harness.relay.v1.ListCloudSessionsRequest.
+ * Use `create(ListCloudSessionsRequestSchema)` to create a new message.
+ */
+export const ListCloudSessionsRequestSchema: GenMessage<ListCloudSessionsRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 43);
+
+/**
+ * @generated from message harness.relay.v1.ListCloudSessionsResponse
+ */
+export type ListCloudSessionsResponse = Message<"harness.relay.v1.ListCloudSessionsResponse"> & {
+  /**
+   * @generated from field: repeated harness.relay.v1.CloudSession sessions = 1;
+   */
+  sessions: CloudSession[];
+};
+
+/**
+ * Describes the message harness.relay.v1.ListCloudSessionsResponse.
+ * Use `create(ListCloudSessionsResponseSchema)` to create a new message.
+ */
+export const ListCloudSessionsResponseSchema: GenMessage<ListCloudSessionsResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 44);
+
+/**
+ * @generated from message harness.relay.v1.StopCloudSessionRequest
+ */
+export type StopCloudSessionRequest = Message<"harness.relay.v1.StopCloudSessionRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * It never starts again: its work is done.
+   *
+   * @generated from field: bool end = 2;
+   */
+  end: boolean;
+};
+
+/**
+ * Describes the message harness.relay.v1.StopCloudSessionRequest.
+ * Use `create(StopCloudSessionRequestSchema)` to create a new message.
+ */
+export const StopCloudSessionRequestSchema: GenMessage<StopCloudSessionRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 45);
+
+/**
+ * @generated from message harness.relay.v1.StopCloudSessionResponse
+ */
+export type StopCloudSessionResponse = Message<"harness.relay.v1.StopCloudSessionResponse"> & {
+  /**
+   * @generated from field: harness.relay.v1.CloudSession session = 1;
+   */
+  session?: CloudSession | undefined;
+};
+
+/**
+ * Describes the message harness.relay.v1.StopCloudSessionResponse.
+ * Use `create(StopCloudSessionResponseSchema)` to create a new message.
+ */
+export const StopCloudSessionResponseSchema: GenMessage<StopCloudSessionResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 46);
+
+/**
+ * A container of the runner, as the engine lists it by label.
+ *
+ * @generated from message harness.relay.v1.CloudContainer
+ */
+export type CloudContainer = Message<"harness.relay.v1.CloudContainer"> & {
+  /**
+   * @generated from field: string cloud_session_id = 1;
+   */
+  cloudSessionId: string;
+
+  /**
+   * @generated from field: string container_id = 2;
+   */
+  containerId: string;
+
+  /**
+   * @generated from field: bool running = 3;
+   */
+  running: boolean;
+
+  /**
+   * RFC 3339, UTC.
+   *
+   * @generated from field: string created_at = 4;
+   */
+  createdAt: string;
+
+  /**
+   * The writable layer when the runner measured it this time; 0 not measured.
+   *
+   * @generated from field: int64 disk_bytes = 5;
+   */
+  diskBytes: bigint;
+};
+
+/**
+ * Describes the message harness.relay.v1.CloudContainer.
+ * Use `create(CloudContainerSchema)` to create a new message.
+ */
+export const CloudContainerSchema: GenMessage<CloudContainer> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 47);
+
+/**
+ * @generated from message harness.relay.v1.PollCloudRunnerRequest
+ */
+export type PollCloudRunnerRequest = Message<"harness.relay.v1.PollCloudRunnerRequest"> & {
+  /**
+   * At most 25.
+   *
+   * @generated from field: int32 wait_seconds = 1;
+   */
+  waitSeconds: number;
+
+  /**
+   * All of the runner's containers.
+   *
+   * @generated from field: repeated harness.relay.v1.CloudContainer containers = 2;
+   */
+  containers: CloudContainer[];
+
+  /**
+   * Cloud sessions whose containers the runner is creating right now.
+   *
+   * @generated from field: repeated string creating = 3;
+   */
+  creating: string[];
+};
+
+/**
+ * Describes the message harness.relay.v1.PollCloudRunnerRequest.
+ * Use `create(PollCloudRunnerRequestSchema)` to create a new message.
+ */
+export const PollCloudRunnerRequestSchema: GenMessage<PollCloudRunnerRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 48);
+
+/**
+ * A container to create.
+ *
+ * @generated from message harness.relay.v1.CloudContainerSpec
+ */
+export type CloudContainerSpec = Message<"harness.relay.v1.CloudContainerSpec"> & {
+  /**
+   * @generated from field: string cloud_session_id = 1;
+   */
+  cloudSessionId: string;
+
+  /**
+   * @generated from field: string image = 2;
+   */
+  image: string;
+
+  /**
+   * Names the cache directories of this session (decision 15): a hash of the user, or "runner".
+   *
+   * @generated from field: string cache_key = 3;
+   */
+  cacheKey: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.CloudContainerSpec.
+ * Use `create(CloudContainerSpecSchema)` to create a new message.
+ */
+export const CloudContainerSpecSchema: GenMessage<CloudContainerSpec> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 49);
+
+/**
+ * @generated from message harness.relay.v1.CloudContainerRemoval
+ */
+export type CloudContainerRemoval = Message<"harness.relay.v1.CloudContainerRemoval"> & {
+  /**
+   * @generated from field: string cloud_session_id = 1;
+   */
+  cloudSessionId: string;
+
+  /**
+   * @generated from field: string container_id = 2;
+   */
+  containerId: string;
+
+  /**
+   * @generated from field: string reason = 3;
+   */
+  reason: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.CloudContainerRemoval.
+ * Use `create(CloudContainerRemovalSchema)` to create a new message.
+ */
+export const CloudContainerRemovalSchema: GenMessage<CloudContainerRemoval> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 50);
+
+/**
+ * What the egress proxy lets one session's container reach.
+ *
+ * @generated from message harness.relay.v1.CloudEgress
+ */
+export type CloudEgress = Message<"harness.relay.v1.CloudEgress"> & {
+  /**
+   * @generated from field: string cloud_session_id = 1;
+   */
+  cloudSessionId: string;
+
+  /**
+   * @generated from field: repeated string allow = 2;
+   */
+  allow: string[];
+};
+
+/**
+ * Describes the message harness.relay.v1.CloudEgress.
+ * Use `create(CloudEgressSchema)` to create a new message.
+ */
+export const CloudEgressSchema: GenMessage<CloudEgress> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 51);
+
+/**
+ * @generated from message harness.relay.v1.PollCloudRunnerResponse
+ */
+export type PollCloudRunnerResponse = Message<"harness.relay.v1.PollCloudRunnerResponse"> & {
+  /**
+   * @generated from field: harness.relay.v1.CloudRunnerConfig config = 1;
+   */
+  config?: CloudRunnerConfig | undefined;
+
+  /**
+   * @generated from field: repeated harness.relay.v1.CloudContainerSpec start = 2;
+   */
+  start: CloudContainerSpec[];
+
+  /**
+   * @generated from field: repeated harness.relay.v1.CloudContainerRemoval remove = 3;
+   */
+  remove: CloudContainerRemoval[];
+
+  /**
+   * For every session the runner should have a container of.
+   *
+   * @generated from field: repeated harness.relay.v1.CloudEgress egress = 4;
+   */
+  egress: CloudEgress[];
+
+  /**
+   * Containers at once.
+   *
+   * @generated from field: int32 max_sessions = 5;
+   */
+  maxSessions: number;
+};
+
+/**
+ * Describes the message harness.relay.v1.PollCloudRunnerResponse.
+ * Use `create(PollCloudRunnerResponseSchema)` to create a new message.
+ */
+export const PollCloudRunnerResponseSchema: GenMessage<PollCloudRunnerResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 52);
+
+/**
+ * @generated from message harness.relay.v1.IssueCloudSessionTokenRequest
+ */
+export type IssueCloudSessionTokenRequest = Message<"harness.relay.v1.IssueCloudSessionTokenRequest"> & {
+  /**
+   * @generated from field: string cloud_session_id = 1;
+   */
+  cloudSessionId: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.IssueCloudSessionTokenRequest.
+ * Use `create(IssueCloudSessionTokenRequestSchema)` to create a new message.
+ */
+export const IssueCloudSessionTokenRequestSchema: GenMessage<IssueCloudSessionTokenRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 53);
+
+/**
+ * @generated from message harness.relay.v1.IssueCloudSessionTokenResponse
+ */
+export type IssueCloudSessionTokenResponse = Message<"harness.relay.v1.IssueCloudSessionTokenResponse"> & {
+  /**
+   * @generated from field: string device_id = 1;
+   */
+  deviceId: string;
+
+  /**
+   * @generated from field: string device_token = 2;
+   */
+  deviceToken: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.IssueCloudSessionTokenResponse.
+ * Use `create(IssueCloudSessionTokenResponseSchema)` to create a new message.
+ */
+export const IssueCloudSessionTokenResponseSchema: GenMessage<IssueCloudSessionTokenResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 54);
+
+/**
+ * @generated from message harness.relay.v1.UpdateCloudSessionRequest
+ */
+export type UpdateCloudSessionRequest = Message<"harness.relay.v1.UpdateCloudSessionRequest"> & {
+  /**
+   * @generated from field: string cloud_session_id = 1;
+   */
+  cloudSessionId: string;
+
+  /**
+   * STARTING with container_id: created and started. FAILED: could not. REMOVED: gone.
+   *
+   * @generated from field: harness.agent.v1.CloudEnvironmentState state = 2;
+   */
+  state: CloudEnvironmentState;
+
+  /**
+   * @generated from field: string container_id = 3;
+   */
+  containerId: string;
+
+  /**
+   * @generated from field: string error = 4;
+   */
+  error: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.UpdateCloudSessionRequest.
+ * Use `create(UpdateCloudSessionRequestSchema)` to create a new message.
+ */
+export const UpdateCloudSessionRequestSchema: GenMessage<UpdateCloudSessionRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 55);
+
+/**
+ * @generated from message harness.relay.v1.UpdateCloudSessionResponse
+ */
+export type UpdateCloudSessionResponse = Message<"harness.relay.v1.UpdateCloudSessionResponse"> & {
+  /**
+   * The session is no longer wanted: remove its container.
+   *
+   * @generated from field: bool remove = 1;
+   */
+  remove: boolean;
+};
+
+/**
+ * Describes the message harness.relay.v1.UpdateCloudSessionResponse.
+ * Use `create(UpdateCloudSessionResponseSchema)` to create a new message.
+ */
+export const UpdateCloudSessionResponseSchema: GenMessage<UpdateCloudSessionResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 56);
+
+/**
  * @generated from enum harness.relay.v1.AgentHostScope
  */
 export enum AgentHostScope {
@@ -1341,6 +2030,13 @@ export enum AgentHostScope {
    * @generated from enum value: AGENT_HOST_SCOPE_TEAM = 2;
    */
   TEAM = 2,
+
+  /**
+   * A runner node of cloud sessions, registered by an admin for a group (or everyone): it runs each session in a container.
+   *
+   * @generated from enum value: AGENT_HOST_SCOPE_CLOUD = 450;
+   */
+  CLOUD = 450,
 }
 
 /**
@@ -1371,6 +2067,13 @@ export enum AgentHostIsolation {
    * @generated from enum value: AGENT_HOST_ISOLATION_UID = 2;
    */
   UID = 2,
+
+  /**
+   * A runner: each session in a container of its own.
+   *
+   * @generated from enum value: AGENT_HOST_ISOLATION_CONTAINER = 450;
+   */
+  CONTAINER = 450,
 }
 
 /**
@@ -1609,6 +2312,27 @@ export const HostsService: GenService<{
     input: typeof ClaimScheduleRunRequestSchema;
     output: typeof ClaimScheduleRunResponseSchema;
   },
+  /**
+   * Cloud sessions (docs/design/cloud-sessions.md). With a host_id and a role that reads users: everyone's on that runner;
+   * otherwise the caller's own.
+   *
+   * @generated from rpc harness.relay.v1.HostsService.ListCloudSessions
+   */
+  listCloudSessions: {
+    methodKind: "unary";
+    input: typeof ListCloudSessionsRequestSchema;
+    output: typeof ListCloudSessionsResponseSchema;
+  },
+  /**
+   * Removes a cloud session's container now (its owner, or `hosts.write`). The next message starts it again, unless end.
+   *
+   * @generated from rpc harness.relay.v1.HostsService.StopCloudSession
+   */
+  stopCloudSession: {
+    methodKind: "unary";
+    input: typeof StopCloudSessionRequestSchema;
+    output: typeof StopCloudSessionResponseSchema;
+  },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_relay_v1_hosts, 0);
 
@@ -1695,6 +2419,37 @@ export const HostAgentService: GenService<{
     methodKind: "unary";
     input: typeof IssueWorkerTokenRequestSchema;
     output: typeof IssueWorkerTokenResponseSchema;
+  },
+  /**
+   * Runner of cloud sessions: long poll with the list of its containers; says what to start and what to remove. Also the
+   * reconciler (docs/design/cloud-sessions.md, decision 4).
+   *
+   * @generated from rpc harness.relay.v1.HostAgentService.PollCloudRunner
+   */
+  pollCloudRunner: {
+    methodKind: "unary";
+    input: typeof PollCloudRunnerRequestSchema;
+    output: typeof PollCloudRunnerResponseSchema;
+  },
+  /**
+   * Runner: a fresh device token for a cloud session's container; the previous one stops working.
+   *
+   * @generated from rpc harness.relay.v1.HostAgentService.IssueCloudSessionToken
+   */
+  issueCloudSessionToken: {
+    methodKind: "unary";
+    input: typeof IssueCloudSessionTokenRequestSchema;
+    output: typeof IssueCloudSessionTokenResponseSchema;
+  },
+  /**
+   * Runner: what became of a container it was told to start or remove.
+   *
+   * @generated from rpc harness.relay.v1.HostAgentService.UpdateCloudSession
+   */
+  updateCloudSession: {
+    methodKind: "unary";
+    input: typeof UpdateCloudSessionRequestSchema;
+    output: typeof UpdateCloudSessionResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_relay_v1_hosts, 1);

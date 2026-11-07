@@ -31,19 +31,23 @@ const (
 	AgentHostScope_AGENT_HOST_SCOPE_USER AgentHostScope = 1
 	// Registered by an admin for the members of a group.
 	AgentHostScope_AGENT_HOST_SCOPE_TEAM AgentHostScope = 2
+	// A runner node of cloud sessions, registered by an admin for a group (or everyone): it runs each session in a container.
+	AgentHostScope_AGENT_HOST_SCOPE_CLOUD AgentHostScope = 450
 )
 
 // Enum value maps for AgentHostScope.
 var (
 	AgentHostScope_name = map[int32]string{
-		0: "AGENT_HOST_SCOPE_UNSPECIFIED",
-		1: "AGENT_HOST_SCOPE_USER",
-		2: "AGENT_HOST_SCOPE_TEAM",
+		0:   "AGENT_HOST_SCOPE_UNSPECIFIED",
+		1:   "AGENT_HOST_SCOPE_USER",
+		2:   "AGENT_HOST_SCOPE_TEAM",
+		450: "AGENT_HOST_SCOPE_CLOUD",
 	}
 	AgentHostScope_value = map[string]int32{
 		"AGENT_HOST_SCOPE_UNSPECIFIED": 0,
 		"AGENT_HOST_SCOPE_USER":        1,
 		"AGENT_HOST_SCOPE_TEAM":        2,
+		"AGENT_HOST_SCOPE_CLOUD":       450,
 	}
 )
 
@@ -82,19 +86,23 @@ const (
 	AgentHostIsolation_AGENT_HOST_ISOLATION_NONE AgentHostIsolation = 1
 	// Each member's worker runs under a Unix user of its own.
 	AgentHostIsolation_AGENT_HOST_ISOLATION_UID AgentHostIsolation = 2
+	// A runner: each session in a container of its own.
+	AgentHostIsolation_AGENT_HOST_ISOLATION_CONTAINER AgentHostIsolation = 450
 )
 
 // Enum value maps for AgentHostIsolation.
 var (
 	AgentHostIsolation_name = map[int32]string{
-		0: "AGENT_HOST_ISOLATION_UNSPECIFIED",
-		1: "AGENT_HOST_ISOLATION_NONE",
-		2: "AGENT_HOST_ISOLATION_UID",
+		0:   "AGENT_HOST_ISOLATION_UNSPECIFIED",
+		1:   "AGENT_HOST_ISOLATION_NONE",
+		2:   "AGENT_HOST_ISOLATION_UID",
+		450: "AGENT_HOST_ISOLATION_CONTAINER",
 	}
 	AgentHostIsolation_value = map[string]int32{
 		"AGENT_HOST_ISOLATION_UNSPECIFIED": 0,
 		"AGENT_HOST_ISOLATION_NONE":        1,
 		"AGENT_HOST_ISOLATION_UID":         2,
+		"AGENT_HOST_ISOLATION_CONTAINER":   450,
 	}
 )
 
@@ -340,7 +348,10 @@ type AgentHost struct {
 	LastSeenAt string `protobuf:"bytes,25,opt,name=last_seen_at,json=lastSeenAt,proto3" json:"last_seen_at,omitempty"`
 	CreatedAt  string `protobuf:"bytes,26,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	// With ListAgentHostsRequest.all.
-	Workers       []*AgentHostWorker `protobuf:"bytes,27,rep,name=workers,proto3" json:"workers,omitempty"`
+	Workers []*AgentHostWorker `protobuf:"bytes,27,rep,name=workers,proto3" json:"workers,omitempty"`
+	// Runners (scope CLOUD).
+	Cloud         *CloudRunnerConfig `protobuf:"bytes,450,opt,name=cloud,proto3" json:"cloud,omitempty"`
+	CloudStats    *CloudRunnerStats  `protobuf:"bytes,451,opt,name=cloud_stats,json=cloudStats,proto3" json:"cloud_stats,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -564,6 +575,20 @@ func (x *AgentHost) GetWorkers() []*AgentHostWorker {
 	return nil
 }
 
+func (x *AgentHost) GetCloud() *CloudRunnerConfig {
+	if x != nil {
+		return x.Cloud
+	}
+	return nil
+}
+
+func (x *AgentHost) GetCloudStats() *CloudRunnerStats {
+	if x != nil {
+		return x.CloudStats
+	}
+	return nil
+}
+
 type AgentHostWorker struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	UserId          string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
@@ -736,8 +761,10 @@ type CreateAgentHostRequest struct {
 	MaxSessions         int32                  `protobuf:"varint,4,opt,name=max_sessions,json=maxSessions,proto3" json:"max_sessions,omitempty"`
 	MaxSessionsPerUser  int32                  `protobuf:"varint,5,opt,name=max_sessions_per_user,json=maxSessionsPerUser,proto3" json:"max_sessions_per_user,omitempty"`
 	AllowedRepositories []string               `protobuf:"bytes,6,rep,name=allowed_repositories,json=allowedRepositories,proto3" json:"allowed_repositories,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// A runner (scope CLOUD): its configuration. Admins only.
+	Cloud         *CloudRunnerConfig `protobuf:"bytes,450,opt,name=cloud,proto3" json:"cloud,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateAgentHostRequest) Reset() {
@@ -812,6 +839,13 @@ func (x *CreateAgentHostRequest) GetAllowedRepositories() []string {
 	return nil
 }
 
+func (x *CreateAgentHostRequest) GetCloud() *CloudRunnerConfig {
+	if x != nil {
+		return x.Cloud
+	}
+	return nil
+}
+
 type CreateAgentHostResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Host  *AgentHost             `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
@@ -876,8 +910,10 @@ type UpdateAgentHostRequest struct {
 	// Replaces the list when set_allowed_repositories.
 	SetAllowedRepositories bool     `protobuf:"varint,7,opt,name=set_allowed_repositories,json=setAllowedRepositories,proto3" json:"set_allowed_repositories,omitempty"`
 	AllowedRepositories    []string `protobuf:"bytes,8,rep,name=allowed_repositories,json=allowedRepositories,proto3" json:"allowed_repositories,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	// A runner's configuration, replaced as a whole when present. Admins only.
+	Cloud         *CloudRunnerConfig `protobuf:"bytes,450,opt,name=cloud,proto3" json:"cloud,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateAgentHostRequest) Reset() {
@@ -962,6 +998,13 @@ func (x *UpdateAgentHostRequest) GetSetAllowedRepositories() bool {
 func (x *UpdateAgentHostRequest) GetAllowedRepositories() []string {
 	if x != nil {
 		return x.AllowedRepositories
+	}
+	return nil
+}
+
+func (x *UpdateAgentHostRequest) GetCloud() *CloudRunnerConfig {
+	if x != nil {
+		return x.Cloud
 	}
 	return nil
 }
@@ -1124,10 +1167,14 @@ type HostWork struct {
 	Error          string `protobuf:"bytes,21,opt,name=error,proto3" json:"error,omitempty"`
 	Attempts       int32  `protobuf:"varint,22,opt,name=attempts,proto3" json:"attempts,omitempty"`
 	// RFC 3339, UTC.
-	CreatedAt     string `protobuf:"bytes,23,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string `protobuf:"bytes,24,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	CreatedAt string `protobuf:"bytes,23,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt string `protobuf:"bytes,24,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// Work of a cloud session: its container's state.
+	Cloud          bool                      `protobuf:"varint,450,opt,name=cloud,proto3" json:"cloud,omitempty"`
+	CloudState     v11.CloudEnvironmentState `protobuf:"varint,451,opt,name=cloud_state,json=cloudState,proto3,enum=harness.agent.v1.CloudEnvironmentState" json:"cloud_state,omitempty"`
+	CloudSessionId string                    `protobuf:"bytes,452,opt,name=cloud_session_id,json=cloudSessionId,proto3" json:"cloud_session_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *HostWork) Reset() {
@@ -1328,6 +1375,27 @@ func (x *HostWork) GetUpdatedAt() string {
 	return ""
 }
 
+func (x *HostWork) GetCloud() bool {
+	if x != nil {
+		return x.Cloud
+	}
+	return false
+}
+
+func (x *HostWork) GetCloudState() v11.CloudEnvironmentState {
+	if x != nil {
+		return x.CloudState
+	}
+	return v11.CloudEnvironmentState(0)
+}
+
+func (x *HostWork) GetCloudSessionId() string {
+	if x != nil {
+		return x.CloudSessionId
+	}
+	return ""
+}
+
 type StartHostWorkRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	HostId        string                 `protobuf:"bytes,1,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
@@ -1343,8 +1411,12 @@ type StartHostWorkRequest struct {
 	FreshClone     bool               `protobuf:"varint,10,opt,name=fresh_clone,json=freshClone,proto3" json:"fresh_clone,omitempty"`
 	// Retrying with the same key returns the same work.
 	IdempotencyKey string `protobuf:"bytes,11,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// A cloud session: host_id may be empty (the server picks a runner the caller may use), or name a runner.
+	Cloud bool `protobuf:"varint,450,opt,name=cloud,proto3" json:"cloud,omitempty"`
+	// One of the runner's images; empty: its default.
+	Image         string `protobuf:"bytes,451,opt,name=image,proto3" json:"image,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StartHostWorkRequest) Reset() {
@@ -1450,6 +1522,20 @@ func (x *StartHostWorkRequest) GetFreshClone() bool {
 func (x *StartHostWorkRequest) GetIdempotencyKey() string {
 	if x != nil {
 		return x.IdempotencyKey
+	}
+	return ""
+}
+
+func (x *StartHostWorkRequest) GetCloud() bool {
+	if x != nil {
+		return x.Cloud
+	}
+	return false
+}
+
+func (x *StartHostWorkRequest) GetImage() string {
+	if x != nil {
+		return x.Image
 	}
 	return ""
 }
@@ -2052,9 +2138,15 @@ type RegisterAgentHostResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Host  *AgentHost             `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
 	// This device runs members' workers and takes no work itself.
-	Supervisor    bool `protobuf:"varint,2,opt,name=supervisor,proto3" json:"supervisor,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Supervisor bool `protobuf:"varint,2,opt,name=supervisor,proto3" json:"supervisor,omitempty"`
+	// A runner's device: `harness-client runner`, which takes no work itself either.
+	Runner bool `protobuf:"varint,450,opt,name=runner,proto3" json:"runner,omitempty"`
+	// A cloud session's device: `harness-client daemon --cloud` in its container, which takes only that session's work.
+	Cloud bool `protobuf:"varint,451,opt,name=cloud,proto3" json:"cloud,omitempty"`
+	// Cloud: the policy lets this session run in bypassPermissions.
+	BypassPermissionsAllowed bool `protobuf:"varint,452,opt,name=bypass_permissions_allowed,json=bypassPermissionsAllowed,proto3" json:"bypass_permissions_allowed,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *RegisterAgentHostResponse) Reset() {
@@ -2097,6 +2189,27 @@ func (x *RegisterAgentHostResponse) GetHost() *AgentHost {
 func (x *RegisterAgentHostResponse) GetSupervisor() bool {
 	if x != nil {
 		return x.Supervisor
+	}
+	return false
+}
+
+func (x *RegisterAgentHostResponse) GetRunner() bool {
+	if x != nil {
+		return x.Runner
+	}
+	return false
+}
+
+func (x *RegisterAgentHostResponse) GetCloud() bool {
+	if x != nil {
+		return x.Cloud
+	}
+	return false
+}
+
+func (x *RegisterAgentHostResponse) GetBypassPermissionsAllowed() bool {
+	if x != nil {
+		return x.BypassPermissionsAllowed
 	}
 	return false
 }
@@ -2965,11 +3078,1212 @@ func (x *IssueWorkerTokenResponse) GetDeviceToken() string {
 	return ""
 }
 
+// What a runner does with its containers. Zero values take the defaults named.
+type CloudRunnerConfig struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The default image, e.g. "ghcr.io/acme/harness-agent:1". Empty: "harness-agent".
+	Image string `protobuf:"bytes,1,opt,name=image,proto3" json:"image,omitempty"`
+	// Other images a session may ask for (StartHostWorkRequest.image).
+	AllowedImages []string `protobuf:"bytes,2,rep,name=allowed_images,json=allowedImages,proto3" json:"allowed_images,omitempty"`
+	// The engine's runtime: "" (its default, runc) or "runsc" (gVisor).
+	Runtime string `protobuf:"bytes,3,opt,name=runtime,proto3" json:"runtime,omitempty"`
+	// Per container. Defaults: 2 CPUs, 4 GiB, 20 GiB of disk, 1024 processes.
+	CpuMillis   int32 `protobuf:"varint,4,opt,name=cpu_millis,json=cpuMillis,proto3" json:"cpu_millis,omitempty"`
+	MemoryBytes int64 `protobuf:"varint,5,opt,name=memory_bytes,json=memoryBytes,proto3" json:"memory_bytes,omitempty"`
+	DiskBytes   int64 `protobuf:"varint,6,opt,name=disk_bytes,json=diskBytes,proto3" json:"disk_bytes,omitempty"`
+	Pids        int32 `protobuf:"varint,7,opt,name=pids,proto3" json:"pids,omitempty"`
+	// Defaults: an hour idle, a day in all.
+	IdleTimeoutSeconds int32 `protobuf:"varint,8,opt,name=idle_timeout_seconds,json=idleTimeoutSeconds,proto3" json:"idle_timeout_seconds,omitempty"`
+	MaxLifetimeSeconds int32 `protobuf:"varint,9,opt,name=max_lifetime_seconds,json=maxLifetimeSeconds,proto3" json:"max_lifetime_seconds,omitempty"`
+	// Per cache scope. Default 10 GiB.
+	CacheMaxBytes int64 `protobuf:"varint,10,opt,name=cache_max_bytes,json=cacheMaxBytes,proto3" json:"cache_max_bytes,omitempty"`
+	// "user" (the default): caches shared by one user's sessions. "runner": by everyone's on this runner.
+	CacheScope string `protobuf:"bytes,11,opt,name=cache_scope,json=cacheScope,proto3" json:"cache_scope,omitempty"`
+	// The engine enforces disk_bytes on the writable layer (overlay2 on xfs with pquota, btrfs, zfs). Otherwise the runner
+	// measures it and removes a container that is over.
+	StorageOptSize bool `protobuf:"varint,12,opt,name=storage_opt_size,json=storageOptSize,proto3" json:"storage_opt_size,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *CloudRunnerConfig) Reset() {
+	*x = CloudRunnerConfig{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloudRunnerConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloudRunnerConfig) ProtoMessage() {}
+
+func (x *CloudRunnerConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloudRunnerConfig.ProtoReflect.Descriptor instead.
+func (*CloudRunnerConfig) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *CloudRunnerConfig) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
+}
+
+func (x *CloudRunnerConfig) GetAllowedImages() []string {
+	if x != nil {
+		return x.AllowedImages
+	}
+	return nil
+}
+
+func (x *CloudRunnerConfig) GetRuntime() string {
+	if x != nil {
+		return x.Runtime
+	}
+	return ""
+}
+
+func (x *CloudRunnerConfig) GetCpuMillis() int32 {
+	if x != nil {
+		return x.CpuMillis
+	}
+	return 0
+}
+
+func (x *CloudRunnerConfig) GetMemoryBytes() int64 {
+	if x != nil {
+		return x.MemoryBytes
+	}
+	return 0
+}
+
+func (x *CloudRunnerConfig) GetDiskBytes() int64 {
+	if x != nil {
+		return x.DiskBytes
+	}
+	return 0
+}
+
+func (x *CloudRunnerConfig) GetPids() int32 {
+	if x != nil {
+		return x.Pids
+	}
+	return 0
+}
+
+func (x *CloudRunnerConfig) GetIdleTimeoutSeconds() int32 {
+	if x != nil {
+		return x.IdleTimeoutSeconds
+	}
+	return 0
+}
+
+func (x *CloudRunnerConfig) GetMaxLifetimeSeconds() int32 {
+	if x != nil {
+		return x.MaxLifetimeSeconds
+	}
+	return 0
+}
+
+func (x *CloudRunnerConfig) GetCacheMaxBytes() int64 {
+	if x != nil {
+		return x.CacheMaxBytes
+	}
+	return 0
+}
+
+func (x *CloudRunnerConfig) GetCacheScope() string {
+	if x != nil {
+		return x.CacheScope
+	}
+	return ""
+}
+
+func (x *CloudRunnerConfig) GetStorageOptSize() bool {
+	if x != nil {
+		return x.StorageOptSize
+	}
+	return false
+}
+
+type CloudRunnerStats struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Starting int32                  `protobuf:"varint,1,opt,name=starting,proto3" json:"starting,omitempty"`
+	Running  int32                  `protobuf:"varint,2,opt,name=running,proto3" json:"running,omitempty"`
+	Idle     int32                  `protobuf:"varint,3,opt,name=idle,proto3" json:"idle,omitempty"`
+	// Over the last 24 hours.
+	Removed       int32 `protobuf:"varint,4,opt,name=removed,proto3" json:"removed,omitempty"`
+	Failed        int32 `protobuf:"varint,5,opt,name=failed,proto3" json:"failed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CloudRunnerStats) Reset() {
+	*x = CloudRunnerStats{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloudRunnerStats) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloudRunnerStats) ProtoMessage() {}
+
+func (x *CloudRunnerStats) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloudRunnerStats.ProtoReflect.Descriptor instead.
+func (*CloudRunnerStats) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *CloudRunnerStats) GetStarting() int32 {
+	if x != nil {
+		return x.Starting
+	}
+	return 0
+}
+
+func (x *CloudRunnerStats) GetRunning() int32 {
+	if x != nil {
+		return x.Running
+	}
+	return 0
+}
+
+func (x *CloudRunnerStats) GetIdle() int32 {
+	if x != nil {
+		return x.Idle
+	}
+	return 0
+}
+
+func (x *CloudRunnerStats) GetRemoved() int32 {
+	if x != nil {
+		return x.Removed
+	}
+	return 0
+}
+
+func (x *CloudRunnerStats) GetFailed() int32 {
+	if x != nil {
+		return x.Failed
+	}
+	return 0
+}
+
+type CloudSession struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// cls_...
+	Id            string                    `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	HostId        string                    `protobuf:"bytes,2,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
+	HostName      string                    `protobuf:"bytes,3,opt,name=host_name,json=hostName,proto3" json:"host_name,omitempty"`
+	UserId        string                    `protobuf:"bytes,4,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	UserName      string                    `protobuf:"bytes,5,opt,name=user_name,json=userName,proto3" json:"user_name,omitempty"`
+	WorkId        string                    `protobuf:"bytes,6,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
+	SessionId     string                    `protobuf:"bytes,7,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	State         v11.CloudEnvironmentState `protobuf:"varint,8,opt,name=state,proto3,enum=harness.agent.v1.CloudEnvironmentState" json:"state,omitempty"`
+	ContainerId   string                    `protobuf:"bytes,9,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	Image         string                    `protobuf:"bytes,10,opt,name=image,proto3" json:"image,omitempty"`
+	RepositoryKey string                    `protobuf:"bytes,11,opt,name=repository_key,json=repositoryKey,proto3" json:"repository_key,omitempty"`
+	Error         string                    `protobuf:"bytes,12,opt,name=error,proto3" json:"error,omitempty"`
+	// The writable layer, as the runner last measured it; 0 unknown.
+	DiskBytes int64 `protobuf:"varint,13,opt,name=disk_bytes,json=diskBytes,proto3" json:"disk_bytes,omitempty"`
+	// How many containers it has had.
+	Starts int32 `protobuf:"varint,14,opt,name=starts,proto3" json:"starts,omitempty"`
+	// RFC 3339, UTC.
+	StartedAt     string `protobuf:"bytes,15,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	LastActiveAt  string `protobuf:"bytes,16,opt,name=last_active_at,json=lastActiveAt,proto3" json:"last_active_at,omitempty"`
+	CreatedAt     string `protobuf:"bytes,17,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string `protobuf:"bytes,18,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CloudSession) Reset() {
+	*x = CloudSession{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloudSession) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloudSession) ProtoMessage() {}
+
+func (x *CloudSession) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloudSession.ProtoReflect.Descriptor instead.
+func (*CloudSession) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *CloudSession) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *CloudSession) GetHostId() string {
+	if x != nil {
+		return x.HostId
+	}
+	return ""
+}
+
+func (x *CloudSession) GetHostName() string {
+	if x != nil {
+		return x.HostName
+	}
+	return ""
+}
+
+func (x *CloudSession) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *CloudSession) GetUserName() string {
+	if x != nil {
+		return x.UserName
+	}
+	return ""
+}
+
+func (x *CloudSession) GetWorkId() string {
+	if x != nil {
+		return x.WorkId
+	}
+	return ""
+}
+
+func (x *CloudSession) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *CloudSession) GetState() v11.CloudEnvironmentState {
+	if x != nil {
+		return x.State
+	}
+	return v11.CloudEnvironmentState(0)
+}
+
+func (x *CloudSession) GetContainerId() string {
+	if x != nil {
+		return x.ContainerId
+	}
+	return ""
+}
+
+func (x *CloudSession) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
+}
+
+func (x *CloudSession) GetRepositoryKey() string {
+	if x != nil {
+		return x.RepositoryKey
+	}
+	return ""
+}
+
+func (x *CloudSession) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *CloudSession) GetDiskBytes() int64 {
+	if x != nil {
+		return x.DiskBytes
+	}
+	return 0
+}
+
+func (x *CloudSession) GetStarts() int32 {
+	if x != nil {
+		return x.Starts
+	}
+	return 0
+}
+
+func (x *CloudSession) GetStartedAt() string {
+	if x != nil {
+		return x.StartedAt
+	}
+	return ""
+}
+
+func (x *CloudSession) GetLastActiveAt() string {
+	if x != nil {
+		return x.LastActiveAt
+	}
+	return ""
+}
+
+func (x *CloudSession) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *CloudSession) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type ListCloudSessionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	HostId        string                 `protobuf:"bytes,1,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCloudSessionsRequest) Reset() {
+	*x = ListCloudSessionsRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCloudSessionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCloudSessionsRequest) ProtoMessage() {}
+
+func (x *ListCloudSessionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCloudSessionsRequest.ProtoReflect.Descriptor instead.
+func (*ListCloudSessionsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *ListCloudSessionsRequest) GetHostId() string {
+	if x != nil {
+		return x.HostId
+	}
+	return ""
+}
+
+func (x *ListCloudSessionsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type ListCloudSessionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Sessions      []*CloudSession        `protobuf:"bytes,1,rep,name=sessions,proto3" json:"sessions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCloudSessionsResponse) Reset() {
+	*x = ListCloudSessionsResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCloudSessionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCloudSessionsResponse) ProtoMessage() {}
+
+func (x *ListCloudSessionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCloudSessionsResponse.ProtoReflect.Descriptor instead.
+func (*ListCloudSessionsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *ListCloudSessionsResponse) GetSessions() []*CloudSession {
+	if x != nil {
+		return x.Sessions
+	}
+	return nil
+}
+
+type StopCloudSessionRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// It never starts again: its work is done.
+	End           bool `protobuf:"varint,2,opt,name=end,proto3" json:"end,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StopCloudSessionRequest) Reset() {
+	*x = StopCloudSessionRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopCloudSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopCloudSessionRequest) ProtoMessage() {}
+
+func (x *StopCloudSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopCloudSessionRequest.ProtoReflect.Descriptor instead.
+func (*StopCloudSessionRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *StopCloudSessionRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *StopCloudSessionRequest) GetEnd() bool {
+	if x != nil {
+		return x.End
+	}
+	return false
+}
+
+type StopCloudSessionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Session       *CloudSession          `protobuf:"bytes,1,opt,name=session,proto3" json:"session,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StopCloudSessionResponse) Reset() {
+	*x = StopCloudSessionResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StopCloudSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StopCloudSessionResponse) ProtoMessage() {}
+
+func (x *StopCloudSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StopCloudSessionResponse.ProtoReflect.Descriptor instead.
+func (*StopCloudSessionResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *StopCloudSessionResponse) GetSession() *CloudSession {
+	if x != nil {
+		return x.Session
+	}
+	return nil
+}
+
+// A container of the runner, as the engine lists it by label.
+type CloudContainer struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	CloudSessionId string                 `protobuf:"bytes,1,opt,name=cloud_session_id,json=cloudSessionId,proto3" json:"cloud_session_id,omitempty"`
+	ContainerId    string                 `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	Running        bool                   `protobuf:"varint,3,opt,name=running,proto3" json:"running,omitempty"`
+	// RFC 3339, UTC.
+	CreatedAt string `protobuf:"bytes,4,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// The writable layer when the runner measured it this time; 0 not measured.
+	DiskBytes     int64 `protobuf:"varint,5,opt,name=disk_bytes,json=diskBytes,proto3" json:"disk_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CloudContainer) Reset() {
+	*x = CloudContainer{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloudContainer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloudContainer) ProtoMessage() {}
+
+func (x *CloudContainer) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloudContainer.ProtoReflect.Descriptor instead.
+func (*CloudContainer) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *CloudContainer) GetCloudSessionId() string {
+	if x != nil {
+		return x.CloudSessionId
+	}
+	return ""
+}
+
+func (x *CloudContainer) GetContainerId() string {
+	if x != nil {
+		return x.ContainerId
+	}
+	return ""
+}
+
+func (x *CloudContainer) GetRunning() bool {
+	if x != nil {
+		return x.Running
+	}
+	return false
+}
+
+func (x *CloudContainer) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *CloudContainer) GetDiskBytes() int64 {
+	if x != nil {
+		return x.DiskBytes
+	}
+	return 0
+}
+
+type PollCloudRunnerRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// At most 25.
+	WaitSeconds int32 `protobuf:"varint,1,opt,name=wait_seconds,json=waitSeconds,proto3" json:"wait_seconds,omitempty"`
+	// All of the runner's containers.
+	Containers []*CloudContainer `protobuf:"bytes,2,rep,name=containers,proto3" json:"containers,omitempty"`
+	// Cloud sessions whose containers the runner is creating right now.
+	Creating      []string `protobuf:"bytes,3,rep,name=creating,proto3" json:"creating,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PollCloudRunnerRequest) Reset() {
+	*x = PollCloudRunnerRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PollCloudRunnerRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PollCloudRunnerRequest) ProtoMessage() {}
+
+func (x *PollCloudRunnerRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PollCloudRunnerRequest.ProtoReflect.Descriptor instead.
+func (*PollCloudRunnerRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *PollCloudRunnerRequest) GetWaitSeconds() int32 {
+	if x != nil {
+		return x.WaitSeconds
+	}
+	return 0
+}
+
+func (x *PollCloudRunnerRequest) GetContainers() []*CloudContainer {
+	if x != nil {
+		return x.Containers
+	}
+	return nil
+}
+
+func (x *PollCloudRunnerRequest) GetCreating() []string {
+	if x != nil {
+		return x.Creating
+	}
+	return nil
+}
+
+// A container to create.
+type CloudContainerSpec struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	CloudSessionId string                 `protobuf:"bytes,1,opt,name=cloud_session_id,json=cloudSessionId,proto3" json:"cloud_session_id,omitempty"`
+	Image          string                 `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
+	// Names the cache directories of this session (decision 15): a hash of the user, or "runner".
+	CacheKey      string `protobuf:"bytes,3,opt,name=cache_key,json=cacheKey,proto3" json:"cache_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CloudContainerSpec) Reset() {
+	*x = CloudContainerSpec{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloudContainerSpec) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloudContainerSpec) ProtoMessage() {}
+
+func (x *CloudContainerSpec) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloudContainerSpec.ProtoReflect.Descriptor instead.
+func (*CloudContainerSpec) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *CloudContainerSpec) GetCloudSessionId() string {
+	if x != nil {
+		return x.CloudSessionId
+	}
+	return ""
+}
+
+func (x *CloudContainerSpec) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
+}
+
+func (x *CloudContainerSpec) GetCacheKey() string {
+	if x != nil {
+		return x.CacheKey
+	}
+	return ""
+}
+
+type CloudContainerRemoval struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	CloudSessionId string                 `protobuf:"bytes,1,opt,name=cloud_session_id,json=cloudSessionId,proto3" json:"cloud_session_id,omitempty"`
+	ContainerId    string                 `protobuf:"bytes,2,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	Reason         string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *CloudContainerRemoval) Reset() {
+	*x = CloudContainerRemoval{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloudContainerRemoval) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloudContainerRemoval) ProtoMessage() {}
+
+func (x *CloudContainerRemoval) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloudContainerRemoval.ProtoReflect.Descriptor instead.
+func (*CloudContainerRemoval) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *CloudContainerRemoval) GetCloudSessionId() string {
+	if x != nil {
+		return x.CloudSessionId
+	}
+	return ""
+}
+
+func (x *CloudContainerRemoval) GetContainerId() string {
+	if x != nil {
+		return x.ContainerId
+	}
+	return ""
+}
+
+func (x *CloudContainerRemoval) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+// What the egress proxy lets one session's container reach.
+type CloudEgress struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	CloudSessionId string                 `protobuf:"bytes,1,opt,name=cloud_session_id,json=cloudSessionId,proto3" json:"cloud_session_id,omitempty"`
+	Allow          []string               `protobuf:"bytes,2,rep,name=allow,proto3" json:"allow,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *CloudEgress) Reset() {
+	*x = CloudEgress{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CloudEgress) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CloudEgress) ProtoMessage() {}
+
+func (x *CloudEgress) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CloudEgress.ProtoReflect.Descriptor instead.
+func (*CloudEgress) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *CloudEgress) GetCloudSessionId() string {
+	if x != nil {
+		return x.CloudSessionId
+	}
+	return ""
+}
+
+func (x *CloudEgress) GetAllow() []string {
+	if x != nil {
+		return x.Allow
+	}
+	return nil
+}
+
+type PollCloudRunnerResponse struct {
+	state  protoimpl.MessageState   `protogen:"open.v1"`
+	Config *CloudRunnerConfig       `protobuf:"bytes,1,opt,name=config,proto3" json:"config,omitempty"`
+	Start  []*CloudContainerSpec    `protobuf:"bytes,2,rep,name=start,proto3" json:"start,omitempty"`
+	Remove []*CloudContainerRemoval `protobuf:"bytes,3,rep,name=remove,proto3" json:"remove,omitempty"`
+	// For every session the runner should have a container of.
+	Egress []*CloudEgress `protobuf:"bytes,4,rep,name=egress,proto3" json:"egress,omitempty"`
+	// Containers at once.
+	MaxSessions   int32 `protobuf:"varint,5,opt,name=max_sessions,json=maxSessions,proto3" json:"max_sessions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PollCloudRunnerResponse) Reset() {
+	*x = PollCloudRunnerResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PollCloudRunnerResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PollCloudRunnerResponse) ProtoMessage() {}
+
+func (x *PollCloudRunnerResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PollCloudRunnerResponse.ProtoReflect.Descriptor instead.
+func (*PollCloudRunnerResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *PollCloudRunnerResponse) GetConfig() *CloudRunnerConfig {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
+func (x *PollCloudRunnerResponse) GetStart() []*CloudContainerSpec {
+	if x != nil {
+		return x.Start
+	}
+	return nil
+}
+
+func (x *PollCloudRunnerResponse) GetRemove() []*CloudContainerRemoval {
+	if x != nil {
+		return x.Remove
+	}
+	return nil
+}
+
+func (x *PollCloudRunnerResponse) GetEgress() []*CloudEgress {
+	if x != nil {
+		return x.Egress
+	}
+	return nil
+}
+
+func (x *PollCloudRunnerResponse) GetMaxSessions() int32 {
+	if x != nil {
+		return x.MaxSessions
+	}
+	return 0
+}
+
+type IssueCloudSessionTokenRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	CloudSessionId string                 `protobuf:"bytes,1,opt,name=cloud_session_id,json=cloudSessionId,proto3" json:"cloud_session_id,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *IssueCloudSessionTokenRequest) Reset() {
+	*x = IssueCloudSessionTokenRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IssueCloudSessionTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IssueCloudSessionTokenRequest) ProtoMessage() {}
+
+func (x *IssueCloudSessionTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IssueCloudSessionTokenRequest.ProtoReflect.Descriptor instead.
+func (*IssueCloudSessionTokenRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{53}
+}
+
+func (x *IssueCloudSessionTokenRequest) GetCloudSessionId() string {
+	if x != nil {
+		return x.CloudSessionId
+	}
+	return ""
+}
+
+type IssueCloudSessionTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeviceId      string                 `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	DeviceToken   string                 `protobuf:"bytes,2,opt,name=device_token,json=deviceToken,proto3" json:"device_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IssueCloudSessionTokenResponse) Reset() {
+	*x = IssueCloudSessionTokenResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IssueCloudSessionTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IssueCloudSessionTokenResponse) ProtoMessage() {}
+
+func (x *IssueCloudSessionTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IssueCloudSessionTokenResponse.ProtoReflect.Descriptor instead.
+func (*IssueCloudSessionTokenResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *IssueCloudSessionTokenResponse) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *IssueCloudSessionTokenResponse) GetDeviceToken() string {
+	if x != nil {
+		return x.DeviceToken
+	}
+	return ""
+}
+
+type UpdateCloudSessionRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	CloudSessionId string                 `protobuf:"bytes,1,opt,name=cloud_session_id,json=cloudSessionId,proto3" json:"cloud_session_id,omitempty"`
+	// STARTING with container_id: created and started. FAILED: could not. REMOVED: gone.
+	State         v11.CloudEnvironmentState `protobuf:"varint,2,opt,name=state,proto3,enum=harness.agent.v1.CloudEnvironmentState" json:"state,omitempty"`
+	ContainerId   string                    `protobuf:"bytes,3,opt,name=container_id,json=containerId,proto3" json:"container_id,omitempty"`
+	Error         string                    `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateCloudSessionRequest) Reset() {
+	*x = UpdateCloudSessionRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateCloudSessionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateCloudSessionRequest) ProtoMessage() {}
+
+func (x *UpdateCloudSessionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateCloudSessionRequest.ProtoReflect.Descriptor instead.
+func (*UpdateCloudSessionRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{55}
+}
+
+func (x *UpdateCloudSessionRequest) GetCloudSessionId() string {
+	if x != nil {
+		return x.CloudSessionId
+	}
+	return ""
+}
+
+func (x *UpdateCloudSessionRequest) GetState() v11.CloudEnvironmentState {
+	if x != nil {
+		return x.State
+	}
+	return v11.CloudEnvironmentState(0)
+}
+
+func (x *UpdateCloudSessionRequest) GetContainerId() string {
+	if x != nil {
+		return x.ContainerId
+	}
+	return ""
+}
+
+func (x *UpdateCloudSessionRequest) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type UpdateCloudSessionResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The session is no longer wanted: remove its container.
+	Remove        bool `protobuf:"varint,1,opt,name=remove,proto3" json:"remove,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateCloudSessionResponse) Reset() {
+	*x = UpdateCloudSessionResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[56]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateCloudSessionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateCloudSessionResponse) ProtoMessage() {}
+
+func (x *UpdateCloudSessionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[56]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateCloudSessionResponse.ProtoReflect.Descriptor instead.
+func (*UpdateCloudSessionResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{56}
+}
+
+func (x *UpdateCloudSessionResponse) GetRemove() bool {
+	if x != nil {
+		return x.Remove
+	}
+	return false
+}
+
 var File_harness_relay_v1_hosts_proto protoreflect.FileDescriptor
 
 const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\n" +
-	"\x1charness/relay/v1/hosts.proto\x12\x10harness.relay.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1fharness/agent/v1/auto_fix.proto\x1a\x1charness/llm/v1/content.proto\"\xd5\a\n" +
+	"\x1charness/relay/v1/hosts.proto\x12\x10harness.relay.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1fharness/agent/v1/auto_fix.proto\x1a\x1charness/llm/v1/content.proto\"\xd7\b\n" +
 	"\tAgentHost\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x126\n" +
@@ -3003,7 +4317,10 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"lastSeenAt\x12\x1d\n" +
 	"\n" +
 	"created_at\x18\x1a \x01(\tR\tcreatedAt\x12;\n" +
-	"\aworkers\x18\x1b \x03(\v2!.harness.relay.v1.AgentHostWorkerR\aworkers\"\xa7\x01\n" +
+	"\aworkers\x18\x1b \x03(\v2!.harness.relay.v1.AgentHostWorkerR\aworkers\x12:\n" +
+	"\x05cloud\x18\xc2\x03 \x01(\v2#.harness.relay.v1.CloudRunnerConfigR\x05cloud\x12D\n" +
+	"\vcloud_stats\x18\xc3\x03 \x01(\v2\".harness.relay.v1.CloudRunnerStatsR\n" +
+	"cloudStats\"\xa7\x01\n" +
 	"\x0fAgentHostWorker\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
 	"\tuser_name\x18\x02 \x01(\tR\buserName\x12\x1b\n" +
@@ -3013,17 +4330,18 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\x15ListAgentHostsRequest\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\"K\n" +
 	"\x16ListAgentHostsResponse\x121\n" +
-	"\x05hosts\x18\x01 \x03(\v2\x1b.harness.relay.v1.AgentHostR\x05hosts\"\x88\x02\n" +
+	"\x05hosts\x18\x01 \x03(\v2\x1b.harness.relay.v1.AgentHostR\x05hosts\"\xc4\x02\n" +
 	"\x16CreateAgentHostRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x126\n" +
 	"\x05scope\x18\x02 \x01(\x0e2 .harness.relay.v1.AgentHostScopeR\x05scope\x12\x19\n" +
 	"\bgroup_id\x18\x03 \x01(\tR\agroupId\x12!\n" +
 	"\fmax_sessions\x18\x04 \x01(\x05R\vmaxSessions\x121\n" +
 	"\x15max_sessions_per_user\x18\x05 \x01(\x05R\x12maxSessionsPerUser\x121\n" +
-	"\x14allowed_repositories\x18\x06 \x03(\tR\x13allowedRepositories\"m\n" +
+	"\x14allowed_repositories\x18\x06 \x03(\tR\x13allowedRepositories\x12:\n" +
+	"\x05cloud\x18\xc2\x03 \x01(\v2#.harness.relay.v1.CloudRunnerConfigR\x05cloud\"m\n" +
 	"\x17CreateAgentHostResponse\x12/\n" +
 	"\x04host\x18\x01 \x01(\v2\x1b.harness.relay.v1.AgentHostR\x04host\x12!\n" +
-	"\fdevice_token\x18\x02 \x01(\tR\vdeviceToken\"\x9d\x03\n" +
+	"\fdevice_token\x18\x02 \x01(\tR\vdeviceToken\"\xd9\x03\n" +
 	"\x16UpdateAgentHostRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x1f\n" +
@@ -3032,7 +4350,8 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\x15max_sessions_per_user\x18\x05 \x01(\x05H\x03R\x12maxSessionsPerUser\x88\x01\x01\x12\x1e\n" +
 	"\bgroup_id\x18\x06 \x01(\tH\x04R\agroupId\x88\x01\x01\x128\n" +
 	"\x18set_allowed_repositories\x18\a \x01(\bR\x16setAllowedRepositories\x121\n" +
-	"\x14allowed_repositories\x18\b \x03(\tR\x13allowedRepositoriesB\a\n" +
+	"\x14allowed_repositories\x18\b \x03(\tR\x13allowedRepositories\x12:\n" +
+	"\x05cloud\x18\xc2\x03 \x01(\v2#.harness.relay.v1.CloudRunnerConfigR\x05cloudB\a\n" +
 	"\x05_nameB\v\n" +
 	"\t_drainingB\x0f\n" +
 	"\r_max_sessionsB\x18\n" +
@@ -3042,7 +4361,7 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\x04host\x18\x01 \x01(\v2\x1b.harness.relay.v1.AgentHostR\x04host\"(\n" +
 	"\x16DeleteAgentHostRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x19\n" +
-	"\x17DeleteAgentHostResponse\"\xdc\x06\n" +
+	"\x17DeleteAgentHostResponse\"\xe9\a\n" +
 	"\bHostWork\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\ahost_id\x18\x02 \x01(\tR\x06hostId\x12\x1b\n" +
@@ -3072,7 +4391,11 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x17 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x18 \x01(\tR\tupdatedAt\"\xb7\x03\n" +
+	"updated_at\x18\x18 \x01(\tR\tupdatedAt\x12\x15\n" +
+	"\x05cloud\x18\xc2\x03 \x01(\bR\x05cloud\x12I\n" +
+	"\vcloud_state\x18\xc3\x03 \x01(\x0e2'.harness.agent.v1.CloudEnvironmentStateR\n" +
+	"cloudState\x12)\n" +
+	"\x10cloud_session_id\x18\xc4\x03 \x01(\tR\x0ecloudSessionId\"\xe5\x03\n" +
 	"\x14StartHostWorkRequest\x12\x17\n" +
 	"\ahost_id\x18\x01 \x01(\tR\x06hostId\x12%\n" +
 	"\x0erepository_key\x18\x02 \x01(\tR\rrepositoryKey\x12\x19\n" +
@@ -3086,7 +4409,9 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\vfresh_clone\x18\n" +
 	" \x01(\bR\n" +
 	"freshClone\x12'\n" +
-	"\x0fidempotency_key\x18\v \x01(\tR\x0eidempotencyKey\"G\n" +
+	"\x0fidempotency_key\x18\v \x01(\tR\x0eidempotencyKey\x12\x15\n" +
+	"\x05cloud\x18\xc2\x03 \x01(\bR\x05cloud\x12\x15\n" +
+	"\x05image\x18\xc3\x03 \x01(\tR\x05image\"G\n" +
 	"\x15StartHostWorkResponse\x12.\n" +
 	"\x04work\x18\x01 \x01(\v2\x1a.harness.relay.v1.HostWorkR\x04work\"$\n" +
 	"\x12GetHostWorkRequest\x12\x0e\n" +
@@ -3119,12 +4444,15 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\x04arch\x18\x05 \x01(\tR\x04arch\x12%\n" +
 	"\x0eclient_version\x18\x06 \x01(\tR\rclientVersion\x12\x1b\n" +
 	"\tcpu_count\x18\a \x01(\x05R\bcpuCount\x12!\n" +
-	"\fmax_sessions\x18\b \x01(\x05R\vmaxSessions\"l\n" +
+	"\fmax_sessions\x18\b \x01(\x05R\vmaxSessions\"\xdb\x01\n" +
 	"\x19RegisterAgentHostResponse\x12/\n" +
 	"\x04host\x18\x01 \x01(\v2\x1b.harness.relay.v1.AgentHostR\x04host\x12\x1e\n" +
 	"\n" +
 	"supervisor\x18\x02 \x01(\bR\n" +
-	"supervisor\"\x8e\x01\n" +
+	"supervisor\x12\x17\n" +
+	"\x06runner\x18\xc2\x03 \x01(\bR\x06runner\x12\x15\n" +
+	"\x05cloud\x18\xc3\x03 \x01(\bR\x05cloud\x12=\n" +
+	"\x1abypass_permissions_allowed\x18\xc4\x03 \x01(\bR\x18bypassPermissionsAllowed\"\x8e\x01\n" +
 	"\x16ReportAgentHostRequest\x12)\n" +
 	"\x10working_sessions\x18\x01 \x01(\x05R\x0fworkingSessions\x12!\n" +
 	"\fload_average\x18\x02 \x01(\x01R\vloadAverage\x12&\n" +
@@ -3183,15 +4511,118 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"Z\n" +
 	"\x18IssueWorkerTokenResponse\x12\x1b\n" +
 	"\tdevice_id\x18\x01 \x01(\tR\bdeviceId\x12!\n" +
-	"\fdevice_token\x18\x02 \x01(\tR\vdeviceToken*h\n" +
+	"\fdevice_token\x18\x02 \x01(\tR\vdeviceToken\"\xb6\x03\n" +
+	"\x11CloudRunnerConfig\x12\x14\n" +
+	"\x05image\x18\x01 \x01(\tR\x05image\x12%\n" +
+	"\x0eallowed_images\x18\x02 \x03(\tR\rallowedImages\x12\x18\n" +
+	"\aruntime\x18\x03 \x01(\tR\aruntime\x12\x1d\n" +
+	"\n" +
+	"cpu_millis\x18\x04 \x01(\x05R\tcpuMillis\x12!\n" +
+	"\fmemory_bytes\x18\x05 \x01(\x03R\vmemoryBytes\x12\x1d\n" +
+	"\n" +
+	"disk_bytes\x18\x06 \x01(\x03R\tdiskBytes\x12\x12\n" +
+	"\x04pids\x18\a \x01(\x05R\x04pids\x120\n" +
+	"\x14idle_timeout_seconds\x18\b \x01(\x05R\x12idleTimeoutSeconds\x120\n" +
+	"\x14max_lifetime_seconds\x18\t \x01(\x05R\x12maxLifetimeSeconds\x12&\n" +
+	"\x0fcache_max_bytes\x18\n" +
+	" \x01(\x03R\rcacheMaxBytes\x12\x1f\n" +
+	"\vcache_scope\x18\v \x01(\tR\n" +
+	"cacheScope\x12(\n" +
+	"\x10storage_opt_size\x18\f \x01(\bR\x0estorageOptSize\"\x8e\x01\n" +
+	"\x10CloudRunnerStats\x12\x1a\n" +
+	"\bstarting\x18\x01 \x01(\x05R\bstarting\x12\x18\n" +
+	"\arunning\x18\x02 \x01(\x05R\arunning\x12\x12\n" +
+	"\x04idle\x18\x03 \x01(\x05R\x04idle\x12\x18\n" +
+	"\aremoved\x18\x04 \x01(\x05R\aremoved\x12\x16\n" +
+	"\x06failed\x18\x05 \x01(\x05R\x06failed\"\xb1\x04\n" +
+	"\fCloudSession\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\ahost_id\x18\x02 \x01(\tR\x06hostId\x12\x1b\n" +
+	"\thost_name\x18\x03 \x01(\tR\bhostName\x12\x17\n" +
+	"\auser_id\x18\x04 \x01(\tR\x06userId\x12\x1b\n" +
+	"\tuser_name\x18\x05 \x01(\tR\buserName\x12\x17\n" +
+	"\awork_id\x18\x06 \x01(\tR\x06workId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\a \x01(\tR\tsessionId\x12=\n" +
+	"\x05state\x18\b \x01(\x0e2'.harness.agent.v1.CloudEnvironmentStateR\x05state\x12!\n" +
+	"\fcontainer_id\x18\t \x01(\tR\vcontainerId\x12\x14\n" +
+	"\x05image\x18\n" +
+	" \x01(\tR\x05image\x12%\n" +
+	"\x0erepository_key\x18\v \x01(\tR\rrepositoryKey\x12\x14\n" +
+	"\x05error\x18\f \x01(\tR\x05error\x12\x1d\n" +
+	"\n" +
+	"disk_bytes\x18\r \x01(\x03R\tdiskBytes\x12\x16\n" +
+	"\x06starts\x18\x0e \x01(\x05R\x06starts\x12\x1d\n" +
+	"\n" +
+	"started_at\x18\x0f \x01(\tR\tstartedAt\x12$\n" +
+	"\x0elast_active_at\x18\x10 \x01(\tR\flastActiveAt\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x11 \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x12 \x01(\tR\tupdatedAt\"I\n" +
+	"\x18ListCloudSessionsRequest\x12\x17\n" +
+	"\ahost_id\x18\x01 \x01(\tR\x06hostId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"W\n" +
+	"\x19ListCloudSessionsResponse\x12:\n" +
+	"\bsessions\x18\x01 \x03(\v2\x1e.harness.relay.v1.CloudSessionR\bsessions\";\n" +
+	"\x17StopCloudSessionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
+	"\x03end\x18\x02 \x01(\bR\x03end\"T\n" +
+	"\x18StopCloudSessionResponse\x128\n" +
+	"\asession\x18\x01 \x01(\v2\x1e.harness.relay.v1.CloudSessionR\asession\"\xb5\x01\n" +
+	"\x0eCloudContainer\x12(\n" +
+	"\x10cloud_session_id\x18\x01 \x01(\tR\x0ecloudSessionId\x12!\n" +
+	"\fcontainer_id\x18\x02 \x01(\tR\vcontainerId\x12\x18\n" +
+	"\arunning\x18\x03 \x01(\bR\arunning\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x04 \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"disk_bytes\x18\x05 \x01(\x03R\tdiskBytes\"\x99\x01\n" +
+	"\x16PollCloudRunnerRequest\x12!\n" +
+	"\fwait_seconds\x18\x01 \x01(\x05R\vwaitSeconds\x12@\n" +
+	"\n" +
+	"containers\x18\x02 \x03(\v2 .harness.relay.v1.CloudContainerR\n" +
+	"containers\x12\x1a\n" +
+	"\bcreating\x18\x03 \x03(\tR\bcreating\"q\n" +
+	"\x12CloudContainerSpec\x12(\n" +
+	"\x10cloud_session_id\x18\x01 \x01(\tR\x0ecloudSessionId\x12\x14\n" +
+	"\x05image\x18\x02 \x01(\tR\x05image\x12\x1b\n" +
+	"\tcache_key\x18\x03 \x01(\tR\bcacheKey\"|\n" +
+	"\x15CloudContainerRemoval\x12(\n" +
+	"\x10cloud_session_id\x18\x01 \x01(\tR\x0ecloudSessionId\x12!\n" +
+	"\fcontainer_id\x18\x02 \x01(\tR\vcontainerId\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"M\n" +
+	"\vCloudEgress\x12(\n" +
+	"\x10cloud_session_id\x18\x01 \x01(\tR\x0ecloudSessionId\x12\x14\n" +
+	"\x05allow\x18\x02 \x03(\tR\x05allow\"\xad\x02\n" +
+	"\x17PollCloudRunnerResponse\x12;\n" +
+	"\x06config\x18\x01 \x01(\v2#.harness.relay.v1.CloudRunnerConfigR\x06config\x12:\n" +
+	"\x05start\x18\x02 \x03(\v2$.harness.relay.v1.CloudContainerSpecR\x05start\x12?\n" +
+	"\x06remove\x18\x03 \x03(\v2'.harness.relay.v1.CloudContainerRemovalR\x06remove\x125\n" +
+	"\x06egress\x18\x04 \x03(\v2\x1d.harness.relay.v1.CloudEgressR\x06egress\x12!\n" +
+	"\fmax_sessions\x18\x05 \x01(\x05R\vmaxSessions\"I\n" +
+	"\x1dIssueCloudSessionTokenRequest\x12(\n" +
+	"\x10cloud_session_id\x18\x01 \x01(\tR\x0ecloudSessionId\"`\n" +
+	"\x1eIssueCloudSessionTokenResponse\x12\x1b\n" +
+	"\tdevice_id\x18\x01 \x01(\tR\bdeviceId\x12!\n" +
+	"\fdevice_token\x18\x02 \x01(\tR\vdeviceToken\"\xbd\x01\n" +
+	"\x19UpdateCloudSessionRequest\x12(\n" +
+	"\x10cloud_session_id\x18\x01 \x01(\tR\x0ecloudSessionId\x12=\n" +
+	"\x05state\x18\x02 \x01(\x0e2'.harness.agent.v1.CloudEnvironmentStateR\x05state\x12!\n" +
+	"\fcontainer_id\x18\x03 \x01(\tR\vcontainerId\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\"4\n" +
+	"\x1aUpdateCloudSessionResponse\x12\x16\n" +
+	"\x06remove\x18\x01 \x01(\bR\x06remove*\x85\x01\n" +
 	"\x0eAgentHostScope\x12 \n" +
 	"\x1cAGENT_HOST_SCOPE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15AGENT_HOST_SCOPE_USER\x10\x01\x12\x19\n" +
-	"\x15AGENT_HOST_SCOPE_TEAM\x10\x02*w\n" +
+	"\x15AGENT_HOST_SCOPE_TEAM\x10\x02\x12\x1b\n" +
+	"\x16AGENT_HOST_SCOPE_CLOUD\x10\xc2\x03*\x9c\x01\n" +
 	"\x12AgentHostIsolation\x12$\n" +
 	" AGENT_HOST_ISOLATION_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19AGENT_HOST_ISOLATION_NONE\x10\x01\x12\x1c\n" +
-	"\x18AGENT_HOST_ISOLATION_UID\x10\x02*\x87\x01\n" +
+	"\x18AGENT_HOST_ISOLATION_UID\x10\x02\x12#\n" +
+	"\x1eAGENT_HOST_ISOLATION_CONTAINER\x10\xc2\x03*\x87\x01\n" +
 	"\fHostWorkKind\x12\x1e\n" +
 	"\x1aHOST_WORK_KIND_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aHOST_WORK_KIND_NEW_SESSION\x10\x01\x12\x1b\n" +
@@ -3210,7 +4641,7 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\x1dHOST_WORK_LANDING_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eHOST_WORK_LANDING_PULL_REQUEST\x10\x01\x12\x1c\n" +
 	"\x18HOST_WORK_LANDING_BRANCH\x10\x02\x12\x1a\n" +
-	"\x16HOST_WORK_LANDING_NONE\x10\x032\xf4\a\n" +
+	"\x16HOST_WORK_LANDING_NONE\x10\x032\xcd\t\n" +
 	"\fHostsService\x12c\n" +
 	"\x0eListAgentHosts\x12'.harness.relay.v1.ListAgentHostsRequest\x1a(.harness.relay.v1.ListAgentHostsResponse\x12f\n" +
 	"\x0fCreateAgentHost\x12(.harness.relay.v1.CreateAgentHostRequest\x1a).harness.relay.v1.CreateAgentHostResponse\x12f\n" +
@@ -3221,7 +4652,9 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\fListHostWork\x12%.harness.relay.v1.ListHostWorkRequest\x1a&.harness.relay.v1.ListHostWorkResponse\x12c\n" +
 	"\x0eCancelHostWork\x12'.harness.relay.v1.CancelHostWorkRequest\x1a(.harness.relay.v1.CancelHostWorkResponse\x12Z\n" +
 	"\vSetAwayHost\x12$.harness.relay.v1.SetAwayHostRequest\x1a%.harness.relay.v1.SetAwayHostResponse\x12i\n" +
-	"\x10ClaimScheduleRun\x12).harness.relay.v1.ClaimScheduleRunRequest\x1a*.harness.relay.v1.ClaimScheduleRunResponse2\xf0\x06\n" +
+	"\x10ClaimScheduleRun\x12).harness.relay.v1.ClaimScheduleRunRequest\x1a*.harness.relay.v1.ClaimScheduleRunResponse\x12l\n" +
+	"\x11ListCloudSessions\x12*.harness.relay.v1.ListCloudSessionsRequest\x1a+.harness.relay.v1.ListCloudSessionsResponse\x12i\n" +
+	"\x10StopCloudSession\x12).harness.relay.v1.StopCloudSessionRequest\x1a*.harness.relay.v1.StopCloudSessionResponse2\xc6\t\n" +
 	"\x10HostAgentService\x12l\n" +
 	"\x11RegisterAgentHost\x12*.harness.relay.v1.RegisterAgentHostRequest\x1a+.harness.relay.v1.RegisterAgentHostResponse\x12f\n" +
 	"\x0fReportAgentHost\x12(.harness.relay.v1.ReportAgentHostRequest\x1a).harness.relay.v1.ReportAgentHostResponse\x12`\n" +
@@ -3230,7 +4663,10 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\x13IssueGitCredentials\x12,.harness.relay.v1.IssueGitCredentialsRequest\x1a-.harness.relay.v1.IssueGitCredentialsResponse\x12r\n" +
 	"\x13OpenHostPullRequest\x12,.harness.relay.v1.OpenHostPullRequestRequest\x1a-.harness.relay.v1.OpenHostPullRequestResponse\x12l\n" +
 	"\x11ListWantedWorkers\x12*.harness.relay.v1.ListWantedWorkersRequest\x1a+.harness.relay.v1.ListWantedWorkersResponse\x12i\n" +
-	"\x10IssueWorkerToken\x12).harness.relay.v1.IssueWorkerTokenRequest\x1a*.harness.relay.v1.IssueWorkerTokenResponseB\xcb\x01\n" +
+	"\x10IssueWorkerToken\x12).harness.relay.v1.IssueWorkerTokenRequest\x1a*.harness.relay.v1.IssueWorkerTokenResponse\x12f\n" +
+	"\x0fPollCloudRunner\x12(.harness.relay.v1.PollCloudRunnerRequest\x1a).harness.relay.v1.PollCloudRunnerResponse\x12{\n" +
+	"\x16IssueCloudSessionToken\x12/.harness.relay.v1.IssueCloudSessionTokenRequest\x1a0.harness.relay.v1.IssueCloudSessionTokenResponse\x12o\n" +
+	"\x12UpdateCloudSession\x12+.harness.relay.v1.UpdateCloudSessionRequest\x1a,.harness.relay.v1.UpdateCloudSessionResponseB\xcb\x01\n" +
 	"\x14com.harness.relay.v1B\n" +
 	"HostsProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/relay/v1;relayv1\xa2\x02\x03HRX\xaa\x02\x10Harness.Relay.V1\xca\x02\x10Harness\\Relay\\V1\xe2\x02\x1cHarness\\Relay\\V1\\GPBMetadata\xea\x02\x12Harness::Relay::V1b\x06proto3"
 
@@ -3247,124 +4683,166 @@ func file_harness_relay_v1_hosts_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_relay_v1_hosts_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_harness_relay_v1_hosts_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
+var file_harness_relay_v1_hosts_proto_msgTypes = make([]protoimpl.MessageInfo, 57)
 var file_harness_relay_v1_hosts_proto_goTypes = []any{
-	(AgentHostScope)(0),                 // 0: harness.relay.v1.AgentHostScope
-	(AgentHostIsolation)(0),             // 1: harness.relay.v1.AgentHostIsolation
-	(HostWorkKind)(0),                   // 2: harness.relay.v1.HostWorkKind
-	(HostWorkState)(0),                  // 3: harness.relay.v1.HostWorkState
-	(HostWorkLanding)(0),                // 4: harness.relay.v1.HostWorkLanding
-	(*AgentHost)(nil),                   // 5: harness.relay.v1.AgentHost
-	(*AgentHostWorker)(nil),             // 6: harness.relay.v1.AgentHostWorker
-	(*ListAgentHostsRequest)(nil),       // 7: harness.relay.v1.ListAgentHostsRequest
-	(*ListAgentHostsResponse)(nil),      // 8: harness.relay.v1.ListAgentHostsResponse
-	(*CreateAgentHostRequest)(nil),      // 9: harness.relay.v1.CreateAgentHostRequest
-	(*CreateAgentHostResponse)(nil),     // 10: harness.relay.v1.CreateAgentHostResponse
-	(*UpdateAgentHostRequest)(nil),      // 11: harness.relay.v1.UpdateAgentHostRequest
-	(*UpdateAgentHostResponse)(nil),     // 12: harness.relay.v1.UpdateAgentHostResponse
-	(*DeleteAgentHostRequest)(nil),      // 13: harness.relay.v1.DeleteAgentHostRequest
-	(*DeleteAgentHostResponse)(nil),     // 14: harness.relay.v1.DeleteAgentHostResponse
-	(*HostWork)(nil),                    // 15: harness.relay.v1.HostWork
-	(*StartHostWorkRequest)(nil),        // 16: harness.relay.v1.StartHostWorkRequest
-	(*StartHostWorkResponse)(nil),       // 17: harness.relay.v1.StartHostWorkResponse
-	(*GetHostWorkRequest)(nil),          // 18: harness.relay.v1.GetHostWorkRequest
-	(*GetHostWorkResponse)(nil),         // 19: harness.relay.v1.GetHostWorkResponse
-	(*ListHostWorkRequest)(nil),         // 20: harness.relay.v1.ListHostWorkRequest
-	(*ListHostWorkResponse)(nil),        // 21: harness.relay.v1.ListHostWorkResponse
-	(*CancelHostWorkRequest)(nil),       // 22: harness.relay.v1.CancelHostWorkRequest
-	(*CancelHostWorkResponse)(nil),      // 23: harness.relay.v1.CancelHostWorkResponse
-	(*SetAwayHostRequest)(nil),          // 24: harness.relay.v1.SetAwayHostRequest
-	(*SetAwayHostResponse)(nil),         // 25: harness.relay.v1.SetAwayHostResponse
-	(*ClaimScheduleRunRequest)(nil),     // 26: harness.relay.v1.ClaimScheduleRunRequest
-	(*ClaimScheduleRunResponse)(nil),    // 27: harness.relay.v1.ClaimScheduleRunResponse
-	(*RegisterAgentHostRequest)(nil),    // 28: harness.relay.v1.RegisterAgentHostRequest
-	(*RegisterAgentHostResponse)(nil),   // 29: harness.relay.v1.RegisterAgentHostResponse
-	(*ReportAgentHostRequest)(nil),      // 30: harness.relay.v1.ReportAgentHostRequest
-	(*ReportAgentHostResponse)(nil),     // 31: harness.relay.v1.ReportAgentHostResponse
-	(*ClaimHostWorkRequest)(nil),        // 32: harness.relay.v1.ClaimHostWorkRequest
-	(*ClaimHostWorkResponse)(nil),       // 33: harness.relay.v1.ClaimHostWorkResponse
-	(*UpdateHostWorkRequest)(nil),       // 34: harness.relay.v1.UpdateHostWorkRequest
-	(*UpdateHostWorkResponse)(nil),      // 35: harness.relay.v1.UpdateHostWorkResponse
-	(*IssueGitCredentialsRequest)(nil),  // 36: harness.relay.v1.IssueGitCredentialsRequest
-	(*IssueGitCredentialsResponse)(nil), // 37: harness.relay.v1.IssueGitCredentialsResponse
-	(*OpenHostPullRequestRequest)(nil),  // 38: harness.relay.v1.OpenHostPullRequestRequest
-	(*OpenHostPullRequestResponse)(nil), // 39: harness.relay.v1.OpenHostPullRequestResponse
-	(*ListWantedWorkersRequest)(nil),    // 40: harness.relay.v1.ListWantedWorkersRequest
-	(*WantedWorker)(nil),                // 41: harness.relay.v1.WantedWorker
-	(*ListWantedWorkersResponse)(nil),   // 42: harness.relay.v1.ListWantedWorkersResponse
-	(*IssueWorkerTokenRequest)(nil),     // 43: harness.relay.v1.IssueWorkerTokenRequest
-	(*IssueWorkerTokenResponse)(nil),    // 44: harness.relay.v1.IssueWorkerTokenResponse
-	(v1.Effort)(0),                      // 45: harness.llm.v1.Effort
-	(v11.PermissionMode)(0),             // 46: harness.agent.v1.PermissionMode
-	(*v11.AutoFixJob)(nil),              // 47: harness.agent.v1.AutoFixJob
+	(AgentHostScope)(0),                    // 0: harness.relay.v1.AgentHostScope
+	(AgentHostIsolation)(0),                // 1: harness.relay.v1.AgentHostIsolation
+	(HostWorkKind)(0),                      // 2: harness.relay.v1.HostWorkKind
+	(HostWorkState)(0),                     // 3: harness.relay.v1.HostWorkState
+	(HostWorkLanding)(0),                   // 4: harness.relay.v1.HostWorkLanding
+	(*AgentHost)(nil),                      // 5: harness.relay.v1.AgentHost
+	(*AgentHostWorker)(nil),                // 6: harness.relay.v1.AgentHostWorker
+	(*ListAgentHostsRequest)(nil),          // 7: harness.relay.v1.ListAgentHostsRequest
+	(*ListAgentHostsResponse)(nil),         // 8: harness.relay.v1.ListAgentHostsResponse
+	(*CreateAgentHostRequest)(nil),         // 9: harness.relay.v1.CreateAgentHostRequest
+	(*CreateAgentHostResponse)(nil),        // 10: harness.relay.v1.CreateAgentHostResponse
+	(*UpdateAgentHostRequest)(nil),         // 11: harness.relay.v1.UpdateAgentHostRequest
+	(*UpdateAgentHostResponse)(nil),        // 12: harness.relay.v1.UpdateAgentHostResponse
+	(*DeleteAgentHostRequest)(nil),         // 13: harness.relay.v1.DeleteAgentHostRequest
+	(*DeleteAgentHostResponse)(nil),        // 14: harness.relay.v1.DeleteAgentHostResponse
+	(*HostWork)(nil),                       // 15: harness.relay.v1.HostWork
+	(*StartHostWorkRequest)(nil),           // 16: harness.relay.v1.StartHostWorkRequest
+	(*StartHostWorkResponse)(nil),          // 17: harness.relay.v1.StartHostWorkResponse
+	(*GetHostWorkRequest)(nil),             // 18: harness.relay.v1.GetHostWorkRequest
+	(*GetHostWorkResponse)(nil),            // 19: harness.relay.v1.GetHostWorkResponse
+	(*ListHostWorkRequest)(nil),            // 20: harness.relay.v1.ListHostWorkRequest
+	(*ListHostWorkResponse)(nil),           // 21: harness.relay.v1.ListHostWorkResponse
+	(*CancelHostWorkRequest)(nil),          // 22: harness.relay.v1.CancelHostWorkRequest
+	(*CancelHostWorkResponse)(nil),         // 23: harness.relay.v1.CancelHostWorkResponse
+	(*SetAwayHostRequest)(nil),             // 24: harness.relay.v1.SetAwayHostRequest
+	(*SetAwayHostResponse)(nil),            // 25: harness.relay.v1.SetAwayHostResponse
+	(*ClaimScheduleRunRequest)(nil),        // 26: harness.relay.v1.ClaimScheduleRunRequest
+	(*ClaimScheduleRunResponse)(nil),       // 27: harness.relay.v1.ClaimScheduleRunResponse
+	(*RegisterAgentHostRequest)(nil),       // 28: harness.relay.v1.RegisterAgentHostRequest
+	(*RegisterAgentHostResponse)(nil),      // 29: harness.relay.v1.RegisterAgentHostResponse
+	(*ReportAgentHostRequest)(nil),         // 30: harness.relay.v1.ReportAgentHostRequest
+	(*ReportAgentHostResponse)(nil),        // 31: harness.relay.v1.ReportAgentHostResponse
+	(*ClaimHostWorkRequest)(nil),           // 32: harness.relay.v1.ClaimHostWorkRequest
+	(*ClaimHostWorkResponse)(nil),          // 33: harness.relay.v1.ClaimHostWorkResponse
+	(*UpdateHostWorkRequest)(nil),          // 34: harness.relay.v1.UpdateHostWorkRequest
+	(*UpdateHostWorkResponse)(nil),         // 35: harness.relay.v1.UpdateHostWorkResponse
+	(*IssueGitCredentialsRequest)(nil),     // 36: harness.relay.v1.IssueGitCredentialsRequest
+	(*IssueGitCredentialsResponse)(nil),    // 37: harness.relay.v1.IssueGitCredentialsResponse
+	(*OpenHostPullRequestRequest)(nil),     // 38: harness.relay.v1.OpenHostPullRequestRequest
+	(*OpenHostPullRequestResponse)(nil),    // 39: harness.relay.v1.OpenHostPullRequestResponse
+	(*ListWantedWorkersRequest)(nil),       // 40: harness.relay.v1.ListWantedWorkersRequest
+	(*WantedWorker)(nil),                   // 41: harness.relay.v1.WantedWorker
+	(*ListWantedWorkersResponse)(nil),      // 42: harness.relay.v1.ListWantedWorkersResponse
+	(*IssueWorkerTokenRequest)(nil),        // 43: harness.relay.v1.IssueWorkerTokenRequest
+	(*IssueWorkerTokenResponse)(nil),       // 44: harness.relay.v1.IssueWorkerTokenResponse
+	(*CloudRunnerConfig)(nil),              // 45: harness.relay.v1.CloudRunnerConfig
+	(*CloudRunnerStats)(nil),               // 46: harness.relay.v1.CloudRunnerStats
+	(*CloudSession)(nil),                   // 47: harness.relay.v1.CloudSession
+	(*ListCloudSessionsRequest)(nil),       // 48: harness.relay.v1.ListCloudSessionsRequest
+	(*ListCloudSessionsResponse)(nil),      // 49: harness.relay.v1.ListCloudSessionsResponse
+	(*StopCloudSessionRequest)(nil),        // 50: harness.relay.v1.StopCloudSessionRequest
+	(*StopCloudSessionResponse)(nil),       // 51: harness.relay.v1.StopCloudSessionResponse
+	(*CloudContainer)(nil),                 // 52: harness.relay.v1.CloudContainer
+	(*PollCloudRunnerRequest)(nil),         // 53: harness.relay.v1.PollCloudRunnerRequest
+	(*CloudContainerSpec)(nil),             // 54: harness.relay.v1.CloudContainerSpec
+	(*CloudContainerRemoval)(nil),          // 55: harness.relay.v1.CloudContainerRemoval
+	(*CloudEgress)(nil),                    // 56: harness.relay.v1.CloudEgress
+	(*PollCloudRunnerResponse)(nil),        // 57: harness.relay.v1.PollCloudRunnerResponse
+	(*IssueCloudSessionTokenRequest)(nil),  // 58: harness.relay.v1.IssueCloudSessionTokenRequest
+	(*IssueCloudSessionTokenResponse)(nil), // 59: harness.relay.v1.IssueCloudSessionTokenResponse
+	(*UpdateCloudSessionRequest)(nil),      // 60: harness.relay.v1.UpdateCloudSessionRequest
+	(*UpdateCloudSessionResponse)(nil),     // 61: harness.relay.v1.UpdateCloudSessionResponse
+	(v1.Effort)(0),                         // 62: harness.llm.v1.Effort
+	(v11.PermissionMode)(0),                // 63: harness.agent.v1.PermissionMode
+	(*v11.AutoFixJob)(nil),                 // 64: harness.agent.v1.AutoFixJob
+	(v11.CloudEnvironmentState)(0),         // 65: harness.agent.v1.CloudEnvironmentState
 }
 var file_harness_relay_v1_hosts_proto_depIdxs = []int32{
 	0,  // 0: harness.relay.v1.AgentHost.scope:type_name -> harness.relay.v1.AgentHostScope
 	1,  // 1: harness.relay.v1.AgentHost.isolation:type_name -> harness.relay.v1.AgentHostIsolation
 	6,  // 2: harness.relay.v1.AgentHost.workers:type_name -> harness.relay.v1.AgentHostWorker
-	5,  // 3: harness.relay.v1.ListAgentHostsResponse.hosts:type_name -> harness.relay.v1.AgentHost
-	0,  // 4: harness.relay.v1.CreateAgentHostRequest.scope:type_name -> harness.relay.v1.AgentHostScope
-	5,  // 5: harness.relay.v1.CreateAgentHostResponse.host:type_name -> harness.relay.v1.AgentHost
-	5,  // 6: harness.relay.v1.UpdateAgentHostResponse.host:type_name -> harness.relay.v1.AgentHost
-	2,  // 7: harness.relay.v1.HostWork.kind:type_name -> harness.relay.v1.HostWorkKind
-	3,  // 8: harness.relay.v1.HostWork.state:type_name -> harness.relay.v1.HostWorkState
-	4,  // 9: harness.relay.v1.HostWork.landing:type_name -> harness.relay.v1.HostWorkLanding
-	45, // 10: harness.relay.v1.HostWork.effort:type_name -> harness.llm.v1.Effort
-	46, // 11: harness.relay.v1.HostWork.permission_mode:type_name -> harness.agent.v1.PermissionMode
-	47, // 12: harness.relay.v1.HostWork.job:type_name -> harness.agent.v1.AutoFixJob
-	45, // 13: harness.relay.v1.StartHostWorkRequest.effort:type_name -> harness.llm.v1.Effort
-	46, // 14: harness.relay.v1.StartHostWorkRequest.permission_mode:type_name -> harness.agent.v1.PermissionMode
-	4,  // 15: harness.relay.v1.StartHostWorkRequest.landing:type_name -> harness.relay.v1.HostWorkLanding
-	15, // 16: harness.relay.v1.StartHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
-	15, // 17: harness.relay.v1.GetHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
-	15, // 18: harness.relay.v1.ListHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
-	15, // 19: harness.relay.v1.CancelHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
-	1,  // 20: harness.relay.v1.RegisterAgentHostRequest.isolation:type_name -> harness.relay.v1.AgentHostIsolation
-	5,  // 21: harness.relay.v1.RegisterAgentHostResponse.host:type_name -> harness.relay.v1.AgentHost
-	15, // 22: harness.relay.v1.ClaimHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
-	3,  // 23: harness.relay.v1.UpdateHostWorkRequest.state:type_name -> harness.relay.v1.HostWorkState
-	41, // 24: harness.relay.v1.ListWantedWorkersResponse.workers:type_name -> harness.relay.v1.WantedWorker
-	7,  // 25: harness.relay.v1.HostsService.ListAgentHosts:input_type -> harness.relay.v1.ListAgentHostsRequest
-	9,  // 26: harness.relay.v1.HostsService.CreateAgentHost:input_type -> harness.relay.v1.CreateAgentHostRequest
-	11, // 27: harness.relay.v1.HostsService.UpdateAgentHost:input_type -> harness.relay.v1.UpdateAgentHostRequest
-	13, // 28: harness.relay.v1.HostsService.DeleteAgentHost:input_type -> harness.relay.v1.DeleteAgentHostRequest
-	16, // 29: harness.relay.v1.HostsService.StartHostWork:input_type -> harness.relay.v1.StartHostWorkRequest
-	18, // 30: harness.relay.v1.HostsService.GetHostWork:input_type -> harness.relay.v1.GetHostWorkRequest
-	20, // 31: harness.relay.v1.HostsService.ListHostWork:input_type -> harness.relay.v1.ListHostWorkRequest
-	22, // 32: harness.relay.v1.HostsService.CancelHostWork:input_type -> harness.relay.v1.CancelHostWorkRequest
-	24, // 33: harness.relay.v1.HostsService.SetAwayHost:input_type -> harness.relay.v1.SetAwayHostRequest
-	26, // 34: harness.relay.v1.HostsService.ClaimScheduleRun:input_type -> harness.relay.v1.ClaimScheduleRunRequest
-	28, // 35: harness.relay.v1.HostAgentService.RegisterAgentHost:input_type -> harness.relay.v1.RegisterAgentHostRequest
-	30, // 36: harness.relay.v1.HostAgentService.ReportAgentHost:input_type -> harness.relay.v1.ReportAgentHostRequest
-	32, // 37: harness.relay.v1.HostAgentService.ClaimHostWork:input_type -> harness.relay.v1.ClaimHostWorkRequest
-	34, // 38: harness.relay.v1.HostAgentService.UpdateHostWork:input_type -> harness.relay.v1.UpdateHostWorkRequest
-	36, // 39: harness.relay.v1.HostAgentService.IssueGitCredentials:input_type -> harness.relay.v1.IssueGitCredentialsRequest
-	38, // 40: harness.relay.v1.HostAgentService.OpenHostPullRequest:input_type -> harness.relay.v1.OpenHostPullRequestRequest
-	40, // 41: harness.relay.v1.HostAgentService.ListWantedWorkers:input_type -> harness.relay.v1.ListWantedWorkersRequest
-	43, // 42: harness.relay.v1.HostAgentService.IssueWorkerToken:input_type -> harness.relay.v1.IssueWorkerTokenRequest
-	8,  // 43: harness.relay.v1.HostsService.ListAgentHosts:output_type -> harness.relay.v1.ListAgentHostsResponse
-	10, // 44: harness.relay.v1.HostsService.CreateAgentHost:output_type -> harness.relay.v1.CreateAgentHostResponse
-	12, // 45: harness.relay.v1.HostsService.UpdateAgentHost:output_type -> harness.relay.v1.UpdateAgentHostResponse
-	14, // 46: harness.relay.v1.HostsService.DeleteAgentHost:output_type -> harness.relay.v1.DeleteAgentHostResponse
-	17, // 47: harness.relay.v1.HostsService.StartHostWork:output_type -> harness.relay.v1.StartHostWorkResponse
-	19, // 48: harness.relay.v1.HostsService.GetHostWork:output_type -> harness.relay.v1.GetHostWorkResponse
-	21, // 49: harness.relay.v1.HostsService.ListHostWork:output_type -> harness.relay.v1.ListHostWorkResponse
-	23, // 50: harness.relay.v1.HostsService.CancelHostWork:output_type -> harness.relay.v1.CancelHostWorkResponse
-	25, // 51: harness.relay.v1.HostsService.SetAwayHost:output_type -> harness.relay.v1.SetAwayHostResponse
-	27, // 52: harness.relay.v1.HostsService.ClaimScheduleRun:output_type -> harness.relay.v1.ClaimScheduleRunResponse
-	29, // 53: harness.relay.v1.HostAgentService.RegisterAgentHost:output_type -> harness.relay.v1.RegisterAgentHostResponse
-	31, // 54: harness.relay.v1.HostAgentService.ReportAgentHost:output_type -> harness.relay.v1.ReportAgentHostResponse
-	33, // 55: harness.relay.v1.HostAgentService.ClaimHostWork:output_type -> harness.relay.v1.ClaimHostWorkResponse
-	35, // 56: harness.relay.v1.HostAgentService.UpdateHostWork:output_type -> harness.relay.v1.UpdateHostWorkResponse
-	37, // 57: harness.relay.v1.HostAgentService.IssueGitCredentials:output_type -> harness.relay.v1.IssueGitCredentialsResponse
-	39, // 58: harness.relay.v1.HostAgentService.OpenHostPullRequest:output_type -> harness.relay.v1.OpenHostPullRequestResponse
-	42, // 59: harness.relay.v1.HostAgentService.ListWantedWorkers:output_type -> harness.relay.v1.ListWantedWorkersResponse
-	44, // 60: harness.relay.v1.HostAgentService.IssueWorkerToken:output_type -> harness.relay.v1.IssueWorkerTokenResponse
-	43, // [43:61] is the sub-list for method output_type
-	25, // [25:43] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	45, // 3: harness.relay.v1.AgentHost.cloud:type_name -> harness.relay.v1.CloudRunnerConfig
+	46, // 4: harness.relay.v1.AgentHost.cloud_stats:type_name -> harness.relay.v1.CloudRunnerStats
+	5,  // 5: harness.relay.v1.ListAgentHostsResponse.hosts:type_name -> harness.relay.v1.AgentHost
+	0,  // 6: harness.relay.v1.CreateAgentHostRequest.scope:type_name -> harness.relay.v1.AgentHostScope
+	45, // 7: harness.relay.v1.CreateAgentHostRequest.cloud:type_name -> harness.relay.v1.CloudRunnerConfig
+	5,  // 8: harness.relay.v1.CreateAgentHostResponse.host:type_name -> harness.relay.v1.AgentHost
+	45, // 9: harness.relay.v1.UpdateAgentHostRequest.cloud:type_name -> harness.relay.v1.CloudRunnerConfig
+	5,  // 10: harness.relay.v1.UpdateAgentHostResponse.host:type_name -> harness.relay.v1.AgentHost
+	2,  // 11: harness.relay.v1.HostWork.kind:type_name -> harness.relay.v1.HostWorkKind
+	3,  // 12: harness.relay.v1.HostWork.state:type_name -> harness.relay.v1.HostWorkState
+	4,  // 13: harness.relay.v1.HostWork.landing:type_name -> harness.relay.v1.HostWorkLanding
+	62, // 14: harness.relay.v1.HostWork.effort:type_name -> harness.llm.v1.Effort
+	63, // 15: harness.relay.v1.HostWork.permission_mode:type_name -> harness.agent.v1.PermissionMode
+	64, // 16: harness.relay.v1.HostWork.job:type_name -> harness.agent.v1.AutoFixJob
+	65, // 17: harness.relay.v1.HostWork.cloud_state:type_name -> harness.agent.v1.CloudEnvironmentState
+	62, // 18: harness.relay.v1.StartHostWorkRequest.effort:type_name -> harness.llm.v1.Effort
+	63, // 19: harness.relay.v1.StartHostWorkRequest.permission_mode:type_name -> harness.agent.v1.PermissionMode
+	4,  // 20: harness.relay.v1.StartHostWorkRequest.landing:type_name -> harness.relay.v1.HostWorkLanding
+	15, // 21: harness.relay.v1.StartHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
+	15, // 22: harness.relay.v1.GetHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
+	15, // 23: harness.relay.v1.ListHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
+	15, // 24: harness.relay.v1.CancelHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
+	1,  // 25: harness.relay.v1.RegisterAgentHostRequest.isolation:type_name -> harness.relay.v1.AgentHostIsolation
+	5,  // 26: harness.relay.v1.RegisterAgentHostResponse.host:type_name -> harness.relay.v1.AgentHost
+	15, // 27: harness.relay.v1.ClaimHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
+	3,  // 28: harness.relay.v1.UpdateHostWorkRequest.state:type_name -> harness.relay.v1.HostWorkState
+	41, // 29: harness.relay.v1.ListWantedWorkersResponse.workers:type_name -> harness.relay.v1.WantedWorker
+	65, // 30: harness.relay.v1.CloudSession.state:type_name -> harness.agent.v1.CloudEnvironmentState
+	47, // 31: harness.relay.v1.ListCloudSessionsResponse.sessions:type_name -> harness.relay.v1.CloudSession
+	47, // 32: harness.relay.v1.StopCloudSessionResponse.session:type_name -> harness.relay.v1.CloudSession
+	52, // 33: harness.relay.v1.PollCloudRunnerRequest.containers:type_name -> harness.relay.v1.CloudContainer
+	45, // 34: harness.relay.v1.PollCloudRunnerResponse.config:type_name -> harness.relay.v1.CloudRunnerConfig
+	54, // 35: harness.relay.v1.PollCloudRunnerResponse.start:type_name -> harness.relay.v1.CloudContainerSpec
+	55, // 36: harness.relay.v1.PollCloudRunnerResponse.remove:type_name -> harness.relay.v1.CloudContainerRemoval
+	56, // 37: harness.relay.v1.PollCloudRunnerResponse.egress:type_name -> harness.relay.v1.CloudEgress
+	65, // 38: harness.relay.v1.UpdateCloudSessionRequest.state:type_name -> harness.agent.v1.CloudEnvironmentState
+	7,  // 39: harness.relay.v1.HostsService.ListAgentHosts:input_type -> harness.relay.v1.ListAgentHostsRequest
+	9,  // 40: harness.relay.v1.HostsService.CreateAgentHost:input_type -> harness.relay.v1.CreateAgentHostRequest
+	11, // 41: harness.relay.v1.HostsService.UpdateAgentHost:input_type -> harness.relay.v1.UpdateAgentHostRequest
+	13, // 42: harness.relay.v1.HostsService.DeleteAgentHost:input_type -> harness.relay.v1.DeleteAgentHostRequest
+	16, // 43: harness.relay.v1.HostsService.StartHostWork:input_type -> harness.relay.v1.StartHostWorkRequest
+	18, // 44: harness.relay.v1.HostsService.GetHostWork:input_type -> harness.relay.v1.GetHostWorkRequest
+	20, // 45: harness.relay.v1.HostsService.ListHostWork:input_type -> harness.relay.v1.ListHostWorkRequest
+	22, // 46: harness.relay.v1.HostsService.CancelHostWork:input_type -> harness.relay.v1.CancelHostWorkRequest
+	24, // 47: harness.relay.v1.HostsService.SetAwayHost:input_type -> harness.relay.v1.SetAwayHostRequest
+	26, // 48: harness.relay.v1.HostsService.ClaimScheduleRun:input_type -> harness.relay.v1.ClaimScheduleRunRequest
+	48, // 49: harness.relay.v1.HostsService.ListCloudSessions:input_type -> harness.relay.v1.ListCloudSessionsRequest
+	50, // 50: harness.relay.v1.HostsService.StopCloudSession:input_type -> harness.relay.v1.StopCloudSessionRequest
+	28, // 51: harness.relay.v1.HostAgentService.RegisterAgentHost:input_type -> harness.relay.v1.RegisterAgentHostRequest
+	30, // 52: harness.relay.v1.HostAgentService.ReportAgentHost:input_type -> harness.relay.v1.ReportAgentHostRequest
+	32, // 53: harness.relay.v1.HostAgentService.ClaimHostWork:input_type -> harness.relay.v1.ClaimHostWorkRequest
+	34, // 54: harness.relay.v1.HostAgentService.UpdateHostWork:input_type -> harness.relay.v1.UpdateHostWorkRequest
+	36, // 55: harness.relay.v1.HostAgentService.IssueGitCredentials:input_type -> harness.relay.v1.IssueGitCredentialsRequest
+	38, // 56: harness.relay.v1.HostAgentService.OpenHostPullRequest:input_type -> harness.relay.v1.OpenHostPullRequestRequest
+	40, // 57: harness.relay.v1.HostAgentService.ListWantedWorkers:input_type -> harness.relay.v1.ListWantedWorkersRequest
+	43, // 58: harness.relay.v1.HostAgentService.IssueWorkerToken:input_type -> harness.relay.v1.IssueWorkerTokenRequest
+	53, // 59: harness.relay.v1.HostAgentService.PollCloudRunner:input_type -> harness.relay.v1.PollCloudRunnerRequest
+	58, // 60: harness.relay.v1.HostAgentService.IssueCloudSessionToken:input_type -> harness.relay.v1.IssueCloudSessionTokenRequest
+	60, // 61: harness.relay.v1.HostAgentService.UpdateCloudSession:input_type -> harness.relay.v1.UpdateCloudSessionRequest
+	8,  // 62: harness.relay.v1.HostsService.ListAgentHosts:output_type -> harness.relay.v1.ListAgentHostsResponse
+	10, // 63: harness.relay.v1.HostsService.CreateAgentHost:output_type -> harness.relay.v1.CreateAgentHostResponse
+	12, // 64: harness.relay.v1.HostsService.UpdateAgentHost:output_type -> harness.relay.v1.UpdateAgentHostResponse
+	14, // 65: harness.relay.v1.HostsService.DeleteAgentHost:output_type -> harness.relay.v1.DeleteAgentHostResponse
+	17, // 66: harness.relay.v1.HostsService.StartHostWork:output_type -> harness.relay.v1.StartHostWorkResponse
+	19, // 67: harness.relay.v1.HostsService.GetHostWork:output_type -> harness.relay.v1.GetHostWorkResponse
+	21, // 68: harness.relay.v1.HostsService.ListHostWork:output_type -> harness.relay.v1.ListHostWorkResponse
+	23, // 69: harness.relay.v1.HostsService.CancelHostWork:output_type -> harness.relay.v1.CancelHostWorkResponse
+	25, // 70: harness.relay.v1.HostsService.SetAwayHost:output_type -> harness.relay.v1.SetAwayHostResponse
+	27, // 71: harness.relay.v1.HostsService.ClaimScheduleRun:output_type -> harness.relay.v1.ClaimScheduleRunResponse
+	49, // 72: harness.relay.v1.HostsService.ListCloudSessions:output_type -> harness.relay.v1.ListCloudSessionsResponse
+	51, // 73: harness.relay.v1.HostsService.StopCloudSession:output_type -> harness.relay.v1.StopCloudSessionResponse
+	29, // 74: harness.relay.v1.HostAgentService.RegisterAgentHost:output_type -> harness.relay.v1.RegisterAgentHostResponse
+	31, // 75: harness.relay.v1.HostAgentService.ReportAgentHost:output_type -> harness.relay.v1.ReportAgentHostResponse
+	33, // 76: harness.relay.v1.HostAgentService.ClaimHostWork:output_type -> harness.relay.v1.ClaimHostWorkResponse
+	35, // 77: harness.relay.v1.HostAgentService.UpdateHostWork:output_type -> harness.relay.v1.UpdateHostWorkResponse
+	37, // 78: harness.relay.v1.HostAgentService.IssueGitCredentials:output_type -> harness.relay.v1.IssueGitCredentialsResponse
+	39, // 79: harness.relay.v1.HostAgentService.OpenHostPullRequest:output_type -> harness.relay.v1.OpenHostPullRequestResponse
+	42, // 80: harness.relay.v1.HostAgentService.ListWantedWorkers:output_type -> harness.relay.v1.ListWantedWorkersResponse
+	44, // 81: harness.relay.v1.HostAgentService.IssueWorkerToken:output_type -> harness.relay.v1.IssueWorkerTokenResponse
+	57, // 82: harness.relay.v1.HostAgentService.PollCloudRunner:output_type -> harness.relay.v1.PollCloudRunnerResponse
+	59, // 83: harness.relay.v1.HostAgentService.IssueCloudSessionToken:output_type -> harness.relay.v1.IssueCloudSessionTokenResponse
+	61, // 84: harness.relay.v1.HostAgentService.UpdateCloudSession:output_type -> harness.relay.v1.UpdateCloudSessionResponse
+	62, // [62:85] is the sub-list for method output_type
+	39, // [39:62] is the sub-list for method input_type
+	39, // [39:39] is the sub-list for extension type_name
+	39, // [39:39] is the sub-list for extension extendee
+	0,  // [0:39] is the sub-list for field type_name
 }
 
 func init() { file_harness_relay_v1_hosts_proto_init() }
@@ -3379,7 +4857,7 @@ func file_harness_relay_v1_hosts_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_relay_v1_hosts_proto_rawDesc), len(file_harness_relay_v1_hosts_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   40,
+			NumMessages:   57,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

@@ -456,6 +456,8 @@ message Host {
   repeated harness.agent.v1.SessionInfo sessions = 9;
   // RFC 3339, UTC.
   string last_seen_at = 10;
+  // The device of a cloud session: the state of its container (docs/design/cloud-sessions.md). Unspecified otherwise.
+  harness.agent.v1.CloudEnvironmentState cloud_environment = 450;
 }
 
 message SubscribeSessionRequest {

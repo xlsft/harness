@@ -32,6 +32,11 @@ service HostsService {
   rpc SetAwayHost(SetAwayHostRequest) returns (SetAwayHostResponse);
   // First caller for a schedule and due time wins (docs/design/hosts.md, decision 19).
   rpc ClaimScheduleRun(ClaimScheduleRunRequest) returns (ClaimScheduleRunResponse);
+  // Cloud sessions (docs/design/cloud-sessions.md). With a host_id and a role that reads users: everyone's on that runner;
+  // otherwise the caller's own.
+  rpc ListCloudSessions(ListCloudSessionsRequest) returns (ListCloudSessionsResponse);
+  // Removes a cloud session's container now (its owner, or `hosts.write`). The next message starts it again, unless end.
+  rpc StopCloudSession(StopCloudSessionRequest) returns (StopCloudSessionResponse);
 }
 
 service HostAgentService {
@@ -51,6 +56,13 @@ service HostAgentService {
   rpc ListWantedWorkers(ListWantedWorkersRequest) returns (ListWantedWorkersResponse);
   // Supervisor of a team host: a fresh device token for a member's worker; the previous one stops working.
   rpc IssueWorkerToken(IssueWorkerTokenRequest) returns (IssueWorkerTokenResponse);
+  // Runner of cloud sessions: long poll with the list of its containers; says what to start and what to remove. Also the
+  // reconciler (docs/design/cloud-sessions.md, decision 4).
+  rpc PollCloudRunner(PollCloudRunnerRequest) returns (PollCloudRunnerResponse);
+  // Runner: a fresh device token for a cloud session's container; the previous one stops working.
+  rpc IssueCloudSessionToken(IssueCloudSessionTokenRequest) returns (IssueCloudSessionTokenResponse);
+  // Runner: what became of a container it was told to start or remove.
+  rpc UpdateCloudSession(UpdateCloudSessionRequest) returns (UpdateCloudSessionResponse);
 }
 
 enum AgentHostScope {
@@ -59,6 +71,8 @@ enum AgentHostScope {
   AGENT_HOST_SCOPE_USER = 1;
   // Registered by an admin for the members of a group.
   AGENT_HOST_SCOPE_TEAM = 2;
+  // A runner node of cloud sessions, registered by an admin for a group (or everyone): it runs each session in a container.
+  AGENT_HOST_SCOPE_CLOUD = 450;
 }
 
 enum AgentHostIsolation {
@@ -67,6 +81,8 @@ enum AgentHostIsolation {
   AGENT_HOST_ISOLATION_NONE = 1;
   // Each member's worker runs under a Unix user of its own.
   AGENT_HOST_ISOLATION_UID = 2;
+  // A runner: each session in a container of its own.
+  AGENT_HOST_ISOLATION_CONTAINER = 450;
 }
 
 enum HostWorkKind {
@@ -141,6 +157,9 @@ message AgentHost {
   string created_at = 26;
   // With ListAgentHostsRequest.all.
   repeated AgentHostWorker workers = 27;
+  // Runners (scope CLOUD).
+  CloudRunnerConfig cloud = 450;
+  CloudRunnerStats cloud_stats = 451;
 }
 
 message AgentHostWorker {
@@ -166,6 +185,8 @@ message CreateAgentHostRequest {
   int32 max_sessions = 4;
   int32 max_sessions_per_user = 5;
   repeated string allowed_repositories = 6;
+  // A runner (scope CLOUD): its configuration. Admins only.
+  CloudRunnerConfig cloud = 450;
 }
 
 message CreateAgentHostResponse {
@@ -184,6 +205,8 @@ message UpdateAgentHostRequest {
   // Replaces the list when set_allowed_repositories.
   bool set_allowed_repositories = 7;
   repeated string allowed_repositories = 8;
+  // A runner's configuration, replaced as a whole when present. Admins only.
+  CloudRunnerConfig cloud = 450;
 }
 
 message UpdateAgentHostResponse {
@@ -231,6 +254,10 @@ message HostWork {
   // RFC 3339, UTC.
   string created_at = 23;
   string updated_at = 24;
+  // Work of a cloud session: its container's state.
+  bool cloud = 450;
+  harness.agent.v1.CloudEnvironmentState cloud_state = 451;
+  string cloud_session_id = 452;
 }
 
 message StartHostWorkRequest {
@@ -247,6 +274,10 @@ message StartHostWorkRequest {
   bool fresh_clone = 10;
   // Retrying with the same key returns the same work.
   string idempotency_key = 11;
+  // A cloud session: host_id may be empty (the server picks a runner the caller may use), or name a runner.
+  bool cloud = 450;
+  // One of the runner's images; empty: its default.
+  string image = 451;
 }
 
 message StartHostWorkResponse {
@@ -310,6 +341,12 @@ message RegisterAgentHostResponse {
   AgentHost host = 1;
   // This device runs members' workers and takes no work itself.
   bool supervisor = 2;
+  // A runner's device: `harness-client runner`, which takes no work itself either.
+  bool runner = 450;
+  // A cloud session's device: `harness-client daemon --cloud` in its container, which takes only that session's work.
+  bool cloud = 451;
+  // Cloud: the policy lets this session run in bypassPermissions.
+  bool bypass_permissions_allowed = 452;
 }
 
 message ReportAgentHostRequest {
@@ -406,4 +443,156 @@ message IssueWorkerTokenRequest {
 message IssueWorkerTokenResponse {
   string device_id = 1;
   string device_token = 2;
+}
+
+// ---- Cloud sessions (docs/design/cloud-sessions.md) ----
+
+// What a runner does with its containers. Zero values take the defaults named.
+message CloudRunnerConfig {
+  // The default image, e.g. "ghcr.io/acme/harness-agent:1". Empty: "harness-agent".
+  string image = 1;
+  // Other images a session may ask for (StartHostWorkRequest.image).
+  repeated string allowed_images = 2;
+  // The engine's runtime: "" (its default, runc) or "runsc" (gVisor).
+  string runtime = 3;
+  // Per container. Defaults: 2 CPUs, 4 GiB, 20 GiB of disk, 1024 processes.
+  int32 cpu_millis = 4;
+  int64 memory_bytes = 5;
+  int64 disk_bytes = 6;
+  int32 pids = 7;
+  // Defaults: an hour idle, a day in all.
+  int32 idle_timeout_seconds = 8;
+  int32 max_lifetime_seconds = 9;
+  // Per cache scope. Default 10 GiB.
+  int64 cache_max_bytes = 10;
+  // "user" (the default): caches shared by one user's sessions. "runner": by everyone's on this runner.
+  string cache_scope = 11;
+  // The engine enforces disk_bytes on the writable layer (overlay2 on xfs with pquota, btrfs, zfs). Otherwise the runner
+  // measures it and removes a container that is over.
+  bool storage_opt_size = 12;
+}
+
+message CloudRunnerStats {
+  int32 starting = 1;
+  int32 running = 2;
+  int32 idle = 3;
+  // Over the last 24 hours.
+  int32 removed = 4;
+  int32 failed = 5;
+}
+
+message CloudSession {
+  // cls_...
+  string id = 1;
+  string host_id = 2;
+  string host_name = 3;
+  string user_id = 4;
+  string user_name = 5;
+  string work_id = 6;
+  string session_id = 7;
+  harness.agent.v1.CloudEnvironmentState state = 8;
+  string container_id = 9;
+  string image = 10;
+  string repository_key = 11;
+  string error = 12;
+  // The writable layer, as the runner last measured it; 0 unknown.
+  int64 disk_bytes = 13;
+  // How many containers it has had.
+  int32 starts = 14;
+  // RFC 3339, UTC.
+  string started_at = 15;
+  string last_active_at = 16;
+  string created_at = 17;
+  string updated_at = 18;
+}
+
+message ListCloudSessionsRequest {
+  string host_id = 1;
+  int32 limit = 2;
+}
+
+message ListCloudSessionsResponse {
+  repeated CloudSession sessions = 1;
+}
+
+message StopCloudSessionRequest {
+  string id = 1;
+  // It never starts again: its work is done.
+  bool end = 2;
+}
+
+message StopCloudSessionResponse {
+  CloudSession session = 1;
+}
+
+// A container of the runner, as the engine lists it by label.
+message CloudContainer {
+  string cloud_session_id = 1;
+  string container_id = 2;
+  bool running = 3;
+  // RFC 3339, UTC.
+  string created_at = 4;
+  // The writable layer when the runner measured it this time; 0 not measured.
+  int64 disk_bytes = 5;
+}
+
+message PollCloudRunnerRequest {
+  // At most 25.
+  int32 wait_seconds = 1;
+  // All of the runner's containers.
+  repeated CloudContainer containers = 2;
+  // Cloud sessions whose containers the runner is creating right now.
+  repeated string creating = 3;
+}
+
+// A container to create.
+message CloudContainerSpec {
+  string cloud_session_id = 1;
+  string image = 2;
+  // Names the cache directories of this session (decision 15): a hash of the user, or "runner".
+  string cache_key = 3;
+}
+
+message CloudContainerRemoval {
+  string cloud_session_id = 1;
+  string container_id = 2;
+  string reason = 3;
+}
+
+// What the egress proxy lets one session's container reach.
+message CloudEgress {
+  string cloud_session_id = 1;
+  repeated string allow = 2;
+}
+
+message PollCloudRunnerResponse {
+  CloudRunnerConfig config = 1;
+  repeated CloudContainerSpec start = 2;
+  repeated CloudContainerRemoval remove = 3;
+  // For every session the runner should have a container of.
+  repeated CloudEgress egress = 4;
+  // Containers at once.
+  int32 max_sessions = 5;
+}
+
+message IssueCloudSessionTokenRequest {
+  string cloud_session_id = 1;
+}
+
+message IssueCloudSessionTokenResponse {
+  string device_id = 1;
+  string device_token = 2;
+}
+
+message UpdateCloudSessionRequest {
+  string cloud_session_id = 1;
+  // STARTING with container_id: created and started. FAILED: could not. REMOVED: gone.
+  harness.agent.v1.CloudEnvironmentState state = 2;
+  string container_id = 3;
+  string error = 4;
+}
+
+message UpdateCloudSessionResponse {
+  // The session is no longer wanted: remove its container.
+  bool remove = 1;
 }
