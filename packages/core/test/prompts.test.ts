@@ -42,11 +42,11 @@ describe("bundle builder", () => {
       "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey", "ComputerMenu", "ComputerScreenshot", "ComputerScroll",
       "ComputerType", "DocumentEdit", "DocumentRead", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "Issues", "KeepAwake",
       "KnowledgeRead", "KnowledgeSearch", "LS", "LSP", "ListAgents", "ListMcpResources", "MarkChapter", "McpAuthenticate", "Memory", "Monitor", "MultiEdit", "NotebookEdit",
-      "NotebookRun", "OpenInEditor", "PrAutoMerge", "PrBind", "PrMonitor", "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop", "ProposeBranch",
-      "PushNotification", "Read", "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "ScheduleCancel", "ScheduleList", "ScheduleWakeup", "SendMessage", "SendUserFile",
-      "SessionArchive", "SessionDismiss", "SessionHandoff", "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet", "SettingsSet",
-      "Show", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskInput", "TaskOutput", "TaskStop", "TerminalList", "TerminalOpen",
-      "TerminalRead", "TerminalRun", "TerminalStop",
+      "NotebookRun", "OpenInEditor", "PowerShell", "PrAutoMerge", "PrBind", "PrMonitor", "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop",
+      "ProposeBranch", "PushNotification", "Read", "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "ScheduleCancel", "ScheduleList", "ScheduleWakeup", "SendMessage",
+      "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff", "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet",
+      "SettingsSet", "Show", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskInput", "TaskOutput", "TaskStop", "TerminalList",
+      "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
       "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "Workflow", "WrapUp", "Write",
     ]);
     // every reminder id listed in prompts.proto, with its placeholders

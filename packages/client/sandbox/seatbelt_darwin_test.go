@@ -531,12 +531,3 @@ func TestSeatbeltLinkedWorktreeCanCommit(t *testing.T) {
 	// And the rest of the main checkout is not writable.
 	b.refused("echo x > " + filepath.Join(main, "elsewhere"))
 }
-
-func read(t *testing.T, path string) string {
-	t.Helper()
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return string(data)
-}

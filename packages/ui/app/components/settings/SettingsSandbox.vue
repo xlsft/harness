@@ -91,6 +91,13 @@ const outsideWithoutPrompt = toggle('outsideWithoutPrompt')
         {{ tt('Your administrator requires the sandbox, so commands are refused here.') }}
       </template>
     </p>
+    <p
+      v-else-if="status?.reason"
+      role="status"
+      class="m-0 mb-3 border border-default px-3 py-2 text-[12px] text-muted"
+    >
+      {{ status.reason }}
+    </p>
     <div class="set-row">
       <div class="set-label">
         <span>{{ tt('Run commands in the sandbox') }}</span>

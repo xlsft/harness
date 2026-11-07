@@ -140,36 +140,36 @@ func (m *TaskManager) outputFile(id string) (*os.File, string, error) {
 // Start runs command in the background through the session shell (its cwd
 // and snapshot; cwd changes made by the command do not persist).
 func (m *TaskManager) Start(sh *Shell, command, description, toolUseID string, timeout time.Duration) (TaskInfo, error) {
-	return m.start(sh, command, description, toolUseID, timeout, confineCommand)
+	return m.start(sh, command, description, toolUseID, timeout, confineCommand, "")
 }
 
 // StartOutside is Start outside the OS sandbox, for a call whose permission check approved that.
 func (m *TaskManager) StartOutside(sh *Shell, command, description, toolUseID string, timeout time.Duration) (TaskInfo, error) {
-	return m.start(sh, command, description, toolUseID, timeout, unconfined)
+	return m.start(sh, command, description, toolUseID, timeout, unconfined, "")
 }
 
-func (m *TaskManager) start(sh *Shell, command, description, toolUseID string, timeout time.Duration, how confinement) (TaskInfo, error) {
-	return m.startWith(sh, command, description, toolUseID, timeout, how, false)
+func (m *TaskManager) start(sh *Shell, command, description, toolUseID string, timeout time.Duration, how confinement, interpreter string) (TaskInfo, error) {
+	return m.startWith(sh, command, description, toolUseID, timeout, how, interpreter, false)
 }
 
 // StartWithStdin is Start with the command's input left open for TaskInput. Only on request: a command that reads its input
 // waits for it, where any other sees the end of it at once and goes on.
-func (m *TaskManager) StartWithStdin(sh *Shell, command, description, toolUseID string, timeout time.Duration, outside bool) (TaskInfo, error) {
+func (m *TaskManager) StartWithStdin(sh *Shell, command, description, toolUseID string, timeout time.Duration, outside bool, interpreter string) (TaskInfo, error) {
 	how := confineCommand
 	if outside {
 		how = unconfined
 	}
-	return m.startWith(sh, command, description, toolUseID, timeout, how, true)
+	return m.startWith(sh, command, description, toolUseID, timeout, how, interpreter, true)
 }
 
-func (m *TaskManager) startWith(sh *Shell, command, description, toolUseID string, timeout time.Duration, how confinement, withStdin bool) (TaskInfo, error) {
+func (m *TaskManager) startWith(sh *Shell, command, description, toolUseID string, timeout time.Duration, how confinement, interpreter string, withStdin bool) (TaskInfo, error) {
 	id := newTaskID()
 	f, path, err := m.outputFile(id)
 	if err != nil {
 		return TaskInfo{}, err
 	}
 	cwd := sh.Cwd()
-	cmd, wrapped := sh.command(command, "", cwd, how)
+	cmd, wrapped := sh.command(command, "", cwd, how, interpreter)
 	cmd.Stdout, cmd.Stderr = f, f
 	var stdin io.WriteCloser
 	if withStdin {
