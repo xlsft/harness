@@ -5,6 +5,7 @@ package sandbox
 import (
 	"errors"
 	"fmt"
+	"golang.org/x/sys/unix"
 	"io"
 	"net"
 	"os"
@@ -277,7 +278,7 @@ func applyLandlock(spec stageSpec, abi int) error {
 // addPathRule grants a rule on a path. A path that has gone is no longer anything to grant, and one this user cannot open
 // gets no right at all, which is the safe side.
 func addPathRule(ruleset int, r llRule) error {
-	fd, err := syscall.Open(r.Path, syscall.O_PATH|syscall.O_CLOEXEC, 0)
+	fd, err := syscall.Open(r.Path, unix.O_PATH|syscall.O_CLOEXEC, 0)
 	if err != nil {
 		if errors.Is(err, syscall.ENOENT) || errors.Is(err, syscall.EACCES) || errors.Is(err, syscall.ELOOP) {
 			return nil

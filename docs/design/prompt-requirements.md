@@ -19,7 +19,7 @@ What the bundle covers today, and what it deliberately leaves out.
 | Safety (security work, untrusted content, risky actions) | `system/static/20-safety.md` | written |
 | Communication style and final answers | `system/static/30-style.md` | written |
 | Doing engineering tasks | `system/static/40-doing_tasks.md` | written |
-| Tool policy (choice of tools, parallelism, background work, reminders) | `system/static/50-tool_policy.md`, `overrides/gpt-*/...` | written |
+| Tool policy (choice of tools, parallelism, background work, reminders) | `system/static/50-tool_policy.md`, `overrides/gpt-@/...` | written |
 | Environment | `system/dynamic/10-env.md` | written |
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, EnterWorktree, ExitWorktree, ChangeDirectory, RequestDirectory, ProposeBranch, SyncWithBase | `tools/<Name>/` | written |
 | Tools: Read, Write, Edit, Glob, Grep, Bash, TaskStop, TaskOutput, Wait, TodoWrite, AskUserQuestion, EnterPlanMode, ExitPlanMode, WrapUp, Agent, SendMessage, ListAgents, Workflow | `tools/<Name>/` | written |

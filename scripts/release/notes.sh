@@ -12,8 +12,8 @@ MAX=100
 
 changes() {
   local previous range
-  # Pre-releases are not a base: a final release lists everything since the last final one.
-  previous="$(git describe --tags --abbrev=0 --match 'v[0-9]*' --exclude '*-*' "$tag^" 2>/dev/null || true)"
+  # Every release is a normal one, so the base is the previous release tag, suffix or not.
+  previous="$(git describe --tags --abbrev=0 --match 'v[0-9]*' "$tag^" 2>/dev/null || true)"
   range="$tag"
   [[ -n "$previous" ]] && range="$previous..$tag"
   local subjects total

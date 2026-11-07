@@ -95,7 +95,7 @@ Plan names in brackets are the lowest tier the vendor lists. Codex rows cover al
 | Per-model prices editable | Yes (admin, catalog refresh) | Yes (`modelPricing`) | n/a |
 | Capability negotiation per model | Yes | n/a | n/a |
 | Model slots (main, small, plan, title, classifier) | Yes | Partial: aliases, `opusplan` | Partial: separate keys |
-| Per-model prompt overrides | Yes (`gpt-*` system) | n/a | ? |
+| Per-model prompt overrides | Yes (`gpt-@` system) | n/a | ? |
 | Local: Ollama | Yes (incl. pull, delete) | ? | Yes |
 | Local: LM Studio | Yes | ? | Yes |
 | Local: Jan | Yes | ? | ? |

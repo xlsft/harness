@@ -22,7 +22,6 @@ jobs:
       actions: read # the CI results of the tagged commit
     outputs:
       version: ${{ steps.tag.outputs.version }}
-      prerelease: ${{ steps.tag.outputs.prerelease }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -157,7 +156,6 @@ jobs:
     env:
       TAG: ${{ github.ref_name }}
       VERSION: ${{ needs.preflight.outputs.version }}
-      PRERELEASE: ${{ needs.preflight.outputs.prerelease }}
       IMAGE: ghcr.io/${{ github.repository }}
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -193,9 +191,7 @@ jobs:
           gh release delete "$TAG" --yes 2>/dev/null || true
       - name: Draft the release
         run: |
-          prerelease=()
-          if [ "$PRERELEASE" = true ]; then prerelease=(--prerelease); fi
-          gh release create "$TAG" dist/* --draft --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md" "${prerelease[@]}"
+          gh release create "$TAG" dist/* --draft --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
 
       - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         id: attest
@@ -209,28 +205,19 @@ jobs:
           gh release upload "$TAG" harness.intoto.jsonl
 
       # From here on it goes public. A backport (v0.1.5 after v0.2.0) stays behind the newest as far as "latest" goes.
-      - name: Is this the newest stable release?
+      - name: Is this the newest release?
         id: newest
         run: |
-          newest=false
-          if [ "$PRERELEASE" != true ]; then
-            current="$(gh release view --json tagName --jq .tagName 2>/dev/null || true)"
-            if [ -z "$current" ] || [ "$(printf '%s\n%s\n' "$current" "$TAG" | sort -V | tail -n1)" = "$TAG" ]; then
-              newest=true
-            fi
-          fi
-          echo "newest=$newest" >> "$GITHUB_OUTPUT"
+          current="$(gh release view --json tagName --jq .tagName 2>/dev/null || true)"
+          echo "newest=$(scripts/release/is-newest.sh "$TAG" "$current")" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
-        if: needs.preflight.outputs.prerelease != 'true'
       - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
-        if: needs.preflight.outputs.prerelease != 'true'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       # The same image: the digest, and so its signature and attestations, stay what they are.
       - name: Move the image tags
-        if: needs.preflight.outputs.prerelease != 'true'
         env:
           NEWEST: ${{ steps.newest.outputs.newest }}
         run: |

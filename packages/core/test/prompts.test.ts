@@ -277,9 +277,9 @@ describe("bundle builder", () => {
       "tools/Read/schema.json": '{"type":"object"}',
       "tools/Grep/description.md": "grep",
       "tools/Grep/schema.json": '{"type":"object"}',
-      "overrides/gpt-*/system/static/20-style.md": "gpt style",
+      "overrides/gpt-@/system/static/20-style.md": "gpt style",
       "overrides/gpt-5-mini/system/static/20-style.md": "mini style",
-      "overrides/gpt-*/tools/Grep/description.md": "",
+      "overrides/gpt-@/tools/Grep/description.md": "",
       "overrides/*mini*/system/static/30-extra.md": "extra",
     });
     const base = buildBundle(resolvePromptFiles(dir, ["claude"]), "claude");

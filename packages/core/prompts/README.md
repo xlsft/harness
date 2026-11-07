@@ -249,8 +249,8 @@ The execution semantics are implemented by the client and must match these descr
 
 ## Per-model overrides
 
-`overrides/<glob>/` mirrors the layout above. `<glob>` is matched (case-insensitive, `*` and `?` wildcards)
-against the model alias **and** the upstream model id, e.g. `overrides/gpt-*/`, `overrides/deepseek-*/`,
+`overrides/<glob>/` mirrors the layout above. `<glob>` is matched (case-insensitive, `*` and `?` wildcards; write `@` for `*` in directory names, since Windows forbids `*`)
+against the model alias **and** the upstream model id, e.g. `overrides/gpt-@/`, `overrides/deepseek-@/`,
 `overrides/claude-sonnet/`.
 
 - Every matching override directory is applied on top of the base files, from least to most specific

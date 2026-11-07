@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Reads a release tag: vX.Y.Z or vX.Y.Z-prerelease, nothing else. Prints `version=X.Y.Z` and `prerelease=true|false`, the
-# form $GITHUB_OUTPUT takes. Refuses anything that doesn't parse, as the tag is the source of truth for every version.
+# Reads a release tag: vX.Y.Z or vX.Y.Z-suffix (such as -rc.2), nothing else. Prints `version=...`, the form $GITHUB_OUTPUT
+# takes. Every release is a normal one: a suffix only names it, it makes no pre-release. Refuses anything that doesn't parse, as the tag is the source of truth for every version.
 set -euo pipefail
 tag="${1:?usage: parse-version.sh <tag>}"
 number='(0|[1-9][0-9]*)'
@@ -11,4 +11,3 @@ if [[ ! "$tag" =~ ^v$number\.$number\.$number(-$identifier(\.$identifier)*)?$ ]]
 fi
 version="${tag#v}"
 echo "version=$version"
-if [[ "$version" == *-* ]]; then echo "prerelease=true"; else echo "prerelease=false"; fi

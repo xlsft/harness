@@ -13,8 +13,12 @@ refuse() { if eval "$2" >/dev/null 2>&1; then no "$1"; else ok "$1"; fi; }
 parse="$root/scripts/release/parse-version.sh"
 for good in v0.1.0 v1.20.3 v0.2.0-rc.1 v1.0.0-beta.2.x; do expect "accepts $good" "$parse $good"; done
 for bad in 0.1.0 v1 v1.2 v1.2.3.4 v01.2.3 v1.2.3- v1.2.3-rc..1 vX.Y.Z 'v1.2.3 x' v1.2.3+build; do refuse "refuses '$bad'" "$parse '$bad'"; done
-[[ "$($parse v0.2.0-rc.1 | tail -1)" == prerelease=true ]] && ok "a tag with a suffix is a pre-release" || no "a tag with a suffix is a pre-release"
-[[ "$($parse v0.2.0 | tail -1)" == prerelease=false ]] && ok "a plain tag is stable" || no "a plain tag is stable"
+[[ "$($parse v0.2.0-rc.1)" == version=0.2.0-rc.1 ]] && ok "a tag with a suffix is a normal release" || no "a tag with a suffix is a normal release"
+newest="$root/scripts/release/is-newest.sh"
+for pair in "v0.1.0 '' true" "v0.1.0-rc.2 v0.1.0-rc.1 true" "v0.1.0 v0.1.0-rc.2 true" "v0.1.0-rc.3 v0.1.0 false" "v0.1.5 v0.2.0 false" "v0.2.0 v0.1.9 true" "v0.1.0-rc.10 v0.1.0-rc.9 true"; do
+  eval "set -- $pair"
+  [[ "$($newest "$1" "$2")" == "$3" ]] && ok "is-newest $1 over '$2' is $3" || no "is-newest $1 over '$2' is $3"
+done
 
 # stamp.mjs writes every package, and nothing else in the files.
 stamped="$work/stamped"
@@ -95,7 +99,7 @@ g commit -q --allow-empty -m "Second" && g tag -a v0.2.0-rc.1 -m rc
 g commit -q --allow-empty -m "Merge third thing" && g tag -a v0.2.0 -m v0.2.0
 notes="$repo/scripts/release/notes.sh"
 (cd "$repo" && $notes changes v0.2.0) >"$work/changes"
-expect "notes list what came since the last stable tag" "grep -q '^- Second$' '$work/changes' && grep -q '^- third thing$' '$work/changes' && ! grep -q First '$work/changes'"
+expect "notes list what came since the previous release tag" "grep -q '^- third thing$' '$work/changes' && ! grep -q '^- Second$' '$work/changes' && ! grep -q First '$work/changes'"
 (cd "$repo" && $notes changes v0.1.0) >"$work/first"
 expect "the first release lists from the beginning" "grep -q '^- First$' '$work/first'"
 (cd "$repo" && $notes full v0.2.0 unsigned) >"$work/unsigned"

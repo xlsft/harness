@@ -570,7 +570,7 @@ const ICON_BTN = 'flex size-7 shrink-0 items-center justify-center'
             :aria-label="tt('Stop')"
             :title="tt('Stop this turn. Agents keep running: stop them in the Agents pane')"
             :class="ICON_BTN"
-            class="bg-warn text-black"
+            class="bg-transparent text-text hover:bg-hover"
             @click="emit('stop')"
           >
             <HIcon

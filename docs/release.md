@@ -59,9 +59,10 @@ workflow stamps its version into the client (`-ldflags`), core (a build arg, rep
 `tauri.conf.json` and `Cargo.toml` in its own checkout (`scripts/release/stamp.mjs`). Nothing is committed back, so those
 files say `0.1.0` or `0.0.0-dev` in the repository and that's fine.
 
-**A pre-release** (`v0.2.0-rc.1`) is a GitHub pre-release and an image tagged only `0.2.0-rc.1`. It doesn't touch `latest` or
-`0.2`, and neither updater ever sees it: both look at GitHub's "latest" release, which is never a pre-release. To try one,
-download it from its release page. Someone on an rc is offered the final `0.2.0`.
+**Every release is a normal release.** A suffix (`v0.2.0-rc.1`) only names it: it is published like any other, moves the
+image's `X.Y` and `latest` when it is the newest, and both updaters offer it. "Newest" is decided by semver
+(`scripts/release/is-newest.sh`: `0.2.0-rc.1` < `0.2.0` < `0.2.1`), not by `sort -V`, which orders a suffix after the
+plain version.
 
 **A backport** (`v0.1.5` after `v0.2.0`) moves `0.1` but not `latest`, and isn't offered to anyone on `0.2.0`.
 
@@ -92,8 +93,7 @@ Nothing visible changes until the very end of `publish`. Until then:
 | `publish`, "Move the image tags" or "Publish" | possibly `latest` on the new image with the release still a draft | Re-run the failed job, which is safe to repeat |
 
 An exact image version that's already pushed gets overwritten when the tag is rebuilt, and that's fine as long as no release
-pointed at it. Don't reuse the version of a published release: make the next one. To withdraw a bad release, mark it
-pre-release or delete it on GitHub (updaters then go back to the previous one for new checks) and retag the image's `latest`.
+pointed at it. Don't reuse the version of a published release: make the next one. To withdraw a bad release, delete it on GitHub (updaters then go back to the previous one for new checks) and retag the image's `latest`.
 
 ## Signing the macOS app
 

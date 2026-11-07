@@ -51,14 +51,15 @@ function readTree(dir: string, skipTop?: string): Map<string, string> {
   return out;
 }
 
+// In directory names `@` stands for `*`: Windows forbids `*` in file names, so `overrides/gpt-@/` is the portable form.
 function globToRegExp(glob: string): RegExp {
-  const esc = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".");
+  const esc = glob.replace(/@/g, "*").replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*").replace(/\?/g, ".");
   return new RegExp(`^${esc}$`, "i");
 }
 
 /** Override directory names are globs; fewer wildcards = more specific = applied later. */
 function specificity(glob: string): number {
-  return glob.replace(/[*?]/g, "").length - (glob.match(/[*?]/g)?.length ?? 0) * 100;
+  return glob.replace(/[*?@]/g, "").length - (glob.match(/[*?@]/g)?.length ?? 0) * 100;
 }
 
 /**
