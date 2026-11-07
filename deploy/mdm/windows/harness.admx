@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from packages/client/settings/policy.schema.json by scripts/policy-templates.sh. Don't edit it here: change the schema and run the script. -->
+<policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <policyNamespaces>
+    <target prefix="harness" namespace="xlsft.Policies.Harness" />
+  </policyNamespaces>
+  <resources minRequiredRevision="1.0" />
+  <supportedOn>
+    <definitions>
+      <definition name="SUPPORTED_harness" displayName="$(string.SUPPORTED_harness)" />
+    </definitions>
+  </supportedOn>
+  <categories>
+    <category name="harness" displayName="$(string.harness)" />
+    <category name="harness_permissions" displayName="$(string.harness_permissions)">
+      <parentCategory ref="harness" />
+    </category>
+    <category name="harness_sandbox" displayName="$(string.harness_sandbox)">
+      <parentCategory ref="harness" />
+    </category>
+  </categories>
+  <policies>
+    <policy name="allowManagedHooksOnly" class="Machine" displayName="$(string.allowManagedHooksOnly)" explainText="$(string.allowManagedHooksOnly_Explain)" key="SOFTWARE\Policies\xlsft\harness" valueName="allowManagedHooksOnly">
+      <parentCategory ref="harness" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="allowManagedPermissionRulesOnly" class="Machine" displayName="$(string.allowManagedPermissionRulesOnly)" explainText="$(string.allowManagedPermissionRulesOnly_Explain)" key="SOFTWARE\Policies\xlsft\harness" valueName="allowManagedPermissionRulesOnly">
+      <parentCategory ref="harness" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="disableAllHooks" class="Machine" displayName="$(string.disableAllHooks)" explainText="$(string.disableAllHooks_Explain)" key="SOFTWARE\Policies\xlsft\harness" valueName="disableAllHooks">
+      <parentCategory ref="harness" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="disableExternalSkillSearch" class="Machine" displayName="$(string.disableExternalSkillSearch)" explainText="$(string.disableExternalSkillSearch_Explain)" key="SOFTWARE\Policies\xlsft\harness" valueName="disableExternalSkillSearch">
+      <parentCategory ref="harness" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="disableLocalModels" class="Machine" displayName="$(string.disableLocalModels)" explainText="$(string.disableLocalModels_Explain)" key="SOFTWARE\Policies\xlsft\harness" valueName="disableLocalModels">
+      <parentCategory ref="harness" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="disablePersonalProviders" class="Machine" displayName="$(string.disablePersonalProviders)" explainText="$(string.disablePersonalProviders_Explain)" key="SOFTWARE\Policies\xlsft\harness" valueName="disablePersonalProviders">
+      <parentCategory ref="harness" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="disableUpdates" class="Machine" displayName="$(string.disableUpdates)" explainText="$(string.disableUpdates_Explain)" key="SOFTWARE\Policies\xlsft\harness" valueName="disableUpdates">
+      <parentCategory ref="harness" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="permissions_defaultMode" class="Machine" displayName="$(string.permissions_defaultMode)" explainText="$(string.permissions_defaultMode_Explain)" key="SOFTWARE\Policies\xlsft\harness" presentation="$(presentation.permissions_defaultMode)">
+      <parentCategory ref="harness_permissions" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <elements>
+        <enum id="permissions_defaultMode" valueName="permissions.defaultMode" required="true">
+          <item displayName="$(string.permissions_defaultMode_default)">
+            <value>
+              <string>default</string>
+            </value>
+          </item>
+          <item displayName="$(string.permissions_defaultMode_acceptEdits)">
+            <value>
+              <string>acceptEdits</string>
+            </value>
+          </item>
+          <item displayName="$(string.permissions_defaultMode_plan)">
+            <value>
+              <string>plan</string>
+            </value>
+          </item>
+          <item displayName="$(string.permissions_defaultMode_dontAsk)">
+            <value>
+              <string>dontAsk</string>
+            </value>
+          </item>
+          <item displayName="$(string.permissions_defaultMode_bypassPermissions)">
+            <value>
+              <string>bypassPermissions</string>
+            </value>
+          </item>
+          <item displayName="$(string.permissions_defaultMode_auto)">
+            <value>
+              <string>auto</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="permissions_disableAutoMode" class="Machine" displayName="$(string.permissions_disableAutoMode)" explainText="$(string.permissions_disableAutoMode_Explain)" key="SOFTWARE\Policies\xlsft\harness" valueName="permissions.disableAutoMode">
+      <parentCategory ref="harness_permissions" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <enabledValue>
+        <string>disable</string>
+      </enabledValue>
+    </policy>
+    <policy name="permissions_disableBypassPermissionsMode" class="Machine" displayName="$(string.permissions_disableBypassPermissionsMode)" explainText="$(string.permissions_disableBypassPermissionsMode_Explain)" key="SOFTWARE\Policies\xlsft\harness" valueName="permissions.disableBypassPermissionsMode">
+      <parentCategory ref="harness_permissions" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <enabledValue>
+        <string>disable</string>
+      </enabledValue>
+    </policy>
+    <policy name="remoteControl" class="Machine" displayName="$(string.remoteControl)" explainText="$(string.remoteControl_Explain)" key="SOFTWARE\Policies\xlsft\harness" valueName="remoteControl">
+      <parentCategory ref="harness" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="sandbox_allowOutside" class="Machine" displayName="$(string.sandbox_allowOutside)" explainText="$(string.sandbox_allowOutside_Explain)" key="SOFTWARE\Policies\xlsft\harness" valueName="sandbox.allowOutside">
+      <parentCategory ref="harness_sandbox" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="sandbox_enabled" class="Machine" displayName="$(string.sandbox_enabled)" explainText="$(string.sandbox_enabled_Explain)" key="SOFTWARE\Policies\xlsft\harness" valueName="sandbox.enabled">
+      <parentCategory ref="harness_sandbox" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+    <policy name="serverUrl" class="Machine" displayName="$(string.serverUrl)" explainText="$(string.serverUrl_Explain)" key="SOFTWARE\Policies\xlsft\harness" presentation="$(presentation.serverUrl)">
+      <parentCategory ref="harness" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <elements>
+        <text id="serverUrl" valueName="serverUrl" maxLength="2048" required="true" />
+      </elements>
+    </policy>
+    <policy name="updateMirrorUrl" class="Machine" displayName="$(string.updateMirrorUrl)" explainText="$(string.updateMirrorUrl_Explain)" key="SOFTWARE\Policies\xlsft\harness" presentation="$(presentation.updateMirrorUrl)">
+      <parentCategory ref="harness" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <elements>
+        <text id="updateMirrorUrl" valueName="updateMirrorUrl" maxLength="2048" required="true" />
+      </elements>
+    </policy>
+    <policy name="webSearchMode" class="Machine" displayName="$(string.webSearchMode)" explainText="$(string.webSearchMode_Explain)" key="SOFTWARE\Policies\xlsft\harness" presentation="$(presentation.webSearchMode)">
+      <parentCategory ref="harness" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <elements>
+        <enum id="webSearchMode" valueName="webSearchMode" required="true">
+          <item displayName="$(string.webSearchMode_live)">
+            <value>
+              <string>live</string>
+            </value>
+          </item>
+          <item displayName="$(string.webSearchMode_cached)">
+            <value>
+              <string>cached</string>
+            </value>
+          </item>
+          <item displayName="$(string.webSearchMode_disabled)">
+            <value>
+              <string>disabled</string>
+            </value>
+          </item>
+        </enum>
+      </elements>
+    </policy>
+    <policy name="Settings" class="Machine" displayName="$(string.Settings)" explainText="$(string.Settings_Explain)" key="SOFTWARE\Policies\xlsft\harness" presentation="$(presentation.Settings)">
+      <parentCategory ref="harness" />
+      <supportedOn ref="SUPPORTED_harness" />
+      <elements>
+        <text id="Settings" valueName="Settings" maxLength="32767" required="true" />
+      </elements>
+    </policy>
+  </policies>
+</policyDefinitions>

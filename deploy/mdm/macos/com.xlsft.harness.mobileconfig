@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Generated from packages/client/settings/policy.schema.json by scripts/policy-templates.sh. Don't edit it here: change the schema and run the script. Copy it, set serverUrl and the keys you want (keys.md), and give PayloadUUID and PayloadIdentifier values of your own. -->
+<plist version="1.0">
+<dict>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+			<key>PayloadContent</key>
+			<dict>
+				<key>com.xlsft.harness</key>
+				<dict>
+					<key>Forced</key>
+					<array>
+						<dict>
+							<key>mcx_preference_settings</key>
+							<dict>
+								<key>disableUpdates</key>
+								<false/>
+								<key>permissions</key>
+								<dict>
+									<key>disableBypassPermissionsMode</key>
+									<string>disable</string>
+								</dict>
+								<key>serverUrl</key>
+								<string>https://harness.example.com</string>
+							</dict>
+						</dict>
+					</array>
+				</dict>
+			</dict>
+			<key>PayloadDisplayName</key>
+			<string>xlsft`s harness settings</string>
+			<key>PayloadEnabled</key>
+			<true/>
+			<key>PayloadIdentifier</key>
+			<string>com.xlsft.harness.profile.preferences</string>
+			<key>PayloadType</key>
+			<string>com.apple.ManagedClient.preferences</string>
+			<key>PayloadUUID</key>
+			<string>7BC3EB43-9DED-5C9D-BF90-954998EFF8E1</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+		</dict>
+	</array>
+	<key>PayloadDescription</key>
+	<string>Server, updates and managed policy of xlsft`s harness. Keys: deploy/mdm/keys.md.</string>
+	<key>PayloadDisplayName</key>
+	<string>xlsft`s harness</string>
+	<key>PayloadIdentifier</key>
+	<string>com.xlsft.harness.profile</string>
+	<key>PayloadOrganization</key>
+	<string>Example Organization</string>
+	<key>PayloadRemovalDisallowed</key>
+	<true/>
+	<key>PayloadScope</key>
+	<string>System</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>C3C21529-6727-5740-9315-C69C76138DD0</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+</dict>
+</plist>

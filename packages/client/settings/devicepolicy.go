@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -25,7 +26,8 @@ import (
 var ManagedRoot = defaultManagedRoot()
 
 // MacPreferences is the property list a macOS profile for the domain com.xlsft.harness is written to. Windows reads
-// WindowsPolicyKey's Settings value, a JSON string. Empty turns them off.
+// WindowsPolicyKey's Settings value, a JSON string, and single values named by a key's dotted path (parseRegQuery). Empty
+// turns them off.
 var (
 	MacPreferences   = defaultMacPreferences()
 	WindowsPolicyKey = defaultWindowsPolicyKey()
@@ -41,18 +43,24 @@ func defaultManagedRoot() string {
 	return "/etc/harness"
 }
 
+// The places device management writes to; policy.schema.json names the same (x-harness), for the templates.
+const (
+	macPreferencesPath = "/Library/Managed Preferences/com.xlsft.harness.plist"
+	windowsPolicyKey   = `HKLM\SOFTWARE\Policies\xlsft\harness`
+)
+
 func defaultMacPreferences() string {
 	if runtime.GOOS != "darwin" {
 		return ""
 	}
-	return "/Library/Managed Preferences/com.xlsft.harness.plist"
+	return macPreferencesPath
 }
 
 func defaultWindowsPolicyKey() string {
 	if runtime.GOOS != "windows" {
 		return ""
 	}
-	return `HKLM\SOFTWARE\Policies\xlsft\harness`
+	return windowsPolicyKey
 }
 
 // DevicePolicy is one policy that came with the machine.
@@ -164,24 +172,92 @@ func flattenPlist(data []byte) []byte {
 func readRegistryJSON(key string) ([]byte, bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	out, err := exec.CommandContext(ctx, "reg", "query", key, "/v", "Settings").Output()
+	out, err := exec.CommandContext(ctx, "reg", "query", key).Output()
 	if err != nil {
 		return nil, false
 	}
 	return parseRegQuery(string(out))
 }
 
-// parseRegQuery reads the value out of `reg query` output.
+// parseRegQuery reads the values of the key out of `reg query` output: the Settings value, a JSON string, and the single
+// values the administrative template writes, one per key of the policy schema, named by its dotted path
+// ("sandbox.enabled"). A single value wins over the same key in Settings. Values the schema doesn't know are left out.
 func parseRegQuery(out string) ([]byte, bool) {
+	schema := Schema()
+	doc := map[string]any{}
+	found := false
+	var singles [][3]string
 	for _, line := range strings.Split(out, "\n") {
 		line = strings.TrimSpace(line)
-		rest, ok := strings.CutPrefix(line, "Settings")
+		if line == "" || strings.HasPrefix(line, "HKEY_") {
+			continue
+		}
+		parts := strings.SplitN(line, "    ", 3)
+		if len(parts) < 2 || !strings.HasPrefix(parts[1], "REG_") {
+			continue
+		}
+		name, typ, value := parts[0], parts[1], ""
+		if len(parts) == 3 {
+			value = strings.TrimSpace(parts[2])
+		}
+		if name == schema.Harness.RegistryJSONValue && typ == "REG_SZ" {
+			if err := json.Unmarshal([]byte(value), &doc); err != nil {
+				// Broken: passed on as it is, so the settings loader reports it.
+				return []byte(value), true
+			}
+			found = true
+			continue
+		}
+		singles = append(singles, [3]string{name, typ, value})
+	}
+	for _, v := range singles {
+		p := schema.Lookup(v[0])
+		if p == nil {
+			continue
+		}
+		val, ok := registryValue(p, v[1], v[2])
 		if !ok {
 			continue
 		}
-		if _, value, ok := strings.Cut(rest, "REG_SZ"); ok {
-			return []byte(strings.TrimSpace(value)), true
+		setPath(doc, strings.Split(v[0], "."), val)
+		found = true
+	}
+	if !found {
+		return nil, false
+	}
+	b, err := json.Marshal(doc)
+	return b, err == nil
+}
+
+// registryValue converts one value as `reg query` prints it to the type the schema gives its key.
+func registryValue(p *SchemaProperty, typ, value string) (any, bool) {
+	switch p.Type {
+	case "boolean", "integer":
+		if typ != "REG_DWORD" {
+			return nil, false
 		}
+		n, err := strconv.ParseUint(strings.TrimPrefix(value, "0x"), 16, 32)
+		if err != nil {
+			return nil, false
+		}
+		if p.Type == "boolean" {
+			return n != 0, true
+		}
+		return n, true
+	case "string":
+		return value, typ == "REG_SZ" || typ == "REG_EXPAND_SZ"
 	}
 	return nil, false
+}
+
+func setPath(doc map[string]any, path []string, v any) {
+	for _, k := range path[:len(path)-1] {
+		next, ok := doc[k].(map[string]any)
+		if !ok {
+			next = map[string]any{}
+			doc[k] = next
+		}
+		doc = next
+	}
+	doc[path[len(path)-1]] = v
 }
