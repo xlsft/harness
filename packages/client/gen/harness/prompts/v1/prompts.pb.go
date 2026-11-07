@@ -204,6 +204,8 @@ type PromptBundle struct {
 	//	team_context          {{team}}               starts the first message of a team member
 	//	team_next_task        {{team}} {{tasks}}     a team member is told about free tasks
 	//	team_message          {{from}} {{message}}   a subagent told the main agent something
+	//	project_coordinator   {{run_id}} {{limits}} {{targets}}  the brief of a project run's coordinator session
+	//	project_run_resumed   {{status}}             a paused project run was resumed; where it stands
 	//	side_chat            (none)                 not a reminder: the system prompt of side chats (AskSideChat)
 	//	advisor              (none)                 not a reminder: the system prompt of the model behind the Advisor tool
 	//	pr_draft             {{head}} {{base}} {{log}} {{stat}} {{diff}}   not a reminder: the Create PR button's prompt

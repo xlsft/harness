@@ -42,7 +42,7 @@ describe("bundle builder", () => {
       "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey", "ComputerMenu", "ComputerScreenshot", "ComputerScroll",
       "ComputerType", "DocumentEdit", "DocumentRead", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "KeepAwake", "KnowledgeRead", "KnowledgeSearch", "LS", "LSP",
       "ListAgents", "ListMcpResources", "MarkChapter", "McpAuthenticate", "Memory", "Monitor", "MultiEdit", "NotebookEdit", "NotebookRun", "OpenInEditor", "PrAutoMerge", "PrBind", "PrMonitor",
-      "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop", "ProposeBranch", "PushNotification", "Read",
+      "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop", "ProjectFinish", "ProjectStatus", "ProjectWorkerMerge", "ProjectWorkerStart", "ProposeBranch", "PushNotification", "Read",
       "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "ScheduleCancel", "ScheduleList", "ScheduleWakeup", "SendMessage", "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff",
       "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet", "SettingsSet",
       "Show", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskInput", "TaskOutput", "TaskStop", "TaskTracker", "TerminalList", "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
@@ -111,6 +111,8 @@ describe("bundle builder", () => {
       team_context: ["team"],
       team_next_task: ["team", "tasks"],
       team_message: ["from", "message"],
+      project_coordinator: ["run_id", "limits", "targets"],
+      project_run_resumed: ["status"],
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
       // Bash tool_result notes about a command that runs in the background, by reason
