@@ -10,6 +10,7 @@ import { create, fromBinary, fromJson, toBinary, toJson, type JsonValue, type Me
 import { and, asc, eq, gt, inArray, lt, max, or } from "drizzle-orm";
 import { getDb, schema } from "../db/index.ts";
 import {
+  CloudEnvironmentState,
   PermissionMode,
   SessionEventSchema,
   SessionInfoSchema,
@@ -645,12 +646,22 @@ export async function listHosts(p: Principal): Promise<Init<typeof HostSchema>[]
         .where(inArray(schema.device.id, [...new Set(hosts.map((h) => h.deviceId))]))
     : [];
   const names = new Map(devices.map((d) => [d.id, d.name]));
+  // Cloud sessions' devices: their containers come and go, and the state of the container is what viewers show.
+  const clouds = hosts.length
+    ? await db
+        .select({ deviceId: schema.cloudSession.deviceId, state: schema.cloudSession.state })
+        .from(schema.cloudSession)
+        .where(and(eq(schema.cloudSession.userId, p.user.id), inArray(schema.cloudSession.deviceId, [...new Set(hosts.map((h) => h.deviceId))])))
+    : [];
+  const cloudState = new Map(clouds.map((c) => [c.deviceId, c.state as CloudEnvironmentState]));
   const now = Date.now();
   const out: Init<typeof HostSchema>[] = [];
   for (const h of hosts) {
     const online = isOnline(h, now);
     const own = sessions.filter((s) => s.hostId === h.id);
-    if (!own.length && !online && now - h.lastSeenAt.getTime() > LIST_HOSTS_WINDOW_MS) continue;
+    const cloud = cloudState.get(h.deviceId);
+    const keep = cloud !== undefined && cloud !== CloudEnvironmentState.ENDED;
+    if (!own.length && !online && !keep && now - h.lastSeenAt.getTime() > LIST_HOSTS_WINDOW_MS) continue;
     out.push({
       hostId: h.id,
       deviceId: h.deviceId,
@@ -664,9 +675,11 @@ export async function listHosts(p: Principal): Promise<Init<typeof HostSchema>[]
         const info = sessionInfoOf(s);
         info.status = online ? (s.status as SessionStatus) || info.status : SessionStatus.WAITING_FOR_CONNECTION;
         info.deviceName = info.deviceName || (names.get(h.deviceId) ?? "");
+        if (cloud !== undefined) info.cloudEnvironment = cloud;
         return info;
       }),
       lastSeenAt: h.lastSeenAt.toISOString(),
+      cloudEnvironment: cloud,
     });
   }
   out.sort((a, b) => String(b.lastSeenAt).localeCompare(String(a.lastSeenAt)));
@@ -957,7 +970,9 @@ export async function sendSessionCommand(
 ): Promise<CommandOutcome> {
   checkPayload(payload);
   const session = await requireUserSession(p, payloadSessionId(payload));
-  if (!session.active) throw new ApiError("failed_precondition", `Session ${session.id} is no longer remote-controllable`);
+  // A cloud session's container may be gone: the command wakes it, and waits for it (docs/design/cloud-sessions.md, decision 7).
+  const cloud = hold !== "query" && cloudWake ? await cloudWake(session.deviceId) : false;
+  if (!session.active && !cloud) throw new ApiError("failed_precondition", `Session ${session.id} is no longer remote-controllable`);
   // Query results are only useful to the waiting caller: they expire with the wait.
   const ttlMs = hold === "query" ? ackWaitMs() : (payload.case === "deliverSessionNote" ? SESSION_NOTE_TTL_S : ttlSeconds(opts)) * 1000;
   const { row } = await enqueue(p, { session }, payload, opts, ttlMs, frontend);
@@ -1031,6 +1046,14 @@ export async function withdrawServerCommand(userId: string, key: string): Promis
     .update(schema.relayCommand)
     .set({ state: "withdrawn" })
     .where(and(eq(schema.relayCommand.userId, userId), eq(schema.relayCommand.idempotencyKey, key), eq(schema.relayCommand.state, "queued")));
+}
+
+type CloudWake = (deviceId: string) => Promise<boolean>;
+let cloudWake: CloudWake | undefined;
+
+/** Lets cloud sessions (relay/cloud.ts) start a container for a command; it returns false for any other device. */
+export function setCloudWake(fn: CloudWake): void {
+  cloudWake = fn;
 }
 
 /** Test hook: drops in-process relay state between test files sharing a module instance. */

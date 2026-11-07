@@ -101,8 +101,9 @@ export async function requirePrincipal(ctx: HandlerContext): Promise<Principal> 
   const m = authz ? /^Bearer\s+(\S+)$/i.exec(authz.trim()) : null;
   const p = m ? await authenticateAccessToken(m[1]!) : authz ? undefined : await principalFromCookie(ctx);
   if (!p) throw new ApiError("authentication", "Missing or invalid access token");
-  // A team host's supervisor starts workers and nothing else; it has no business with models, sessions or the relay.
-  if (p.deviceKind === "host_supervisor" && ctx.service.typeName !== "harness.relay.v1.HostAgentService") {
+  // A team host's supervisor starts workers and nothing else, and a runner of cloud sessions starts containers: neither has
+  // any business with models, sessions or the relay.
+  if ((p.deviceKind === "host_supervisor" || p.deviceKind === "host_runner") && ctx.service.typeName !== "harness.relay.v1.HostAgentService") {
     throw new ApiError("permission", "This host's token can only talk to the host service");
   }
   ctx.values.get(principalHolderKey).principal = p;

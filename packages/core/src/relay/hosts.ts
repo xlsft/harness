@@ -35,11 +35,29 @@ import { jobToProto, onUnclaimedMention } from "../vcs/pipeline.ts";
 import { hostIdentity, moveSessionLink, openPullRequestAs } from "../vcs/service.ts";
 import { parseRepoKey } from "../vcs/util.ts";
 import { AUTOFIX_JOB_TTL_S, queueServerCommand, sessionMachineOnline, withdrawServerCommand } from "./service.ts";
+import {
+  claimCloudWork,
+  cleanConfig,
+  cloudByDevice,
+  cloudDevice,
+  cloudOfWork,
+  configOf,
+  configToProto,
+  endCloudForWork,
+  mayUseRunner,
+  onCloudWorkUpdated,
+  registerCloudDevice,
+  reportCloudDevice,
+  runnerStats,
+  runnerUnavailableReason,
+  startCloudWork,
+  type CloudRow,
+} from "./cloud.ts";
 
 type Init<T extends Parameters<typeof create>[0]> = MessageInitShape<T>;
-type HostRow = typeof schema.agentHost.$inferSelect;
-type DeviceRow = typeof schema.agentHostDevice.$inferSelect;
-type WorkRow = typeof schema.hostWork.$inferSelect;
+export type HostRow = typeof schema.agentHost.$inferSelect;
+export type DeviceRow = typeof schema.agentHostDevice.$inferSelect;
+export type WorkRow = typeof schema.hostWork.$inferSelect;
 
 const DEFAULT_MAX_SESSIONS = 4;
 const MAX_MAX_SESSIONS = 1000;
@@ -70,12 +88,12 @@ const decodeJob = (s: string) => fromBinary(AutoFixJobSchema, new Uint8Array(Buf
 const waiters = new Map<string, Set<() => void>>();
 const hostLocks = new Map<string, Mutex>();
 
-function wake(hostId: string): void {
+export function wake(hostId: string): void {
   for (const fn of waiters.get(hostId) ?? []) fn();
 }
 
 /** Resolves when something happened on the host, or after ms, or when the call ends. */
-function waitForChange(hostId: string, ms: number, signal: AbortSignal | undefined): Promise<void> {
+export function waitForChange(hostId: string, ms: number, signal: AbortSignal | undefined): Promise<void> {
   return new Promise((resolve) => {
     const set = waiters.get(hostId) ?? new Set();
     waiters.set(hostId, set);
@@ -101,12 +119,12 @@ function withHostLock<T>(hostId: string, fn: () => Promise<T>): Promise<T> {
 
 // --- lookups and access --------------------------------------------------------------------------------
 
-async function hostOf(id: string): Promise<HostRow | undefined> {
+export async function hostOf(id: string): Promise<HostRow | undefined> {
   const [row] = await getDb().select().from(schema.agentHost).where(eq(schema.agentHost.id, id));
   return row;
 }
 
-async function inGroup(userId: string, groupId: string): Promise<boolean> {
+export async function inGroup(userId: string, groupId: string): Promise<boolean> {
   if (!groupId) return false;
   const m = schema.directoryGroupMember;
   const [row] = await getDb().select({ id: m.userId }).from(m).where(and(eq(m.groupId, groupId), eq(m.userId, userId)));
@@ -115,6 +133,7 @@ async function inGroup(userId: string, groupId: string): Promise<boolean> {
 
 /** Whether the user's work may run on this host. */
 async function mayUse(userId: string, host: HostRow): Promise<boolean> {
+  if (host.scope === "cloud") return mayUseRunner(userId, host);
   return host.scope === "team" ? inGroup(userId, host.groupId) : host.ownerUserId === userId;
 }
 
@@ -127,20 +146,30 @@ async function usableHost(p: Principal, hostId: string): Promise<HostRow> {
 }
 
 /** The host of the calling device, for HostAgentService. */
-async function callingDevice(p: Principal): Promise<{ device: DeviceRow; host: HostRow }> {
+export const callingHostDevice = (p: Principal) => callingDevice(p);
+
+
+async function callingDevice(p: Principal): Promise<{ device: DeviceRow; host: HostRow; cloud?: CloudRow }> {
   if (!p.deviceId) throw new ApiError("permission", "Hosts must authenticate with a device token");
   const [row] = await getDb().select().from(schema.agentHostDevice).where(eq(schema.agentHostDevice.deviceId, p.deviceId));
+  if (!row) {
+    // A cloud session's container: its device is the session's, not a host's (docs/design/cloud-sessions.md, decision 3).
+    const cloud = await cloudByDevice(p.deviceId);
+    const runner = cloud && (await hostOf(cloud.hostId));
+    if (cloud && runner) return { device: cloudDevice(cloud), host: runner, cloud };
+  }
   const host = row && (await hostOf(row.hostId));
   if (!row || !host) throw new ApiError("failed_precondition", "This device is not registered as a host; call RegisterAgentHost first");
   return { device: row, host };
 }
 
-function isFresh(at: Date | null | undefined, now = Date.now()): boolean {
+export function isFresh(at: Date | null | undefined, now = Date.now()): boolean {
   return !!at && now - at.getTime() < reportFreshMs();
 }
 
 /** Why work can't start on this host (docs/design/hosts.md, decisions 7 and 20); "" when it can. */
 async function unavailableReason(host: HostRow, user: Pick<Principal["user"], "role">): Promise<string> {
+  if (host.scope === "cloud") return runnerUnavailableReason(host, user);
   if (host.draining) return "This host is draining and takes no new work";
   if (host.scope === "team" && host.isolation !== "uid") {
     return host.isolation ? "This team host can't separate its users (it needs a daemon with --shared, as root on Linux), so it takes no work" : "This team host has not started yet";
@@ -171,6 +200,7 @@ async function hostViews(rows: HostRow[], p: Principal, withWorkers: boolean): P
   const groups = groupIds.length ? await db.select({ id: schema.directoryGroup.id, name: schema.directoryGroup.name }).from(schema.directoryGroup).where(inArray(schema.directoryGroup.id, groupIds)) : [];
   const groupNames = new Map(groups.map((g) => [g.id, g.name]));
   const now = Date.now();
+  const stats = await runnerStats(rows.filter((r) => r.scope === "cloud").map((r) => r.id));
   const out: Init<typeof AgentHostSchema>[] = [];
   for (const h of rows) {
     const own = devices.filter((d) => d.hostId === h.id);
@@ -178,7 +208,7 @@ async function hostViews(rows: HostRow[], p: Principal, withWorkers: boolean): P
     out.push({
       id: h.id,
       name: h.name,
-      scope: h.scope === "team" ? AgentHostScope.TEAM : AgentHostScope.USER,
+      scope: h.scope === "team" ? AgentHostScope.TEAM : h.scope === "cloud" ? AgentHostScope.CLOUD : AgentHostScope.USER,
       ownerUserId: h.ownerUserId,
       ownerName: names.get(h.ownerUserId) ?? "",
       groupId: h.groupId,
@@ -190,7 +220,7 @@ async function hostViews(rows: HostRow[], p: Principal, withWorkers: boolean): P
       maxSessionsPerUser: h.maxSessionsPerUser,
       workingSessions: own.reduce((n, d) => n + (isFresh(d.reportedAt, now) ? d.workingSessions : 0), 0),
       queuedWork: queued.find((q) => q.hostId === h.id)?.n ?? 0,
-      isolation: h.isolation === "uid" ? AgentHostIsolation.UID : h.isolation === "none" ? AgentHostIsolation.NONE : AgentHostIsolation.UNSPECIFIED,
+      isolation: isolationOf(h.isolation),
       sandboxDriver: h.sandboxDriver,
       os: h.os,
       arch: h.arch,
@@ -204,20 +234,38 @@ async function hostViews(rows: HostRow[], p: Principal, withWorkers: boolean): P
       createdAt: h.createdAt.toISOString(),
       workers: withWorkers
         ? own
-            .filter((d) => d.role !== "supervisor")
+            .filter((d) => d.role !== "supervisor" && d.role !== "runner")
             .map((d) => ({ userId: d.userId, userName: names.get(d.userId) ?? "", deviceId: d.deviceId, online: isFresh(d.reportedAt, now), workingSessions: isFresh(d.reportedAt, now) ? d.workingSessions : 0 }))
         : [],
+      // The configuration is the admins'; what a runner has running is anyone's who may use it.
+      cloud: h.scope === "cloud" && withWorkers ? configToProto(configOf(h)) : undefined,
+      cloudStats: stats.get(h.id),
     });
   }
   return out;
+}
+
+function isolationOf(name: string): AgentHostIsolation {
+  switch (name) {
+    case "uid":
+      return AgentHostIsolation.UID;
+    case "none":
+      return AgentHostIsolation.NONE;
+    case "container":
+      return AgentHostIsolation.CONTAINER;
+  }
+  return AgentHostIsolation.UNSPECIFIED;
 }
 
 async function hostName(hostId: string): Promise<string> {
   return (await hostOf(hostId))?.name ?? "";
 }
 
-function workView(w: WorkRow, name: string, redact = false): Init<typeof HostWorkSchema> {
+function workView(w: WorkRow, name: string, redact = false, cloud?: CloudRow): Init<typeof HostWorkSchema> {
   return {
+    cloud: !!cloud,
+    cloudState: cloud?.state,
+    cloudSessionId: cloud?.id ?? "",
     id: w.id,
     hostId: w.hostId,
     hostName: name,
@@ -256,7 +304,8 @@ export async function listAgentHosts(p: Principal, all: boolean): Promise<Init<t
   const m = schema.directoryGroupMember;
   const groups = (await db.select({ id: m.groupId }).from(m).where(eq(m.userId, p.user.id))).map((g) => g.id);
   const rows = await db.select().from(schema.agentHost).orderBy(asc(schema.agentHost.name));
-  return hostViews(rows.filter((h) => (h.scope === "team" ? groups.includes(h.groupId) : h.ownerUserId === p.user.id)), p, false);
+  const visible = (h: HostRow) => (h.scope === "cloud" ? !h.groupId || groups.includes(h.groupId) : h.scope === "team" ? groups.includes(h.groupId) : h.ownerUserId === p.user.id);
+  return hostViews(rows.filter(visible), p, false);
 }
 
 function cleanLimit(n: number, what: string): number {
@@ -292,6 +341,7 @@ export async function createAgentHost(p: Principal, req: CreateAgentHostRequest)
   const name = req.name.trim();
   if (!name || name.length > 100) throw new ApiError("invalid_request", "A host's name has 1 to 100 characters");
   const team = req.scope === AgentHostScope.TEAM;
+  if (req.scope === AgentHostScope.CLOUD) return createRunner(p, req, name);
   if (team) {
     need(p.user, "hosts.write");
     if (!req.groupId) throw new ApiError("invalid_request", "A team host needs group_id");
@@ -322,6 +372,32 @@ export async function createAgentHost(p: Principal, req: CreateAgentHostRequest)
   return { host: (await hostViews([row!], p, false))[0]!, deviceToken: device.deviceToken };
 }
 
+/** A runner of cloud sessions (docs/design/cloud-sessions.md, decision 1): admins only; its token can only call HostAgentService. */
+async function createRunner(p: Principal, req: CreateAgentHostRequest, name: string): Promise<{ host: Init<typeof AgentHostSchema>; deviceToken: string }> {
+  need(p.user, "hosts.write");
+  if (req.groupId) await checkGroupExists(req.groupId);
+  const id = newId("ahs");
+  const device = await createHostDevice(p.user.id, name, "host_runner", "harness-client runner");
+  const db = getDb();
+  const [row] = await db
+    .insert(schema.agentHost)
+    .values({
+      id,
+      name,
+      scope: "cloud",
+      ownerUserId: p.user.id,
+      groupId: req.groupId,
+      maxSessions: cleanLimit(req.maxSessions, "max_sessions") || DEFAULT_MAX_SESSIONS,
+      maxSessionsPerUser: cleanLimit(req.maxSessionsPerUser, "max_sessions_per_user"),
+      allowedRepositories: cleanPatterns(req.allowedRepositories),
+      cloudConfig: cleanConfig(req.cloud),
+      createdAt: new Date(),
+    })
+    .returning();
+  await db.insert(schema.agentHostDevice).values({ deviceId: device.deviceId, hostId: id, userId: p.user.id, role: "runner" });
+  return { host: (await hostViews([row!], p, true))[0]!, deviceToken: device.deviceToken };
+}
+
 /** Owner or `hosts.write`; NOT_FOUND otherwise. */
 async function manageableHost(p: Principal, id: string): Promise<HostRow> {
   const host = await hostOf(id);
@@ -340,18 +416,23 @@ export async function updateAgentHost(p: Principal, req: UpdateAgentHostRequest)
   if (req.draining !== undefined) set.draining = req.draining;
   const admin = can(p.user, "hosts.write");
   if (req.maxSessions !== undefined) {
-    if (host.scope === "team") need(p.user, "hosts.write");
+    if (host.scope !== "user") need(p.user, "hosts.write");
     set.maxSessions = cleanLimit(req.maxSessions, "max_sessions") || DEFAULT_MAX_SESSIONS;
   }
   if (req.maxSessionsPerUser !== undefined) {
-    if (host.scope === "team") need(p.user, "hosts.write");
+    if (host.scope !== "user") need(p.user, "hosts.write");
     set.maxSessionsPerUser = cleanLimit(req.maxSessionsPerUser, "max_sessions_per_user");
   }
   if (req.groupId !== undefined) {
     need(p.user, "hosts.write");
-    if (host.scope !== "team") throw new ApiError("failed_precondition", "Only a team host has a group");
-    await checkGroupExists(req.groupId);
+    if (host.scope === "user") throw new ApiError("failed_precondition", "Only a team host or a runner has a group");
+    if (req.groupId || host.scope === "team") await checkGroupExists(req.groupId);
     set.groupId = req.groupId;
+  }
+  if (req.cloud) {
+    need(p.user, "hosts.write");
+    if (host.scope !== "cloud") throw new ApiError("failed_precondition", "Only a runner has a cloud configuration");
+    set.cloudConfig = cleanConfig(req.cloud);
   }
   if (req.setAllowedRepositories) {
     if (!admin) need(p.user, "hosts.write");
@@ -373,7 +454,14 @@ export async function deleteAgentHost(p: Principal, id: string): Promise<void> {
 }
 
 export async function startHostWork(p: Principal, req: StartHostWorkRequest): Promise<Init<typeof HostWorkSchema>> {
+  if (req.cloud) {
+    const runner = req.hostId ? await usableHost(p, req.hostId) : undefined;
+    if (runner && runner.scope !== "cloud") throw new ApiError("invalid_request", "That host is not a runner of cloud sessions");
+    const started = await startCloudWork(p, req, runner);
+    return workView(started.work, started.host.name, false, started.cloud);
+  }
   const host = await usableHost(p, req.hostId);
+  if (host.scope === "cloud") throw new ApiError("invalid_request", "A runner takes cloud sessions: set cloud");
   const reason = await unavailableReason(host, p.user);
   if (reason) throw new ApiError("failed_precondition", reason);
   if (req.permissionMode === PermissionMode.BYPASS_PERMISSIONS) throw new ApiError("permission", "bypassPermissions cannot be enabled remotely");
@@ -409,7 +497,7 @@ export async function startHostWork(p: Principal, req: StartHostWorkRequest): Pr
 
 type WorkInsert = Omit<typeof schema.hostWork.$inferInsert, "id" | "state" | "createdAt" | "updatedAt" | "expiresAt">;
 
-async function insertWork(v: WorkInsert): Promise<WorkRow> {
+export async function insertWork(v: WorkInsert): Promise<WorkRow> {
   const db = getDb();
   const w = schema.hostWork;
   const now = new Date();
@@ -429,8 +517,9 @@ async function insertWork(v: WorkInsert): Promise<WorkRow> {
 export async function getHostWork(p: Principal, id: string): Promise<Init<typeof HostWorkSchema>> {
   const [row] = await getDb().select().from(schema.hostWork).where(eq(schema.hostWork.id, id));
   if (!row) throw new ApiError("not_found", `Work ${id} not found`);
-  if (row.userId === p.user.id) return workView(row, await hostName(row.hostId));
-  if (can(p.user, "hosts.read")) return workView(row, await hostName(row.hostId), true);
+  const cloud = (await cloudOfWork([row.id])).get(row.id);
+  if (row.userId === p.user.id) return workView(row, await hostName(row.hostId), false, cloud);
+  if (can(p.user, "hosts.read")) return workView(row, await hostName(row.hostId), true, cloud);
   throw new ApiError("not_found", `Work ${id} not found`);
 }
 
@@ -441,7 +530,8 @@ export async function listHostWork(p: Principal, hostId: string, limit: number):
   if (hostId && can(p.user, "hosts.read")) {
     const rows = await db.select().from(w).where(eq(w.hostId, hostId)).orderBy(desc(w.createdAt)).limit(n);
     const name = await hostName(hostId);
-    return rows.map((r) => workView(r, name, r.userId !== p.user.id));
+    const clouds = await cloudOfWork(rows.map((r) => r.id));
+    return rows.map((r) => workView(r, name, r.userId !== p.user.id, clouds.get(r.id)));
   }
   const rows = await db
     .select()
@@ -451,7 +541,8 @@ export async function listHostWork(p: Principal, hostId: string, limit: number):
     .limit(n);
   const names = new Map<string, string>();
   for (const id of new Set(rows.map((r) => r.hostId))) names.set(id, await hostName(id));
-  return rows.map((r) => workView(r, names.get(r.hostId) ?? ""));
+  const clouds = await cloudOfWork(rows.map((r) => r.id));
+  return rows.map((r) => workView(r, names.get(r.hostId) ?? "", false, clouds.get(r.id)));
 }
 
 const TERMINAL: readonly number[] = [HostWorkState.DONE, HostWorkState.FAILED, HostWorkState.CANCELLED, HostWorkState.EXPIRED];
@@ -463,12 +554,13 @@ export async function cancelHostWork(p: Principal, id: string): Promise<Init<typ
   if (!row || !host || (row.userId !== p.user.id && host.ownerUserId !== p.user.id && !can(p.user, "hosts.write"))) throw new ApiError("not_found", `Work ${id} not found`);
   if (TERMINAL.includes(row.state)) return workView(row, host.name, row.userId !== p.user.id);
   const [next] = await db.update(schema.hostWork).set({ state: HostWorkState.CANCELLED, updatedAt: new Date() }).where(eq(schema.hostWork.id, id)).returning();
+  await endCloudForWork(id);
   wake(host.id);
   return workView(next!, host.name, row.userId !== p.user.id);
 }
 
 export async function setAwayHost(p: Principal, hostId: string): Promise<void> {
-  if (hostId) await usableHost(p, hostId);
+  if (hostId && (await usableHost(p, hostId)).scope === "cloud") throw new ApiError("invalid_request", "A runner of cloud sessions can't be an away host");
   const now = new Date();
   await getDb()
     .insert(schema.agentHostAway)
@@ -494,7 +586,7 @@ export async function claimScheduleRun(p: Principal, scheduleId: string, dueAt: 
 // --- HostAgentService ------------------------------------------------------------------------------------
 
 function isolationName(i: AgentHostIsolation): string {
-  return i === AgentHostIsolation.UID ? "uid" : "none";
+  return i === AgentHostIsolation.UID ? "uid" : i === AgentHostIsolation.CONTAINER ? "container" : "none";
 }
 
 /** Decision 9: only a token made for a host turns into one. */
@@ -515,10 +607,22 @@ async function adoptDevice(p: Principal, req: RegisterAgentHostRequest): Promise
   return { device: device!, host: host! };
 }
 
-export async function registerAgentHost(p: Principal, req: RegisterAgentHostRequest): Promise<{ host: Init<typeof AgentHostSchema>; supervisor: boolean }> {
+export async function registerAgentHost(
+  p: Principal,
+  req: RegisterAgentHostRequest,
+): Promise<{ host: Init<typeof AgentHostSchema>; supervisor: boolean; runner: boolean; cloud: boolean; bypassPermissionsAllowed: boolean }> {
   if (!p.deviceId) throw new ApiError("permission", "Hosts must authenticate with a device token");
   const db = getDb();
   const [known] = await db.select().from(schema.agentHostDevice).where(eq(schema.agentHostDevice.deviceId, p.deviceId));
+  const cloud = known ? undefined : await cloudByDevice(p.deviceId);
+  if (cloud) {
+    const runner = await hostOf(cloud.hostId);
+    if (!runner) throw new ApiError("failed_precondition", "This cloud session's runner is gone");
+    await registerCloudDevice(cloud);
+    wake(runner.id);
+    const policy = await serverPolicyFor(p.user);
+    return { host: (await hostViews([runner], p, false))[0]!, supervisor: false, runner: false, cloud: true, bypassPermissionsAllowed: policy.cloud.bypassPermissionsAllowed };
+  }
   const { device, host } = known ? await callingDevice(p) : await adoptDevice(p, req);
   const now = new Date();
   let row = host;
@@ -538,11 +642,16 @@ export async function registerAgentHost(p: Principal, req: RegisterAgentHostRequ
   }
   await db.update(schema.agentHostDevice).set({ reportedAt: now, workingSessions: 0 }).where(eq(schema.agentHostDevice.deviceId, device.deviceId));
   wake(host.id);
-  return { host: (await hostViews([row], p, false))[0]!, supervisor: device.role === "supervisor" };
+  return { host: (await hostViews([row], p, false))[0]!, supervisor: device.role === "supervisor", runner: device.role === "runner", cloud: false, bypassPermissionsAllowed: false };
 }
 
 export async function reportAgentHost(p: Principal, req: ReportAgentHostRequest): Promise<{ draining: boolean; maxSessions: number }> {
-  const { device, host } = await callingDevice(p);
+  const { device, host, cloud } = await callingDevice(p);
+  if (cloud) {
+    await reportCloudDevice(cloud, req.workingSessions);
+    wake(host.id);
+    return { draining: false, maxSessions: 1 };
+  }
   const now = new Date();
   const db = getDb();
   await db.update(schema.agentHostDevice).set({ workingSessions: Math.max(0, req.workingSessions), reportedAt: now }).where(eq(schema.agentHostDevice.deviceId, device.deviceId));
@@ -603,8 +712,10 @@ async function tryClaim(device: DeviceRow, host: HostRow): Promise<WorkRow | und
 }
 
 export async function claimHostWork(p: Principal, waitSeconds: number, signal?: AbortSignal): Promise<{ work?: Init<typeof HostWorkSchema>; gitName: string; gitEmail: string }> {
-  const { device, host } = await callingDevice(p);
+  const { device, host, cloud } = await callingDevice(p);
   if (device.role === "supervisor") throw new ApiError("failed_precondition", "A supervisor runs workers; its workers claim the work");
+  if (device.role === "runner") throw new ApiError("failed_precondition", "A runner starts containers; the daemons in them claim the work");
+  if (cloud) return claimForCloud(p, cloud, waitSeconds, signal);
   const deadline = Date.now() + Math.min(Math.max(waitSeconds, 0), MAX_POLL_S) * 1000;
   for (;;) {
     const row = await tryClaim(device, host);
@@ -612,6 +723,20 @@ export async function claimHostWork(p: Principal, waitSeconds: number, signal?: 
     const left = deadline - Date.now();
     if (left <= 0 || signal?.aborted) return { gitName: "", gitEmail: "" };
     await waitForChange(host.id, left, signal);
+  }
+}
+
+/** A cloud session's daemon takes its own work, once per container (docs/design/cloud-sessions.md, decision 8). */
+async function claimForCloud(p: Principal, first: CloudRow, waitSeconds: number, signal?: AbortSignal): Promise<{ work?: Init<typeof HostWorkSchema>; gitName: string; gitEmail: string }> {
+  const deadline = Date.now() + Math.min(Math.max(waitSeconds, 0), MAX_POLL_S) * 1000;
+  let cloud: CloudRow | undefined = first;
+  for (;;) {
+    const row = cloud && (await claimCloudWork(cloud, leaseMs()));
+    if (row && cloud) return { work: workView(row, await hostName(row.hostId), false, cloud), gitName: p.user.name, gitEmail: p.user.email };
+    const left = deadline - Date.now();
+    if (left <= 0 || signal?.aborted || !cloud) return { gitName: "", gitEmail: "" };
+    await waitForChange(first.hostId, left, signal);
+    cloud = await cloudByDevice(first.deviceId);
   }
 }
 
@@ -638,6 +763,7 @@ export async function updateHostWork(p: Principal, req: UpdateHostWorkRequest): 
     await db.update(schema.agentHostDevice).set({ workingSessions: sql`${schema.agentHostDevice.workingSessions} + 1` }).where(eq(schema.agentHostDevice.deviceId, device.deviceId));
   }
   const sessionId = req.sessionId || row.sessionId;
+  await onCloudWorkUpdated(row, set.state ?? HostWorkState.UNSPECIFIED, sessionId, req.error);
   if (row.forkSessionId && sessionId) await moveSessionLink(row.userId, row.forkSessionId, sessionId).catch(() => {});
   wake(row.hostId);
   return { cancelled: false };
@@ -646,7 +772,7 @@ export async function updateHostWork(p: Principal, req: UpdateHostWorkRequest): 
 /** A device of a host that runs sessions: the only kind that gets git credentials. */
 async function workingDevice(p: Principal): Promise<{ device: DeviceRow; host: HostRow; allowed: string[] }> {
   const { device, host } = await callingDevice(p);
-  if (device.role === "supervisor") throw new ApiError("permission", "A supervisor holds no repository credentials");
+  if (device.role === "supervisor" || device.role === "runner") throw new ApiError("permission", "A supervisor or runner holds no repository credentials");
   return { device, host, allowed: Array.isArray(host.allowedRepositories) ? (host.allowedRepositories as string[]) : [] };
 }
 
@@ -750,7 +876,7 @@ async function awayHostOf(userId: string): Promise<HostRow | undefined> {
   if (choice) {
     if (!choice.hostId) return undefined;
     const host = await hostOf(choice.hostId);
-    return host && (await mayUse(userId, host)) ? host : undefined;
+    return host && host.scope !== "cloud" && (await mayUse(userId, host)) ? host : undefined;
   }
   const own = await db.select().from(schema.agentHost).where(and(eq(schema.agentHost.ownerUserId, userId), eq(schema.agentHost.scope, "user")));
   return own.length === 1 ? own[0] : undefined;

@@ -21,6 +21,8 @@ import {
   updateAgentHost,
   updateHostWork,
 } from "../relay/hosts.ts";
+import { issueCloudSessionToken, listCloudSessions, pollCloudRunner, stopCloudSession, updateCloudSession } from "../relay/cloud.ts";
+import { callingHostDevice } from "../relay/hosts.ts";
 import { requirePrincipal } from "./context.ts";
 import { guard } from "./errors.ts";
 
@@ -42,6 +44,8 @@ export function registerHostServices(router: ConnectRouter): void {
       return {};
     }),
     claimScheduleRun: guard(async (req, ctx: HandlerContext) => ({ granted: await claimScheduleRun(await requirePrincipal(ctx), req.scheduleId, req.dueAt) })),
+    listCloudSessions: guard(async (req, ctx: HandlerContext) => ({ sessions: await listCloudSessions(await requirePrincipal(ctx), req.hostId, req.limit) })),
+    stopCloudSession: guard(async (req, ctx: HandlerContext) => ({ session: await stopCloudSession(await requirePrincipal(ctx), req.id, req.end) })),
   });
   router.service(HostAgentService, {
     registerAgentHost: guard(async (req, ctx: HandlerContext) => registerAgentHost(await requirePrincipal(ctx), req)),
@@ -52,5 +56,17 @@ export function registerHostServices(router: ConnectRouter): void {
     openHostPullRequest: guard(async (req, ctx: HandlerContext) => openHostPullRequest(await requirePrincipal(ctx), req)),
     listWantedWorkers: guard(async (req, ctx: HandlerContext) => listWantedWorkers(await requirePrincipal(ctx), req.waitSeconds, ctx.signal)),
     issueWorkerToken: guard(async (req, ctx: HandlerContext) => issueWorkerToken(await requirePrincipal(ctx), req.userId)),
+    pollCloudRunner: guard(async (req, ctx: HandlerContext) => {
+      const { device, host } = await callingHostDevice(await requirePrincipal(ctx));
+      return pollCloudRunner(device, host, req, ctx.signal);
+    }),
+    issueCloudSessionToken: guard(async (req, ctx: HandlerContext) => {
+      const { device, host } = await callingHostDevice(await requirePrincipal(ctx));
+      return issueCloudSessionToken(device, host, req.cloudSessionId);
+    }),
+    updateCloudSession: guard(async (req, ctx: HandlerContext) => {
+      const { device, host } = await callingHostDevice(await requirePrincipal(ctx));
+      return updateCloudSession(device, host, req);
+    }),
   });
 }
