@@ -81,7 +81,7 @@ func TestDependencySteps(t *testing.T) {
 	gittest.Run(t, repo, "add", "-A", "--", ".", ":!untracked")
 	gittest.Run(t, repo, "commit", "-q", "-m", "locks")
 
-	steps, err := DependencySteps(context.Background(), repo)
+	steps, err := DependencySteps(context.Background(), repo, "", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,10 +109,10 @@ func TestDependencySteps(t *testing.T) {
 	}
 
 	plain := gittest.Init(t)
-	if c, s := SuggestSetup(context.Background(), plain); c != nil || s != nil {
+	if c, s := SuggestSetup(context.Background(), plain, ""); c != nil || s != nil {
 		t.Fatalf("suggested for a repository without lockfiles: %+v", c)
 	}
-	if c, s := SuggestSetup(context.Background(), repo); c == nil || !c.ShareDependencies || len(s) != 5 {
+	if c, s := SuggestSetup(context.Background(), repo, ""); c == nil || !c.ShareDependencies || len(s) != 5 {
 		t.Fatalf("%+v %v", c, s)
 	}
 }
@@ -134,7 +134,7 @@ func TestPlanSetup(t *testing.T) {
 	gittest.Write(t, repo, "pnpm-lock.yaml", "\n")
 	gittest.Run(t, repo, "add", "-A")
 	gittest.Run(t, repo, "commit", "-q", "-m", "lock")
-	steps, err := PlanSetup(context.Background(), repo, &SetupConfig{ShareDependencies: true, Setup: []SetupCommand{
+	steps, err := PlanSetup(context.Background(), repo, "", &SetupConfig{ShareDependencies: true, Setup: []SetupCommand{
 		{Run: "make gen", Dir: "./src/"}, {Run: "slow", TimeoutSeconds: 99999},
 	}})
 	if err != nil {
@@ -143,7 +143,7 @@ func TestPlanSetup(t *testing.T) {
 	if len(steps) != 3 || steps[0].Manager != "pnpm" || steps[1].Dir != "src" || steps[1].Timeout != DefaultStepTimeout || steps[2].Dir != "." || steps[2].Timeout != MaxStepTimeout {
 		t.Fatalf("%+v", steps)
 	}
-	if s, err := PlanSetup(context.Background(), repo, nil); s != nil || err != nil {
+	if s, err := PlanSetup(context.Background(), repo, "", nil); s != nil || err != nil {
 		t.Fatal(s, err)
 	}
 }
@@ -269,35 +269,57 @@ func TestShareDependenciesPnpm(t *testing.T) {
 	mainModules := filepath.Join(repo, "web", "node_modules")
 	before := listTree(t, mainModules)
 
-	wt, err := Create(ctx, repo, Options{Name: "deps"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	cfg, _ := SuggestSetup(ctx, wt.SourcePath)
-	if cfg == nil {
-		t.Fatal("no suggestion")
-	}
-	steps, err := PlanSetup(ctx, wt.Path, cfg)
-	if err != nil || len(steps) != 1 || steps[0].Dir != "web" {
-		t.Fatalf("%+v %v", steps, err)
-	}
-	res := RunSetup(ctx, wt.Path, steps, builder, nil, 0)
-	if !SetupSucceeded(res) {
-		t.Fatalf("%+v", res)
-	}
-	mods := filepath.Join(wt.Path, "web", "node_modules")
-	if st, err := os.Lstat(mods); err != nil || st.Mode()&os.ModeSymlink != 0 {
-		t.Fatalf("node_modules of the worktree: %v %v", st, err)
-	}
-	data, err := os.ReadFile(filepath.Join(mods, "dep", "index.js"))
-	if err != nil || !strings.Contains(string(data), "42") {
-		t.Fatalf("%q %v", data, err)
-	}
-	if real, _ := filepath.EvalSymlinks(filepath.Join(mods, "dep")); strings.HasPrefix(real, mainModules) {
-		t.Fatalf("the worktree's dependency is the main checkout's: %s", real)
-	}
-	if after := listTree(t, mainModules); after != before {
-		t.Fatalf("the main checkout's node_modules changed:\n%s\n---\n%s", before, after)
+	// Installed from the store (cloneDependencies false), and cloned from the main checkout (the default).
+	off := false
+	for _, mode := range []struct {
+		name  string
+		clone *bool
+	}{{"installed", &off}, {"cloned", nil}} {
+		wt, err := Create(ctx, repo, Options{Name: mode.name})
+		if err != nil {
+			t.Fatal(err)
+		}
+		cfg, _ := SuggestSetup(ctx, wt.Path, wt.SourcePath)
+		if cfg == nil {
+			t.Fatal("no suggestion")
+		}
+		cfg.CloneDependencies = mode.clone
+		steps, err := PlanSetup(ctx, wt.Path, wt.SourcePath, cfg)
+		// The lockfiles are the same: a clone needs no install after it.
+		if err != nil || len(steps) != 1 || steps[0].Dir != "web" || (mode.clone == nil) != (steps[0].Clone == "web/node_modules") {
+			t.Fatalf("%s: %+v %v", mode.name, steps, err)
+		}
+		res := RunSetup(ctx, wt.Path, steps, builder, nil, 0)
+		if !SetupSucceeded(res) {
+			t.Fatalf("%s: %+v", mode.name, res)
+		}
+		mods := filepath.Join(wt.Path, "web", "node_modules")
+		if st, err := os.Lstat(mods); err != nil || st.Mode()&os.ModeSymlink != 0 {
+			t.Fatalf("%s: node_modules of the worktree: %v %v", mode.name, st, err)
+		}
+		dep := filepath.Join(mods, "dep", "index.js")
+		data, err := os.ReadFile(dep)
+		if err != nil || !strings.Contains(string(data), "42") {
+			t.Fatalf("%s: %q %v", mode.name, data, err)
+		}
+		if real, _ := filepath.EvalSymlinks(filepath.Join(mods, "dep")); strings.HasPrefix(real, mainModules) {
+			t.Fatalf("%s: the worktree's dependency is the main checkout's: %s", mode.name, real)
+		}
+		// What builds write into the worktree's node_modules stays there.
+		if err := os.MkdirAll(filepath.Join(mods, ".vite"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		gittest.Write(t, mods, ".vite/cache.json", "{}")
+		if err := os.WriteFile(dep, []byte("module.exports = 7\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if after := listTree(t, mainModules); after != before {
+			t.Fatalf("%s: the main checkout's node_modules changed:\n%s\n---\n%s", mode.name, before, after)
+		}
+		if orig, _ := os.ReadFile(filepath.Join(mainModules, "dep", "index.js")); !strings.Contains(string(orig), "42") {
+			t.Fatalf("%s: the main checkout's file changed: %q", mode.name, orig)
+		}
+		t.Logf("%s: %s", mode.name, strings.TrimSpace(res[0].Output))
 	}
 }
 
@@ -311,4 +333,136 @@ func listTree(t *testing.T, root string) string {
 		return nil
 	})
 	return b.String()
+}
+
+// cloneOrSkip clones, or skips the test where the file system can't (not APFS, btrfs or XFS).
+func cloneOrSkip(t *testing.T, src, dst, rel string) string {
+	t.Helper()
+	note, err := CloneFolder(context.Background(), src, dst, rel)
+	if err != nil && strings.Contains(err.Error(), "can't clone") {
+		t.Skipf("no copy-on-write here: %v", err)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	return note
+}
+
+func TestCloneFolder(t *testing.T) {
+	if !CloneSupported() {
+		t.Skip("no copy-on-write copy on this platform")
+	}
+	src, _ := filepath.EvalSymlinks(t.TempDir())
+	dst, _ := filepath.EvalSymlinks(t.TempDir())
+	gittest.Write(t, src, "web/node_modules/.pnpm/dep@1/node_modules/dep/index.js", "module.exports = 42\n")
+	gittest.Write(t, src, "web/src/app.js", "app\n")
+	// pnpm's links are relative; a link some tool made absolute leads into the source checkout.
+	if err := os.Symlink(".pnpm/dep@1/node_modules/dep", filepath.Join(src, "web/node_modules/dep")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(src, "web", "src"), filepath.Join(src, "web/node_modules/app")); err != nil {
+		t.Fatal(err)
+	}
+	outside := t.TempDir()
+	if err := os.Symlink(outside, filepath.Join(src, "web/node_modules/elsewhere")); err != nil {
+		t.Fatal(err)
+	}
+	note := cloneOrSkip(t, src, dst, "web/node_modules")
+	if !strings.Contains(note, "1 link(s)") {
+		t.Errorf("note %q", note)
+	}
+	mods := filepath.Join(dst, "web", "node_modules")
+	if got, _ := os.ReadFile(filepath.Join(mods, "dep", "index.js")); string(got) != "module.exports = 42\n" {
+		t.Fatalf("%q", got)
+	}
+	if l, _ := os.Readlink(filepath.Join(mods, "dep")); l != ".pnpm/dep@1/node_modules/dep" {
+		t.Errorf("relative link changed: %s", l)
+	}
+	if l, _ := os.Readlink(filepath.Join(mods, "app")); l != filepath.Join(dst, "web", "src") {
+		t.Errorf("a link into the source checkout: %s", l)
+	}
+	if l, _ := os.Readlink(filepath.Join(mods, "elsewhere")); l != outside {
+		t.Errorf("a link elsewhere changed: %s", l)
+	}
+	// Copy-on-write: writing the clone leaves the original as it was.
+	if err := os.WriteFile(filepath.Join(mods, ".pnpm/dep@1/node_modules/dep/index.js"), []byte("changed\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(filepath.Join(src, "web/node_modules/dep/index.js")); string(got) != "module.exports = 42\n" {
+		t.Fatalf("the original changed: %q", got)
+	}
+	if _, err := os.Lstat(mods + ".harness-clone"); err == nil {
+		t.Error("the temporary clone is left")
+	}
+	if _, err := CloneFolder(context.Background(), src, dst, "web/node_modules"); err == nil || !strings.Contains(err.Error(), "exists already") {
+		t.Errorf("cloned over a folder: %v", err)
+	}
+	if _, err := CloneFolder(context.Background(), src, dst, "missing"); err == nil {
+		t.Error("cloned a folder that isn't there")
+	}
+}
+
+// DependencySteps clones what the source checkout has installed, and installs from the cache only when the lockfiles
+// differ; clone steps that can't clone run the install instead.
+func TestDependencyStepsClone(t *testing.T) {
+	if !CloneSupported() {
+		t.Skip("no copy-on-write copy on this platform")
+	}
+	repo := gittest.Init(t)
+	gittest.Write(t, repo, ".gitignore", "node_modules/\n")
+	gittest.Write(t, repo, "a/pnpm-lock.yaml", "lockfileVersion: '9.0'\n")
+	gittest.Write(t, repo, "b/pnpm-lock.yaml", "lockfileVersion: '9.0'\n")
+	gittest.Write(t, repo, "c/package-lock.json", "{}\n")
+	gittest.Write(t, repo, "py/uv.lock", "\n")
+	gittest.Run(t, repo, "add", "-A")
+	gittest.Run(t, repo, "commit", "-q", "-m", "locks")
+	wt, err := Create(context.Background(), repo, Options{Name: "w"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gittest.Write(t, repo, "a/node_modules/x/index.js", "x\n")
+	gittest.Write(t, repo, "b/node_modules/x/index.js", "x\n")
+	gittest.Write(t, repo, "b/pnpm-lock.yaml", "lockfileVersion: '9.0'\n# changed\n") // the main checkout moved on
+	gittest.Write(t, repo, "py/.venv/bin/python", "\n")
+
+	steps, err := DependencySteps(context.Background(), wt.Path, repo, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, s := range steps {
+		got = append(got, s.Dir+": "+s.Command)
+	}
+	want := []string{
+		"a: clone a/node_modules from " + repo,
+		"b: clone b/node_modules from " + repo,
+		"b: pnpm install --frozen-lockfile --offline --ignore-workspace || pnpm install --frozen-lockfile --prefer-offline --ignore-workspace",
+		"c: npm ci --prefer-offline --no-audit --no-fund", // nothing installed in the main checkout to clone
+		"py: uv sync --frozen", // a virtualenv is never cloned
+	}
+	if strings.Join(got, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
+	}
+	if steps[0].Fallback != "pnpm install --frozen-lockfile --prefer-offline --ignore-workspace" {
+		t.Errorf("fallback %q", steps[0].Fallback)
+	}
+	if off, _ := DependencySteps(context.Background(), wt.Path, repo, false); len(off) != 4 || off[0].Clone != "" {
+		t.Errorf("without cloning: %+v", off)
+	}
+
+	// More folders from "clone", and a clone that can't happen falls back to its install.
+	gittest.Write(t, repo, "a/.nuxt/types.d.ts", "x\n")
+	plan, err := PlanSetup(context.Background(), wt.Path, repo, &SetupConfig{Clone: []string{"a/.nuxt", "absent"}})
+	if err != nil || len(plan) != 1 || plan[0].Clone != "a/.nuxt" {
+		t.Fatalf("%+v %v", plan, err)
+	}
+	broken := steps[0]
+	broken.Source = t.TempDir() // nothing to clone there
+	res := RunSetup(context.Background(), wt.Path, []SetupStep{broken}, func(command, dir string) (*exec.Cmd, error) {
+		return exec.Command("sh", "-c", "echo fell back: "+command), nil
+	}, nil, 0)
+	if res[0].Status != StepOK || !strings.Contains(res[0].Output, "installing instead") || !strings.Contains(res[0].Output, "fell back: pnpm install") ||
+		res[0].Command != broken.Fallback {
+		t.Fatalf("%+v", res[0])
+	}
 }

@@ -39,6 +39,13 @@ type SetupConfig struct {
 	// ShareDependencies installs the dependencies of every lockfile the worktree has from the package manager's own
 	// cache or store (DependencySteps), before Setup runs. Nothing is linked to another checkout.
 	ShareDependencies bool `json:"shareDependencies,omitempty"`
+	// CloneDependencies (default true) lets ShareDependencies start a folder's node_modules as a copy-on-write clone of
+	// the source checkout's (clone.go), where the file system can, and install only when the lockfiles differ. false
+	// always installs.
+	CloneDependencies *bool `json:"cloneDependencies,omitempty"`
+	// Clone lists more folders (relative to the root) to clone copy-on-write from the source checkout when it has them:
+	// build caches, generated code. They are cloned before the dependencies and Setup.
+	Clone []string `json:"clone,omitempty"`
 	// Setup runs in order after the dependencies.
 	Setup []SetupCommand `json:"setup,omitempty"`
 }
@@ -61,6 +68,12 @@ type SetupStep struct {
 	Timeout time.Duration `json:"timeout"`
 	// Manager names the package manager of a step ShareDependencies added ("" for a SetupCommand).
 	Manager string `json:"manager,omitempty"`
+	// Clone makes this a clone step: the folder Clone (relative to the root, forward slashes) is cloned copy-on-write
+	// from the same folder of the checkout at Source. Command then only describes it; Fallback, when set, is the command
+	// that runs instead when the file system cannot clone.
+	Clone    string `json:"clone,omitempty"`
+	Source   string `json:"source,omitempty"`
+	Fallback string `json:"fallback,omitempty"`
 }
 
 // Status of a step.
@@ -102,6 +115,14 @@ func LoadSetup(root string) (*SetupConfig, error) {
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&c); err != nil {
 		return nil, fmt.Errorf("%s: %w", SetupFile, err)
+	}
+	if len(c.Clone) > maxSetupSteps {
+		return nil, fmt.Errorf("%s: at most %d folders to clone", SetupFile, maxSetupSteps)
+	}
+	for i, d := range c.Clone {
+		if cd, err := cleanDir(d); err != nil || cd == "." {
+			return nil, fmt.Errorf("%s: clone[%d]: %q is not a folder inside the checkout", SetupFile, i, d)
+		}
 	}
 	if len(c.Setup) > maxSetupSteps {
 		return nil, fmt.Errorf("%s: at most %d setup commands", SetupFile, maxSetupSteps)
@@ -166,16 +187,36 @@ type lockfile struct {
 	name, manager string
 	// command returns the install command for the folder dir (relative to root).
 	command func(root, dir string) string
+	// modules is the folder the install fills, next to the lockfile, when it can be cloned from another checkout ("":
+	// it can't: a virtualenv holds absolute paths of the checkout it was made in).
+	modules string
+	// offline reconciles a cloned folder with a lockfile that differs from the source's: from the cache only, then, if
+	// that lacks something, with the network.
+	offline func(root, dir string) string
 }
 
 var lockfiles = []lockfile{
-	{"pnpm-lock.yaml", "pnpm", pnpmCommand},
-	{"bun.lock", "bun", func(string, string) string { return "bun install --frozen-lockfile" }},
-	{"bun.lockb", "bun", func(string, string) string { return "bun install --frozen-lockfile" }},
-	{"yarn.lock", "yarn", yarnCommand},
-	{"package-lock.json", "npm", func(string, string) string { return "npm ci --prefer-offline --no-audit --no-fund" }},
-	{"uv.lock", "uv", func(string, string) string { return "uv sync --frozen" }},
+	{"pnpm-lock.yaml", "pnpm", pnpmCommand, "node_modules", func(root, dir string) string {
+		on := pnpmCommand(root, dir)
+		return strings.Replace(on, "--prefer-offline", "--offline", 1) + " || " + on
+	}},
+	{"bun.lock", "bun", bunCommand, "node_modules", bunCommand},
+	{"bun.lockb", "bun", bunCommand, "node_modules", bunCommand},
+	{"yarn.lock", "yarn", yarnCommand, "node_modules", func(root, dir string) string {
+		on := yarnCommand(root, dir)
+		if strings.Contains(on, "--prefer-offline") {
+			return strings.Replace(on, "--prefer-offline", "--offline", 1) + " || " + on
+		}
+		return on // Yarn 2+ reads its cache first by itself
+	}},
+	{"package-lock.json", "npm", npmCommand, "node_modules", func(string, string) string {
+		return "npm ci --offline --no-audit --no-fund || " + npmCommand("", "")
+	}},
+	{"uv.lock", "uv", func(string, string) string { return "uv sync --frozen" }, "", nil},
 }
+
+func bunCommand(string, string) string { return "bun install --frozen-lockfile" }
+func npmCommand(string, string) string { return "npm ci --prefer-offline --no-audit --no-fund" }
 
 // pnpmCommand installs from pnpm's content-addressed store: packages are hard links (or clones) of the store's files,
 // so a worktree gets its own node_modules in seconds when the store has them. A folder that is no workspace of its own
@@ -203,9 +244,14 @@ func yarnCommand(root, dir string) string {
 	return "yarn install --frozen-lockfile --prefer-offline"
 }
 
-// DependencySteps finds the tracked lockfiles of the checkout at root and returns one install per folder, from the
-// package manager's shared cache. Lockfiles of Go (go.sum) and Cargo need nothing: their caches serve every checkout.
-func DependencySteps(ctx context.Context, root string) ([]SetupStep, error) {
+// DependencySteps finds the tracked lockfiles of the checkout at root and returns the steps that give each folder its
+// dependencies. Lockfiles of Go (go.sum) and Cargo need nothing: their caches serve every checkout.
+//
+// When source (the checkout the worktree came from) has the folder's node_modules and clone is set, the folder is
+// cloned copy-on-write from it, with the install as the fallback for a file system that can't clone, and an install
+// from the cache only when the two lockfiles differ. Otherwise it is one install from the package manager's shared
+// cache or store.
+func DependencySteps(ctx context.Context, root, source string, clone bool) ([]SetupStep, error) {
 	args := []string{"ls-files", "-z", "--"}
 	for _, l := range lockfiles {
 		args = append(args, l.name, "**/"+l.name)
@@ -240,20 +286,61 @@ func DependencySteps(ctx context.Context, root string) ([]SetupStep, error) {
 	steps := make([]SetupStep, 0, len(dirs))
 	for _, d := range dirs {
 		l := byDir[d]
-		steps = append(steps, SetupStep{Command: l.command(root, d), Dir: d, Timeout: DefaultStepTimeout, Manager: l.manager})
+		install := SetupStep{Command: l.command(root, d), Dir: d, Timeout: DefaultStepTimeout, Manager: l.manager}
+		mods := path.Join(d, l.modules)
+		if !clone || l.modules == "" || source == "" || !CloneSupported() || !isDir(filepath.Join(source, filepath.FromSlash(mods))) {
+			steps = append(steps, install)
+			continue
+		}
+		steps = append(steps, cloneStep(mods, source, l.manager, install.Command))
+		if !sameFile(filepath.Join(root, filepath.FromSlash(d), l.name), filepath.Join(source, filepath.FromSlash(d), l.name)) {
+			steps = append(steps, SetupStep{Command: l.offline(root, d), Dir: d, Timeout: DefaultStepTimeout, Manager: l.manager})
+		}
 	}
 	return steps, nil
 }
 
-// PlanSetup returns the steps of c for the worktree at root: the dependency installs when ShareDependencies is set,
-// then the commands of Setup.
-func PlanSetup(ctx context.Context, root string, c *SetupConfig) ([]SetupStep, error) {
+// cloneStep clones rel from source; fallback runs in rel's parent folder when the file system can't clone.
+func cloneStep(rel, source, manager, fallback string) SetupStep {
+	return SetupStep{Command: fmt.Sprintf("clone %s from %s", rel, source), Dir: path.Dir(rel), Timeout: DefaultStepTimeout,
+		Manager: manager, Clone: rel, Source: source, Fallback: fallback}
+}
+
+func isDir(p string) bool {
+	st, err := os.Lstat(p)
+	return err == nil && st.IsDir()
+}
+
+// sameFile reports whether two files have the same content (false when either can't be read).
+func sameFile(a, b string) bool {
+	x, err := os.ReadFile(a)
+	if err != nil {
+		return false
+	}
+	y, err := os.ReadFile(b)
+	return err == nil && bytes.Equal(x, y)
+}
+
+// PlanSetup returns the steps of c for the worktree at root, made from the checkout at source: the folders of Clone,
+// the dependencies when ShareDependencies is set, then the commands of Setup.
+func PlanSetup(ctx context.Context, root, source string, c *SetupConfig) ([]SetupStep, error) {
 	if c == nil {
 		return nil, nil
 	}
 	var steps []SetupStep
+	if source != "" && CloneSupported() {
+		for _, d := range c.Clone {
+			rel, err := cleanDir(d)
+			if err != nil {
+				return nil, err
+			}
+			if isDir(filepath.Join(source, filepath.FromSlash(rel))) {
+				steps = append(steps, cloneStep(rel, source, "", ""))
+			}
+		}
+	}
 	if c.ShareDependencies {
-		deps, err := DependencySteps(ctx, root)
+		deps, err := DependencySteps(ctx, root, source, c.CloneDependencies == nil || *c.CloneDependencies)
 		if err != nil {
 			return nil, fmt.Errorf("find lockfiles: %w", err)
 		}
@@ -273,10 +360,11 @@ func PlanSetup(ctx context.Context, root string, c *SetupConfig) ([]SetupStep, e
 	return steps, nil
 }
 
-// SuggestSetup proposes a setup for a checkout that has none: ShareDependencies, when it has lockfiles to install
-// from. It returns nil when there is nothing to propose.
-func SuggestSetup(ctx context.Context, root string) (*SetupConfig, []SetupStep) {
-	steps, err := DependencySteps(ctx, root)
+// SuggestSetup proposes a setup for the worktree at root, made from the checkout at source, when the project has none:
+// ShareDependencies, when it has lockfiles to install from (cloning what source has installed). It returns nil when
+// there is nothing to propose.
+func SuggestSetup(ctx context.Context, root, source string) (*SetupConfig, []SetupStep) {
+	steps, err := DependencySteps(ctx, root, source, true)
 	if err != nil || len(steps) == 0 {
 		return nil, nil
 	}
@@ -337,12 +425,28 @@ func runStep(ctx context.Context, root string, r *StepResult, mu *sync.Mutex, bu
 		set(func() { r.Status, r.Error = StepFailed, err.Error() })
 		return
 	}
-	cmd, err := build(r.Command, dir)
+	command := r.Command
+	if r.Clone != "" {
+		note, err := CloneFolder(ctx, r.Source, root, r.Clone)
+		if err == nil {
+			set(func() { r.Status, r.ExitCode, r.Output = StepOK, 0, note })
+			return
+		}
+		if r.Fallback == "" || ctx.Err() != nil {
+			set(func() { r.Status, r.Error = StepFailed, err.Error() })
+			return
+		}
+		// The file system can't clone: the install it stood for runs instead.
+		command = r.Fallback
+		set(func() { r.Command, r.Output = command, "could not clone ("+err.Error()+"); installing instead\n" })
+	}
+	cmd, err := build(command, dir)
 	if err != nil {
 		set(func() { r.Status, r.Error = StepFailed, err.Error() })
 		return
 	}
 	out := &tailBuffer{max: SetupOutputBytes}
+	_, _ = out.Write([]byte(r.Output))
 	cmd.Stdout, cmd.Stderr, cmd.Stdin = out, out, nil
 	if err := cmd.Start(); err != nil {
 		set(func() { r.Status, r.Error = StepFailed, err.Error() })

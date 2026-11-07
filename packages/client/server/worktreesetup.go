@@ -76,7 +76,7 @@ func (ls *liveSession) worktreeSetup(ctx context.Context, req tools.WorktreeSetu
 
 // execSetup plans and runs cfg in the worktree, publishing as it goes, and returns what the agent is told.
 func (ls *liveSession) execSetup(ctx context.Context, wt *worktree.Result, cfg *worktree.SetupConfig, pb *agentv1.WorktreeSetup) tools.WorktreeSetupReport {
-	steps, err := worktree.PlanSetup(ctx, wt.Path, cfg)
+	steps, err := worktree.PlanSetup(ctx, wt.Path, setupSource(wt), cfg)
 	if err != nil {
 		pb.State, pb.Error = agentv1.WorktreeSetup_STATE_FAILED, err.Error()
 		ls.publishSetup(pb, true)
@@ -133,7 +133,7 @@ func (ls *liveSession) suggestSetup(ctx context.Context, req tools.WorktreeSetup
 		}
 	}
 	ls.setups.mu.Unlock()
-	cfg, steps := worktree.SuggestSetup(ctx, wt.Path)
+	cfg, steps := worktree.SuggestSetup(ctx, wt.Path, setupSource(wt))
 	if cfg == nil {
 		return tools.WorktreeSetupReport{}
 	}
@@ -156,7 +156,7 @@ func (ls *liveSession) suggestSetup(ctx context.Context, req tools.WorktreeSetup
 		cmds = append(cmds, fmt.Sprintf("`%s` in %s", s.Command, s.Dir))
 	}
 	return tools.WorktreeSetupReport{Suggested: true, Summary: fmt.Sprintf("Nothing was set up: the project has lockfiles but no %s, so dependencies such as node_modules are not installed in this worktree. "+
-		"The user was offered a setup that installs them from the package managers' caches (%s); if they accept, a note follows when it has run. "+
+		"The user was offered a setup that gives the worktree its own copies, cloned copy-on-write from the main checkout or installed from the package managers' caches (%s); if they accept, a note follows when it has run. "+
 		"If the task needs them before then, install them in the worktree the same way; never link or copy another checkout's dependencies.",
 		worktree.SetupFile, strings.Join(cmds, ", "))}
 }
@@ -266,6 +266,14 @@ func (ls *liveSession) restorePending(p *pendingSetup) {
 	ls.setups.mu.Lock()
 	ls.setups.pending[p.setup.Id] = p
 	ls.setups.mu.Unlock()
+}
+
+// setupSource is the checkout a worktree was made from: where its setup is read and its folders are cloned from.
+func setupSource(wt *worktree.Result) string {
+	if wt.SourcePath != "" {
+		return wt.SourcePath
+	}
+	return wt.RepositoryPath
 }
 
 var setupDismissedMu sync.Mutex

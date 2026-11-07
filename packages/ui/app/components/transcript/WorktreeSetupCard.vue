@@ -93,7 +93,7 @@ async function answer(accept: boolean) {
       v-if="suggested"
       class="border-t border-default px-3 py-[7px] text-[12px] text-muted"
     >
-      {{ tt('This project has lockfiles but no worktree setup, so new worktrees start without dependencies. Accepting writes {0} and runs these installs now and in every new worktree. They use the package manager\'s own cache; nothing is linked to another checkout.', [item.configPath]) }}
+      {{ tt('This project has lockfiles but no worktree setup, so new worktrees start without dependencies. Accepting writes {0} and runs these steps now and in every new worktree: installed folders are cloned copy-on-write from this checkout where the disk allows it, the rest installed from the package manager\'s cache. Nothing is linked to another checkout.', [item.configPath]) }}
     </p>
     <p
       v-if="item.error"

@@ -5,6 +5,7 @@ package server_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
@@ -33,5 +34,27 @@ func TestWorktreeSetupCannotWriteTheMainCheckout(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(repo, "escaped.txt")); err == nil {
 		t.Fatal("the setup wrote into the main checkout")
+	}
+}
+
+// The default setup clones what the main checkout has installed into the worktree, copy-on-write.
+func TestWorktreeSetupClonesNodeModules(t *testing.T) {
+	t.Setenv("SHELL", "/bin/sh")
+	repo := gittest.Init(t)
+	gittest.Write(t, repo, ".gitignore", "node_modules/\n")
+	gittest.Write(t, repo, "web/pnpm-lock.yaml", "lockfileVersion: '9.0'\n")
+	gittest.Write(t, repo, ".harness/worktree.json", `{"shareDependencies": true}`)
+	gittest.Run(t, repo, "add", "-A")
+	gittest.Run(t, repo, "commit", "-q", "-m", "web")
+	gittest.Write(t, repo, "web/node_modules/dep/index.js", "module.exports = 42\n")
+	h := startHarness(t, fg.Sequence(say("ok")), nil)
+	_, ch := h.create(&agentv1.CreateSessionRequest{Cwd: repo, Worktree: &agentv1.WorktreeOptions{Name: "cow"}})
+	got := untilSetup(h, ch, agentv1.WorktreeSetup_STATE_SUCCEEDED)
+	if len(got.Steps) != 1 || !strings.HasPrefix(got.Steps[0].Command, "clone web/node_modules from ") {
+		t.Fatalf("%+v", got.Steps)
+	}
+	data, err := os.ReadFile(filepath.Join(repo, ".harness", "worktrees", "cow", "web", "node_modules", "dep", "index.js"))
+	if err != nil || string(data) != "module.exports = 42\n" {
+		t.Fatalf("%q %v", data, err)
 	}
 }

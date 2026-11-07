@@ -1710,7 +1710,7 @@
   "This host's key has changed.",
   "This includes hooks or allow rules. They apply only once you trust this folder.",
   "This month",
-  "This project has lockfiles but no worktree setup, so new worktrees start without dependencies. Accepting writes {0} and runs these installs now and in every new worktree. They use the package manager's own cache; nothing is linked to another checkout.",
+  "This project has lockfiles but no worktree setup, so new worktrees start without dependencies. Accepting writes {0} and runs these steps now and in every new worktree: installed folders are cloned copy-on-write from this checkout where the disk allows it, the rest installed from the package manager's cache. Nothing is linked to another checkout.",
   "This project has no board you can see yet. Add one above.",
   "This session belongs to another machine. Open a side chat from that machine's app.",
   "This session has published nothing yet.",

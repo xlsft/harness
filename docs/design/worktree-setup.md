@@ -9,6 +9,7 @@ A session worktree (`.harness/worktrees/<name>`) is a fresh checkout: no `node_m
 ```json
 {
   "shareDependencies": true,
+  "clone": ["packages/ui/.nuxt"],
   "setup": [
     { "run": "pnpm --dir packages/ui exec nuxt prepare", "timeoutSeconds": 300 },
     { "run": "make generate", "dir": "tools" }
@@ -18,20 +19,43 @@ A session worktree (`.harness/worktrees/<name>`) is a fresh checkout: no `node_m
 
 | Key | What |
 |---|---|
-| `shareDependencies` | Install the dependencies of every tracked lockfile from the package manager's own cache or store, before `setup`. See below |
+| `shareDependencies` | Give every folder with a tracked lockfile its dependencies, before `setup`: cloned copy-on-write from the source checkout where it has them installed, else installed from the package manager's cache. See below |
+| `cloneDependencies` | `false` turns the cloning off: `shareDependencies` then always installs. Default `true` |
+| `clone` | More folders, relative to the root, to clone copy-on-write from the source checkout when it has them (build caches, generated code: `packages/ui/.nuxt`). Before everything else |
 | `setup[].run` | A command line, run by the session's shell (the Bash tool's shell, environment and snapshot) |
 | `setup[].dir` | Where it runs, relative to the worktree's root (default the root). An absolute path, a path out of the worktree, or a folder that leaves it through a symbolic link is refused |
 | `setup[].timeoutSeconds` | Its time limit: default 600, at most 3600. It is killed with what it started when the limit passes |
 
-Unknown keys are an error, so a typo doesn't pass for a setup that does nothing. At most 32 commands.
+Unknown keys are an error, so a typo doesn't pass for a setup that does nothing. At most 32 commands and 32 folders to clone.
 
 The file is read from the checkout the worktree is made from (the main checkout, or the worktree a session was in), not from the new worktree: a setup that is not committed yet applies too, and accepting the suggestion writes it there.
 
 ## Sharing dependencies safely
 
-`shareDependencies` never links one checkout's dependency folder into another, and nothing runs in the main checkout. Every worktree gets a `node_modules` (or `.venv`) of its own, filled from the cache its package manager keeps for every checkout on the machine. Tools that write into their dependency folder (Nuxt, vite, Prisma) write into the worktree's.
+`shareDependencies` never links one checkout's dependency folder into another, and never writes into the source checkout. Every worktree gets a `node_modules` of its own. Tools that write into their dependency folder (Nuxt, vite, Prisma) write into the worktree's.
 
-The client finds the tracked lockfiles (`git ls-files`, not under `node_modules`) and runs one install in each folder that has one:
+### Cloning, the default
+
+**Decision:** when the source checkout has a lockfile's `node_modules` installed, the worktree's starts as a copy-on-write clone of it: `cp -c -R -p` (clonefile(2)) on macOS, `cp -R -p --reflink=always` on Linux. On APFS, btrfs and XFS a clone takes about as long as listing the files and no disk space, and the two copies part block by block on the first write: what a build writes in the worktree never reaches the original. That is what the symlink in the measured session lacked. It is also faster than any install, which still has to link or copy every file and run lifecycle scripts.
+
+How it runs (`worktree/clone.go`):
+
+- The clone goes to a temporary name next to the target and is renamed into place when complete; it never replaces a folder that exists. `--reflink=always`, not `auto`: a file system that can't clone fails the step at once instead of copying gigabytes.
+- Symbolic links are copied as links. pnpm's and npm workspaces' links are relative and resolve inside the worktree. A link with an absolute target inside the source checkout is pointed at the same path in the worktree, so nothing in the clone leads back.
+- The source's lockfile (as it is in its working tree, which is what its `node_modules` was installed from) is compared with the worktree's. Equal: done, no install. Different (the worktree is on another commit, or the main checkout moved on): the package manager reconciles the clone from its cache only, then with the network if the cache lacks something: `pnpm install --frozen-lockfile --offline || pnpm install --frozen-lockfile --prefer-offline`, `npm ci --offline … || npm ci --prefer-offline …`, `yarn install --frozen-lockfile --offline || …` (Yarn 1; Yarn 2+ and bun read their cache first by themselves).
+- A file system that can't clone (HFS+, ext4, a network volume) makes the clone step run the install it stands for instead, with a line saying so in its output.
+- The clone runs in the client itself, not in the sandbox: it is the client's own fixed `cp` from one checkout into the new worktree, and reading the source is the point. Installs and the commands of `setup` run in the sandbox (below).
+- Not cloned: a virtualenv (`.venv` holds the absolute path of the checkout it was made in, in `pyvenv.cfg` and every script's first line), and anything when the source has no `node_modules` (Yarn Plug'n'Play has none).
+
+Known limit: pnpm's `.bin` shims are text files that name the source's `node_modules/.pnpm` in `NODE_PATH`. That path is only a fallback for module resolution, and reading there writes nothing. If a tool must not see the source checkout at all, set `cloneDependencies` to `false`.
+
+Cloning is the default of `shareDependencies`, and so of the suggestion. `"cloneDependencies": false` installs instead, for a project whose installs must run their lifecycle scripts in every checkout.
+
+### Installing from the shared cache
+
+Where nothing can be cloned (no `node_modules` in the source checkout, a lockfile of uv, `cloneDependencies: false`), the client installs from the package manager's cache:
+
+The client finds the tracked lockfiles (`git ls-files`, not under `node_modules`) and handles each folder that has one:
 
 | Lockfile | Command | Why it is fast and safe |
 |---|---|---|
@@ -45,7 +69,7 @@ The client finds the tracked lockfiles (`git ls-files`, not under `node_modules`
 
 One lockfile per folder runs, in the order of the table (a folder with `pnpm-lock.yaml` and `package-lock.json` gets pnpm). Other managers (Poetry, Bundler, Composer, Gradle) have no built-in step: add their install to `setup`; their caches are shared the same way.
 
-The sandbox lets these commands write to the caches they need (`sandbox/toolchain.go`: pnpm's store and metadata cache, `~/.npm`, Yarn's cache, `~/.cache` for uv), and to the worktree, and nowhere else.
+The sandbox lets the installs write to the caches they need (`sandbox/toolchain.go`: pnpm's store and metadata cache, `~/.npm`, Yarn's cache, `~/.cache` for uv), and to the worktree, and nowhere else.
 
 ## What runs it
 
@@ -69,7 +93,7 @@ Steps run in order. A failed or timed-out step stops nothing: the next steps run
 
 A project with lockfiles that `shareDependencies` would install, and no `.harness/worktree.json`, gets a card on its first worktree: the installs it would run, the path of the file, **Set up** and **Not for this project**.
 
-- **Set up** writes `{"shareDependencies": true}` to `.harness/worktree.json` in the checkout the worktree came from, never over an existing file (if one appeared meanwhile, that one runs), and runs it in that worktree at once. It is project configuration: commit it and every clone's worktrees get it. Worktrees made after it run it by themselves.
+- **Set up** writes `{"shareDependencies": true}` (cloning what the main checkout has installed, installing the rest) to `.harness/worktree.json` in the checkout the worktree came from, never over an existing file (if one appeared meanwhile, that one runs), and runs it in that worktree at once. It is project configuration: commit it and every clone's worktrees get it. Worktrees made after it run it by themselves.
 - **Not for this project** stops the offer for that repository on this device (`~/.harness/worktree-setup-dismissed.json`, keyed by the main checkout's path). Nothing is written into the project: the choice not to set up is nobody else's.
 - No answer: the next session's first worktree offers it again. While one offer waits, further worktrees of the same repository in that session don't add cards; they are not set up if the offer is accepted later.
 
@@ -90,9 +114,9 @@ The reminder is written to the transcript like every reminder, so a resumed sess
 
 On temporary repositories and fixtures; no network and no real package registry.
 
-- `worktree/setup_test.go`: the file format and its errors, never replacing a file, lockfile detection and the command per manager, planning, the runner (order, a failure that stops nothing, a timeout, a folder that leaves the worktree, cancelation, throttled progress), and `TestShareDependenciesPnpm`: a real pnpm install, offline, of a `file:` dependency into a worktree with a store of the test's own, checking that the worktree's `node_modules` is its own and the main checkout's did not change. It skips without pnpm.
+- `worktree/setup_test.go`: `TestCloneFolder` clones a folder in a temporary directory (skipped where the file system can't clone; on the Mac's APFS it runs) and checks contents, relative and re-pointed absolute links, that writing the clone leaves the original as it was, and that it never clones over a folder; `TestDependencyStepsClone` checks clone, reconcile-only-when-the-lockfiles-differ, no clone without an installed source or for a virtualenv, `clone` folders, and the fallback to the install. Also the file format and its errors, never replacing a file, lockfile detection and the command per manager, planning, the runner (order, a failure that stops nothing, a timeout, a folder that leaves the worktree, cancelation, throttled progress), and `TestShareDependenciesPnpm`: a real pnpm install, offline, of a `file:` dependency into a worktree with a store of the test's own, once installed from the store and once cloned from the main checkout, checking that the worktree's `node_modules` is its own and that writes into it (a vite cache, a changed file) leave the main checkout's unchanged. It skips without pnpm.
 - `server/worktreesetup_test.go`: a setup that runs before the first turn and reaches the first request; a suggestion accepted (with a fake `pnpm` on `PATH`), the file written, the reminder after it, and the next worktree set up without asking; a suggestion dismissed and not offered again; `EnterWorktree`; an isolated subagent; a timeout.
-- `server/worktreesetup_darwin_test.go`: under Seatbelt, a setup step cannot write into the main checkout.
+- `server/worktreesetup_darwin_test.go`: under Seatbelt, a setup step cannot write into the main checkout; the default setup clones the main checkout's `node_modules` into a session's worktree.
 - `packages/ui/test/reducer.test.ts`: one card per worktree from the offer to the end of the run.
 
-What only fixtures have seen: pnpm against a real registry with a warm store (expected to take seconds; the offline fixture took about ten on a cold store), bun, Yarn, npm and uv installs (only their commands are tested), and Linux's sandbox around a setup.
+What only fixtures have seen: pnpm against a real registry with a warm store (expected to take seconds; the offline fixture took about ten on a cold store), bun, Yarn, npm and uv installs (only their commands are tested), Linux's sandbox around a setup, and reflinks on btrfs or XFS (only the fallback path is exercised off APFS).
