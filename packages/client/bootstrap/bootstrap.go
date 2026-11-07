@@ -441,6 +441,13 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 			hc = rpc.HTTPClient(url)
 		}
 		s.Sync, s.Uploader, s.stopSync, s.SyncOff = startSync(ctx, o, url, hc, tokens, user, log)
+		if o.NoPersistence {
+			s.Uploader = nil // a session that keeps no transcript uploads none, nor changes the synced state of its id
+		}
+		if s.SyncOff != "" {
+			// Not only a log line: the user sees which tools the model lacks (the desktop discards nothing it can show).
+			s.Warnings = append(s.Warnings, syncWarning(s.SyncOff))
+		}
 		// A server connection goes before the local CLIs: the server holds the token, and the session needs no gh or glab.
 		if len(o.VCSProviders) == 0 {
 			o.VCSProviders = vcs.WithServerProvider(vcs.SharedServerProvider(url, hc, tokens))
@@ -856,6 +863,8 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.ConnectPR(nil)
 	s.startMCP(conv)
 	s.open, s.log = o, log
+	log.Info("session opened", "session", s.ID, "model", s.Model, "resumed", s.Resumed, "fork", o.Fork, "no_folder", o.NoFolder,
+		"bundle", s.Bundle.Version, "offered_tools", len(s.ToolNames()), "sync", s.SyncState())
 	return s, nil
 }
 

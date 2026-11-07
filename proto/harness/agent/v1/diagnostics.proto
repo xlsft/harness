@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// What a person (or a bug report) needs to see why a session behaves as it does: the tools the model is offered, and a
+// summary of this client with the end of its log. Nothing in either carries tokens, keys or prompt text.
+
+// One tool of a session.
+message SessionTool {
+  string name = 1;
+  // "builtin", "mcp" or "browser" (the fallback browser definitions).
+  string source = 2;
+  // Sent to the model with the next request.
+  bool offered = 3;
+  // Why it is not offered: "disabled" (a permission rule), "hidden" (a device-local switch is off), "no_prompt" (the
+  // session's prompt bundle has no definition for it), "needs_sync" (it needs the server's sync service, which this
+  // session does not have) or "mcp_deferred" (the model loads it with ToolSearch). Empty when offered.
+  string reason = 4;
+  // The reason in words, for a person.
+  string detail = 5;
+}
+
+message ListSessionToolsRequest {
+  string session_id = 1;
+}
+
+message ListSessionToolsResponse {
+  // The offered tools in the order of the request, then the others by name.
+  repeated SessionTool tools = 1;
+  // Why the session runs without server sync ("" when sync runs, or the session has no server at all).
+  string sync_off = 2;
+  // The version of the session's prompt bundle.
+  string prompt_bundle_version = 3;
+}
+
+message GetDiagnosticsRequest {}
+
+message GetDiagnosticsResponse {
+  // A plain-text report for a bug report: versions, platform, the server's address, sync, the open sessions and what
+  // their models lack, and the end of the client's log.
+  string text = 1;
+  // The folder of the client's log files ($HARNESS_HOME/logs).
+  string logs_dir = 2;
+}
