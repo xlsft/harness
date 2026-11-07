@@ -248,8 +248,9 @@ describe('queue, todos, tasks and the main scenario', () => {
     expect(s.contextTokens).toBe(62_000)
     expect(s.costUsd).toBeCloseTo(0.84)
     expect(s.turnTokens).toBe(8400)
-    const last = s.items[s.items.length - 1]!
-    expect(last.kind).toBe('task')
+    // The plan was updated last: it moves to its last update.
+    expect(s.items.map(i => i.kind).slice(-2)).toEqual(['task', 'todos'])
+    expect(s.items.filter(i => i.kind === 'todos')).toHaveLength(1)
     const group = (s.items.filter(i => i.kind === 'tool') as ToolItem[]).filter(t => t.messageId === 'm3a')
     expect(group.map(t => t.name)).toEqual(['Read', 'Bash', 'Edit', 'Task'])
   })

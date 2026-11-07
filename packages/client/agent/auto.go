@@ -27,9 +27,9 @@ func (a *Agent) noteAutoDecision(u llm.ContentBlock, d permissions.Decision) *Au
 		text = fmt.Sprintf("Auto mode denied %s (%s): %s", u.Name, r.Provider, reason)
 	case d.ResolvedBy == "auto":
 		level = "warning"
-		text = fmt.Sprintf("Auto mode could not approve %s and nobody can be asked (%s): %s", u.Name, r.Provider, reason)
+		text = fmt.Sprintf("Auto mode could not approve %s and nobody can be asked%s: %s", u.Name, permissions.ProviderNote(r.Provider), reason)
 	default:
-		text = fmt.Sprintf("Auto mode deferred %s to you (%s): %s", u.Name, r.Provider, reason)
+		text = fmt.Sprintf("Auto mode deferred %s to you%s: %s", u.Name, permissions.ProviderNote(r.Provider), reason)
 	}
 	a.emit(Event{Kind: EventNotice, ToolUseID: u.ID, ToolName: u.Name, Notice: &Notice{Level: level, Kind: NoticeAutoDecision, Text: text, Auto: ad}})
 	return ad

@@ -78,9 +78,16 @@ function clustered(blocks: Block[]): Block[] {
 // ReportFindings: each result is the whole list, so one card, at the latest report.
 const latestFindings = computed(() => props.session.items.findLast(i => i.kind === 'tool' && !!findingsOf(i)))
 
+// A plan with work left stays under the latest messages; once every item is done it stays where it was last updated.
+const pinnedPlan = computed(() => {
+  const item = props.session.items.findLast(i => i.kind === 'todos')
+  return item?.kind === 'todos' && item.todos.some(t => t.status !== 'completed') ? item : undefined
+})
+
 const allBlocks = computed<Block[]>(() => {
   const out: Block[] = []
   for (const item of props.session.items) {
+    if (item === pinnedPlan.value) continue
     if (item.kind === 'tool' && sentFilesOf(item)) {
       out.push({ kind: 'files', key: 'f:' + item.id, tool: item })
       continue
@@ -494,6 +501,12 @@ function toBottom() {
           />
         </div>
 
+        <TodoCard
+          v-if="pinnedPlan"
+          :todos="pinnedPlan.todos"
+          :subagents="session.subagents"
+          :tasks="session.tasks"
+        />
         <NextStepBox
           v-if="nextStep"
           :tool="nextStep"

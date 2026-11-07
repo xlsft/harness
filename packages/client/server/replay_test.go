@@ -326,3 +326,26 @@ func TestReplayTodoLinks(t *testing.T) {
 		t.Fatalf("reworded item keeps links: %v", lists[2])
 	}
 }
+
+// Claude Code's task notifications are user entries the user did not write: a notice, not a message.
+func TestReplayTaskNotification(t *testing.T) {
+	b := newTB()
+	b.prompt("first", "p1", "")
+	b.assistant("msg_1", llm.Usage{}, llm.TextBlock("started an agent"))
+	b.add(session.Entry{Type: session.TypeUser, PromptID: "p2", Origin: &session.Origin{Kind: session.OriginTaskNotification},
+		Message: session.UserText("<task-notification>\n<task-id>a1</task-id>\n<status>completed</status>\n<summary>Agent \"Import\" finished</summary>\n</task-notification>")})
+	b.assistant("msg_2", llm.Usage{}, llm.TextBlock("the agent is done"))
+	evs := replayHistory(b.entries, replayOptions{})
+	var notice *agentv1.Notice
+	for _, ev := range evs {
+		if u := ev.GetUserMessage(); u != nil && strings.Contains(fmt.Sprint(u.Content), "task-notification") {
+			t.Fatalf("shown as a user message: %s", kinds(evs))
+		}
+		if n := ev.GetNotice(); n != nil && n.Kind == "task_notification" {
+			notice = n
+		}
+	}
+	if notice == nil || notice.Text != `Agent "Import" finished` {
+		t.Fatalf("notice %+v in %s", notice, kinds(evs))
+	}
+}

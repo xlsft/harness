@@ -106,3 +106,50 @@ func TestParentOf(t *testing.T) {
 		}
 	}
 }
+
+// Claude Code parents each result of parallel calls on the entry with its own call; only the last one is on the path
+// from the leaf.
+func TestRebuildKeepsSideResultsOfParallelCalls(t *testing.T) {
+	var raw []string
+	line := func(uuid, parent, typ, content string) {
+		p := "null"
+		if parent != "" {
+			p = `"` + parent + `"`
+		}
+		raw = append(raw, `{"type":"`+typ+`","uuid":"`+uuid+`","parentUuid":`+p+`,"sessionId":"s","timestamp":"","message":{"role":"`+typ+`","content":`+content+`}}`)
+	}
+	use := func(id string) string { return `[{"type":"tool_use","id":"` + id + `","name":"Read","input":{}}]` }
+	result := func(id string) string {
+		return `[{"type":"tool_result","tool_use_id":"` + id + `","content":"ok"}]`
+	}
+	line("u0", "", "user", `"go"`)
+	line("a1", "u0", "assistant", use("A"))
+	line("a2", "a1", "assistant", use("B"))
+	line("a3", "a2", "assistant", use("C"))
+	line("rA", "a1", "user", result("A"))
+	line("rB", "a2", "user", result("B"))
+	line("rC", "a3", "user", result("C"))
+	line("a4", "rC", "assistant", `[{"type":"text","text":"done"}]`)
+	var entries []Entry
+	for _, l := range raw {
+		var e Entry
+		if err := json.Unmarshal([]byte(l), &e); err != nil {
+			t.Fatal(err)
+		}
+		entries = append(entries, e)
+	}
+	c := Rebuild(entries)
+	if len(c.Messages) != 4 {
+		t.Fatalf("messages %+v", c.Messages)
+	}
+	var got []string
+	for _, b := range c.Messages[2].Content {
+		got = append(got, b.ToolUseID)
+	}
+	if !reflect.DeepEqual(got, []string{"A", "B", "C"}) {
+		t.Fatalf("results %v", got)
+	}
+	if want := []string{"u0", "a1", "a2", "a3", "rA", "rB", "rC", "a4"}; !reflect.DeepEqual(c.Chain, want) {
+		t.Fatalf("chain %v", c.Chain)
+	}
+}
