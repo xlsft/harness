@@ -50,6 +50,14 @@ type darwinDriver struct {
 // NewDriver returns the driver of this platform.
 func NewDriver() Driver { return &darwinDriver{sem: make(chan struct{}, 1)} }
 
+// NewHelper returns a helper process of its own (Helper).
+func NewHelper() Helper { return &darwinDriver{sem: make(chan struct{}, 1)} }
+
+// Call implements Helper.
+func (d *darwinDriver) Call(ctx context.Context, op string, params map[string]any, out any) error {
+	return d.call(ctx, op, params, out)
+}
+
 func (d *darwinDriver) Info() Info {
 	return Info{
 		Platform: "macos", Supported: true, Surface: SurfaceDesktop, Coordinates: "screen points",

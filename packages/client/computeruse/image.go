@@ -41,6 +41,13 @@ func encodeFrame(data []byte, maxSide int) ([]byte, int, int, error) {
 	return buf.Bytes(), dw, dh, nil
 }
 
+// EncodeJPEG scales an image (PNG or JPEG) to fit maxSide and encodes it as JPEG, for other packages that send screens
+// to the model (the simulator). It returns the new size.
+func EncodeJPEG(data []byte, maxSide int) ([]byte, int, int, error) { return encodeFrame(data, maxSide) }
+
+// MaxImageSide is the largest side of an image sent to the model.
+const MaxImageSide = maxImageSide
+
 // boxScale downscales by averaging the source pixels under each target pixel, which keeps small text readable.
 func boxScale(src image.Image, dw, dh int) image.Image {
 	b := src.Bounds()
