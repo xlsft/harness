@@ -299,6 +299,8 @@ func runningStatus(name string) string {
 		return "Searching"
 	case "Edit", "Write", "MultiEdit", "NotebookEdit", "DocumentEdit":
 		return "Editing"
+	case "ImageGenerate":
+		return "Generating an image"
 	}
 	return "Running " + name
 }

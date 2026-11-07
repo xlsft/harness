@@ -51,6 +51,7 @@ func (r *Router) Models(ctx context.Context) (*llm.Catalog, error) {
 	out := &llm.Catalog{Slots: map[string]string{}}
 	if core != nil {
 		out.Models = append(out.Models, core.Models...)
+		out.ImageModels = append(out.ImageModels, core.ImageModels...)
 		for k, v := range core.Slots {
 			out.Slots[k] = v
 		}

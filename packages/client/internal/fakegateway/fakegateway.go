@@ -80,19 +80,26 @@ type Server struct {
 	// number. When nil, title requests fail.
 	Title func(req *llm.Request) Reply
 
+	// ImageModels are the catalog's image models; ImageDefault its image slot.
+	ImageModels  []string
+	ImageDefault string
+	// Images scripts GenerateImages (nil: one tiny PNG per image asked for). ImageRequests records the requests.
+	Images func(req *llmv1.GenerateImagesRequest) (*llmv1.GenerateImagesResponse, error)
+
 	// RejectTokens makes the next N authenticated calls fail with UNAUTHENTICATED.
 	RejectTokens atomic.Int32
 	// AccessToken is the token issued on login/refresh.
 	AccessToken string
 
-	mu       sync.Mutex
-	requests []*llm.Request
-	titles   []*llm.Request
-	tools    []*llm.Request
-	bundleN  int
-	notMod   int
-	refreshN int
-	polls    int
+	mu        sync.Mutex
+	requests  []*llm.Request
+	imageReqs []*llmv1.GenerateImagesRequest
+	titles    []*llm.Request
+	tools     []*llm.Request
+	bundleN   int
+	notMod    int
+	refreshN  int
+	polls     int
 
 	decision decisionState
 	search   searchState
@@ -229,6 +236,43 @@ func (g gatewayHandler) ListModels(ctx context.Context, req *connect.Request[llm
 		resp.Slots.Small = g.s.SmallModel
 	}
 	resp.Slots.Title = g.s.TitleModel
+	for _, id := range g.s.ImageModels {
+		resp.ImageModels = append(resp.ImageModels, &llmv1.Model{Id: id, DisplayName: "Fake image " + id})
+	}
+	resp.Slots.Image = g.s.ImageDefault
+	return connect.NewResponse(resp), nil
+}
+
+// TinyPNG is the image the fake GenerateImages answers by default.
+var TinyPNG = []byte{0x89, 'P', 'N', 'G', 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 'I', 'H', 'D', 'R'}
+
+// ImageRequests returns the recorded GenerateImages requests.
+func (s *Server) ImageRequests() []*llmv1.GenerateImagesRequest {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]*llmv1.GenerateImagesRequest(nil), s.imageReqs...)
+}
+
+func (g gatewayHandler) GenerateImages(ctx context.Context, req *connect.Request[llmv1.GenerateImagesRequest]) (*connect.Response[llmv1.GenerateImagesResponse], error) {
+	if err := g.s.checkAuth(req.Header()); err != nil {
+		return nil, err
+	}
+	g.s.mu.Lock()
+	g.s.imageReqs = append(g.s.imageReqs, req.Msg)
+	script := g.s.Images
+	g.s.mu.Unlock()
+	if script != nil {
+		resp, err := script(req.Msg)
+		if err != nil {
+			return nil, err
+		}
+		return connect.NewResponse(resp), nil
+	}
+	n := max(int(req.Msg.GetCount()), 1)
+	resp := &llmv1.GenerateImagesResponse{ServedModel: req.Msg.GetModel(), CostUsd: 0.04 * float64(n), Priced: true}
+	for range n {
+		resp.Images = append(resp.Images, &llmv1.GeneratedImage{Data: TinyPNG, MediaType: "image/png"})
+	}
 	return connect.NewResponse(resp), nil
 }
 

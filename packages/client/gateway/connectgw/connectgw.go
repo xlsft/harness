@@ -15,6 +15,7 @@ import (
 	"github.com/xlsft/harness/packages/client/gateway"
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/llm/v1/llmv1connect"
+	"github.com/xlsft/harness/packages/client/images"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/pbconv"
 	"github.com/xlsft/harness/packages/client/rpc"
@@ -63,6 +64,30 @@ func (c *Client) Models(ctx context.Context) (*llm.Catalog, error) {
 		return nil, err
 	}
 	return pbconv.FromCatalog(resp.Msg), nil
+}
+
+var _ images.Generator = (*Client)(nil)
+
+// GenerateImages implements images.Generator over GatewayService.GenerateImages.
+func (c *Client) GenerateImages(ctx context.Context, r images.Request) (*images.Result, error) {
+	msg := &llmv1.GenerateImagesRequest{Model: r.Model, Prompt: r.Prompt, Size: r.Size, Count: int32(r.Count), Quality: r.Quality,
+		Metadata: &llmv1.RequestMetadata{SessionId: r.SessionID, AgentId: r.AgentID, RequestClass: llmv1.RequestClass_REQUEST_CLASS_AUXILIARY}}
+	for _, in := range r.Inputs {
+		msg.InputImages = append(msg.InputImages, &llmv1.InputImage{Data: in.Data, MediaType: in.MediaType, Name: in.Name})
+	}
+	resp, err := rpc.WithAuth(ctx, c.tokens, func(token string) (*connect.Response[llmv1.GenerateImagesResponse], error) {
+		req := connect.NewRequest(msg)
+		rpc.SetBearer(req.Header(), token)
+		return c.rpc.GenerateImages(ctx, req)
+	})
+	if err != nil {
+		return nil, rpc.ToAPIError(err)
+	}
+	out := &images.Result{RevisedPrompt: resp.Msg.GetRevisedPrompt(), Text: resp.Msg.GetText(), CostUSD: resp.Msg.GetCostUsd(), Priced: resp.Msg.GetPriced(), Model: resp.Msg.GetServedModel()}
+	for _, im := range resp.Msg.GetImages() {
+		out.Images = append(out.Images, images.Image{Data: im.GetData(), MediaType: im.GetMediaType()})
+	}
+	return out, nil
 }
 
 // CountTokens implements gateway.Gateway.

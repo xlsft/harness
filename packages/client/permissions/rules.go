@@ -79,7 +79,7 @@ func ParseRule(s string) Rule {
 // Tool categories: Edit rules apply to every file-editing tool and Read
 // rules to every file-reading tool.
 var (
-	editTools = map[string]bool{"Edit": true, "Write": true, "NotebookEdit": true, "MultiEdit": true, "DocumentEdit": true}
+	editTools = map[string]bool{"Edit": true, "Write": true, "NotebookEdit": true, "MultiEdit": true, "DocumentEdit": true, "ImageGenerate": true}
 	readTools = map[string]bool{"Read": true, "Glob": true, "Grep": true, "LS": true, "NotebookRead": true, "DocumentRead": true}
 	// pathObservers read a file only when their input names one (Wait on a
 	// path, LSP) or show one to the user (OpenInEditor, RevealPath): that path

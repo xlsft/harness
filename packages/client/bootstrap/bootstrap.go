@@ -717,6 +717,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	}
 
 	s.registerAdvisor(gw, st, disabled)
+	s.registerImageGenerate(gw, st, disabled)
 
 	// Transcript.
 	branch := ""

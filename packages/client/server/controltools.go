@@ -107,9 +107,11 @@ const (
 type deviceSettingsFile struct {
 	Theme         string `json:"theme,omitempty"`
 	Notifications *bool  `json:"notifications,omitempty"`
+	// ImageModel is the device-local image model (config.DeviceImageModel reads it for sessions).
+	ImageModel string `json:"imageModel,omitempty"`
 }
 
-func deviceSettingsFilePath() string { return filepath.Join(config.Home(), "device-settings.json") }
+func deviceSettingsFilePath() string { return config.DeviceSettingsPath() }
 
 func readDeviceSettings() deviceSettingsFile {
 	var f deviceSettingsFile
@@ -120,13 +122,23 @@ func readDeviceSettings() deviceSettingsFile {
 }
 
 func deviceSettingsProto(f deviceSettingsFile) *agentv1.DeviceSettings {
-	return &agentv1.DeviceSettings{Theme: f.Theme, Notifications: f.Notifications == nil || *f.Notifications}
+	return &agentv1.DeviceSettings{Theme: f.Theme, Notifications: f.Notifications == nil || *f.Notifications, ImageModel: f.ImageModel}
 }
 
 // updateDeviceSettings changes the given fields and tells the frontends watching this client's sessions.
-func (s *Server) updateDeviceSettings(theme *string, notifications *bool) (deviceSettingsFile, error) {
+func (s *Server) updateDeviceSettings(theme *string, notifications *bool, imageModel ...*string) (deviceSettingsFile, error) {
 	s.deviceMu.Lock()
 	f := readDeviceSettings()
+	if len(imageModel) > 0 && imageModel[0] != nil {
+		id := strings.TrimSpace(*imageModel[0])
+		if id != "" {
+			if _, _, err := s.localModels().ImageProvider(id); err != nil {
+				s.deviceMu.Unlock()
+				return f, err
+			}
+		}
+		f.ImageModel = id
+	}
 	if theme != nil {
 		if t := *theme; t != themeSystem && t != themeLight && t != themeDark {
 			s.deviceMu.Unlock()
@@ -174,7 +186,7 @@ func (s *Server) GetDeviceSettings(context.Context, *connect.Request[agentv1.Get
 }
 
 func (s *Server) UpdateDeviceSettings(_ context.Context, req *connect.Request[agentv1.UpdateDeviceSettingsRequest]) (*connect.Response[agentv1.UpdateDeviceSettingsResponse], error) {
-	f, err := s.updateDeviceSettings(req.Msg.Theme, req.Msg.Notifications)
+	f, err := s.updateDeviceSettings(req.Msg.Theme, req.Msg.Notifications, req.Msg.ImageModel)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}

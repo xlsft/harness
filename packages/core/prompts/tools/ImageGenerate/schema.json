@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "prompt": {
+      "type": "string",
+      "description": "What the image shows, in full: subject, style, composition, colors and any text in it"
+    },
+    "file_path": {
+      "type": "string",
+      "description": "Absolute path of the output file inside the session's folders, with an image extension or none"
+    },
+    "size": {
+      "type": "string",
+      "description": "WIDTHxHEIGHT such as 1024x1024 or 1536x1024; leave out for the model's default"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4,
+      "description": "How many images to make (default 1); several are saved as name-1, name-2 and so on"
+    },
+    "input_images": {
+      "type": "array",
+      "items": { "type": "string" },
+      "maxItems": 8,
+      "description": "Absolute paths of PNG, JPEG or WebP images inside the session's folders to edit or use as references"
+    },
+    "quality": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "Rendering quality, where the model has the setting"
+    },
+    "overwrite": {
+      "type": "boolean",
+      "description": "Replace an existing file at file_path (default false: an existing file is an error)"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short label of what this call makes, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
+    }
+  },
+  "required": ["prompt", "file_path", "description"],
+  "additionalProperties": false
+}
