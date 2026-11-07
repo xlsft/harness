@@ -43,6 +43,8 @@ func (s *Server) cleanupWorktrees(ctx context.Context, now time.Time) {
 		cwd, wt := transcriptHead(f.path, true)
 		repo := ""
 		switch {
+		case wt != nil && wt.Hook:
+			// A WorktreeCreate hook's copy: its version control's business, not git's.
 		case wt != nil:
 			repo = wt.RepositoryPath
 		case cwd != "":
