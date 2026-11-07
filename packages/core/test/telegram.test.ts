@@ -170,7 +170,7 @@ const sent = (token: string, pred: (b: Record<string, any>) => boolean) => calls
 async function putSettings(token: string, chatDefaults: Record<string, string>) {
   const c = ts.as(token);
   const ref = { scope: Scope.USER, kind: DocumentKind.SETTINGS, key: "user", projectKey: "" };
-  const cur = await c.sync.getDocument({ ref }).catch(() => undefined);
+  const cur = await c.sync.getDocument({ selector: { case: "ref", value: ref } }).catch(() => undefined);
   const content = JSON.stringify({ ...(cur?.document?.content ? JSON.parse(cur.document.content) : {}), chatDefaults });
   await c.sync.putDocument({ ref, content });
 }
