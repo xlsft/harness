@@ -85,7 +85,7 @@ func startHarnessSrv(t *testing.T, respond fg.Responder, gwmod func(*fg.Server),
 	}
 	t.Cleanup(stop)
 	tok := auth.StaticToken("hat_test")
-	base := bootstrap.Options{Gateway: connectgw.New(url, nil, tok), Prompts: prompts.NewConnectSource(url, nil, tok), DecisionService: decision.NewClient(url, nil, tok), SkillHome: t.TempDir()}
+	base := bootstrap.Options{ServerURL: url, Gateway: connectgw.New(url, nil, tok), Prompts: prompts.NewConnectSource(url, nil, tok), DecisionService: decision.NewClient(url, nil, tok), SkillHome: t.TempDir()}
 	if mod != nil {
 		mod(&base)
 	}

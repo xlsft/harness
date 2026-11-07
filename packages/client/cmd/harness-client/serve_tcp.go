@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"path/filepath"
@@ -163,6 +164,7 @@ func (t *tcpFlags) options() (server.TCPOptions, func(), error) {
 			fmt.Fprintln(os.Stderr, "WARNING: ==================================================================")
 		}
 		fmt.Fprintf(os.Stderr, "harness-client: serving AgentService on %s (Connect over HTTP/1.1 and h2c)\n", url)
+		slog.Info("serving AgentService", "addr", url) // the address, never the token
 		fmt.Fprintf(os.Stderr, "harness-client: allowed browser origins: %s\n", strings.Join(origins, ", "))
 		if generated {
 			fmt.Fprintf(os.Stderr, "harness-client: bearer token (also in %s, mode 0600): %s\n", tokenFile(), token)

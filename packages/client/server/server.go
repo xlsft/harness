@@ -246,6 +246,9 @@ func (s *Server) Close() {
 	s.browsers().Close()
 	s.previews().Close()
 	s.computerUse().StopAll()
+	if s.Base.SyncHub != nil {
+		s.Base.SyncHub.Close() // after the sessions: their last transcript uploads go through it
+	}
 }
 
 // ServeUnix serves AgentService over h2c on a unix socket until ctx ends.

@@ -20,6 +20,7 @@ import (
 
 	"github.com/xlsft/harness/packages/client/auth"
 	"github.com/xlsft/harness/packages/client/bootstrap"
+	"github.com/xlsft/harness/packages/client/clientlog"
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/daemon"
 	"github.com/xlsft/harness/packages/client/decision"
@@ -65,19 +66,27 @@ func main() {
 	os.Exit(run(os.Args[1:]))
 }
 
+// logMode names this process in the log file (the command it runs).
+var logMode = "print"
+
+// newLogger is the client's log: warnings to stderr as always, and info and up to the rotating file under
+// $HARNESS_HOME/logs (clientlog), which survives a desktop app that reads no stderr.
 func newLogger(verbose bool) *slog.Logger {
-	level := slog.LevelWarn
-	if verbose || os.Getenv("HARNESS_DEBUG") == "1" {
-		level = slog.LevelDebug
-	}
-	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level}))
+	log := clientlog.New(clientlog.Options{Mode: logMode, Verbose: verbose || os.Getenv("HARNESS_DEBUG") == "1", Stderr: os.Stderr})
+	slog.SetDefault(log)
+	return log
 }
 
 func run(args []string) int {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if len(args) > 0 {
+		if !strings.HasPrefix(args[0], "-") {
+			logMode = args[0]
+		}
 		switch args[0] {
+		case "debug":
+			return runDebug(ctx, args[1:])
 		case "login":
 			return cmdLogin(ctx, args[1:])
 		case "logout":
@@ -224,6 +233,12 @@ func sharedAdapters(serverURL string) (bootstrap.Options, string, error) {
 		DecisionService: decision.NewClient(url, hc, tokens),
 		Search:          web.NewSearchClient(url, hc, tokens),
 		VCSProviders:    vcs.WithServerProvider(vcs.SharedServerProvider(url, hc, tokens)),
+		MCP:             mcp.NewClient(url, hc, tokens),
+		// With the adapters shared, the sessions still need the credentials for their own server connection: sync (and the
+		// tools that need it: ArtifactPublish, KnowledgeSearch, ...), MCP and pull request polling.
+		Tokens:  tokens,
+		User:    user,
+		SyncHub: &bootstrap.SyncHub{URL: url, HTTP: hc, Tokens: tokens, User: user},
 	}, email, nil
 }
 
@@ -249,8 +264,10 @@ func cmdServe(ctx context.Context, args []string) int {
 		return fail(err)
 	}
 	log := newLogger(*verbose)
+	log.Info("client started", "version", config.UserAgent(), "os", runtime.GOOS, "arch", runtime.GOARCH)
 	base, email, err := sharedAdapters(*serverURL)
 	if err != nil {
+		log.Error("serve cannot start", "err", err)
 		return fail(err)
 	}
 	base.AllowedTools, base.DisallowedTools, base.AdditionalDirs, base.Logger = *allowed, *disallowed, *addDirs, log

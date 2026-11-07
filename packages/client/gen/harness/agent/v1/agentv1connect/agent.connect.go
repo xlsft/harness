@@ -413,6 +413,12 @@ const (
 	// AgentServiceListSlashCommandsProcedure is the fully-qualified name of the AgentService's
 	// ListSlashCommands RPC.
 	AgentServiceListSlashCommandsProcedure = "/harness.agent.v1.AgentService/ListSlashCommands"
+	// AgentServiceListSessionToolsProcedure is the fully-qualified name of the AgentService's
+	// ListSessionTools RPC.
+	AgentServiceListSessionToolsProcedure = "/harness.agent.v1.AgentService/ListSessionTools"
+	// AgentServiceGetDiagnosticsProcedure is the fully-qualified name of the AgentService's
+	// GetDiagnostics RPC.
+	AgentServiceGetDiagnosticsProcedure = "/harness.agent.v1.AgentService/GetDiagnostics"
 	// AgentServiceListSchedulesProcedure is the fully-qualified name of the AgentService's
 	// ListSchedules RPC.
 	AgentServiceListSchedulesProcedure = "/harness.agent.v1.AgentService/ListSchedules"
@@ -768,6 +774,11 @@ type AgentServiceClient interface {
 	// Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
 	// (slash_commands.proto). Read when the menu or the Extensions screen opens; files on disk are read again every time.
 	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
+	// The tools of a session (diagnostics.proto): what its model is offered right now, and why each other tool it knows is
+	// not. /tools and `harness-client debug tools` show it. Local sessions only.
+	ListSessionTools(context.Context, *connect.Request[v1.ListSessionToolsRequest]) (*connect.Response[v1.ListSessionToolsResponse], error)
+	// A plain-text report of this client for a bug report (Settings > About > Copy diagnostics) and its log folder.
+	GetDiagnostics(context.Context, *connect.Request[v1.GetDiagnosticsRequest]) (*connect.Response[v1.GetDiagnosticsResponse], error)
 	// Scheduled tasks (schedules.proto): the Scheduled screen. Device-local schedules are this machine's; synced ones are
 	// the user's, whichever machine runs them.
 	ListSchedules(context.Context, *connect.Request[v1.ListSchedulesRequest]) (*connect.Response[v1.ListSchedulesResponse], error)
@@ -1578,6 +1589,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("ListSlashCommands")),
 			connect.WithClientOptions(opts...),
 		),
+		listSessionTools: connect.NewClient[v1.ListSessionToolsRequest, v1.ListSessionToolsResponse](
+			httpClient,
+			baseURL+AgentServiceListSessionToolsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("ListSessionTools")),
+			connect.WithClientOptions(opts...),
+		),
+		getDiagnostics: connect.NewClient[v1.GetDiagnosticsRequest, v1.GetDiagnosticsResponse](
+			httpClient,
+			baseURL+AgentServiceGetDiagnosticsProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("GetDiagnostics")),
+			connect.WithClientOptions(opts...),
+		),
 		listSchedules: connect.NewClient[v1.ListSchedulesRequest, v1.ListSchedulesResponse](
 			httpClient,
 			baseURL+AgentServiceListSchedulesProcedure,
@@ -1768,6 +1791,8 @@ type agentServiceClient struct {
 	listMcpCommands         *connect.Client[v1.ListMcpCommandsRequest, v1.ListMcpCommandsResponse]
 	listMcpResources        *connect.Client[v1.ListMcpResourcesRequest, v1.ListMcpResourcesResponse]
 	listSlashCommands       *connect.Client[v1.ListSlashCommandsRequest, v1.ListSlashCommandsResponse]
+	listSessionTools        *connect.Client[v1.ListSessionToolsRequest, v1.ListSessionToolsResponse]
+	getDiagnostics          *connect.Client[v1.GetDiagnosticsRequest, v1.GetDiagnosticsResponse]
 	listSchedules           *connect.Client[v1.ListSchedulesRequest, v1.ListSchedulesResponse]
 	createSchedule          *connect.Client[v1.CreateScheduleRequest, v1.CreateScheduleResponse]
 	updateSchedule          *connect.Client[v1.UpdateScheduleRequest, v1.UpdateScheduleResponse]
@@ -2434,6 +2459,16 @@ func (c *agentServiceClient) ListSlashCommands(ctx context.Context, req *connect
 	return c.listSlashCommands.CallUnary(ctx, req)
 }
 
+// ListSessionTools calls harness.agent.v1.AgentService.ListSessionTools.
+func (c *agentServiceClient) ListSessionTools(ctx context.Context, req *connect.Request[v1.ListSessionToolsRequest]) (*connect.Response[v1.ListSessionToolsResponse], error) {
+	return c.listSessionTools.CallUnary(ctx, req)
+}
+
+// GetDiagnostics calls harness.agent.v1.AgentService.GetDiagnostics.
+func (c *agentServiceClient) GetDiagnostics(ctx context.Context, req *connect.Request[v1.GetDiagnosticsRequest]) (*connect.Response[v1.GetDiagnosticsResponse], error) {
+	return c.getDiagnostics.CallUnary(ctx, req)
+}
+
 // ListSchedules calls harness.agent.v1.AgentService.ListSchedules.
 func (c *agentServiceClient) ListSchedules(ctx context.Context, req *connect.Request[v1.ListSchedulesRequest]) (*connect.Response[v1.ListSchedulesResponse], error) {
 	return c.listSchedules.CallUnary(ctx, req)
@@ -2805,6 +2840,11 @@ type AgentServiceHandler interface {
 	// Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
 	// (slash_commands.proto). Read when the menu or the Extensions screen opens; files on disk are read again every time.
 	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
+	// The tools of a session (diagnostics.proto): what its model is offered right now, and why each other tool it knows is
+	// not. /tools and `harness-client debug tools` show it. Local sessions only.
+	ListSessionTools(context.Context, *connect.Request[v1.ListSessionToolsRequest]) (*connect.Response[v1.ListSessionToolsResponse], error)
+	// A plain-text report of this client for a bug report (Settings > About > Copy diagnostics) and its log folder.
+	GetDiagnostics(context.Context, *connect.Request[v1.GetDiagnosticsRequest]) (*connect.Response[v1.GetDiagnosticsResponse], error)
 	// Scheduled tasks (schedules.proto): the Scheduled screen. Device-local schedules are this machine's; synced ones are
 	// the user's, whichever machine runs them.
 	ListSchedules(context.Context, *connect.Request[v1.ListSchedulesRequest]) (*connect.Response[v1.ListSchedulesResponse], error)
@@ -3611,6 +3651,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("ListSlashCommands")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceListSessionToolsHandler := connect.NewUnaryHandler(
+		AgentServiceListSessionToolsProcedure,
+		svc.ListSessionTools,
+		connect.WithSchema(agentServiceMethods.ByName("ListSessionTools")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceGetDiagnosticsHandler := connect.NewUnaryHandler(
+		AgentServiceGetDiagnosticsProcedure,
+		svc.GetDiagnostics,
+		connect.WithSchema(agentServiceMethods.ByName("GetDiagnostics")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentServiceListSchedulesHandler := connect.NewUnaryHandler(
 		AgentServiceListSchedulesProcedure,
 		svc.ListSchedules,
@@ -3929,6 +3981,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceListMcpResourcesHandler.ServeHTTP(w, r)
 		case AgentServiceListSlashCommandsProcedure:
 			agentServiceListSlashCommandsHandler.ServeHTTP(w, r)
+		case AgentServiceListSessionToolsProcedure:
+			agentServiceListSessionToolsHandler.ServeHTTP(w, r)
+		case AgentServiceGetDiagnosticsProcedure:
+			agentServiceGetDiagnosticsHandler.ServeHTTP(w, r)
 		case AgentServiceListSchedulesProcedure:
 			agentServiceListSchedulesHandler.ServeHTTP(w, r)
 		case AgentServiceCreateScheduleProcedure:
@@ -4478,6 +4534,14 @@ func (UnimplementedAgentServiceHandler) ListMcpResources(context.Context, *conne
 
 func (UnimplementedAgentServiceHandler) ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListSlashCommands is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) ListSessionTools(context.Context, *connect.Request[v1.ListSessionToolsRequest]) (*connect.Response[v1.ListSessionToolsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListSessionTools is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) GetDiagnostics(context.Context, *connect.Request[v1.GetDiagnosticsRequest]) (*connect.Response[v1.GetDiagnosticsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetDiagnostics is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) ListSchedules(context.Context, *connect.Request[v1.ListSchedulesRequest]) (*connect.Response[v1.ListSchedulesResponse], error) {

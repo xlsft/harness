@@ -149,6 +149,13 @@ type Options struct {
 	// NoSync disables the server sync client (settings, memory and transcripts then come from local
 	// files only). HARNESS_NO_SYNC=1 has the same effect.
 	NoSync bool
+	// Tokens and User are the signed-in server's credentials when Gateway and Prompts are adapters the caller shares
+	// among sessions (serve): the session still opens its own server connection with them (sync and the tools that need
+	// it, MCP, pull request polling). With Gateway and Prompts injected and no Tokens the session has no server (tests).
+	Tokens auth.TokenSource
+	User   *auth.User
+	// SyncHub, when set, gives every session the same sync client (serve); nil: each session opens its own.
+	SyncHub *SyncHub
 	// MCP is the McpService client. When nil and the server adapters are
 	// created here, it is the McpService client of the same server; with
 	// injected adapters (tests) MCP stays off unless set. NoMCP (or
@@ -223,6 +230,8 @@ type Session struct {
 	// Sync and Uploader are nil when sync is disabled or the server is unreachable at start.
 	Sync     *syncclient.Syncer
 	Uploader *syncclient.Uploader
+	// SyncOff says why Sync is nil for a session that has a server connection ("" when sync runs or there is no server).
+	SyncOff string
 	// VCS polls PR/CI state through gh/glab and uploads it (nil without sync or HARNESS_NO_VCS=1).
 	// Poke it after a push or PR creation for an immediate poll.
 	VCS *vcs.Watcher
@@ -301,8 +310,10 @@ func (s *Session) Close() error {
 	}
 	if s.Uploader != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		_ = s.Uploader.UpdateMeta(s.ID, func(m *syncclient.SessionMeta) { m.Status = agentv1.SessionStatus_SESSION_STATUS_IDLE })
-		_ = s.Uploader.Flush(ctx, s.ID)
+		if !s.open.NoPersistence {
+			_ = s.Uploader.UpdateMeta(s.ID, func(m *syncclient.SessionMeta) { m.Status = agentv1.SessionStatus_SESSION_STATUS_IDLE })
+			_ = s.Uploader.Flush(ctx, s.ID)
+		}
 		s.Uploader.Objects().CloseScratch(s.ID)
 		s.Uploader.Objects().Flush(ctx)
 		cancel()
@@ -418,17 +429,26 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 
 	gw, src := o.Gateway, o.Prompts
 	var startVCSPoller func()
+	// The server connection: credentials from the store when the adapters are created here, else the ones the caller
+	// shares with them (serve). Injected adapters without Tokens mean no server at all (tests).
+	tokens, url, user := o.Tokens, o.ServerURL, o.User
 	if gw == nil || src == nil {
-		tokens, url, user, err := Tokens(o.ServerURL)
-		if err != nil {
+		var err error
+		if tokens, url, user, err = Tokens(o.ServerURL); err != nil {
 			return nil, err
 		}
+	}
+	if tokens != nil && url != "" {
 		s.User = user
 		hc := o.HTTP
 		if hc == nil {
 			hc = rpc.HTTPClient(url)
 		}
-		s.Sync, s.Uploader, s.stopSync = startSync(ctx, o, url, hc, tokens, user, log)
+		s.Sync, s.Uploader, s.stopSync, s.SyncOff = startSync(ctx, o, url, hc, tokens, user, log)
+		if s.SyncOff != "" {
+			// Not only a log line: the user sees which tools the model lacks (the desktop discards nothing it can show).
+			s.Warnings = append(s.Warnings, syncWarning(s.SyncOff))
+		}
 		// A server connection goes before the local CLIs: the server holds the token, and the session needs no gh or glab.
 		if len(o.VCSProviders) == 0 {
 			o.VCSProviders = vcs.WithServerProvider(vcs.SharedServerProvider(url, hc, tokens))
@@ -745,7 +765,11 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		// The cwd lets readers map the session to its folder before any message is written.
 		_, _ = s.Transcript.Append(session.Entry{Type: session.TypeMeta, Cwd: cwd, Worktree: s.Worktree})
 	}
-	trackUpload(ctx, s.Uploader, s, path, branch)
+	if !o.NoPersistence {
+		// A session that keeps no transcript uploads none, nor changes the synced state of its id (debug tools opens
+		// sessions of the running app that way).
+		trackUpload(ctx, s.Uploader, s, path, branch)
+	}
 	if s.Uploader != nil {
 		// A nil queue must not become a non-nil interface.
 		if q := s.Uploader.Objects(); q != nil {
@@ -754,7 +778,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		}
 	}
 	onEvent := o.OnEvent
-	if s.Uploader != nil {
+	if s.Uploader != nil && !o.NoPersistence {
 		up, id := s.Uploader, s.ID
 		onEvent = func(e agent.Event) {
 			if o.OnEvent != nil {
@@ -847,6 +871,13 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.ConnectPR(nil)
 	s.startMCP(conv)
 	s.open, s.log = o, log
+	// Info for the client's log file (cmd's logger); a caller with the default logger (tests, embedders) gets no line on stderr.
+	level := slog.LevelDebug
+	if o.Logger != nil {
+		level = slog.LevelInfo
+	}
+	log.Log(ctx, level, "session opened", "session", s.ID, "model", s.Model, "resumed", s.Resumed, "fork", o.Fork, "no_folder", o.NoFolder,
+		"bundle", s.Bundle.Version, "offered_tools", len(s.ToolNames()), "sync", s.SyncState())
 	return s, nil
 }
 

@@ -80,6 +80,7 @@ func builtinCommands() []builtinCommand {
 		{name: "usage", description: "Show the tokens and cost of this session and its agents", needsSession: true, run: runUsageCommand},
 		{name: "insights", description: "Report how the agent was used on this machine", hint: "[days]", needsSession: true, run: runInsightsCommand},
 		{name: "fewer-prompts", description: "Suggest rules from what past sessions of this folder were asked", hint: "[apply]", needsSession: true, run: runFewerPrompts},
+		{name: "tools", description: "List the tools offered to the model now, and why others are not", needsSession: true, run: runTools},
 		{name: "debug-config", description: "Show where this session's settings come from", needsSession: true, run: runDebugConfig},
 		{name: "features", description: "List the client's switches and how they stand", needsSession: true, run: runFeatures},
 		{name: "workflows", description: "List saved workflows, or save a run of this session as a command", hint: "[list] | save <run id> <name> [--project]", needsSession: true, run: runWorkflowsCommand},

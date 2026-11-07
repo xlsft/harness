@@ -556,6 +556,10 @@ export class MockTransport implements SessionTransport {
     return mockSlashCatalog(this.disabledSkills)
   }
 
+  async getDiagnostics() {
+    return { text: `xlsft's harness diagnostics (mock)\nclient: harness-client/mock\nopen sessions: ${this.sessions.size}\n`, logsDir: '/Users/you/.harness/logs' }
+  }
+
   async setSkillEnabled(name: string, enabled: boolean) {
     if (enabled) this.disabledSkills.delete(name)
     else this.disabledSkills.add(name)

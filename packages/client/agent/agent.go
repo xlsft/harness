@@ -1173,6 +1173,13 @@ func (a *Agent) toolNames() []string {
 	return names
 }
 
+// OfferedTools returns the tool definitions the next model request carries (the bundle's for the registered tools,
+// then ExtraTools), as the request loop builds them.
+func (a *Agent) OfferedTools() []llm.ToolDef { return a.toolDefs(a.Bundle()) }
+
+// ToolDisabled reports whether the session's permission rules took the tool away when the agent was made.
+func (a *Agent) ToolDisabled(name string) bool { return a.cfg.DisabledTools[name] }
+
 // toolDefs returns the bundle tool definitions followed by ExtraTools.
 func (a *Agent) toolDefs(bundle *prompts.Bundle) []llm.ToolDef {
 	defs := bundle.ToolDefs(a.toolNames())
