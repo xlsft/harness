@@ -296,6 +296,10 @@ export class EventBuilder {
       durationMs: BigInt(o.durationMs ?? 0), toolName: o.toolName ?? '', toolUseId: o.toolUseId ?? '', agentId: '', async: false } as never })
   }
 
+  vcsHooksSuggested(vcs: string, root: string) {
+    return this.emit({ case: 'vcsHooksSuggested', value: { vcs, root } as never })
+  }
+
   subagent(id: string, toolUseId: string, name: string, type: string, model: string, state: SubagentState, o: { toolCalls?: number, steps?: { tool: string, target: string, status: SubagentStepStatus }[] } = {}) {
     return this.emit({ case: 'subagentUpdated', value: { agent: {
       id, parentId: '', toolUseId, name, type, model, state, currentTool: '', toolCalls: o.toolCalls ?? 0,

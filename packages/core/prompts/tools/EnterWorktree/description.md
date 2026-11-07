@@ -10,4 +10,6 @@ A worktree starts from a commit, so uncommitted changes in the current checkout 
 
 Git-ignored files named by a `.worktreeinclude` at the repository root are copied in; the result says how many.
 
-Fails outside a git repository and when the session already runs in a worktree.
+When the project configures WorktreeCreate hooks (for Mercurial, Jujutsu or Perforce), a hook makes the copy instead: there is no branch, `base_ref` is passed to it as the revision to start from, and `pull_request` is refused. If the hook fails, the session stays where it was; ask the user before doing the work there instead.
+
+Fails outside a git repository (unless such a hook makes the copy) and when the session already runs in a worktree.
