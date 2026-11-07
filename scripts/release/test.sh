@@ -145,7 +145,7 @@ for f in harness_1.2.3_darwin_arm64.dmg harness_1.2.3_darwin_arm64.pkg harness_1
   echo "$f" >"$rel/$f"
 done
 echo '{"version":"1.2.3","platforms":{"darwin-aarch64":{"signature":"S","url":"https://github.com/xlsft/harness/releases/download/v1.2.3/harness_1.2.3_darwin_arm64.app.tar.gz"}}}' >"$rel/latest.json"
-(cd "$rel" && shasum -a 256 ./* | sed 's|  \./|  |' >checksums.txt && echo SIG >checksums.txt.sig)
+(cd "$rel" && sums="$(shasum -a 256 ./* | sed "s|  \./|  |")" && printf "%s\n" "$sums" >checksums.txt && echo SIG >checksums.txt.sig)
 off() { PATH="$stub:$PATH" "$bundle" "$@" 2>/dev/null; }
 refuse "offline-bundle needs the URL it will be served at" "off v1.2.3 '$work/mirror' --from '$rel' --no-image"
 refuse "offline-bundle refuses a bad tag" "off 1.2.3 '$work/mirror' --from '$rel' --no-image --base-url https://m.example.com"
@@ -155,7 +155,7 @@ expect "...every file under its tag" "cmp '$rel/checksums.txt' '$work/mirror/v1.
 [[ "$(node -p "require('$work/mirror/latest.json').platforms['darwin-aarch64'].signature")" == S ]] && ok "...with the release's signatures" || no "...with the release's signatures"
 expect "...and SHA256SUMS covers the folder" "(cd '$work/mirror' && shasum -a 256 -c --quiet SHA256SUMS) && grep -q 'v1.2.3/latest.json' '$work/mirror/SHA256SUMS'"
 echo '{"version":"1.2.2","platforms":{}}' >"$rel/latest.json"
-(cd "$rel" && shasum -a 256 ./* | grep -v checksums | sed 's|  \./|  |' >checksums.txt)
+(cd "$rel" && sums="$(shasum -a 256 ./* | grep -v checksums | sed "s|  \./|  |")" && printf "%s\n" "$sums" >checksums.txt)
 rm -rf "$work/mirror/v1.2.2"
 expect "--keep-latest adds a release without offering it" "off v1.2.2 '$work/mirror' --from '$rel' --no-image --keep-latest --base-url https://m.example.com/harness && [[ \$(node -p \"require('$work/mirror/latest.json').version\") == 1.2.3 ]]"
 echo tampered >"$rel/harness_1.2.3_darwin_arm64.dmg"
