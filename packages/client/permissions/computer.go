@@ -15,6 +15,10 @@ import (
 // ComputerRuleTool is the rule tool name that covers every computer tool.
 const ComputerRuleTool = "Computer"
 
+// demoSkillSaveTool proposes a skill drafted from a demo recording (computeruse/recording_tools.go). Its review card is
+// the user's answer, so the check does not ask a second time; deny rules and plan mode still apply.
+const demoSkillSaveTool = "DemoSkillSave"
+
 func isComputerTool(name string) bool {
 	return strings.HasPrefix(name, ComputerRuleTool) && len(name) > len(ComputerRuleTool)
 }

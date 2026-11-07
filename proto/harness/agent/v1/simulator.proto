@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// The iOS Simulators of this Mac, for the Simulator pane (packages/client/simulator): devices through `xcrun simctl`,
+// frames by polling its screenshots, input through SimulatorKit's HID client. Device-local: only a frontend on this
+// machine reaches these RPCs, and frames never leave it.
+
+message SimulatorDevice {
+  string udid = 1;
+  string name = 2;
+  // "Booted", "Shutdown", "Booting"...
+  string state = 3;
+  // The runtime's id, and how people say it ("iOS 26.0").
+  string runtime = 4;
+  string runtime_name = 5;
+  bool available = 6;
+}
+
+message ListSimulatorsRequest {}
+
+message ListSimulatorsResponse {
+  repeated SimulatorDevice devices = 1;
+  // Why there are none to show (no Xcode); empty otherwise.
+  string unavailable_reason = 2;
+}
+
+message BootSimulatorRequest {
+  string udid = 1;
+}
+
+message BootSimulatorResponse {}
+
+message ShutdownSimulatorRequest {
+  string udid = 1;
+}
+
+message ShutdownSimulatorResponse {}
+
+// Streams frames of a booted device until the stream is cancelled; unchanged frames are skipped.
+message WatchSimulatorRequest {
+  string udid = 1;
+  // About how often to capture, 100 to 2000; 0 is 250.
+  int32 interval_ms = 2;
+}
+
+message WatchSimulatorResponse {
+  bytes jpeg = 1;
+  // The frame's pixels.
+  int32 width = 2;
+  int32 height = 3;
+}
+
+// A tap at a fraction of the screen (0 to 1 from the top left).
+message SimulatorTap {
+  double x = 1;
+  double y = 2;
+  // Held this long: a long press. 0 is a tap.
+  int32 duration_ms = 3;
+}
+
+message SimulatorSwipe {
+  double from_x = 1;
+  double from_y = 2;
+  double to_x = 3;
+  double to_y = 4;
+  int32 duration_ms = 5;
+}
+
+message SimulatorInputRequest {
+  string udid = 1;
+  oneof input {
+    SimulatorTap tap = 2;
+    SimulatorSwipe swipe = 3;
+    // Typed as is.
+    string text = 4;
+    // Combinations, space separated ("cmd+a delete return").
+    string keys = 5;
+    // "home", "lock", "side_button", "siri", "apple_pay".
+    string button = 6;
+  }
+}
+
+message SimulatorInputResponse {}
+
+// The session's agent works on a device (a Simulator* tool), for the pane to show it. action is empty when it is done.
+message SimulatorActivity {
+  string udid = 1;
+  string action = 2;
+}

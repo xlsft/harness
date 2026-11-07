@@ -8,6 +8,10 @@ import (
 // computerUseMarker is in the toolUseResult of a computer use result that holds screenshots (computeruse/tools.go).
 const computerUseMarker = `"computer_use":true`
 
+// deviceOnlyMarker is in the toolUseResult of a result whose images never leave this machine, not even for the server's
+// object store: the screenshots of a demo recording (computeruse/recording_tools.go).
+const deviceOnlyMarker = `"device_only":true`
+
 // screenshotKept stands in for a screenshot on the server's copy of a transcript.
 const screenshotKept = "[screenshot kept on the machine that took it]"
 
@@ -17,7 +21,7 @@ const screenshotKept = "[screenshot kept on the machine that took it]"
 // and so does one this cannot parse, which the uploader then skips as malformed.
 // With a store on the server, referObjects does this instead and the screenshots go there. Typed text stays in the transcript.
 func scrubComputerUse(line string) string {
-	if !strings.Contains(line, computerUseMarker) {
+	if !strings.Contains(line, computerUseMarker) && !strings.Contains(line, deviceOnlyMarker) {
 		return line
 	}
 	var rec map[string]any

@@ -69,7 +69,7 @@ func (a *Agent) Remind(id string, vars map[string]string) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	for i, r := range a.reminders {
-		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell && id != ReminderAgentReport && id != ReminderWorkflowReport && id != "monitor_match" && id != "monitor_stopped" && id != ReminderSessionMessage && id != ReminderSessionReport && id != ReminderScheduledWakeup && id != ReminderTeamMessage && id != ReminderScheduleTrigger && id != ReminderPRActivity && id != ReminderTerminalDone && id != ReminderHookContext && id != "mcp_tools_changed" && id != "mcp_instructions" {
+		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell && id != ReminderAgentReport && id != ReminderWorkflowReport && id != "monitor_match" && id != "monitor_stopped" && id != ReminderSessionMessage && id != ReminderSessionReport && id != ReminderScheduledWakeup && id != ReminderTeamMessage && id != ReminderScheduleTrigger && id != ReminderPRActivity && id != ReminderTerminalDone && id != ReminderDemoRecorded && id != ReminderHookContext && id != "mcp_tools_changed" && id != "mcp_instructions" {
 			if id == "environment_changed" || id == "session_moved" || id == ReminderSkillsListing {
 				a.reminders[i].vars = vars // the latest state replaces the pending one
 			}
@@ -162,6 +162,10 @@ const (
 
 // ReminderTerminalDone tells the model that a command it typed into a terminal tab has ended.
 const ReminderTerminalDone = "terminal_command_done"
+
+// ReminderDemoRecorded tells the model that the user finished recording a demo (computeruse/recording.go), to draft a
+// skill from it.
+const ReminderDemoRecorded = "demo_recorded"
 
 // Background task completion notice: the tail of the output it carries.
 const (

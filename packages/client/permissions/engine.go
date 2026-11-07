@@ -933,6 +933,10 @@ func (e *Engine) Evaluate(req Request) Decision {
 	if isComputerTool(req.ToolName) {
 		return Decision{Behavior: Allow, ResolvedBy: "computer_access"}
 	}
+	// DemoSkillSave writes nothing itself: the user reads and saves the draft in its review card, which is the answer.
+	if req.ToolName == demoSkillSaveTool {
+		return Decision{Behavior: Allow, ResolvedBy: "review_card"}
+	}
 	if editTools[req.ToolName] {
 		if isProtected(path, e.workDirs, e.home) && !e.computerSettingsUnguarded(path) {
 			return Decision{Behavior: Ask, UserOnly: true, Message: fmt.Sprintf("%s is a protected path; edits always need approval.", path)}

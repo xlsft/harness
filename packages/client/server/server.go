@@ -42,6 +42,7 @@ import (
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/preview"
 	"github.com/xlsft/harness/packages/client/session"
+	"github.com/xlsft/harness/packages/client/simulator"
 	"github.com/xlsft/harness/packages/client/skills"
 	"github.com/xlsft/harness/packages/client/speech"
 	"github.com/xlsft/harness/packages/client/sshhost"
@@ -169,6 +170,9 @@ type Server struct {
 	// ComputerUse is computer use on this client (computeruse.go); nil: created on first use under HARNESS_HOME/computer-use.
 	ComputerUse  *computeruse.Manager
 	computerOnce sync.Once
+	// Simulators drives the iOS Simulators of this Mac (simulators.go); nil: created on first use.
+	Simulators *simulator.Manager
+	simOnce    sync.Once
 
 	// sides tracks the running side chat answers (sidechats.go).
 	sides sideChatRuns
@@ -478,6 +482,9 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	// The terminal UI has no access card or indicator.
 	if opts.ComputerUse == nil && !s.NoPanes {
 		opts.ComputerUse = s.computerUse()
+	}
+	if opts.Simulator == nil && !s.NoPanes {
+		opts.Simulator = s.simulators()
 	}
 	if opts.Terminals == nil && !s.NoPanes {
 		opts.Terminals = s.terminals()

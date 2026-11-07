@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+import "harness/agent/v1/computer_use.proto";
+
+// Recording a demo into a skill (packages/client/computeruse/recording.go, docs/design/demo-recording.md): the user
+// shows a workflow once, the client keeps it as steps with screenshots on this machine, and the agent drafts a SKILL.md
+// that the user reviews before it is saved. Device-local like computer use: these RPCs refuse a frontend that is not on
+// this machine and a session of another one, the events do not go to the relay mirror, and no tool of the model starts
+// or stops a recording.
+
+// An app the user can pick for a recording, with the tier the active security profile gives it. Blocked ones cannot
+// be picked.
+message DemoRecordingApp {
+  string id = 1;
+  string name = 2;
+  ComputerAccessTier tier = 3;
+  string tier_note = 4;
+}
+
+message ListDemoRecordingAppsRequest {}
+
+message ListDemoRecordingAppsResponse {
+  // The running apps of this machine, Harness left out.
+  repeated DemoRecordingApp apps = 1;
+  // Why recording cannot start now (computer use off, a permission missing...); empty when it can.
+  string unavailable_reason = 2;
+}
+
+message StartDemoRecordingRequest {
+  string session_id = 1;
+  // The apps to watch, by id. Events in any other app are dropped.
+  repeated string app_ids = 2;
+}
+
+message StartDemoRecordingResponse {
+  DemoRecordingState state = 1;
+}
+
+// Stops the session's recording. A kept recording goes to the session's agent, which drafts the skill.
+message StopDemoRecordingRequest {
+  string session_id = 1;
+  // Deletes the recording and its screenshots instead.
+  bool discard = 2;
+}
+
+message StopDemoRecordingResponse {
+  string recording_id = 1;
+  int32 steps = 2;
+}
+
+// A session's recording, in full; recording false once it ended.
+message DemoRecordingState {
+  bool recording = 1;
+  string recording_id = 2;
+  // RFC 3339.
+  string started_at = 3;
+  int32 steps = 4;
+  repeated DemoRecordingApp apps = 5;
+  // Stops it from any app ("ctrl+alt+cmd+.").
+  string hotkey = 6;
+  // What the last step was ("Clicked button "Save" in Notes").
+  string last_step = 7;
+}
+
+// The agent proposes a skill drafted from a recording (DemoSkillSave). The turn waits for RespondToDemoSkillReview;
+// nothing is written before the user saves.
+message DemoSkillReviewRequested {
+  string request_id = 1;
+  string tool_use_id = 2;
+  string recording_id = 3;
+  string name = 4;
+  // "project" or "personal", the agent's choice; the user may change it.
+  string scope = 5;
+  // The full SKILL.md as drafted.
+  string content = 6;
+  // Where each scope writes it.
+  string project_path = 7;
+  string personal_path = 8;
+}
+
+message DemoSkillReviewResolved {
+  string request_id = 1;
+  bool saved = 2;
+  string scope = 3;
+  // "local" or "interrupt".
+  string resolved_by = 4;
+}
+
+message RespondToDemoSkillReviewRequest {
+  string session_id = 1;
+  string request_id = 2;
+  bool save = 3;
+  // The text to write, as the user left it; empty keeps the draft.
+  string content = 4;
+  // "project" or "personal"; empty keeps the agent's choice.
+  string scope = 5;
+  // What the user tells the agent when not saving.
+  string note = 6;
+}
+
+message RespondToDemoSkillReviewResponse {}

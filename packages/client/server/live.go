@@ -57,13 +57,15 @@ type liveSession struct {
 	pendingPlan map[string]chan planAnswer
 	// pendingAccess are the open access cards of computer use (computeruse.go).
 	pendingAccess map[string]*pendingComputerAccess
-	waiting       int
-	queue         []*agentv1.UserMessage
-	seen          map[string]bool
-	messageID     string
-	branch        string
-	title         string
-	titleSource   titleSource
+	// pendingReviews are the open review cards of skills drafted from a demo recording (demo.go).
+	pendingReviews map[string]*pendingSkillReview
+	waiting        int
+	queue          []*agentv1.UserMessage
+	seen           map[string]bool
+	messageID      string
+	branch         string
+	title          string
+	titleSource    titleSource
 	// titleTurns counts finished turns while the title is provisional;
 	// titleTried is set once the AI title request started.
 	titleTurns int

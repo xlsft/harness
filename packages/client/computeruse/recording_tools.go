@@ -145,8 +145,9 @@ func (t *demoRecordingTool) Run(_ context.Context, env *tools.Env, call tools.Ca
 		shown++
 	}
 	r := tools.Result{Content: content, Summary: fmt.Sprintf("%d steps", len(f.Steps))}
-	// computer_use keeps the images out of the transcript upload and the relay mirror: they stay on this machine.
-	r.Structured = map[string]any{"computer_use": shown > 0, "recording_id": f.ID, "steps": len(f.Steps), "screenshots": shown}
+	// device_only keeps the images out of the transcript upload, the server's object store and the relay mirror: they
+	// stay on this machine.
+	r.Structured = map[string]any{"computer_use": shown > 0, "device_only": shown > 0, "recording_id": f.ID, "steps": len(f.Steps), "screenshots": shown}
 	return r
 }
 

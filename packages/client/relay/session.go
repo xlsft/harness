@@ -277,7 +277,9 @@ func referObjects(blocks []*llmv1.ContentBlock, sink ObjectSink, sessionID, kind
 func scrubDeviceLocal(c *agentv1.SessionEvent, sink ObjectSink, sessionID string) {
 	stored := sink != nil && sink.Available()
 	switch e := c.GetEvent().(type) {
-	case *agentv1.SessionEvent_ComputerAccessRequested, *agentv1.SessionEvent_ComputerAccessResolved, *agentv1.SessionEvent_ComputerUseState:
+	case *agentv1.SessionEvent_ComputerAccessRequested, *agentv1.SessionEvent_ComputerAccessResolved, *agentv1.SessionEvent_ComputerUseState,
+		*agentv1.SessionEvent_DemoRecordingState, *agentv1.SessionEvent_DemoSkillReviewRequested, *agentv1.SessionEvent_DemoSkillReviewResolved,
+		*agentv1.SessionEvent_SimulatorActivity:
 		c.Event = nil
 	case *agentv1.SessionEvent_UserMessage:
 		if stored {
@@ -285,6 +287,11 @@ func scrubDeviceLocal(c *agentv1.SessionEvent, sink ObjectSink, sessionID string
 		}
 	case *agentv1.SessionEvent_ToolCallFinished:
 		tf := e.ToolCallFinished
+		// A demo recording's screenshots never leave this machine, store or not.
+		if strings.Contains(tf.GetStructuredResultJson(), `"device_only":true`) {
+			tf.Content = slices.DeleteFunc(tf.GetContent(), func(b *llmv1.ContentBlock) bool { return b.GetImage() != nil })
+			return
+		}
 		if stored {
 			referObjects(tf.GetContent(), sink, sessionID, "image")
 			return

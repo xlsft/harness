@@ -5,6 +5,7 @@ package harness.agent.v1;
 import "harness/agent/v1/acp.proto";
 import "harness/agent/v1/browser.proto";
 import "harness/agent/v1/computer_use.proto";
+import "harness/agent/v1/demo_recording.proto";
 import "harness/agent/v1/device_settings.proto";
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/hooks.proto";
@@ -24,6 +25,7 @@ import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/session_links.proto";
 import "harness/agent/v1/shell.proto";
 import "harness/agent/v1/sidechat.proto";
+import "harness/agent/v1/simulator.proto";
 import "harness/agent/v1/slash_commands.proto";
 import "harness/agent/v1/speech.proto";
 import "harness/agent/v1/subagents.proto";
@@ -348,6 +350,21 @@ service AgentService {
   // Picks the security profile and edits the custom one. Device-local; only from this machine.
   rpc SetComputerUseProfile(SetComputerUseProfileRequest) returns (SetComputerUseProfileResponse);
   rpc ListComputerUseApps(ListComputerUseAppsRequest) returns (ListComputerUseAppsResponse);
+  // --- Recording a demo into a skill (demo_recording.proto); device-local, only from this machine ---
+
+  // The apps a recording can watch, and why it cannot start now.
+  rpc ListDemoRecordingApps(ListDemoRecordingAppsRequest) returns (ListDemoRecordingAppsResponse);
+  rpc StartDemoRecording(StartDemoRecordingRequest) returns (StartDemoRecordingResponse);
+  rpc StopDemoRecording(StopDemoRecordingRequest) returns (StopDemoRecordingResponse);
+  // The user's answer to DemoSkillReviewRequested.
+  rpc RespondToDemoSkillReview(RespondToDemoSkillReviewRequest) returns (RespondToDemoSkillReviewResponse);
+  // --- iOS Simulator (simulator.proto); device-local, only from this machine ---
+
+  rpc ListSimulators(ListSimulatorsRequest) returns (ListSimulatorsResponse);
+  rpc BootSimulator(BootSimulatorRequest) returns (BootSimulatorResponse);
+  rpc ShutdownSimulator(ShutdownSimulatorRequest) returns (ShutdownSimulatorResponse);
+  rpc WatchSimulator(WatchSimulatorRequest) returns (stream WatchSimulatorResponse);
+  rpc SimulatorInput(SimulatorInputRequest) returns (SimulatorInputResponse);
   // --- This device (device_settings.proto) ---
 
   rpc GetDeviceSettings(GetDeviceSettingsRequest) returns (GetDeviceSettingsResponse);
@@ -878,6 +895,12 @@ message SessionEvent {
     // Goal mode and the task graph (teamwork.proto); numbered apart like the shell events.
     GoalUpdated goal_updated = 140;
     TaskGraphUpdated task_graph_updated = 141;
+    // Recording a demo (demo_recording.proto) and the iOS Simulator (simulator.proto); device-local like computer use,
+    // left out of the relay mirror.
+    DemoRecordingState demo_recording_state = 370;
+    DemoSkillReviewRequested demo_skill_review_requested = 371;
+    DemoSkillReviewResolved demo_skill_review_resolved = 372;
+    SimulatorActivity simulator_activity = 373;
   }
 }
 
