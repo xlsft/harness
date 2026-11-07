@@ -20,7 +20,7 @@ import {
   ProjectWorkerState,
   type InboxApi,
   type ProjectRun,
-  type ProjectRunLimits,
+  type LimitsInit,
   type ProjectRunsApi
 } from './types'
 
@@ -149,7 +149,7 @@ export class MockProjectRunsApi implements ProjectRunsApi {
     return clone(ProjectRunSchema, run)
   }
 
-  async control(id: string, action: ControlProjectRunRequest_Action, limits?: Partial<ProjectRunLimits>) {
+  async control(id: string, action: ControlProjectRunRequest_Action, limits?: LimitsInit) {
     const r = this.runs.get(id)
     if (!r) throw new Error(`[not_found] project run ${id} not found`)
     if (limits) r.limits = { ...r.limits!, ...limits, maxWorkers: Math.min(32, limits.maxWorkers || r.limits?.maxWorkers || 4) } as ProjectRun['limits']

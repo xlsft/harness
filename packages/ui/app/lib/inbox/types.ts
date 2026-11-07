@@ -11,15 +11,15 @@ import {
   type InboxRequest,
   type ListInboxResponse
 } from '~/gen/harness/agent/v1/inbox_pb'
-import type { CreateProjectRunRequestSchema,
+import {
   ControlProjectRunRequest_Action,
   ProjectRunState,
   ProjectWorkerState,
   type CreateProjectRunRequest,
+  type CreateProjectRunRequestSchema,
   type ProjectRun,
   type ProjectRunLimits,
   type ProjectWorker
-
 } from '~/gen/harness/agent/v1/project_runs_pb'
 import type { MessageInitShape } from '@bufbuild/protobuf'
 import { SubagentState } from '~/gen/harness/agent/v1/subagents_pb'
@@ -34,11 +34,14 @@ export interface InboxApi {
   markRead(sessionIds: string[], read: boolean): Promise<void>
 }
 
+// Limits as a request sets them (unset: unchanged or the default).
+export interface LimitsInit { maxWorkers?: number, budgetUsd?: number, budgetTokens?: bigint }
+
 export interface ProjectRunsApi {
   list(includeRemote: boolean): Promise<ProjectRun[]>
   get(id: string): Promise<ProjectRun>
   create(req: MessageInitShape<typeof CreateProjectRunRequestSchema>): Promise<ProjectRun>
-  control(id: string, action: ControlProjectRunRequest_Action, limits?: Partial<ProjectRunLimits>, sessionId?: string): Promise<ProjectRun>
+  control(id: string, action: ControlProjectRunRequest_Action, limits?: LimitsInit, sessionId?: string): Promise<ProjectRun>
   remove(id: string): Promise<void>
 }
 
