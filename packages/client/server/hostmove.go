@@ -570,3 +570,8 @@ func (ls *liveSession) restoreMoved(entries []session.Entry) {
 	ls.hub.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_SessionMoved{SessionMoved: mv}})
 	ls.history++
 }
+
+// runMoveCommand is /move: it opens the confirmation; nothing moves before the user confirms (decision 26).
+func runMoveCommand(context.Context, *Server, *liveSession, string) slashOutcome {
+	return slashOutcome{action: agentv1.SlashCommandResult_ACTION_OPEN_MOVE}
+}

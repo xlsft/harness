@@ -178,7 +178,7 @@ export class MockTransport implements SessionTransport {
   private disabledSkills = new Set<string>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
-  private preferences: UserPreferences = { autoMemoryEnabled: true, compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: true, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20, modelTuning: { speedTier: '', cacheTtl: '', advisorModel: '' } }
+  private preferences: UserPreferences = { autoMemoryEnabled: true, compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: true, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20, bestOfNParallel: 0, bestOfNBudgetUsd: 0, modelTuning: { speedTier: '', cacheTtl: '', advisorModel: '' } }
   private hookTrusted = false
   private deviceSettings: DeviceSettings = { theme: '', notifications: true }
   private tick: number
@@ -1313,6 +1313,9 @@ export class MockTransport implements SessionTransport {
         return true
       case 'schedule':
         result({ action: SlashCommandResult_Action.OPEN_SCHEDULED })
+        return true
+      case 'move':
+        result({ action: SlashCommandResult_Action.OPEN_MOVE })
         return true
     }
     return false

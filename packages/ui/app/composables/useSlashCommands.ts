@@ -41,6 +41,7 @@ export function useSlashActions() {
   const store = useSessionStore()
   const done = useState<string[]>('slash-actions-done', () => [])
   const picker = usePickerRequest()
+  const moving = useMoveSession()
 
   watch(() => store.current?.slashAction?.id, async () => {
     const a = store.current?.slashAction
@@ -61,6 +62,10 @@ export function useSlashActions() {
         break
       case SlashCommandResult_Action.OPEN_SCHEDULED:
         await navigateTo('/scheduled')
+        break
+      case SlashCommandResult_Action.OPEN_MOVE:
+        // Only the confirmation: nothing moves before the user says so.
+        moving.value = store.currentId
         break
       case SlashCommandResult_Action.OPEN_SESSION:
         await store.refreshList()

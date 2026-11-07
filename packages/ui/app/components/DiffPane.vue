@@ -68,7 +68,8 @@ const remote = computed(() => !!props.session.meta.remote)
 // The last answer, per session: reopening the pane shows it at once. A failed refresh keeps it, a client that never
 // answered leaves it null (the transcript's list shows).
 const measured = useState<Record<string, SessionDiff>>('diff-measured', () => ({}))
-const live = computed<SessionDiff | null>(() => remote.value ? null : measured.value[sid.value] ?? null)
+// A session of another machine is measured there, through the relay (docs/design/hosts.md, decision 31).
+const live = computed<SessionDiff | null>(() => measured.value[sid.value] ?? null)
 const refreshing = ref(false)
 // What the changes are compared with: all of them by default. Per session, kept while the app is open.
 const base = useState<DiffBaseChoice>(`diff-base-${props.session.meta.id}`, () => ({ kind: 'all' }))
@@ -90,7 +91,6 @@ const loader = new SessionDiffLoader({
 })
 
 async function refresh() {
-  if (remote.value) return
   refreshing.value = true
   await loader.load()
   refreshing.value = false
@@ -118,9 +118,7 @@ watch(finishedTools, (now, before) => {
 watch(() => props.session.meta.status, (s, before) => {
   if (before === 'working' && s !== 'working') void refresh()
 })
-onMounted(() => {
-  if (!remote.value) loader.start()
-})
+onMounted(() => loader.start())
 onBeforeUnmount(() => {
   loader.stop()
   clearTimeout(toolTimer)

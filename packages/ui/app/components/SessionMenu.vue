@@ -4,7 +4,7 @@
 // first: the first click (or D) turns the row into a confirmation, the second deletes. A session of another
 // machine has no local folder (no Finder / path), and "Continue here" forks it into a folder of this machine.
 // A sub-session row (`sub`) has its own menu: Open in ▸, pin, unread, rename, fork, Detach to top level, archive,
-// delete. Archiving takes the sub-sessions along; deleting detaches them first (they stay as top-level sessions).
+// delete. "Move to a host…" opens the confirmation of a move to an always-on host. Archiving takes the sub-sessions along; deleting detaches them first (they stay as top-level sessions).
 import type { SessionState } from '~/lib/session/types'
 import { isDesktop, revealInFolder } from '~/lib/desktop'
 import { ExportFormat, saveBytes } from '~/lib/library/types'
@@ -69,6 +69,12 @@ function openInTab() {
 }
 
 const canFork = computed(() => !store.sessions[id.value]?.meta.unsupported.includes('fork'))
+// Moving to an always-on host (docs/design/hosts.md, decision 26): only the confirmation opens here.
+const moving = useMoveSession()
+const canMove = computed(() => !remote.value && !props.session.meta.moved && !props.session.meta.noFolder && props.session.meta.engine === 'harness')
+const openMove = () => {
+  moving.value = id.value
+}
 const actions: Record<string, () => unknown> = {
   p: () => store.setPinned(id.value, !pinned.value),
   u: () => store.setUnread(id.value, !unread.value),
@@ -220,6 +226,13 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           @click="run(actions.f!)"
         >
           {{ remote ? tt('Continue here…') : tt('Fork') }}
+        </PaneMenuItem>
+        <PaneMenuItem
+          v-if="canMove"
+          icon="arrow-up-right"
+          @click="run(openMove)"
+        >
+          {{ tt('Move to a host…') }}
         </PaneMenuItem>
         <template v-if="sub">
           <div class="my-1 h-px bg-line" />

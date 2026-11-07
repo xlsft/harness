@@ -537,6 +537,29 @@ export interface SessionMeta {
   unsupported: string[]
   // An ACP session's agent state: modes, sign-in, context, subscription limits (local to this computer).
   acp: AcpSessionState | null
+  // The session moved to an always-on host and is read-only here (SessionInfo.moved).
+  moved: SessionMovedVM | null
+  // The session is one attempt of a best-of-N group (SessionInfo.attempt).
+  attempt: { groupId: string, index: number, count: number } | null
+}
+
+export interface SessionMovedVM {
+  hostId: string
+  hostName: string
+  workId: string
+  branch: string
+  movedAt: string
+}
+
+// The last run of an attempt's test command (AttemptChecked).
+export interface AttemptCheckVM {
+  command: string
+  exitCode: number
+  output: string
+  refused: boolean
+  timedOut: boolean
+  head: string
+  checkedAt: string
 }
 
 export interface QueuedMessage {
@@ -594,6 +617,8 @@ export interface SessionState {
   taskGraph: TaskNodeVM[]
   // What an always-on host did with the session's work (HostWorkUpdated).
   hostWork: { branch: string, pullRequestUrl: string, error: string } | null
+  // The last run of the test command of a best-of-N attempt (AttemptChecked).
+  attemptCheck: AttemptCheckVM | null
   // The session's runs of the Workflow tool (WorkflowUpdated), oldest first.
   workflows: Record<string, WorkflowVM>
   workflowOrder: string[]

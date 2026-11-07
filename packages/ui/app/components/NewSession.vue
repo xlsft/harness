@@ -306,6 +306,14 @@ async function startOnHost(msg: string) {
   await router.replace({ query: { ...rest, session: work.sessionId } })
 }
 
+// Best of N (docs/design/hosts.md, decisions 28 to 33): the same prompt, folder or host and model, in the dialog that starts it.
+const attemptsView = useAttemptsView()
+const attemptsPrefill = useState<{ prompt: string, cwd: string, hostId: string, repository: string, model: string }>('attempts-prefill', () => ({ prompt: '', cwd: '', hostId: '', repository: '', model: '' }))
+function openBestOfN() {
+  attemptsPrefill.value = { prompt: text.value, cwd: host.value ? '' : cwd.value, hostId: host.value, repository: repository.value, model: model.value }
+  attemptsView.value = 'new'
+}
+
 async function cancelWaiting() {
   const id = waiting.value
   waiting.value = ''
@@ -671,6 +679,20 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
                   :size="12"
                   :class="worktree && 'text-accent'"
                 /><span :class="worktree && 'text-strong'">{{ tt('Worktree') }}</span>
+              </button>
+
+              <button
+                v-if="!engine && (host || cwd)"
+                type="button"
+                :title="tt('Run this prompt several times, each on a branch of its own, and keep the best')"
+                :class="[CHIP, 'border-transparent']"
+                data-best-of-n
+                @click="openBestOfN"
+              >
+                <HIcon
+                  name="branch"
+                  :size="12"
+                />{{ tt('Best of N…') }}
               </button>
 
               <span class="flex-1" />
