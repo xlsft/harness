@@ -1,38 +1,20 @@
-// LibraryApi: the screens over the user's artifacts, knowledge base and task tracker (harness.library.v1 through the
-// client's proxy), and memory, export and transcript search (harness.agent.v1.LibraryService on the client). The server
-// and the client decide what exists and who may see it; this only names things for the screens. Two implementations:
+// LibraryApi: the screens over the user's artifacts and Knowledge (harness.library.v1 through the client's proxy, and the merged
+// view of Knowledge's sources on the client), and memory, export and transcript search (harness.agent.v1.LibraryService). The
+// server and the client decide what exists and who may see it; this only names things for the screens. Two implementations:
 // connect.ts and mock.ts.
 
 import { tt } from '~/utils/i18n'
 import type { Artifact, ArtifactVersion, GetArtifactResponse } from '~/gen/harness/library/v1/artifacts_pb'
-import type { GetKnowledgeDocumentResponse, KnowledgeDocument, KnowledgeHit } from '~/gen/harness/library/v1/knowledge_pb'
-import type { TrackerTask } from '~/gen/harness/library/v1/tracker_pb'
+import type { GetKnowledgeDocumentResponse, KnowledgeDocument, KnowledgeHit, KnowledgeSource, KnowledgeWarning } from '~/gen/harness/library/v1/knowledge_pb'
+import { KnowledgeSourceKind } from '~/gen/harness/library/v1/knowledge_pb'
 import type { AutoMemoryProject, TranscriptHit } from '~/gen/harness/agent/v1/library_pb'
 import { ArtifactKind, ArtifactVisibility, ListArtifactsRequest_Filter } from '~/gen/harness/library/v1/artifacts_pb'
-import { TrackerPriority, TrackerStatus } from '~/gen/harness/library/v1/tracker_pb'
 import { ExportFormat } from '~/gen/harness/agent/v1/library_pb'
 import { Scope } from '~/gen/harness/common/v1/scope_pb'
 import type { IconName } from '~/utils/icons'
 
-export type { Artifact, ArtifactVersion, GetArtifactResponse, KnowledgeDocument, KnowledgeHit, GetKnowledgeDocumentResponse, TrackerTask, AutoMemoryProject, TranscriptHit }
-export { ArtifactKind, ArtifactVisibility, ExportFormat, ListArtifactsRequest_Filter as ArtifactFilter, Scope, TrackerPriority, TrackerStatus }
-
-export interface TaskDraft {
-  title: string
-  description?: string
-  status?: TrackerStatus
-  priority?: TrackerPriority
-  project?: string
-  blockedBy?: string[]
-}
-
-export interface TaskPatch {
-  title?: string
-  description?: string
-  status?: TrackerStatus
-  priority?: TrackerPriority
-  project?: string
-}
+export type { Artifact, ArtifactVersion, GetArtifactResponse, KnowledgeDocument, KnowledgeHit, KnowledgeSource, KnowledgeWarning, GetKnowledgeDocumentResponse, AutoMemoryProject, TranscriptHit }
+export { ArtifactKind, ArtifactVisibility, ExportFormat, KnowledgeSourceKind, ListArtifactsRequest_Filter as ArtifactFilter, Scope }
 
 export interface LibraryApi {
   listArtifacts(q: { filter: ListArtifactsRequest_Filter, query?: string, sessionId?: string }): Promise<Artifact[]>
@@ -48,12 +30,11 @@ export interface LibraryApi {
   createDocument(d: { scope: Scope, title: string, content: string, sourceName?: string }): Promise<KnowledgeDocument>
   updateDocument(id: string, patch: { title?: string, content?: string }): Promise<KnowledgeDocument>
   deleteDocument(id: string): Promise<void>
-  searchKnowledge(query: string, limit?: number): Promise<KnowledgeHit[]>
-
-  listTasks(q?: { query?: string }): Promise<TrackerTask[]>
-  createTask(d: TaskDraft): Promise<TrackerTask>
-  updateTask(id: string, patch: TaskPatch): Promise<TrackerTask>
-  deleteTask(id: string): Promise<void>
+  // Every source the user can read, the server's and this device's. A source that fails is a warning beside the others' hits.
+  listSources(): Promise<KnowledgeSource[]>
+  searchKnowledge(query: string, limit?: number): Promise<{ hits: KnowledgeHit[], warnings: KnowledgeWarning[] }>
+  browseSource(sourceId: string, parentId?: string): Promise<{ documents: KnowledgeDocument[], hasMore: boolean }>
+  readDocument(id: string): Promise<GetKnowledgeDocumentResponse>
 
   listMemory(folder?: string): Promise<AutoMemoryProject[]>
   saveMemory(projectKey: string, name: string, content: string): Promise<AutoMemoryProject>
@@ -72,30 +53,6 @@ export const ARTIFACT_VIEW: Record<ArtifactKind, { label: string, icon: IconName
   [ArtifactKind.IMAGE]: { label: tt('Image'), icon: 'image', tint: 'rgba(214,145,226,.1)', color: '#d691e2' },
   [ArtifactKind.PDF]: { label: 'PDF', icon: 'slides', tint: 'rgba(234,90,79,.1)', color: '#ea5a4f' },
   [ArtifactKind.FILE]: { label: tt('File'), icon: 'file', tint: 'rgba(160,160,160,.1)', color: '#9a9a9a' }
-}
-
-// The columns of the tracker, in the order work moves through them.
-export const TASK_STATUSES: { status: TrackerStatus, label: string }[] = [
-  { status: TrackerStatus.TODO, label: tt('To do') },
-  { status: TrackerStatus.IN_PROGRESS, label: tt('In progress') },
-  { status: TrackerStatus.BLOCKED, label: tt('Blocked') },
-  { status: TrackerStatus.DONE, label: tt('Done') },
-  { status: TrackerStatus.CANCELLED, label: tt('Cancelled') }
-]
-
-export const TASK_PRIORITIES: { priority: TrackerPriority, label: string }[] = [
-  { priority: TrackerPriority.HIGH, label: tt('High') },
-  { priority: TrackerPriority.NORMAL, label: tt('Normal') },
-  { priority: TrackerPriority.LOW, label: tt('Low') }
-]
-
-export function statusLabel(s: TrackerStatus): string {
-  return TASK_STATUSES.find(x => x.status === s)?.label ?? 'To do'
-}
-
-// The tasks by column; every column is there, empty or not, and the server's order holds inside it.
-export function groupTasks(tasks: TrackerTask[]): { status: TrackerStatus, label: string, tasks: TrackerTask[] }[] {
-  return TASK_STATUSES.map(c => ({ ...c, tasks: tasks.filter(t => t.status === c.status) }))
 }
 
 export function scopeLabel(s: Scope): string {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Task tracker: the user's tasks across sessions.
+// Issues: projects, boards and the issues on them.
 useShortcuts()
 </script>
 
@@ -12,7 +12,7 @@ useShortcuts()
     <AppSidebar />
     <div class="relative h-svh min-w-0 flex-1">
       <PageHeader class="absolute inset-x-0 top-0 z-10" />
-      <TrackerPage />
+      <IssuesPage />
     </div>
   </UDashboardGroup>
 </template>
