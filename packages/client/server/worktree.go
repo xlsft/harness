@@ -100,7 +100,11 @@ func (s *Server) folderVcsHooks(ctx context.Context, cwd, sessionID string) (vcs
 	docsCtx, cancel := context.WithTimeout(ctx, sessionSyncTimeout)
 	docs, docsErr := s.hookDocs(docsCtx)
 	cancel()
-	st, err := settings.Load(ctx, settings.Options{Cwd: abs, Docs: docs, Trusted: config.IsChatDir(abs) || permissions.IsTrusted(abs)})
+	trusted := config.IsChatDir(abs) || permissions.IsTrusted(abs)
+	if s.Base.Trusted != nil {
+		trusted = *s.Base.Trusted // as the session would decide
+	}
+	st, err := settings.Load(ctx, settings.Options{Cwd: abs, Docs: docs, Trusted: trusted})
 	if err != nil {
 		return vcshooks.Hooks{}, none, nil
 	}
