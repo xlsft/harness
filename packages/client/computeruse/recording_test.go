@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"image"
 	"image/color"
+	"image/draw"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -46,17 +47,18 @@ func (w *watchDriver) Screenshot(ctx context.Context, r ScreenshotRequest) (Imag
 	if err != nil {
 		return img, err
 	}
-	src := image.NewRGBA(image.Rect(0, 0, 800, 600))
-	for y := range 600 {
-		for x := range 800 {
-			src.Set(x, y, color.White)
-		}
-	}
-	var buf bytes.Buffer
-	_ = png.Encode(&buf, src)
-	img.Data = buf.Bytes()
+	img.Data = whiteWindow()
 	return img, nil
 }
+
+// whiteWindow is encoded once: under -race, drawing and encoding it for every step made the tests slow.
+var whiteWindow = sync.OnceValue(func() []byte {
+	src := image.NewRGBA(image.Rect(0, 0, 800, 600))
+	draw.Draw(src, src.Bounds(), image.NewUniform(color.White), image.Point{}, draw.Src)
+	var buf bytes.Buffer
+	_ = png.Encode(&buf, src)
+	return buf.Bytes()
+})
 
 func recordingSetup(t *testing.T) (*watchDriver, *Manager, chan RecordingFile) {
 	t.Helper()
@@ -142,7 +144,7 @@ func TestRecordingStepsAndScrubbing(t *testing.T) {
 	var rec RecordingFile
 	select {
 	case rec = <-recorded:
-	case <-time.After(10 * time.Second):
+	case <-time.After(30 * time.Second):
 		t.Fatal("the recording did not end")
 	}
 	if rec.StopReason != "hotkey" {
