@@ -504,7 +504,9 @@ func TestBalanceRecoveredClears(t *testing.T) {
 }
 
 func TestResumeRearmsWatch(t *testing.T) {
-	resets := resetsIn(3 * time.Second)
+	// Long enough that the reset is still ahead when the session is resumed under -race on a loaded machine; a reset
+	// already passed is TestResumeAfterResetPassed.
+	resets := resetsIn(8 * time.Second)
 	rig := startHold(t, func(string) *llmv1.ProviderLimits { return window("a", 100, resets) }, nil)
 	sid, ch := rig.reach(t)
 	rig.setAuto(sid, true)
