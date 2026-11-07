@@ -32,6 +32,7 @@ import (
 	"github.com/xlsft/harness/packages/client/rpc"
 	"github.com/xlsft/harness/packages/client/sdk"
 	"github.com/xlsft/harness/packages/client/server"
+	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/speech"
 	"github.com/xlsft/harness/packages/client/subagent"
 	"github.com/xlsft/harness/packages/client/syncclient"
@@ -122,6 +123,12 @@ func cmdLogin(ctx context.Context, args []string) int {
 	asJSON := len(args) > 0 && args[0] == "--json"
 	if asJSON {
 		args = args[1:]
+	}
+	// The server the machine's administrator set (serverUrl) is the default, and the only one the app offers.
+	if len(args) == 0 {
+		if managed := settings.MachineConfig().ServerURL; managed != "" {
+			args = []string{managed}
+		}
 	}
 	if len(args) != 1 {
 		return fail(errors.New("usage: harness-client login [--json] <server-url>"))

@@ -12,6 +12,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -35,10 +36,13 @@ const (
 	maxSumsSize    = 1 << 20
 )
 
-// Updater talks to the releases of one GitHub repository.
+// Updater talks to the releases of one GitHub repository, or to a mirror of them.
 type Updater struct {
-	Web       string // e.g. https://github.com
-	Repo      string // owner/name
+	Web  string // e.g. https://github.com
+	Repo string // owner/name
+	// Mirror, when set, replaces GitHub: <Mirror>/latest.json names the newest release, and its files are in
+	// <Mirror>/<tag>/ (scripts/release/offline-bundle.sh lays it out). What is verified, and against which key, is the same.
+	Mirror    string
 	PublicKey string
 	HTTP      *http.Client
 	OS        string // runtime.GOOS
@@ -53,6 +57,9 @@ func ArchiveName(version, goos, goarch string) string {
 // LatestTag returns the tag of the newest stable release: the web site's releases/latest redirect, which never points at
 // a draft or a pre-release and, unlike the API, has no hourly limit.
 func (u Updater) LatestTag(ctx context.Context) (string, error) {
+	if u.Mirror != "" {
+		return u.mirrorLatest(ctx)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, u.Web+"/"+u.Repo+"/releases/latest", nil)
 	if err != nil {
 		return "", err
@@ -85,11 +92,39 @@ func (u Updater) LatestTag(ctx context.Context) (string, error) {
 
 // ReleaseURL is the page of a release, for people.
 func (u Updater) ReleaseURL(tag string) string {
+	if u.Mirror != "" {
+		return u.mirrorBase() + "/" + url.PathEscape(tag) + "/"
+	}
 	return u.Web + "/" + u.Repo + "/releases/tag/" + tag
 }
 
 func (u Updater) assetURL(tag, name string) string {
+	if u.Mirror != "" {
+		return u.mirrorBase() + "/" + url.PathEscape(tag) + "/" + url.PathEscape(name)
+	}
 	return u.Web + "/" + u.Repo + "/releases/download/" + url.PathEscape(tag) + "/" + url.PathEscape(name)
+}
+
+func (u Updater) mirrorBase() string { return strings.TrimRight(u.Mirror, "/") }
+
+// mirrorLatest reads the version of <Mirror>/latest.json, the file the desktop app's updater reads too. It isn't signed
+// itself: it only says which release to fetch, and that release's checksums.txt is verified as from GitHub.
+func (u Updater) mirrorLatest(ctx context.Context) (string, error) {
+	b, err := u.fetch(ctx, u.mirrorBase()+"/latest.json", maxSumsSize)
+	if err != nil {
+		return "", fmt.Errorf("update mirror: %w", err)
+	}
+	var latest struct {
+		Version string `json:"version"`
+	}
+	if err := json.Unmarshal(b, &latest); err != nil {
+		return "", fmt.Errorf("update mirror: latest.json: %w", err)
+	}
+	tag := "v" + strings.TrimPrefix(latest.Version, "v")
+	if _, ok := parseVersion(tag); !ok {
+		return "", fmt.Errorf("update mirror: latest.json names %q, not a version", latest.Version)
+	}
+	return tag, nil
 }
 
 // Install downloads the release for this platform, verifies it, and replaces the binary at exe. On any error the

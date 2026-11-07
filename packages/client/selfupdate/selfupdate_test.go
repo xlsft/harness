@@ -31,7 +31,9 @@ type fakeRelease struct {
 	sums       []byte
 	sig        string
 	cutArchive bool // the connection drops halfway through the archive
-	srv        *httptest.Server
+	latestJSON string
+
+	srv *httptest.Server
 }
 
 type signer struct {
@@ -105,17 +107,22 @@ func newRelease(t *testing.T, s signer, binary string) (*fakeRelease, Updater) {
 		w.Header().Set("Location", r.srv.URL+"/xlsft/harness/releases/tag/"+r.tag)
 		w.WriteHeader(http.StatusFound)
 	})
-	mux.HandleFunc("/xlsft/harness/releases/download/"+tag+"/checksums.txt", func(w http.ResponseWriter, _ *http.Request) { w.Write(r.sums) })
-	mux.HandleFunc("/xlsft/harness/releases/download/"+tag+"/checksums.txt.sig", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, r.sig) })
-	mux.HandleFunc("/xlsft/harness/releases/download/"+tag+"/"+name, func(w http.ResponseWriter, _ *http.Request) {
-		if r.cutArchive {
-			w.Header().Set("Content-Length", fmt.Sprint(len(r.archive)))
-			w.Write(r.archive[:len(r.archive)/2])
-			w.(http.Flusher).Flush()
-			panic(http.ErrAbortHandler) // drops the connection mid-body
-		}
-		w.Write(r.archive)
-	})
+	// The same files on GitHub and in a mirror (<mirror>/latest.json, <mirror>/<tag>/...).
+	r.latestJSON = `{"version":"1.2.3","platforms":{}}`
+	mux.HandleFunc("/mirror/harness/latest.json", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, r.latestJSON) })
+	for _, dir := range []string{"/xlsft/harness/releases/download/" + tag + "/", "/mirror/harness/" + tag + "/"} {
+		mux.HandleFunc(dir+"checksums.txt", func(w http.ResponseWriter, _ *http.Request) { w.Write(r.sums) })
+		mux.HandleFunc(dir+"checksums.txt.sig", func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, r.sig) })
+		mux.HandleFunc(dir+name, func(w http.ResponseWriter, _ *http.Request) {
+			if r.cutArchive {
+				w.Header().Set("Content-Length", fmt.Sprint(len(r.archive)))
+				w.Write(r.archive[:len(r.archive)/2])
+				w.(http.Flusher).Flush()
+				panic(http.ErrAbortHandler) // drops the connection mid-body
+			}
+			w.Write(r.archive)
+		})
+	}
 	r.srv = httptest.NewServer(mux)
 	t.Cleanup(r.srv.Close)
 	return r, Updater{Web: r.srv.URL, Repo: "xlsft/harness", PublicKey: s.pub, HTTP: r.srv.Client(), OS: "testos", Arch: "testarch"}
@@ -172,6 +179,49 @@ func TestInstallReplacesBinary(t *testing.T) {
 	entries, _ := os.ReadDir(filepath.Dir(exe))
 	if len(entries) != 1 {
 		t.Fatalf("left behind: %v", entries)
+	}
+}
+
+func TestInstallFromAMirror(t *testing.T) {
+	s := newSigner(t)
+	r, u := newRelease(t, s, newBinary)
+	u.Web, u.Mirror = "http://github.invalid", r.srv.URL+"/mirror/harness/"
+	exe := installed(t)
+	tag, err := u.LatestTag(context.Background())
+	if err != nil || tag != r.tag {
+		t.Fatalf("LatestTag = %q, %v", tag, err)
+	}
+	if got := u.ReleaseURL(tag); got != r.srv.URL+"/mirror/harness/v1.2.3/" {
+		t.Fatalf("ReleaseURL = %s", got)
+	}
+	if err := u.Install(context.Background(), tag, exe); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(exe); string(b) != newBinary {
+		t.Fatalf("binary = %q", b)
+	}
+}
+
+// A mirror is trusted for nothing: its checksums are verified with the same key, and its latest.json only picks a tag.
+func TestMirrorIsVerifiedLikeGitHub(t *testing.T) {
+	s := newSigner(t)
+	r, u := newRelease(t, s, newBinary)
+	u.Mirror = r.srv.URL + "/mirror/harness"
+	r.sig = newSigner(t).sign(r.sums)
+	exe := installed(t)
+	if err := u.Install(context.Background(), r.tag, exe); err == nil || !strings.Contains(err.Error(), ErrBadSignature.Error()) {
+		t.Fatalf("another key: %v", err)
+	}
+	assertUntouched(t, exe)
+	for _, bad := range []string{`{"version":"latest"}`, `not json`, `{}`} {
+		r.latestJSON = bad
+		if _, err := u.LatestTag(context.Background()); err == nil {
+			t.Fatalf("latest.json %s accepted", bad)
+		}
+	}
+	u.Mirror = r.srv.URL + "/nowhere"
+	if _, err := u.LatestTag(context.Background()); err == nil || !strings.Contains(err.Error(), "update mirror") {
+		t.Fatalf("missing mirror: %v", err)
 	}
 }
 
