@@ -161,6 +161,29 @@ expect "--keep-latest adds a release without offering it" "off v1.2.2 '$work/mir
 echo tampered >"$rel/harness_1.2.3_darwin_arm64.dmg"
 refuse "offline-bundle refuses files that don't match checksums.txt" "off v1.2.2 '$work/mirror2' --from '$rel' --no-image --base-url https://m.example.com"
 
+# The dev container feature's install.sh, from a mirror folder over file://, into folders of the test's own.
+feature="$root/deploy/devcontainer/harness-client/install.sh"
+case "$(uname -s)" in Linux) fos=linux ;; *) fos=darwin ;; esac
+case "$(uname -m)" in x86_64 | amd64) farch=amd64 ;; *) farch=arm64 ;; esac
+fm="$work/fmirror"
+mkdir -p "$fm/v3.4.5" "$work/fbin"
+printf '#!/bin/sh\necho harness-client/3.4.5\n' >"$work/fbin/harness-client"
+chmod 755 "$work/fbin/harness-client"
+tar -czf "$fm/v3.4.5/harness-client_3.4.5_${fos}_${farch}.tar.gz" -C "$work/fbin" harness-client
+(cd "$fm/v3.4.5" && shasum -a 256 ./*.tar.gz | sed 's|  \./|  |' >checksums.txt)
+echo '{"version":"3.4.5","platforms":{}}' >"$fm/latest.json"
+finstall() { env -u VERSION HARNESS_INSTALL_DIR="$work/fout/bin" HARNESS_POLICY_DIR="$work/fout/policy" PATH="/usr/bin:/bin:/usr/sbin:/sbin" "$@" sh "$feature" 2>/dev/null; }
+expect "the feature installs the latest release of a mirror" "finstall MIRROR='file://$fm' SERVERURL=https://harness.example.com/"
+expect "...a client that runs" "'$work/fout/bin/harness-client' version | grep -q 3.4.5"
+fpolicy="$work/fout/policy/00-devcontainer.json"
+[[ "$(node -p "const p=require('$fpolicy'); [p.serverUrl, p.disableUpdates, p.updateMirrorUrl].join(' ')")" == "https://harness.example.com true " ]] && ok "...and the container's machine policy" || no "...and the container's machine policy"
+refuse "the feature refuses a serverUrl that isn't a plain URL" "finstall MIRROR='file://$fm' SERVERURL='https://x/\"y'"
+refuse "the feature refuses a version the mirror doesn't have" "finstall MIRROR='file://$fm' VERSION=9.9.9"
+echo tampered >>"$fm/v3.4.5/harness-client_3.4.5_${fos}_${farch}.tar.gz"
+refuse "the feature refuses an archive that doesn't match checksums.txt" "finstall MIRROR='file://$fm' VERSION=3.4.5"
+fkey="$(sed -n 's/^PUBKEY="\(.*\)"$/\1/p' "$feature")"
+[[ "$(node -p "require('$root/packages/desktop/src-tauri/tauri.conf.json').plugins.updater.pubkey" | base64 -d | tail -n1)" == "$fkey" ]] && ok "the feature trusts the release key of tauri.conf.json" || no "the feature trusts the release key of tauri.conf.json"
+
 # build-pkg.sh on a stand-in app (macOS only: pkgbuild). Nothing is installed: the package is taken apart, and its
 # postinstall script runs against a folder of the test's own.
 if command -v pkgbuild >/dev/null && command -v productbuild >/dev/null; then
