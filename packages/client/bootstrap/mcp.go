@@ -20,7 +20,7 @@ func MCPApprovalsFile() string { return filepath.Join(config.Home(), "mcp-approv
 // MCPLocalFile stores this device's own MCP servers. It never leaves the device.
 func MCPLocalFile() string { return filepath.Join(config.Home(), "mcp-local.json") }
 
-// openMCP loads the user's MCP servers and registers their tools (and ToolSearch when tools are
+// openMCP loads the user's MCP servers and registers their tools (registerToolSearch adds ToolSearch when tools are
 // deferred). Called after the permission engine exists, before the disabled-tool set is computed.
 func (s *Session) openMCP(ctx context.Context, o Options, contextWindow int, conv session.Conversation, log *slog.Logger) {
 	if o.MCP == nil || o.NoMCP || os.Getenv("HARNESS_NO_MCP") == "1" {
@@ -50,7 +50,7 @@ func (s *Session) openMCP(ctx context.Context, o Options, contextWindow int, con
 	m, err := mcp.Open(ctx, mcp.Options{
 		Client: o.MCP, Cwd: s.Cwd, ProjectKey: projectKey, ProjectConfig: projectConfig, Local: &mcp.LocalStore{Path: MCPLocalFile()}, PluginServers: pluginServers, Registry: s.Tools,
 		Approvals: &mcp.Approvals{Path: MCPApprovalsFile()}, AutoApprove: autoApprove, CatalogVersion: catalog,
-		ContextWindow: contextWindow, ToolSearch: os.Getenv("HARNESS_TOOL_SEARCH"), Bundle: s.Bundle,
+		ContextWindow: contextWindow, ToolSearch: os.Getenv("HARNESS_TOOL_SEARCH"), Bundle: s.Bundle, Loader: s.Deferral,
 		Disabled: s.Permissions.IsDisabled, PolicyAllows: o.ModePolicy.Managed().McpServerAllowed, SessionID: s.ID, Logger: log,
 	})
 	if err != nil {
@@ -97,13 +97,14 @@ func (s *Session) startMCP(conv session.Conversation) {
 			s.Agent.Remind(mcp.ReminderInstructions, map[string]string{"servers": text})
 		}
 	})
-	s.MCP.RestoreLoaded(conv.Messages)
 	v := s.MCP.CatalogVersion()
 	changed := v != conv.McpCatalogVersion
 	if v != "" && changed {
 		_, _ = s.Transcript.Append(session.Entry{Type: session.TypeMeta, McpCatalogVersion: v})
 	}
-	if vars := s.MCP.DeferredReminder(); vars != nil && (!s.Resumed || changed) {
+	// A new conversation got the listing of deferred tools when the agent was made; a resumed one gets it again when
+	// the catalog moved.
+	if vars := s.Agent.DeferredReminder(); vars != nil && s.Resumed && changed {
 		s.Agent.Remind(mcp.ReminderDeferredTools, vars)
 	}
 }

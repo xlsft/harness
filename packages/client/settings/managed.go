@@ -37,6 +37,7 @@ func PolicyManaged(docs []*syncv1.Document) permissions.ManagedPolicy {
 			AllowedSkills    *[]string       `json:"allowedSkills"`
 			BlockedSkills    []string        `json:"blockedSkills"`
 			NoSkillSearch    bool            `json:"disableExternalSkillSearch"`
+			DeferTools       *bool           `json:"deferBuiltinTools"`
 		}
 		if json.Unmarshal([]byte(d.GetContent()), &raw) != nil {
 			continue
@@ -63,6 +64,11 @@ func PolicyManaged(docs []*syncv1.Document) permissions.ManagedPolicy {
 		}
 		m.BlockedSkills = appendNew(m.BlockedSkills, raw.BlockedSkills)
 		m.ExternalSkillSearchDisabled = m.ExternalSkillSearchDisabled || raw.NoSkillSearch
+		// Off in any document wins: it keeps every tool definition in front of the model.
+		if raw.DeferTools != nil && (m.DeferBuiltinTools == nil || !*raw.DeferTools) {
+			v := *raw.DeferTools
+			m.DeferBuiltinTools = &v
+		}
 	}
 	m.DisabledModes = PolicyDisabledModes(docs)
 	return m

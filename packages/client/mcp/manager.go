@@ -18,17 +18,18 @@ import (
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/prompts"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/toolsearch"
 )
 
 // Bundle keys used by the manager.
 const (
-	// ToolSearchName is the deferred-tool loader; its description and schema come from the bundle.
-	ToolSearchName = "ToolSearch"
+	// ToolSearchName is the deferred-tool loader (toolsearch.Tool); its description and schema come from the bundle.
+	ToolSearchName = toolsearch.Name
 	// AuthToolBundleKey is the bundle entry of the per-server authenticate tool (description may use
 	// {{server}}). It is exposed as mcp__<server>__authenticate for servers that need authorization.
 	AuthToolBundleKey = "McpAuthenticate"
 	// ReminderDeferredTools lists deferred tool names ({{tools}}, one per line).
-	ReminderDeferredTools = "deferred_tools"
+	ReminderDeferredTools = toolsearch.ReminderDeferredTools
 	// ReminderToolsChanged tells the model a server's tools changed ({{server}}, {{added}}, {{removed}}, {{deferred}}).
 	ReminderToolsChanged = "mcp_tools_changed"
 	// ReminderInstructions carries the instructions of servers that started after the session did ({{servers}}).
@@ -76,6 +77,9 @@ type Options struct {
 	ToolSearch string
 	// Bundle supplies the ToolSearch and authenticate tool descriptions.
 	Bundle *prompts.Bundle
+	// Loader is the session's deferred-tool loader: the manager adds its deferred tools to it as a source and asks it
+	// which were loaded. Nil: the manager makes one of its own (tests, agent-scoped servers).
+	Loader *toolsearch.Loader
 	// Disabled reports tools disabled by permission rules (may be nil).
 	Disabled func(name string) bool
 	// LaunchTimeout bounds starting one stdio server (default 30 s).
@@ -114,23 +118,23 @@ type Listeners struct {
 }
 
 // Manager holds the session's MCP servers and tools. The catalog is frozen per session, for the prompt cache, until
-// a server says its list changed or a background check finds the catalog moved; ToolSearch changes which deferred
-// tools are offered to the model.
+// a server says its list changed or a background check finds the catalog moved. Deferred tools are offered once the
+// session's toolsearch.Loader loaded them.
 type Manager struct {
 	o       Options
 	log     *slog.Logger
 	servers []*server
 	tools   []*Tool
 	byName  map[string]*Tool
-	search  *ToolSearch
+	// defers: tool search applies, and tools of servers without always_load are deferred.
+	defers  bool
+	loader  *toolsearch.Loader
 	catalog string
 
 	mu       sync.Mutex
-	loaded   map[string]bool
-	order    []string // deferred tools in load order
 	warnings []string
 	reported map[string]*mcpv1.DeviceServerStatus
-	// tools, byName, search and catalog change only under mu once Open returned.
+	// tools, byName, defers and catalog change only under mu once Open returned.
 	listeners     Listeners
 	inflight      map[string][]*inflightCall // by server id: running calls, newest last
 	lastCheck     time.Time
@@ -205,12 +209,16 @@ func OpenServers(ctx context.Context, o Options, servers []*mcpv1.Server) *Manag
 }
 
 func newManager(ctx context.Context, o Options) *Manager {
-	m := &Manager{o: o, log: o.Logger, byName: map[string]*Tool{}, loaded: map[string]bool{}, reported: map[string]*mcpv1.DeviceServerStatus{},
+	m := &Manager{o: o, log: o.Logger, byName: map[string]*Tool{}, loader: o.Loader, reported: map[string]*mcpv1.DeviceServerStatus{},
 		inflight: map[string][]*inflightCall{}, remoteInfo: map[string]*mcpv1.CatalogServer{},
 		promptCache: map[string]cachedList[*mcpv1.Prompt]{}, resourceCache: map[string]cachedList[*mcpv1.Resource]{}}
 	if m.log == nil {
 		m.log = slog.Default()
 	}
+	if m.loader == nil {
+		m.loader = toolsearch.NewLoader(false)
+	}
+	m.loader.AddSource(toolsearch.SourceFunc(m.deferredDefs))
 	if m.o.LaunchTimeout <= 0 {
 		m.o.LaunchTimeout = 30 * time.Second
 	}
@@ -611,7 +619,7 @@ func (m *Manager) decideDeferral() {
 	for _, t := range candidates {
 		t.deferred = true
 	}
-	m.search = &ToolSearch{m: m}
+	m.defers = true
 }
 
 func parseToolSearch(s string) (string, int) {
@@ -632,7 +640,8 @@ func parseToolSearch(s string) (string, int) {
 
 func (m *Manager) disabled(name string) bool { return m.o.Disabled != nil && m.o.Disabled(name) }
 
-// Tools returns the tools to register: every MCP tool plus ToolSearch when tools are deferred.
+// Tools returns the tools to register: every MCP tool. ToolSearch is the session's (toolsearch.Tool), registered
+// when Defers says tools are deferred.
 func (m *Manager) Tools() []tools.Tool {
 	if m == nil {
 		return nil
@@ -640,9 +649,6 @@ func (m *Manager) Tools() []tools.Tool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var out []tools.Tool
-	if m.search != nil {
-		out = append(out, m.search)
-	}
 	if m.resourceTools {
 		out = append(out, &listResourcesTool{m: m}, &readResourceTool{m: m})
 	}
@@ -665,6 +671,16 @@ func (m *Manager) lookup(name string) *Tool {
 	return m.byName[name]
 }
 
+// Defers reports whether the manager defers tools behind ToolSearch.
+func (m *Manager) Defers() bool {
+	if m == nil {
+		return false
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.defers
+}
+
 // Deferred returns the names of deferred tools (sorted).
 func (m *Manager) Deferred() []string {
 	if m == nil {
@@ -680,18 +696,20 @@ func (m *Manager) Deferred() []string {
 	return out
 }
 
-// DeferredReminder returns the vars of the deferred_tools reminder, or nil when nothing is deferred.
-func (m *Manager) DeferredReminder() map[string]string {
-	names := m.Deferred()
-	if len(names) == 0 {
-		return nil
+// deferredDefs is the manager's toolsearch.Source: the definitions of its deferred tools, in catalog order.
+func (m *Manager) deferredDefs() []llm.ToolDef {
+	var out []llm.ToolDef
+	for _, t := range m.toolList() {
+		if t.deferred && !m.disabled(t.name) {
+			out = append(out, t.def)
+		}
 	}
-	return map[string]string{"tools": strings.Join(names, "\n")}
+	return out
 }
 
-// ToolDefs returns the definitions of the MCP tools currently offered to the model: every tool that
-// is not deferred, then the deferred tools loaded by ToolSearch in load order. It is the agent's
-// ExtraTools hook.
+// ToolDefs returns the definitions of the MCP tools that go with every request: the tools that are not deferred.
+// Deferred tools the session loaded follow every other tool, in load order (agent.Config.Deferral). It is the
+// agent's ExtraTools hook.
 func (m *Manager) ToolDefs() []llm.ToolDef {
 	if m == nil {
 		return nil
@@ -699,14 +717,6 @@ func (m *Manager) ToolDefs() []llm.ToolDef {
 	var out []llm.ToolDef
 	for _, t := range m.toolList() {
 		if !t.deferred && !m.disabled(t.name) {
-			out = append(out, t.def)
-		}
-	}
-	m.mu.Lock()
-	order := append([]string(nil), m.order...)
-	m.mu.Unlock()
-	for _, n := range order {
-		if t := m.lookup(n); t != nil && !m.disabled(n) {
 			out = append(out, t.def)
 		}
 	}
@@ -742,64 +752,28 @@ func (m *Manager) Catalog() []ToolInfo {
 	return out
 }
 
-// Names returns the names of the tools currently offered to the model (ToolSearch first).
+// Names returns the names of the MCP tools offered to the model now: ToolSearch first when tools are deferred, the
+// tools that are not deferred, then the loaded ones in load order.
 func (m *Manager) Names() []string {
 	if m == nil {
 		return nil
 	}
 	var out []string
-	if m.search != nil {
+	if m.Defers() {
 		out = append(out, ToolSearchName)
 	}
 	for _, d := range m.ToolDefs() {
 		out = append(out, d.Name)
 	}
+	for _, n := range m.loader.Order() {
+		if t := m.lookup(n); t != nil && t.deferred && !m.disabled(n) {
+			out = append(out, n)
+		}
+	}
 	return out
 }
 
-// load marks deferred tools as loaded; it returns the newly loaded names.
-func (m *Manager) load(names ...string) []string {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	var added []string
-	for _, n := range names {
-		t := m.byName[n]
-		if t == nil || !t.deferred || m.loaded[n] {
-			continue
-		}
-		m.loaded[n] = true
-		m.order = append(m.order, n)
-		added = append(added, n)
-	}
-	return added
-}
-
-func (m *Manager) isLoaded(name string) bool {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	return m.loaded[name]
-}
-
-// RestoreLoaded re-loads the deferred tools a resumed conversation already used: tools it called
-// and the results of its ToolSearch calls (replayed against the same tool set).
-func (m *Manager) RestoreLoaded(history []llm.Message) {
-	if m == nil || m.search == nil {
-		return
-	}
-	for _, msg := range history {
-		for _, b := range msg.ToolUses() {
-			switch {
-			case b.Name == ToolSearchName:
-				var in searchInput
-				if json.Unmarshal(b.Input, &in) == nil {
-					m.load(m.search.find(in)...)
-				}
-			case m.lookup(b.Name) != nil:
-				m.load(b.Name)
-			}
-		}
-	}
-}
+func (m *Manager) isLoaded(name string) bool { return m.loader.Loaded(name) }
 
 // Close stops the stdio servers.
 func (m *Manager) Close() {

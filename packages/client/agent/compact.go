@@ -331,6 +331,8 @@ func (a *Agent) compact(ctx context.Context, instructions, trigger string) (Comp
 	a.afterCompactSkills()
 	a.autoReminded = false
 	a.mu.Unlock()
+	// The listing of deferred tools went with the summarized messages; loaded tools stay loaded.
+	a.remindDeferred()
 	info := CompactInfo{Trigger: trigger, TokensBefore: before, TokensAfter: a.EstimateTokens(), Summary: summary}
 	a.refreshBundle(ctx)
 	a.emit(Event{Kind: EventCompacted, Compaction: &info})

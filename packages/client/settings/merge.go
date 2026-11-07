@@ -56,6 +56,7 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 	l.interruptReply = s.boolean(src, raw, "interruptReply")
 	l.compactIdle = s.boolean(src, raw, KeyCompactIdleSessions)
 	l.autoMemory = s.boolean(src, raw, KeyAutoMemoryEnabled)
+	l.deferTools = s.boolean(src, raw, KeyDeferBuiltinTools)
 	l.lspEnabled = s.boolean(src, raw, KeyLSPEnabled)
 	l.lspDiagnostics = s.boolean(src, raw, KeyLSPDiagnostics)
 	l.lspStartServer = s.boolean(src, raw, KeyLSPDiagnosticsStartServer)
@@ -326,6 +327,9 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		}
 		if l.compactIdle != nil {
 			s.CompactIdleSessions = *l.compactIdle
+		}
+		if l.deferTools != nil {
+			s.DeferBuiltinTools = *l.deferTools
 		}
 		lspSwitch := func(dst *bool, v *bool, key string) {
 			switch {

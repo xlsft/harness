@@ -1,4 +1,4 @@
-package mcp
+package toolsearch
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/tools"
 )
 
@@ -16,14 +17,14 @@ const (
 	maxSearchResults     = 50
 )
 
-// ToolSearch loads deferred tools: it returns their full definitions and makes them callable from
-// the next model request on. Queries are "select:<name>[,<name>...]" for exact names, or keywords
-// matched against tool names and descriptions ("+word" requires word in the name).
-type ToolSearch struct {
-	m *Manager
+// Tool is ToolSearch: it loads deferred tools, built-in and MCP alike. It returns their full definitions and makes
+// them part of every request from the next one on. Queries are "select:<name>[,<name>...]" for exact names, or
+// keywords matched against tool names and descriptions ("+word" requires word in the name).
+type Tool struct {
+	L *Loader
 }
 
-var _ tools.Tool = (*ToolSearch)(nil)
+var _ tools.Tool = (*Tool)(nil)
 
 type searchInput struct {
 	Query      string `json:"query"`
@@ -31,13 +32,13 @@ type searchInput struct {
 }
 
 // Name implements tools.Tool.
-func (s *ToolSearch) Name() string { return ToolSearchName }
+func (s *Tool) Name() string { return Name }
 
 // ReadOnly implements tools.Tool.
-func (s *ToolSearch) ReadOnly(json.RawMessage) bool { return true }
+func (s *Tool) ReadOnly(json.RawMessage) bool { return true }
 
 // Run implements tools.Tool.
-func (s *ToolSearch) Run(_ context.Context, _ *tools.Env, call tools.Call) tools.Result {
+func (s *Tool) Run(_ context.Context, _ *tools.Env, call tools.Call) tools.Result {
 	var in searchInput
 	if len(call.Input) > 0 {
 		if err := json.Unmarshal(call.Input, &in); err != nil {
@@ -47,8 +48,8 @@ func (s *ToolSearch) Run(_ context.Context, _ *tools.Env, call tools.Call) tools
 	if strings.TrimSpace(in.Query) == "" {
 		return tools.ErrorResult("InputValidationError: query is required")
 	}
-	names := s.find(in)
-	total := len(s.m.Deferred())
+	names := s.L.find(in)
+	total := len(s.L.Deferred())
 	if len(names) == 0 {
 		return tools.Result{
 			Content:    tools.TextResult(fmt.Sprintf("No deferred tools match %q (%d deferred tools in total). Try other keywords or exact names with select:.", in.Query, total), nil).Content,
@@ -56,39 +57,50 @@ func (s *ToolSearch) Run(_ context.Context, _ *tools.Env, call tools.Call) tools
 			Summary:    "No matches",
 		}
 	}
-	s.m.load(names...)
-	var b strings.Builder
-	fmt.Fprintf(&b, "Loaded %d tool(s); they can be called from now on:\n<functions>\n", len(names))
+	s.L.Load(names...)
+	var defs []llm.ToolDef
 	for _, n := range names {
-		d := s.m.lookup(n).def
+		if d, ok := s.L.Def(n); ok {
+			defs = append(defs, d)
+		}
+	}
+	return tools.Result{
+		Content:    tools.TextResult(fmt.Sprintf("Loaded %d tool(s); they can be called from now on:\n%s", len(defs), Functions(defs)), nil).Content,
+		Structured: map[string]any{"query": in.Query, "matches": names, "total_deferred_tools": total},
+		Summary:    fmt.Sprintf("Loaded %d tool(s)", len(defs)),
+	}
+}
+
+// Functions renders definitions as the <functions> block ToolSearch returns.
+func Functions(defs []llm.ToolDef) string {
+	var b strings.Builder
+	b.WriteString("<functions>\n")
+	for _, d := range defs {
 		line, _ := json.Marshal(map[string]any{"name": d.Name, "description": d.Description, "parameters": json.RawMessage(d.InputSchema)})
 		b.WriteString("<function>")
 		b.Write(line)
 		b.WriteString("</function>\n")
 	}
 	b.WriteString("</functions>")
-	return tools.Result{
-		Content:    tools.TextResult(b.String(), nil).Content,
-		Structured: map[string]any{"query": in.Query, "matches": names, "total_deferred_tools": total},
-		Summary:    fmt.Sprintf("Loaded %d tool(s)", len(names)),
-	}
+	return b.String()
 }
 
 // find resolves a query to deferred tool names (no side effects).
-func (s *ToolSearch) find(in searchInput) []string {
+func (l *Loader) find(in searchInput) []string {
+	defs := l.Deferred()
 	q := strings.TrimSpace(in.Query)
 	if rest, ok := strings.CutPrefix(q, "select:"); ok {
 		var out []string
 		seen := map[string]bool{}
 		for _, part := range strings.Split(rest, ",") {
-			if n := s.resolve(strings.TrimSpace(part)); n != "" && !seen[n] {
+			if n := resolve(defs, strings.TrimSpace(part)); n != "" && !seen[n] {
 				seen[n] = true
 				out = append(out, n)
 			}
 		}
 		return out
 	}
-	if n := s.resolve(q); n != "" {
+	if n := resolve(defs, q); n != "" {
 		return []string{n}
 	}
 	limit := in.MaxResults
@@ -96,28 +108,24 @@ func (s *ToolSearch) find(in searchInput) []string {
 		limit = defaultSearchResults
 	}
 	limit = min(limit, maxSearchResults)
-	return s.keyword(q, limit)
+	return keyword(defs, q, limit)
 }
 
-// resolve finds a deferred tool by exact name, case-insensitive name, or a unique "<tool>" /
-// "<server>__<tool>" suffix.
-func (s *ToolSearch) resolve(name string) string {
+// resolve finds a deferred tool by exact name, case-insensitive name, or a unique "<tool>" / "<server>__<tool>"
+// suffix of an MCP tool.
+func resolve(defs []llm.ToolDef, name string) string {
 	if name == "" {
 		return ""
 	}
-	if t := s.m.lookup(name); t != nil && t.deferred {
-		return name
-	}
 	var ci, suffix []string
-	for _, t := range s.m.toolList() {
-		if !t.deferred || s.m.disabled(t.name) {
-			continue
-		}
+	for _, d := range defs {
 		switch {
-		case strings.EqualFold(t.name, name):
-			ci = append(ci, t.name)
-		case strings.HasSuffix(strings.ToLower(t.name), "__"+strings.ToLower(name)):
-			suffix = append(suffix, t.name)
+		case d.Name == name:
+			return name
+		case strings.EqualFold(d.Name, name):
+			ci = append(ci, d.Name)
+		case strings.HasSuffix(strings.ToLower(d.Name), "__"+strings.ToLower(name)):
+			suffix = append(suffix, d.Name)
 		}
 	}
 	if len(ci) == 1 {
@@ -129,13 +137,35 @@ func (s *ToolSearch) resolve(name string) string {
 	return ""
 }
 
+// nameParts splits a tool name into lower-case words: at "_" and "-" (MCP names) and at case changes (built-in
+// names such as BrowserNavigate).
 func nameParts(name string) []string {
-	return strings.FieldsFunc(strings.ToLower(name), func(r rune) bool { return r == '_' || r == '-' })
+	var out []string
+	var cur []rune
+	flush := func() {
+		if len(cur) > 0 {
+			out = append(out, strings.ToLower(string(cur)))
+			cur = cur[:0]
+		}
+	}
+	runes := []rune(name)
+	for i, r := range runes {
+		switch {
+		case r == '_' || r == '-':
+			flush()
+			continue
+		case i > 0 && r >= 'A' && r <= 'Z' && runes[i-1] >= 'a' && runes[i-1] <= 'z':
+			flush()
+		}
+		cur = append(cur, r)
+	}
+	flush()
+	return out
 }
 
-// keyword ranks deferred tools by how well their name and description match the terms. Required
-// ("+word") terms filter on the tool name; the other terms rank.
-func (s *ToolSearch) keyword(q string, limit int) []string {
+// keyword ranks deferred tools by how well their name and description match the terms. Required ("+word") terms
+// filter on the tool name; the other terms rank.
+func keyword(defs []llm.ToolDef, q string, limit int) []string {
 	var required, terms []string
 	for _, f := range strings.Fields(strings.ToLower(q)) {
 		if r, ok := strings.CutPrefix(f, "+"); ok {
@@ -155,11 +185,8 @@ func (s *ToolSearch) keyword(q string, limit int) []string {
 		score int
 	}
 	var hits []hit
-	for _, t := range s.m.toolList() {
-		if !t.deferred || s.m.disabled(t.name) {
-			continue
-		}
-		lname := strings.ToLower(t.name)
+	for _, d := range defs {
+		lname := strings.ToLower(d.Name)
 		ok := true
 		for _, r := range required {
 			if !strings.Contains(lname, r) {
@@ -170,8 +197,8 @@ func (s *ToolSearch) keyword(q string, limit int) []string {
 		if !ok {
 			continue
 		}
-		parts := nameParts(t.name)
-		desc := strings.ToLower(t.def.Description)
+		parts := nameParts(d.Name)
+		desc := strings.ToLower(d.Description)
 		score := 0
 		for _, term := range terms {
 			switch {
@@ -185,7 +212,7 @@ func (s *ToolSearch) keyword(q string, limit int) []string {
 			}
 		}
 		if score > 0 {
-			hits = append(hits, hit{t.name, score})
+			hits = append(hits, hit{d.Name, score})
 		}
 	}
 	sort.SliceStable(hits, func(i, j int) bool {

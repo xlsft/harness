@@ -55,6 +55,9 @@ message ManagedPolicy {
   bool external_skill_search_disabled = 21;
   // Only always-on hosts registered by an admin may be used: nobody registers or runs a host of their own.
   bool personal_hosts_disabled = 230;
+  // deferBuiltinTools: forces the deferral of rarely used built-in tool definitions behind ToolSearch on or off for
+  // everyone. Unset: each user chooses (UserPreferences.defer_builtin_tools). Enforced by clients when a session opens.
+  optional bool defer_builtin_tools = 420;
 }
 
 message GetManagedPolicyRequest {}

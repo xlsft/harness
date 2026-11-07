@@ -24,8 +24,9 @@ func (s *Server) GetContextUsage(ctx context.Context, req *connect.Request[agent
 }
 
 // contextUsageToProto builds the breakdown: categories in display order (summing to the window when it is
-// known), the deferred definitions and the MCP tool list. The harness has no skills yet: they are left out, and no
-// built-in tool is deferred.
+// known), the deferred definitions and the MCP tool list. The harness has no skills yet: they are left out. Built-in
+// tools that are deferred and not loaded are not in the context; system tools count the offered ones only
+// (agent.ContextUsage.DeferredSystemTools says what the deferral holds back).
 func contextUsageToProto(u agent.ContextUsage, catalog []mcp.ToolInfo) *agentv1.ContextUsage {
 	out := &agentv1.ContextUsage{
 		Model: u.Model, ContextWindow: int64(u.Window), UsedTokens: int64(u.Used()),

@@ -32,6 +32,7 @@ import (
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/toolsearch"
 	"github.com/xlsft/harness/packages/client/worktree"
 )
 
@@ -73,7 +74,9 @@ type Config struct {
 	Tools         *tools.Registry
 	DisabledTools map[string]bool
 	ExtraTools    func() []llm.ToolDef
-	Permissions   permissions.Checker
+	// Deferral is the session's deferred-tool loader, shared with its agents (agent.Config.Deferral).
+	Deferral    *toolsearch.Loader
+	Permissions permissions.Checker
 	// Mode reads the session's permission mode.
 	Mode func() string
 	// AddWorkDir makes a worktree a working directory of the permission engine.
@@ -807,7 +810,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 	if a.wt == nil {
 		// Checkpoints follow the session's folder; a worktree has git for that.
 		env.BeforeEdit = lead.BeforeEdit
-	env.BeforeEditChecked = lead.BeforeEditChecked
+		env.BeforeEditChecked = lead.BeforeEditChecked
 	}
 	if lead.Tasks != nil {
 		env.Tasks = tools.NewTaskManager(filepath.Join(scratch, "tasks"))
@@ -865,7 +868,7 @@ func (m *Manager) build(ctx context.Context, a *sub, t Type, entries []session.E
 		RefreshBundle:  func(ctx context.Context) (*prompts.Bundle, error) { return m.cfg.Bundle(ctx, model) },
 		Effort:         effort, SessionID: m.cfg.SessionID, RequestClass: "subagent", AgentID: id,
 		Vars: vars, ProjectContext: m.cfg.ProjectContext, MCPInstructions: m.cfg.MCPInstructions, History: conv,
-		DisabledTools: m.cfg.DisabledTools, ExtraTools: extra, PermissionMode: func() string { return m.agentModeOf(a.mode) },
+		DisabledTools: m.cfg.DisabledTools, ExtraTools: extra, Deferral: m.cfg.Deferral, PermissionMode: func() string { return m.agentModeOf(a.mode) },
 		DisableInterruptReply: true, UsageMonitor: m.cfg.UsageMonitor, Skills: m.cfg.Skills, Hooks: m.cfg.Hooks, AgentType: a.info.Type,
 		OnEvent: func(e agent.Event) { m.onAgentEvent(a, e) }, Logger: m.cfg.Logger,
 	})

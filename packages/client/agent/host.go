@@ -10,6 +10,7 @@ import (
 	"github.com/xlsft/harness/packages/client/prompts"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/toolsearch"
 	"github.com/xlsft/harness/packages/client/usagelimit"
 )
 
@@ -70,7 +71,7 @@ func (a *Agent) Remind(id string, vars map[string]string) {
 	defer a.mu.Unlock()
 	for i, r := range a.reminders {
 		if r.id == id && id != "file_changed" && id != "background_task_done" && id != ReminderUserShell && id != ReminderAgentReport && id != ReminderWorkflowReport && id != "monitor_match" && id != "monitor_stopped" && id != ReminderSessionMessage && id != ReminderSessionReport && id != ReminderScheduledWakeup && id != ReminderTeamMessage && id != ReminderScheduleTrigger && id != ReminderPRActivity && id != ReminderTerminalDone && id != ReminderHookContext && id != "mcp_tools_changed" && id != "mcp_instructions" {
-			if id == "environment_changed" || id == "session_moved" || id == ReminderSkillsListing {
+			if id == "environment_changed" || id == "session_moved" || id == ReminderSkillsListing || id == toolsearch.ReminderDeferredTools {
 				a.reminders[i].vars = vars // the latest state replaces the pending one
 			}
 			return // one pending instance is enough

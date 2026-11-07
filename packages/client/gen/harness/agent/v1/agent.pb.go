@@ -8345,9 +8345,14 @@ type UserPreferences struct {
 	// UpdateUserPreferencesRequest can change it.
 	ManagedPolicy *ManagedPolicyView `protobuf:"bytes,16,opt,name=managed_policy,json=managedPolicy,proto3" json:"managed_policy,omitempty"`
 	// How requests use the models (settings keys speedTier, cacheTtl, advisorModel).
-	ModelTuning   *ModelTuning `protobuf:"bytes,26,opt,name=model_tuning,json=modelTuning,proto3" json:"model_tuning,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ModelTuning *ModelTuning `protobuf:"bytes,26,opt,name=model_tuning,json=modelTuning,proto3" json:"model_tuning,omitempty"`
+	// Send the definitions of rarely used built-in tools only once the model loads them with ToolSearch (settings key
+	// deferBuiltinTools). Default true. Fewer tokens in every request; the first use of a deferred tool takes one more
+	// step. Applies to sessions opened from then on. managed_policy.defer_builtin_tools, when set, overrides it and is
+	// what this field reports.
+	DeferBuiltinTools bool `protobuf:"varint,60,opt,name=defer_builtin_tools,json=deferBuiltinTools,proto3" json:"defer_builtin_tools,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *UserPreferences) Reset() {
@@ -8490,6 +8495,13 @@ func (x *UserPreferences) GetModelTuning() *ModelTuning {
 		return x.ModelTuning
 	}
 	return nil
+}
+
+func (x *UserPreferences) GetDeferBuiltinTools() bool {
+	if x != nil {
+		return x.DeferBuiltinTools
+	}
+	return false
 }
 
 // Choices about how a user's requests run. Sessions opened from then on follow them.
@@ -8716,6 +8728,8 @@ type UpdateUserPreferencesRequest struct {
 	AutoMemoryEnabled *bool        `protobuf:"varint,24,opt,name=auto_memory_enabled,json=autoMemoryEnabled,proto3,oneof" json:"auto_memory_enabled,omitempty"`
 	SchedulesEnabled  *bool        `protobuf:"varint,18,opt,name=schedules_enabled,json=schedulesEnabled,proto3,oneof" json:"schedules_enabled,omitempty"`
 	GoalMaxTurns      *int32       `protobuf:"varint,19,opt,name=goal_max_turns,json=goalMaxTurns,proto3,oneof" json:"goal_max_turns,omitempty"`
+	// FAILED_PRECONDITION while the managed policy forces the choice.
+	DeferBuiltinTools *bool `protobuf:"varint,60,opt,name=defer_builtin_tools,json=deferBuiltinTools,proto3,oneof" json:"defer_builtin_tools,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -8853,6 +8867,13 @@ func (x *UpdateUserPreferencesRequest) GetGoalMaxTurns() int32 {
 		return *x.GoalMaxTurns
 	}
 	return 0
+}
+
+func (x *UpdateUserPreferencesRequest) GetDeferBuiltinTools() bool {
+	if x != nil && x.DeferBuiltinTools != nil {
+		return *x.DeferBuiltinTools
+	}
+	return false
 }
 
 type UpdateUserPreferencesResponse struct {
@@ -11757,7 +11778,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x0fCATEGORY_SKILLS\x10\x05\x12$\n" +
 	" CATEGORY_MCP_SERVER_INSTRUCTIONS\x10\x06\x12\x1f\n" +
 	"\x1bCATEGORY_AUTOCOMPACT_BUFFER\x10\a\x12\x17\n" +
-	"\x13CATEGORY_FREE_SPACE\x10\b\"\xb9\x06\n" +
+	"\x13CATEGORY_FREE_SPACE\x10\b\"\xe9\x06\n" +
 	"\x0fUserPreferences\x122\n" +
 	"\x15compact_idle_sessions\x18\x01 \x01(\bR\x13compactIdleSessions\x128\n" +
 	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05R\x15prMonitorWakesPerHour\x12,\n" +
@@ -11776,7 +11797,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x11schedules_enabled\x18\x12 \x01(\bR\x10schedulesEnabled\x12$\n" +
 	"\x0egoal_max_turns\x18\x13 \x01(\x05R\fgoalMaxTurns\x12J\n" +
 	"\x0emanaged_policy\x18\x10 \x01(\v2#.harness.agent.v1.ManagedPolicyViewR\rmanagedPolicy\x12@\n" +
-	"\fmodel_tuning\x18\x1a \x01(\v2\x1d.harness.agent.v1.ModelTuningR\vmodelTuning\"n\n" +
+	"\fmodel_tuning\x18\x1a \x01(\v2\x1d.harness.agent.v1.ModelTuningR\vmodelTuning\x12.\n" +
+	"\x13defer_builtin_tools\x18< \x01(\bR\x11deferBuiltinTools\"n\n" +
 	"\vModelTuning\x12\x1d\n" +
 	"\n" +
 	"speed_tier\x18\x01 \x01(\tR\tspeedTier\x12\x1b\n" +
@@ -11787,7 +11809,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\"\x1b\n" +
 	"\x19GetUserPreferencesRequest\"a\n" +
 	"\x1aGetUserPreferencesResponse\x12C\n" +
-	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xa4\t\n" +
+	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xf1\t\n" +
 	"\x1cUpdateUserPreferencesRequest\x127\n" +
 	"\x15compact_idle_sessions\x18\x01 \x01(\bH\x00R\x13compactIdleSessions\x88\x01\x01\x12=\n" +
 	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05H\x01R\x15prMonitorWakesPerHour\x88\x01\x01\x121\n" +
@@ -11806,7 +11828,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\fmodel_tuning\x18\x1a \x01(\v2\x1d.harness.agent.v1.ModelTuningH\vR\vmodelTuning\x88\x01\x01\x123\n" +
 	"\x13auto_memory_enabled\x18\x18 \x01(\bH\fR\x11autoMemoryEnabled\x88\x01\x01\x120\n" +
 	"\x11schedules_enabled\x18\x12 \x01(\bH\rR\x10schedulesEnabled\x88\x01\x01\x12)\n" +
-	"\x0egoal_max_turns\x18\x13 \x01(\x05H\x0eR\fgoalMaxTurns\x88\x01\x01B\x18\n" +
+	"\x0egoal_max_turns\x18\x13 \x01(\x05H\x0eR\fgoalMaxTurns\x88\x01\x01\x123\n" +
+	"\x13defer_builtin_tools\x18< \x01(\bH\x0fR\x11deferBuiltinTools\x88\x01\x01B\x18\n" +
 	"\x16_compact_idle_sessionsB\x1c\n" +
 	"\x1a_pr_monitor_wakes_per_hourB\x15\n" +
 	"\x13_subagent_max_depthB\x17\n" +
@@ -11822,7 +11845,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\r_model_tuningB\x16\n" +
 	"\x14_auto_memory_enabledB\x14\n" +
 	"\x12_schedules_enabledB\x11\n" +
-	"\x0f_goal_max_turns\"d\n" +
+	"\x0f_goal_max_turnsB\x16\n" +
+	"\x14_defer_builtin_tools\"d\n" +
 	"\x1dUpdateUserPreferencesResponse\x12C\n" +
 	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xc9\x02\n" +
 	"\x0eBackgroundTask\x12\x17\n" +

@@ -17,6 +17,7 @@ import (
 	"github.com/xlsft/harness/packages/client/mcp"
 	"github.com/xlsft/harness/packages/client/prompts"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/toolsearch"
 )
 
 func TestMain(m *testing.M) {
@@ -350,25 +351,22 @@ func deferHarness(t *testing.T) *harness {
 
 func TestToolSearchAndDeferredTools(t *testing.T) {
 	h := deferHarness(t)
-	m := h.open(t, func(o *mcp.Options) { o.ToolSearch = "always" })
+	loader := toolsearch.NewLoader(false)
+	m := h.open(t, func(o *mcp.Options) { o.ToolSearch = "always"; o.Loader = loader })
 
 	if got := m.Deferred(); !slices.Equal(got, []string{"mcp__gh__create_issue", "mcp__gh__get_file", "mcp__gh__list_issues", "mcp__slack__send_message"}) {
 		t.Fatalf("deferred = %v", got)
 	}
-	if v := m.DeferredReminder(); !strings.Contains(v["tools"], "mcp__slack__send_message\n") && !strings.HasSuffix(v["tools"], "mcp__slack__send_message") {
+	if v := loader.Reminder(); !strings.Contains(v["tools"], "mcp__slack__send_message: Send a Slack message to a channel") {
 		t.Fatalf("reminder vars = %v", v)
 	}
-	defNames := func() []string {
-		var out []string
-		for _, d := range m.ToolDefs() {
-			out = append(out, d.Name)
-		}
-		return out
+	if !m.Defers() || slices.Contains(toolNames(m), mcp.ToolSearchName) {
+		t.Fatalf("the manager defers and leaves ToolSearch to the session: %v", toolNames(m))
 	}
-	if got := defNames(); !slices.Equal(got, []string{"mcp__core__ping"}) {
-		t.Fatalf("initial defs = %v (always_load only)", got)
+	if got := m.Names(); !slices.Equal(got, []string{mcp.ToolSearchName, "mcp__core__ping"}) {
+		t.Fatalf("initial names = %v (always_load only)", got)
 	}
-	search := findTool(t, m, mcp.ToolSearchName)
+	var search tools.Tool = &toolsearch.Tool{L: loader}
 	if !search.ReadOnly(nil) {
 		t.Fatal("ToolSearch must be read-only")
 	}
@@ -385,8 +383,11 @@ func TestToolSearchAndDeferredTools(t *testing.T) {
 	if !strings.Contains(text(r), `"parameters":{"type":"object"`) {
 		t.Fatalf("select result lacks the schema: %q", text(r))
 	}
-	if got := defNames(); !slices.Equal(got, []string{"mcp__core__ping", "mcp__gh__create_issue", "mcp__gh__list_issues"}) {
-		t.Fatalf("defs after select = %v", got)
+	if got := m.Names(); !slices.Equal(got, []string{mcp.ToolSearchName, "mcp__core__ping", "mcp__gh__create_issue", "mcp__gh__list_issues"}) {
+		t.Fatalf("names after select = %v", got)
+	}
+	if got := m.ToolDefs(); len(got) != 1 {
+		t.Fatalf("ToolDefs holds the tools that are not deferred only: %v", got)
 	}
 	if r := run(t, create, nil, `{"q":"x"}`); r.IsError {
 		t.Fatalf("loaded call = %+v", r)
@@ -449,19 +450,16 @@ func TestAutoDeferralThreshold(t *testing.T) {
 
 func TestRestoreLoaded(t *testing.T) {
 	h := deferHarness(t)
-	m := h.open(t, func(o *mcp.Options) { o.ToolSearch = "always" })
-	m.RestoreLoaded([]llm.Message{
+	loader := toolsearch.NewLoader(false)
+	m := h.open(t, func(o *mcp.Options) { o.ToolSearch = "always"; o.Loader = loader })
+	loader.RestoreFromHistory([]llm.Message{
 		{Role: llm.RoleAssistant, Content: []llm.ContentBlock{
 			{Type: llm.BlockToolUse, ID: "t1", Name: mcp.ToolSearchName, Input: json.RawMessage(`{"query":"select:mcp__slack__send_message"}`)},
 			{Type: llm.BlockToolUse, ID: "t2", Name: "mcp__gh__get_file", Input: json.RawMessage(`{}`)},
 		}},
 	})
-	var got []string
-	for _, d := range m.ToolDefs() {
-		got = append(got, d.Name)
-	}
-	if !slices.Equal(got, []string{"mcp__core__ping", "mcp__slack__send_message", "mcp__gh__get_file"}) {
-		t.Fatalf("restored defs = %v", got)
+	if got := m.Names(); !slices.Equal(got, []string{mcp.ToolSearchName, "mcp__core__ping", "mcp__slack__send_message", "mcp__gh__get_file"}) {
+		t.Fatalf("restored names = %v", got)
 	}
 }
 

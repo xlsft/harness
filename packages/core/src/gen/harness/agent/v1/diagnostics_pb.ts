@@ -40,7 +40,8 @@ export type SessionTool = Message<"harness.agent.v1.SessionTool"> & {
   /**
    * Why it is not offered: "disabled" (a permission rule), "hidden" (a device-local switch is off), "no_prompt" (the
    * session's prompt bundle has no definition for it), "needs_sync" (it needs the server's sync service, which this
-   * session does not have) or "mcp_deferred" (the model loads it with ToolSearch). Empty when offered.
+   * session does not have), "mcp_deferred" (the model loads it with ToolSearch) or "deferred" (a built-in tool listed by
+   * name until the model loads it with ToolSearch or calls it; docs/design/tool-deferral.md). Empty when offered.
    *
    * @generated from field: string reason = 4;
    */

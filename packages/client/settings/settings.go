@@ -191,6 +191,10 @@ type Settings struct {
 	// AutoMemoryEnabled lets the agent keep memory files per project and loads their index into new sessions
 	// (autoMemoryEnabled, default true). A per-user preference; a project file can only turn it off.
 	AutoMemoryEnabled bool
+	// DeferBuiltinTools sends the definitions of rarely used built-in tools only once the model loads them with
+	// ToolSearch (deferBuiltinTools, default true; a per-user preference an organization's policy may force). Read when
+	// a session opens: a running session keeps its tool list.
+	DeferBuiltinTools bool
 	// LSPEnabled offers the LSP tool and allows diagnostics after edits (lspEnabled, default true); LSPDiagnostics reports
 	// those errors (lspDiagnostics, default true); LSPDiagnosticsStartServer lets an edit start a server rather than only
 	// use one that runs (lspDiagnosticsStartServer, default false). Per-user preferences, see UserPreferences; a project
@@ -286,6 +290,9 @@ func ValidPRMonitorWakesPerHour(n int) bool { return n >= 1 && n <= MaxPRMonitor
 // KeyCompactIdleSessions is the settings key of Settings.CompactIdleSessions. The frontends' preference toggle
 // writes it into the user's synced settings document (UserSettingsKey).
 const KeyCompactIdleSessions = "compactIdleSessions"
+
+// KeyDeferBuiltinTools is the settings key of Settings.DeferBuiltinTools (also the managed policy's key).
+const KeyDeferBuiltinTools = "deferBuiltinTools"
 
 // KeyDisabledSkills is the settings key of the skills and custom commands the user turned off, by name. It is synced,
 // like every preference: a skill keeps its switch from one machine to the next.
@@ -389,7 +396,7 @@ type layer struct {
 	includeGit, interruptReply, compactIdle                   *bool
 	lspEnabled, lspDiagnostics, lspStartServer                *bool
 	speedTier, cacheTTL, advisorModel                         *string
-	autoMemory                                                *bool
+	autoMemory, deferTools                                    *bool
 	lspServers                                                map[string]LSPServer
 	attrCommit, attrPR                                        *string
 	env                                                       map[string]string
@@ -426,7 +433,7 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 	}
 	s := &Settings{Trusted: o.Trusted, Env: map[string]string{}, Raw: map[string]json.RawMessage{},
 		CleanupPeriodDays: DefaultCleanupPeriodDays, IncludeGitInstructions: true, InterruptReply: true,
-		CompactIdleSessions: true, AutoMemoryEnabled: true, LSPEnabled: true, LSPDiagnostics: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
+		CompactIdleSessions: true, AutoMemoryEnabled: true, DeferBuiltinTools: true, LSPEnabled: true, LSPDiagnostics: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
 		SubagentMaxDepth: DefaultSubagentMaxDepth, SubagentMaxRunning: DefaultSubagentMaxRunning, WorkflowMaxAgents: DefaultWorkflowMaxAgents, GoalMaxTurns: DefaultGoalMaxTurns,
 		Sandbox: Sandbox{Enabled: true, AllowLocalhost: true}}
 	var layers []*layer // highest precedence first
