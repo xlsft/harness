@@ -246,5 +246,12 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE INDEX \"tracker_task_owner_idx\" ON \"tracker_task\" USING btree (\"owner_id\",\"status\",\"updated_at\");",
       "CREATE INDEX \"sync_session_entry_search_idx\" ON \"sync_session_entry\" USING gin (to_tsvector('simple', \"search_text\"));"
     ]
+  },
+  {
+    "id": "0015_aberrant_sharon_ventura",
+    "statements": [
+      "ALTER TABLE \"model\" ADD COLUMN \"kind\" text DEFAULT 'chat' NOT NULL;",
+      "ALTER TABLE \"usage_record\" ADD COLUMN \"images\" integer DEFAULT 0 NOT NULL;"
+    ]
   }
 ];

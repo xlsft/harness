@@ -8257,7 +8257,11 @@ type UserPreferences struct {
 	// UpdateUserPreferencesRequest can change it.
 	ManagedPolicy *ManagedPolicyView `protobuf:"bytes,16,opt,name=managed_policy,json=managedPolicy,proto3" json:"managed_policy,omitempty"`
 	// How requests use the models (settings keys speedTier, cacheTtl, advisorModel).
-	ModelTuning   *ModelTuning `protobuf:"bytes,26,opt,name=model_tuning,json=modelTuning,proto3" json:"model_tuning,omitempty"`
+	ModelTuning *ModelTuning `protobuf:"bytes,26,opt,name=model_tuning,json=modelTuning,proto3" json:"model_tuning,omitempty"`
+	// The image model of the ImageGenerate tool (settings key imageModel): one of the server's image models
+	// (harness.llm.v1.ListModelsResponse.image_models). Empty: the server default (Slots.image). A device-local image
+	// model is chosen on the device instead (DeviceSettings.image_model) and wins there.
+	ImageModel    string `protobuf:"bytes,52,opt,name=image_model,json=imageModel,proto3" json:"image_model,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8402,6 +8406,13 @@ func (x *UserPreferences) GetModelTuning() *ModelTuning {
 		return x.ModelTuning
 	}
 	return nil
+}
+
+func (x *UserPreferences) GetImageModel() string {
+	if x != nil {
+		return x.ImageModel
+	}
+	return ""
 }
 
 // Choices about how a user's requests run. Sessions opened from then on follow them.
@@ -8628,8 +8639,10 @@ type UpdateUserPreferencesRequest struct {
 	AutoMemoryEnabled *bool        `protobuf:"varint,24,opt,name=auto_memory_enabled,json=autoMemoryEnabled,proto3,oneof" json:"auto_memory_enabled,omitempty"`
 	SchedulesEnabled  *bool        `protobuf:"varint,18,opt,name=schedules_enabled,json=schedulesEnabled,proto3,oneof" json:"schedules_enabled,omitempty"`
 	GoalMaxTurns      *int32       `protobuf:"varint,19,opt,name=goal_max_turns,json=goalMaxTurns,proto3,oneof" json:"goal_max_turns,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// "" follows the server default. INVALID_ARGUMENT for a device-local ("local:") id: those are chosen per device.
+	ImageModel    *string `protobuf:"bytes,52,opt,name=image_model,json=imageModel,proto3,oneof" json:"image_model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateUserPreferencesRequest) Reset() {
@@ -8765,6 +8778,13 @@ func (x *UpdateUserPreferencesRequest) GetGoalMaxTurns() int32 {
 		return *x.GoalMaxTurns
 	}
 	return 0
+}
+
+func (x *UpdateUserPreferencesRequest) GetImageModel() string {
+	if x != nil && x.ImageModel != nil {
+		return *x.ImageModel
+	}
+	return ""
 }
 
 type UpdateUserPreferencesResponse struct {
@@ -11663,7 +11683,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x0fCATEGORY_SKILLS\x10\x05\x12$\n" +
 	" CATEGORY_MCP_SERVER_INSTRUCTIONS\x10\x06\x12\x1f\n" +
 	"\x1bCATEGORY_AUTOCOMPACT_BUFFER\x10\a\x12\x17\n" +
-	"\x13CATEGORY_FREE_SPACE\x10\b\"\xb9\x06\n" +
+	"\x13CATEGORY_FREE_SPACE\x10\b\"\xda\x06\n" +
 	"\x0fUserPreferences\x122\n" +
 	"\x15compact_idle_sessions\x18\x01 \x01(\bR\x13compactIdleSessions\x128\n" +
 	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05R\x15prMonitorWakesPerHour\x12,\n" +
@@ -11682,7 +11702,9 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x11schedules_enabled\x18\x12 \x01(\bR\x10schedulesEnabled\x12$\n" +
 	"\x0egoal_max_turns\x18\x13 \x01(\x05R\fgoalMaxTurns\x12J\n" +
 	"\x0emanaged_policy\x18\x10 \x01(\v2#.harness.agent.v1.ManagedPolicyViewR\rmanagedPolicy\x12@\n" +
-	"\fmodel_tuning\x18\x1a \x01(\v2\x1d.harness.agent.v1.ModelTuningR\vmodelTuning\"n\n" +
+	"\fmodel_tuning\x18\x1a \x01(\v2\x1d.harness.agent.v1.ModelTuningR\vmodelTuning\x12\x1f\n" +
+	"\vimage_model\x184 \x01(\tR\n" +
+	"imageModel\"n\n" +
 	"\vModelTuning\x12\x1d\n" +
 	"\n" +
 	"speed_tier\x18\x01 \x01(\tR\tspeedTier\x12\x1b\n" +
@@ -11693,7 +11715,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\"\x1b\n" +
 	"\x19GetUserPreferencesRequest\"a\n" +
 	"\x1aGetUserPreferencesResponse\x12C\n" +
-	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xa4\t\n" +
+	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xda\t\n" +
 	"\x1cUpdateUserPreferencesRequest\x127\n" +
 	"\x15compact_idle_sessions\x18\x01 \x01(\bH\x00R\x13compactIdleSessions\x88\x01\x01\x12=\n" +
 	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05H\x01R\x15prMonitorWakesPerHour\x88\x01\x01\x121\n" +
@@ -11712,7 +11734,9 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\fmodel_tuning\x18\x1a \x01(\v2\x1d.harness.agent.v1.ModelTuningH\vR\vmodelTuning\x88\x01\x01\x123\n" +
 	"\x13auto_memory_enabled\x18\x18 \x01(\bH\fR\x11autoMemoryEnabled\x88\x01\x01\x120\n" +
 	"\x11schedules_enabled\x18\x12 \x01(\bH\rR\x10schedulesEnabled\x88\x01\x01\x12)\n" +
-	"\x0egoal_max_turns\x18\x13 \x01(\x05H\x0eR\fgoalMaxTurns\x88\x01\x01B\x18\n" +
+	"\x0egoal_max_turns\x18\x13 \x01(\x05H\x0eR\fgoalMaxTurns\x88\x01\x01\x12$\n" +
+	"\vimage_model\x184 \x01(\tH\x0fR\n" +
+	"imageModel\x88\x01\x01B\x18\n" +
 	"\x16_compact_idle_sessionsB\x1c\n" +
 	"\x1a_pr_monitor_wakes_per_hourB\x15\n" +
 	"\x13_subagent_max_depthB\x17\n" +
@@ -11728,7 +11752,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\r_model_tuningB\x16\n" +
 	"\x14_auto_memory_enabledB\x14\n" +
 	"\x12_schedules_enabledB\x11\n" +
-	"\x0f_goal_max_turns\"d\n" +
+	"\x0f_goal_max_turnsB\x0e\n" +
+	"\f_image_model\"d\n" +
 	"\x1dUpdateUserPreferencesResponse\x12C\n" +
 	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xc9\x02\n" +
 	"\x0eBackgroundTask\x12\x17\n" +

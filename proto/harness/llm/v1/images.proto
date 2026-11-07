@@ -1,0 +1,140 @@
+syntax = "proto3";
+
+package harness.llm.v1;
+
+import "harness/llm/v1/providers.proto";
+
+// ImageService: image generation models (docs/design/images.md) and the Images settings section.
+//
+// Image models are models of the LLM providers of ProviderService (the same providers, keys and scopes): an admin adds
+// image models to a global provider and chooses which roles may use each one (the allowlist of chat models); any user
+// adds image models to a personal provider of their own. They never appear in GatewayService.ListModels' chat catalog;
+// they are listed in ListModelsResponse.image_models, and requests to them go through GatewayService.GenerateImages.
+// Which upstream API an image model is called through follows from its provider: OpenAI-compatible image endpoints
+// (/images/generations, /images/edits), the Gemini API (Gemini image models and Imagen) or OpenRouter (chat completions
+// with image output). Anthropic and the cloud platforms of Anthropic models have no image models.
+//
+// Frontends reach it through the local client (packages/client/server/coreproxy.go). Requires
+// `Authorization: Bearer <access token>`. Status: DRAFT.
+service ImageService {
+  // The image models the caller may use, the providers they may add image models to, and the server default. Any
+  // signed-in user; admins also see the global image models they may not use themselves and their roles.
+  rpc GetImageSettings(GetImageSettingsRequest) returns (GetImageSettingsResponse);
+  // The server default image model (a global image model; empty clears it). Admin only.
+  rpc SetImageDefault(SetImageDefaultRequest) returns (SetImageDefaultResponse);
+  // Adds an image model to a provider the caller may change (admins: global providers; everyone: their own). The
+  // provider must offer images (ImageProvider.image_api not empty).
+  rpc AddImageModel(AddImageModelRequest) returns (AddImageModelResponse);
+  // Changes an image model of a provider the caller may change. Unset fields stay as they are.
+  rpc UpdateImageModel(UpdateImageModelRequest) returns (UpdateImageModelResponse);
+  rpc RemoveImageModel(RemoveImageModelRequest) returns (RemoveImageModelResponse);
+}
+
+// USD prices of an image model. Any part may be zero; a request costs per_image for every image it returns plus its
+// tokens at the token prices when the upstream reports them (gpt-image, Gemini). OpenRouter's own reported cost goes
+// over this when it sends one.
+message ImagePricing {
+  double per_image = 1;
+  // Per 1M tokens.
+  double input = 2;
+  double output = 3;
+}
+
+message ImageModel {
+  // The id GenerateImages takes: an admin's alias for a global model, "<provider id>/<upstream model>" for a personal one.
+  string id = 1;
+  string display_name = 2;
+  string provider_id = 3;
+  string provider_name = 4;
+  string upstream_model = 5;
+  // "openai", "gemini", "imagen" or "openrouter": the API it is called through.
+  string image_api = 6;
+  // It takes input images (edits).
+  bool edits = 7;
+  // Roles allowed to use a global model; empty: everyone. Admins only (empty for others).
+  repeated string roles = 8;
+  bool enabled = 9;
+  // The caller may change or remove it.
+  bool editable = 10;
+  // Absent: no price known, so its requests cost nothing in the usage records.
+  optional ImagePricing pricing = 11;
+  // A personal model (of the caller's own provider).
+  bool personal = 12;
+  // The caller may use it (admins see global models outside their own role too).
+  bool usable = 13;
+}
+
+// A provider image models can be added to.
+message ImageProvider {
+  string id = 1;
+  string display_name = 2;
+  ProviderScope scope = 3;
+  // "openai", "gemini" or "openrouter" (Gemini providers serve both Gemini image models and Imagen).
+  string image_api = 4;
+  // The caller may add models to it.
+  bool editable = 5;
+}
+
+message GetImageSettingsRequest {}
+
+message GetImageSettingsResponse {
+  // Every image model the caller may see, global first.
+  repeated ImageModel models = 1;
+  repeated ImageProvider providers = 2;
+  // The server default as configured ("" none). It applies to a user who has not picked their own
+  // (harness.agent.v1.UserPreferences.image_model) and may use it.
+  string default_model = 3;
+  // The caller is an admin: may set the default and change global image models.
+  bool can_manage = 4;
+  // Roles an allowlist may name.
+  repeated string roles = 5;
+}
+
+message SetImageDefaultRequest {
+  string model_id = 1;
+}
+
+message SetImageDefaultResponse {
+  string default_model = 1;
+}
+
+message AddImageModelRequest {
+  string provider_id = 1;
+  string upstream_model = 2;
+  // Global providers only: the alias (default: the upstream model id).
+  string id = 3;
+  string display_name = 4;
+  // Global providers only; empty: everyone.
+  repeated string roles = 5;
+  // Absent: the server's approximate price for well-known models, if it has one.
+  optional ImagePricing pricing = 6;
+}
+
+message AddImageModelResponse {
+  ImageModel model = 1;
+}
+
+message UpdateImageModelRequest {
+  string model_id = 1;
+  optional string display_name = 2;
+  optional bool enabled = 3;
+  // Global models only. Replaces the list; an empty list allows everyone.
+  optional RoleList roles = 4;
+  optional ImagePricing pricing = 5;
+  // Removes the price (requests cost nothing then).
+  bool clear_pricing = 6;
+}
+
+message RoleList {
+  repeated string roles = 1;
+}
+
+message UpdateImageModelResponse {
+  ImageModel model = 1;
+}
+
+message RemoveImageModelRequest {
+  string model_id = 1;
+}
+
+message RemoveImageModelResponse {}

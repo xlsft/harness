@@ -38,6 +38,7 @@ import { registerProviderService } from "./providers.ts";
 import { registerRelayService } from "./relay.ts";
 import { registerSearchService } from "./search.ts";
 import { registerSkillSearchService } from "./skills.ts";
+import { generateImagesRpc, registerImageService } from "./images.ts";
 import { registerSpeechService } from "./speech.ts";
 import { registerSyncService } from "./sync.ts";
 import { registerLibraryServices } from "./library.ts";
@@ -230,6 +231,8 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
       });
       return { inputTokens: BigInt(r.input_tokens), estimated: r.estimated };
     }),
+
+    generateImages: guard(async (req, ctx: HandlerContext) => generateImagesRpc(req, ctx)),
   });
 
   router.service(PromptService, {
@@ -251,6 +254,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   registerSearchService(router);
   registerSkillSearchService(router);
   registerSpeechService(router);
+  registerImageService(router);
   registerDecisionService(router);
   registerMcpService(router);
   registerRelayService(router);

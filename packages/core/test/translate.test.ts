@@ -10,6 +10,7 @@ import { downgradeEffort, type ModelEntry } from "../src/services/models.ts";
 
 const model = (over: Partial<ModelEntry> = {}): ModelEntry => ({
   id: "m",
+  kind: "chat",
   displayName: "M",
   providerId: "p",
   upstreamModel: "up",

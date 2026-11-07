@@ -420,8 +420,9 @@ export function registerProviderService(router: ConnectRouter): void {
       requireAdmin(await principal(ctx));
       const input = req.slots;
       if (!input) throw new ApiError("invalid_request", "slots is required");
-      // The classifier slot belongs to SetClassifier; keep it.
-      const next: Slots = { classifier: (await getSlots()).classifier };
+      // The classifier slot belongs to SetClassifier and the image slot to ImageService.SetImageDefault; keep them.
+      const cur = await getSlots();
+      const next: Slots = { classifier: cur.classifier, image: cur.image };
       for (const name of ROLE_SLOT_NAMES) next[name] = input[name];
       return { slots: slotsToProto(await setSlots(next)) };
     }),

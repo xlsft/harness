@@ -1573,6 +1573,10 @@ message UserPreferences {
   ManagedPolicyView managed_policy = 16;
   // How requests use the models (settings keys speedTier, cacheTtl, advisorModel).
   ModelTuning model_tuning = 26;
+  // The image model of the ImageGenerate tool (settings key imageModel): one of the server's image models
+  // (harness.llm.v1.ListModelsResponse.image_models). Empty: the server default (Slots.image). A device-local image
+  // model is chosen on the device instead (DeviceSettings.image_model) and wins there.
+  string image_model = 52;
 }
 
 // Choices about how a user's requests run. Sessions opened from then on follow them.
@@ -1623,6 +1627,8 @@ message UpdateUserPreferencesRequest {
   optional bool auto_memory_enabled = 24;
   optional bool schedules_enabled = 18;
   optional int32 goal_max_turns = 19;
+  // "" follows the server default. INVALID_ARGUMENT for a device-local ("local:") id: those are chosen per device.
+  optional string image_model = 52;
 }
 
 message UpdateUserPreferencesResponse {

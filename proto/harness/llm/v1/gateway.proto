@@ -18,6 +18,10 @@ service GatewayService {
   rpc StreamMessage(StreamMessageRequest) returns (stream StreamMessageResponse);
 
   rpc CountTokens(CountTokensRequest) returns (CountTokensResponse);
+
+  // Generates images with an image model (images.proto): text to image, or an edit of the input images. Checks the
+  // caller's spend limits first and records the usage (request class "image") like a message.
+  rpc GenerateImages(GenerateImagesRequest) returns (GenerateImagesResponse);
 }
 
 message ListModelsRequest {}
@@ -25,6 +29,8 @@ message ListModelsRequest {}
 message ListModelsResponse {
   repeated Model models = 1;
   Slots slots = 2;
+  // The image models the caller may use (GenerateImages), never in `models`. Their capabilities and pricing are empty.
+  repeated Model image_models = 3;
 }
 
 message Model {
@@ -77,6 +83,9 @@ message Slots {
   string plan = 3;
   // Session titles. In ListModels it falls back to `small` when the admin did not set it.
   string title = 4;
+  // The server default image model (one of ListModelsResponse.image_models); empty: none, or the caller may not use it.
+  // It never falls back to another model. GetSlots / SetSlots leave it alone (ImageService.SetImageDefault sets it).
+  string image = 5;
 }
 
 enum RequestClass {
@@ -195,4 +204,47 @@ message CountTokensResponse {
   int64 input_tokens = 1;
   // True when the upstream has no exact counter and the server estimated.
   bool estimated = 2;
+}
+
+// GenerateImages: see images.proto for image models.
+message GenerateImagesRequest {
+  // An image model id (ListModelsResponse.image_models).
+  string model = 1;
+  string prompt = 2;
+  // "WIDTHxHEIGHT" ("1024x1536") or "auto"/empty. APIs that take an aspect ratio get the nearest one they have.
+  string size = 3;
+  // 1 to 4. 0: 1.
+  int32 count = 4;
+  // Images to edit or to take as reference, at most 8, 20 MiB each and 50 MiB together.
+  repeated InputImage input_images = 5;
+  RequestMetadata metadata = 6;
+  // "low", "medium", "high" or empty, where the API has a quality setting.
+  string quality = 7;
+}
+
+message InputImage {
+  bytes data = 1;
+  // image/png, image/jpeg or image/webp.
+  string media_type = 2;
+  // For the upstream's multipart upload.
+  string name = 3;
+}
+
+message GeneratedImage {
+  bytes data = 1;
+  string media_type = 2;
+}
+
+message GenerateImagesResponse {
+  repeated GeneratedImage images = 1;
+  // The prompt the upstream rewrote and used, when it says so.
+  string revised_prompt = 2;
+  // Text the model returned with the images (Gemini, OpenRouter).
+  string text = 3;
+  double cost_usd = 4;
+  // The cost is known (the model has a price, or the upstream reported one).
+  bool priced = 5;
+  string served_model = 6;
+  int64 input_tokens = 7;
+  int64 output_tokens = 8;
 }

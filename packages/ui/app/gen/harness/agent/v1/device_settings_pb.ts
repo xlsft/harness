@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/device_settings.proto.
  */
 export const file_harness_agent_v1_device_settings: GenFile = /*@__PURE__*/
-  fileDesc("CiZoYXJuZXNzL2FnZW50L3YxL2RldmljZV9zZXR0aW5ncy5wcm90bxIQaGFybmVzcy5hZ2VudC52MSI2Cg5EZXZpY2VTZXR0aW5ncxINCgV0aGVtZRgBIAEoCRIVCg1ub3RpZmljYXRpb25zGAIgASgIIhoKGEdldERldmljZVNldHRpbmdzUmVxdWVzdCJPChlHZXREZXZpY2VTZXR0aW5nc1Jlc3BvbnNlEjIKCHNldHRpbmdzGAEgASgLMiAuaGFybmVzcy5hZ2VudC52MS5EZXZpY2VTZXR0aW5ncyJpChtVcGRhdGVEZXZpY2VTZXR0aW5nc1JlcXVlc3QSEgoFdGhlbWUYASABKAlIAIgBARIaCg1ub3RpZmljYXRpb25zGAIgASgISAGIAQFCCAoGX3RoZW1lQhAKDl9ub3RpZmljYXRpb25zIlIKHFVwZGF0ZURldmljZVNldHRpbmdzUmVzcG9uc2USMgoIc2V0dGluZ3MYASABKAsyIC5oYXJuZXNzLmFnZW50LnYxLkRldmljZVNldHRpbmdzIhcKFURldmljZVNldHRpbmdzQ2hhbmdlZCI6ChNTZXRLZWVwQXdha2VSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSDwoHZW5hYmxlZBgCIAEoCCIWChRTZXRLZWVwQXdha2VSZXNwb25zZULUAQoUY29tLmhhcm5lc3MuYWdlbnQudjFCE0RldmljZVNldHRpbmdzUHJvdG9QAVpFZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9hZ2VudC92MTthZ2VudHYxogIDSEFYqgIQSGFybmVzcy5BZ2VudC5WMcoCEEhhcm5lc3NcQWdlbnRcVjHiAhxIYXJuZXNzXEFnZW50XFYxXEdQQk1ldGFkYXRh6gISSGFybmVzczo6QWdlbnQ6OlYxYgZwcm90bzM");
+  fileDesc("CiZoYXJuZXNzL2FnZW50L3YxL2RldmljZV9zZXR0aW5ncy5wcm90bxIQaGFybmVzcy5hZ2VudC52MSJLCg5EZXZpY2VTZXR0aW5ncxINCgV0aGVtZRgBIAEoCRIVCg1ub3RpZmljYXRpb25zGAIgASgIEhMKC2ltYWdlX21vZGVsGAMgASgJIhoKGEdldERldmljZVNldHRpbmdzUmVxdWVzdCJPChlHZXREZXZpY2VTZXR0aW5nc1Jlc3BvbnNlEjIKCHNldHRpbmdzGAEgASgLMiAuaGFybmVzcy5hZ2VudC52MS5EZXZpY2VTZXR0aW5ncyKTAQobVXBkYXRlRGV2aWNlU2V0dGluZ3NSZXF1ZXN0EhIKBXRoZW1lGAEgASgJSACIAQESGgoNbm90aWZpY2F0aW9ucxgCIAEoCEgBiAEBEhgKC2ltYWdlX21vZGVsGAMgASgJSAKIAQFCCAoGX3RoZW1lQhAKDl9ub3RpZmljYXRpb25zQg4KDF9pbWFnZV9tb2RlbCJSChxVcGRhdGVEZXZpY2VTZXR0aW5nc1Jlc3BvbnNlEjIKCHNldHRpbmdzGAEgASgLMiAuaGFybmVzcy5hZ2VudC52MS5EZXZpY2VTZXR0aW5ncyIXChVEZXZpY2VTZXR0aW5nc0NoYW5nZWQiOgoTU2V0S2VlcEF3YWtlUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJEg8KB2VuYWJsZWQYAiABKAgiFgoUU2V0S2VlcEF3YWtlUmVzcG9uc2VC1AEKFGNvbS5oYXJuZXNzLmFnZW50LnYxQhNEZXZpY2VTZXR0aW5nc1Byb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYWdlbnQvdjE7YWdlbnR2MaICA0hBWKoCEEhhcm5lc3MuQWdlbnQuVjHKAhBIYXJuZXNzXEFnZW50XFYx4gIcSGFybmVzc1xBZ2VudFxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OkFnZW50OjpWMWIGcHJvdG8z");
 
 /**
  * @generated from message harness.agent.v1.DeviceSettings
@@ -29,6 +29,15 @@ export type DeviceSettings = Message<"harness.agent.v1.DeviceSettings"> & {
    * @generated from field: bool notifications = 2;
    */
   notifications: boolean;
+
+  /**
+   * The image model of the ImageGenerate tool on this device: "local:<local provider id>/<model name>", a model of an
+   * OpenAI-compatible local provider (localmodels.proto) that serves /v1/images/generations. Empty: the user's synced
+   * choice (UserPreferences.image_model) or the server default. Never synced.
+   *
+   * @generated from field: string image_model = 3;
+   */
+  imageModel: string;
 };
 
 /**
@@ -83,6 +92,13 @@ export type UpdateDeviceSettingsRequest = Message<"harness.agent.v1.UpdateDevice
    * @generated from field: optional bool notifications = 2;
    */
   notifications?: boolean | undefined;
+
+  /**
+   * "" clears it. INVALID_ARGUMENT for an id that is not "local:<provider>/<model>" of an OpenAI-compatible local provider.
+   *
+   * @generated from field: optional string image_model = 3;
+   */
+  imageModel?: string | undefined;
 };
 
 /**

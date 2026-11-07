@@ -109,7 +109,8 @@ export async function applyModelPrices(opts: { providerId?: string; listed?: Rea
   const count: PriceChangeCount = { updated: 0, held: 0 };
   const now = new Date();
   for (const { model, provider } of rows) {
-    if (priceSetByHand(model.capabilities) || billingOf(provider) === "plan") continue;
+    // Image models are priced per image (src/images/pricing.ts), which no token catalog says.
+    if (model.kind === "image" || priceSetByHand(model.capabilities) || billingOf(provider) === "plan") continue;
     const current: PriceState = {
       pricing: (model.pricing as ModelPricing | null) ?? null,
       source: model.pricingSource as PriceSource | null,
