@@ -204,9 +204,98 @@ See the operation list in the tool description (`packages/core/prompts/tools/Doc
 
 ### OCR
 
-No engine is built in. `DocumentRead` `ocr` and `documents.OCREngine` are the seam: with no engine the operation says
-"not available" and points to rendering, never an empty result that reads as "no text". `structure` says how many
-pages look scanned and whether `ocr` can read them. An engine plugs in by setting `documents.OCR`.
+The built-in engine is Tesseract 5.5.4 with Leptonica 1.87.0, compiled for WASI and run under wazero
+(`documents/ocr_tesseract.go`). `DocumentRead` `ocr` and `documents.OCREngine` stay the seam: `documents.OCR` is
+Tesseract unless a test or embedder replaces it, and with no engine the operation says "not available" and points to
+rendering, never an empty result that reads as "no text". `structure` says how many pages look scanned and whether
+`ocr` can read them.
+
+What the operation does:
+
+- Scanned PDF pages (`pages`, or every page that looks scanned; at most 20 per call) are rendered through PDFium at 300
+  dpi; PNG, JPEG and GIF files in the working folders are decoded in Go. Either way the module gets 8-bit grey pixels
+  (transparency over white) and nothing else.
+- `languages`: `eng` (the default), `rus` or `eng+rus`. Unknown codes are refused before anything is fetched. Two
+  languages cost roughly the time of both.
+- Each line comes back with Tesseract's line confidence (`92% text`), and the result says how many lines fell below
+  60%. The whole answer sits inside `<document-content … trust="untrusted">` like any other document read, so text in
+  a picture that looks like an instruction stays data.
+
+#### The module
+
+- `scripts/ocr/build.sh` builds it reproducibly: wasi-sdk 34 (clang 23), Tesseract 5.5.4 and Leptonica 1.87.0, each
+  pinned by version and SHA-256 and fetched into a scratch directory (`OCR_WORK`, about 1 GB, removed afterwards).
+  Target `wasm32-wasip1`, a reactor (`_initialize`, then exports), `-O2 -msimd128`, no exceptions, no threads.
+  Two builds from scratch gave the same SHA-256.
+- Left out: Leptonica's image codecs (png, jpeg, tiff, zlib, gif, webp, openjpeg; the host passes pixels), Tesseract's
+  legacy engine (`tessdata_fast` is LSTM only), the ScrollView viewer (sockets), libarchive, libcurl and OpenMP.
+  `TESSERACT_IMAGEDATA_AS_PIX` keeps line images as pixes, since without a PNG codec Tesseract's default of storing
+  them as PNG bytes fails. `wasi_compat.c` stubs `mkstemp`, `tmpfile` and `system`, which Leptonica names on paths the
+  module never takes; they fail with `ENOSYS`.
+- `ocr_wasm.cpp` is the interface: `ocr_alloc`/`ocr_free`, `ocr_init(langs)`, `ocr_recognize(pixels, w, h, stride,
+  dpi)` returning one row per line (confidence, box, text), `ocr_error`. Its only imports are WASI preview 1 and
+  `harness.ocr_cancelled`.
+- Size: 2.0 MB, 690 KB gzipped. That is small enough to commit and embed: `documents/ocrwasm/tesseract.wasm.gz` with
+  its SHA-256 next to it; the client checks the checksum after decompressing. No download or release asset is needed
+  for the module. Rebuilding means running the script and committing both files.
+- Licenses are listed in `documents/ocrwasm/LICENSES.md` with the Tesseract (Apache-2.0) and Leptonica (BSD-2-Clause)
+  texts. The module also contains wasi-libc (Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT, musl parts MIT) and
+  libc++/libc++abi (Apache-2.0 WITH LLVM-exception). No GPL or AGPL code.
+
+#### Running it
+
+- Its own wazero runtime, separate from PDFium's, created on first use and kept for the process; compiled code is
+  cached under the user cache directory (`harness/ocr/compiled`), as PDFium's is.
+- No host files: the trained data is verified in Go and mounted as an in-memory, read-only `/tessdata`; stdout is
+  discarded and the first 64 KiB of stderr kept for error messages. No arguments, no environment, and wazero's default
+  fake clock and seeded randomness, so the same pixels give the same text (tested).
+- Memory is capped at 1 GiB of linear memory; images over 60 megapixels are refused. Linear memory never shrinks, so an
+  instance idle for two minutes is dropped.
+- Timeout: two minutes per page, and the caller's cancellation. wazero's `CloseOnContextDone` was tried first and
+  rejected: it makes compiled code call back into Go at every loop back-edge, and recognition got ten times slower (20 s
+  against 2 s of CPU for a page). Instead `ocr_recognize` passes Tesseract an `ETEXT_DESC` whose cancel callback asks
+  the host import `harness.ocr_cancelled`, and Tesseract checks it after every word. Layout analysis before the first
+  word is not interruptible; it is bounded by the pixel cap. If a page has not stopped 15 s after its deadline the
+  caller gets an error and the next page waits behind it (or gives up at its own deadline). A trap (out of memory, a
+  crash) or a timeout drops the instance; the next page starts a new one.
+- One page runs at a time (`tessTurn`); pages of one call run in order.
+
+#### Trained data
+
+- `tessdata_fast` 4.1.0 (Apache-2.0): `eng` (4,113,088 bytes) and `rus` (3,861,738 bytes), pinned by size and SHA-256
+  in `OCRLanguages`. Fetched on first use from the repository's 4.1.0 tag, checked, then cached under
+  `harness/ocr/tessdata` in the user cache directory and checked again every time it is read from there. A file that
+  does not match is never used. Without a network on first use the call fails and says what it needed.
+- Not embedded: 8 MB for two languages would quadruple what OCR adds to the binary, for a feature many sessions never
+  use. Adding a language is a line in `OCRLanguages` with its size and checksum.
+
+#### Speed and memory
+
+Measured with `BenchmarkOCRPage` (an A4 page at 300 dpi, 2480×3508, 40 lines of 10-point Go Regular, warm instance) on
+an Apple M4 (`HARNESS_TEST_OCR=1 go test -run - -bench OCRPage ./documents`). The machine was shared with heavy
+builds (load 15 to 50 on 10 cores), so wall time is not meaningful; CPU time is the process's user plus system time.
+The low figure is from a quiet moment, on performance cores; the high ones from a busy machine, where the work lands on
+efficiency cores. One core is used: the module has no threads.
+
+| | CPU per page, quiet | CPU per page, busy | Linear memory after the page |
+|---|---|---|---|
+| English | 2.0 s | 4.4 to 4.8 s | 47 MiB |
+| Russian | not measured quiet | 4.8 to 5.1 s | 50 MiB |
+
+On top of the page: the trained data held in Go (4 MB per language), the compiled module, and the page image (8.7 MB
+of RGBA plus 8.7 MB grey). Go's own `Sys` was 207 to 271 MiB in the benchmark process, which also holds the test
+images. The first use in a process compiles the module: 1.2 to 1.6 s of CPU, cached on disk after that. Loading a
+language and recognising one short line takes about 0.15 s of CPU.
+
+#### Tests
+
+- `documents/ocr_tesseract_test.go` renders text with the Go fonts (Latin and Cyrillic), recognises it and checks the
+  words: English, Russian, both at once, determinism, a scanned PDF page through PDFium (`HARNESS_TEST_PDFIUM=1` too),
+  and the timeout. `tools/document_more_test.go` runs `DocumentRead` `ocr` end to end on a picture of Russian text.
+  These need `HARNESS_TEST_OCR=1`: they fetch the trained data once. The checksum, parsing, pixel and language tests
+  run always.
+
+#### Evaluation before the build
 
 Evaluation (November 2026), for a pure-Go or WebAssembly engine under a permissive license:
 
@@ -219,10 +308,8 @@ Evaluation (November 2026), for a pure-Go or WebAssembly engine under a permissi
 | PaddleOCR models | Apache-2.0 | Need an ONNX runtime; the Go ones are CGO. Rejected. |
 | Anything under GPL or AGPL | | Excluded by the task. |
 
-**Decision:** stop at the interface. The likely next step is a WASI build of Tesseract with `tessdata_fast` for
-English, run under the wazero we already ship, cached like PDFium's compiled module, with the trained data fetched
-once on first use rather than embedded (it adds 4 MB per language). An alternative that needs no build is Tesseract
-found on the machine as a separate process, as LibreOffice is; it would need the same sandbox handling.
+The first decision was to stop at the interface; the WASI build of Tesseract it named as the next step is what ships
+now (above). Tesseract found on the machine as a separate process remains an alternative that was not needed.
 
 ## The skill
 
@@ -256,6 +343,6 @@ extensions. Rewind goes through the existing file history.
   given effects; SVG pictures are not added.
 - xlsx: data validation is listed but not enforced on written values. Structured references and other workbooks are not traced: the report counts such formulas. The evaluator covers common functions; others report "unknown".
 - pptx: charts cannot be added; picture placeholders are not filled (a picture is added as a free shape); shapes in groups cannot be moved. Clones are tested with a chart and a workbook, not SmartArt or media.
-- pdf: flat-form overlay; OCR (no engine, see above); text outside WinAnsi on pages; alternative text for added
+- pdf: flat-form overlay; OCR languages beyond English and Russian, handwriting, and layout (columns and tables come back as lines); text outside WinAnsi on pages; alternative text for added
   pictures. Created PDFs hold Latin-1 only.
 - Conversion beyond the pairs above, and pages from an engine other than LibreOffice.

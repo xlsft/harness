@@ -354,7 +354,11 @@ func instantiateOCR(ctx context.Context) error {
 		tess.rt, tess.compiled = rt, compiled
 	}
 	// No arguments, no environment, no clock or randomness beyond wazero's deterministic defaults, and one read-only
-	// directory holding verified trained data.
+	// directory holding verified trained data. The mount reads the map as it is when the module opens a file, so data
+	// added for a later page is seen.
+	if tess.data == nil {
+		tess.data = fstest.MapFS{}
+	}
 	cfg := wazero.NewModuleConfig().
 		WithName("").
 		WithStartFunctions("_initialize").

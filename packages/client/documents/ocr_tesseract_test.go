@@ -91,6 +91,19 @@ func TestOCRModuleChecksum(t *testing.T) {
 	}
 }
 
+// The versions the client reports are the ones the build script pins.
+func TestOCRBuildScriptVersions(t *testing.T) {
+	script, err := os.ReadFile("../../../scripts/ocr/build.sh")
+	if err != nil {
+		t.Skip(err)
+	}
+	for _, want := range []string{"TESSERACT_VERSION=" + TesseractVersion + "\n", "LEPTONICA_VERSION=" + LeptonicaVersion + "\n"} {
+		if !strings.Contains(string(script), want) {
+			t.Errorf("build.sh does not pin %q", strings.TrimSpace(want))
+		}
+	}
+}
+
 func TestOCRLanguages(t *testing.T) {
 	got, err := NormalizeOCRLanguages([]string{"RUS+eng", "eng"})
 	if err != nil || strings.Join(got, "+") != "rus+eng" {
