@@ -53,6 +53,7 @@ Usage:
   harness-client ci <review|mention>    The PR review bot and the @mention trigger, for CI runners (docs/ci.md)
   harness-client update [--check]       Replace this binary with the newest release (verified)
   harness-client plugin [help|...]      Install, approve and manage plugins and marketplaces
+  harness-client agents [--watch]       The inbox: sessions and agents on all your machines, by what they need
   harness-client version
 
 Headless flags:
@@ -99,6 +100,8 @@ func run(args []string) int {
 			return runPermissions(ctx, args[1:])
 		case "insights":
 			return runInsights(args[1:])
+		case "agents":
+			return runAgents(args[1:])
 		case "version", "--version":
 			fmt.Println(config.UserAgent())
 			return 0
