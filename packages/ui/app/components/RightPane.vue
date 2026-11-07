@@ -30,7 +30,7 @@ provide('pane-full-target', computed(() => props.pane === 'details' ? null : { p
 const desktop = isDesktop()
 const TITLES: Record<PaneName, string> = {
   details: tt('Overview'), terminal: tt('Terminal'), diff: tt('Changes'), browser: tt('Browser'), files: tt('Files'),
-  artifact: tt('Artifacts'), sidechat: tt('Side chat'), tasks: tt('Tasks'), agents: tt('Agents'), sentfile: tt('File'), visual: tt('Visual'), simulator: tt('Simulator')
+  artifact: tt('Artifacts'), sidechat: tt('Side chat'), tasks: tt('Tasks'), agents: tt('Agents'), sentfile: tt('File'), visual: tt('Visual'), simulator: tt('iOS Simulator')
 }
 function onFullKey(e: KeyboardEvent) {
   if (e.key === 'Escape') leave(props.session.meta.id)

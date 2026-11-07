@@ -167,11 +167,11 @@ onBeforeUnmount(() => clearTimeout(flushTimer))
 
 <template>
   <section
-    :aria-label="tt('Simulator')"
+    :aria-label="tt('iOS Simulator')"
     class="flex h-full flex-col overflow-hidden bg-default"
   >
     <div class="flex h-[44px] shrink-0 items-center gap-[2px] border-b border-line pr-1.5 pl-3.5">
-      <span class="min-w-0 flex-1 truncate font-display text-[13px] text-strong">{{ tt('Simulator') }}</span>
+      <span class="min-w-0 flex-1 truncate font-display text-[13px] text-strong">{{ tt('iOS Simulator') }}</span>
       <PaneBtn
         icon="reload"
         :label="tt('Refresh')"

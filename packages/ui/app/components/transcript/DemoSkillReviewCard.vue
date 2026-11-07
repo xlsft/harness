@@ -18,8 +18,7 @@ const error = ref('')
 
 const scopes = computed(() => (['project', 'personal'] as const).filter(s => props.item.paths[s]).map(s => ({
   value: s,
-  label: s === 'project' ? tt('This project') : tt('My skills'),
-  hint: props.item.paths[s]
+  label: s === 'project' ? tt('This project') : tt('My skills')
 })))
 
 async function answer(save: boolean) {

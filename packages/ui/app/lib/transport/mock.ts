@@ -1157,14 +1157,24 @@ export class MockTransport implements SessionTransport {
     this.emit(s, b => b.demoRecordingState(true, 'rec_mock', 0, apps))
   }
 
+  // A kept recording comes back as the agent's draft in the review card.
   async stopDemoRecording(sessionId: string, discard: boolean) {
     const s = this.get(sessionId)
     this.emit(s, b => b.demoRecordingState(false, discard ? '' : 'rec_mock', 0, []))
+    if (discard) return
+    const draft = '---\nname: new-note\ndescription: Make a note in Notes with a title. Use when the user asks to jot something down.\n---\n\n## Steps\n1. Open Notes.\n2. Click New Note.\n3. Type the title, then Return.\n\n## Check\n- The note is first in the list.\n'
+    this.later(s, 300, () => this.emit(s, (b) => {
+      b.toolStarted('rec_mock-save', 'DemoSkillSave', { name: 'new-note' }, 'new-note')
+      b.demoSkillReviewRequested('rec_mock-review', 'rec_mock-save', 'rec_mock', 'new-note', draft, 'project', '~/Projects/xlsft/harness/.harness/skills/new-note/SKILL.md', '~/.harness/skills/new-note/SKILL.md')
+    }))
   }
 
   async respondToDemoSkillReview(sessionId: string, requestId: string, a: { save: boolean, scope: 'project' | 'personal' }) {
     const s = this.get(sessionId)
-    this.emit(s, b => b.demoSkillReviewResolved(requestId, a.save, a.scope))
+    this.emit(s, (b) => {
+      b.demoSkillReviewResolved(requestId, a.save, a.scope)
+      b.toolFinished('rec_mock-save', { output: a.save ? 'Saved.' : 'The user did not save the skill.' })
+    })
   }
 
   private mockSimBooted = false
