@@ -31,6 +31,8 @@ type Init<T extends Parameters<typeof create>[0]> = MessageInitShape<T>;
 export const CLOSED_KEEP_MS = 14 * 24 * 3600 * 1000;
 /** Project runs are listed this long after they last changed. */
 const RUN_KEEP_MS = 30 * 24 * 3600 * 1000;
+/** Events older than this are taken as replayed history (see foldInbox). */
+const REPLAY_AGE_MS = 10 * 60 * 1000;
 const DEFAULT_PAGE = 50;
 const MAX_PAGE = 200;
 /** A watcher this many batches behind is told to list again. */
@@ -83,8 +85,10 @@ export async function foldInbox(userId: string, sessionId: string, hostId: strin
     foldEvent(item, scratch, create(SessionEventSchema, { event: { case: "sessionEnded", value: { reason: "unregistered" } } }));
   }
   if (item.attentionAt && item.attentionAt !== prevAttention) {
-    // Server time, not the host's: read markers are server time too, and clocks of machines drift.
-    attention = new Date();
+    // Server time for what happens now, as read markers are server time and clocks of machines drift. An event much
+    // older than that is history a resumed session replays: it keeps its own time, so it doesn't read as new.
+    const t = new Date(item.attentionAt).getTime();
+    attention = Number.isFinite(t) && Date.now() - t > REPLAY_AGE_MS ? new Date(t) : new Date();
   }
   item.group = groupOf(item, scratch);
   // Per-read fields are computed at list time.

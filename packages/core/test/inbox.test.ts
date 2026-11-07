@@ -35,12 +35,13 @@ afterAll(async () => {
 });
 
 type Ev = NonNullable<MessageInitShape<typeof SessionEventSchema>["event"]>;
-const at = (i: number) => new Date(Date.UTC(2026, 10, 7, 12, 0, i)).toISOString();
+const t0 = Date.now();
+const at = (i: number) => new Date(t0 + i * 1000).toISOString();
 
-function evs(sessionId: string, from: number, events: Ev[]) {
+function evs(sessionId: string, from: number, events: Ev[], base?: number) {
   return events.map((event, i) => ({
     uuid: `u-${sessionId}-${from + i}`,
-    event: create(SessionEventSchema, { seq: BigInt(from + i), sessionId, timestamp: at(from + i), event }),
+    event: create(SessionEventSchema, { seq: BigInt(from + i), sessionId, timestamp: base ? new Date(base + i).toISOString() : at(from + i), event }),
   }));
 }
 
@@ -54,6 +55,12 @@ async function session(c: Clients, title = "a session") {
     hostId,
     publish: async (...events: Ev[]) => {
       const batch = evs(id, seq, events);
+      seq += events.length;
+      await c.relay.publishEvents({ hostId, sessionId: id, epoch, events: batch });
+    },
+    /** Events with times of a day ago, as a resumed session replays its history. */
+    publishOld: async (...events: Ev[]) => {
+      const batch = evs(id, seq, events, Date.now() - 24 * 3600 * 1000);
       seq += events.length;
       await c.relay.publishEvents({ hostId, sessionId: id, epoch, events: batch });
     },
@@ -160,6 +167,16 @@ describe("InboxService", () => {
     expect(it.open).toBe(false);
     await A1.inbox.markInboxRead({ request: { sessionIds: [s.id], read: true } });
     expect((await list(A1, InboxGroup.FINISHED)).items.map((i) => i.sessionId)).not.toContain(s.id);
+  });
+
+  it("does not take replayed history for news", async () => {
+    const s = await session(A1, "resumed");
+    await s.publish(...finished("First"));
+    await A1.inbox.markInboxRead({ request: { sessionIds: [s.id], read: true } });
+    await s.publishOld(...finished("Replayed"));
+    expect((await list(A1, InboxGroup.FINISHED)).items.find((i) => i.sessionId === s.id)!.unread).toBe(false);
+    await s.publish(...finished("New"));
+    expect((await list(A1, InboxGroup.FINISHED)).items.find((i) => i.sessionId === s.id)!.unread).toBe(true);
   });
 
   it("pages through a group", async () => {
