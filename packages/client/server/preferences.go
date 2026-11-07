@@ -155,7 +155,11 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 		if d.GetFolder() != "" && !filepath.IsAbs(d.GetFolder()) {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("folder %q must be absolute", d.GetFolder()))
 		}
-		set[settings.KeyChatDefaults] = map[string]any{"deviceId": d.GetDeviceId(), "folder": d.GetFolder(), "permissionMode": d.GetPermissionMode()}
+		if d.GetAgentHostId() != "" && !validRepositoryKey(d.GetRepositoryKey()) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("an always-on host needs a repository as host/owner/name, not %q", d.GetRepositoryKey()))
+		}
+		set[settings.KeyChatDefaults] = map[string]any{"deviceId": d.GetDeviceId(), "folder": d.GetFolder(), "permissionMode": d.GetPermissionMode(),
+			"agentHostId": d.GetAgentHostId(), "repositoryKey": d.GetRepositoryKey()}
 	}
 	if sw := req.Msg.SkillSwitch; sw != nil {
 		if strings.TrimSpace(sw.GetName()) == "" {
@@ -267,9 +271,12 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 			DeviceID       string `json:"deviceId"`
 			Folder         string `json:"folder"`
 			PermissionMode string `json:"permissionMode"`
+			AgentHostID    string `json:"agentHostId"`
+			RepositoryKey  string `json:"repositoryKey"`
 		}
 		if json.Unmarshal(v, &d) == nil {
-			p.ChatDefaults = &agentv1.ChatDefaults{DeviceId: d.DeviceID, Folder: d.Folder, PermissionMode: d.PermissionMode}
+			p.ChatDefaults = &agentv1.ChatDefaults{DeviceId: d.DeviceID, Folder: d.Folder, PermissionMode: d.PermissionMode,
+				AgentHostId: d.AgentHostID, RepositoryKey: d.RepositoryKey}
 		}
 	}
 	p.ModelTuning = &agentv1.ModelTuning{}
@@ -332,4 +339,19 @@ func mergeSettingsJSON(content string, set map[string]any) (string, error) {
 	}
 	out, err := json.MarshalIndent(raw, "", "  ")
 	return string(out), err
+}
+
+// validRepositoryKey is a loose check of "host/owner/name" for chat defaults; the server checks it again when it queues
+// the work.
+func validRepositoryKey(k string) bool {
+	parts := strings.Split(k, "/")
+	if len(parts) < 3 || strings.ContainsAny(k, " \t\n:") {
+		return false
+	}
+	for _, p := range parts {
+		if p == "" || p == "." || p == ".." {
+			return false
+		}
+	}
+	return true
 }

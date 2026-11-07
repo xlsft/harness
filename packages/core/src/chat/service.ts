@@ -308,7 +308,7 @@ const MODES: Record<string, PermissionMode> = {
 async function chatDefaultsOf(p: Principal): Promise<ChatDefaults> {
   const empty = { deviceId: "", folder: "", permissionMode: "", agentHostId: "", repositoryKey: "" };
   try {
-    const doc = await getDocument(p, { ref: { scope: Scope.USER, kind: DocumentKind.SETTINGS, key: "settings", projectKey: "" } });
+    const doc = await getDocument(p, { ref: { scope: Scope.USER, kind: DocumentKind.SETTINGS, key: "user", projectKey: "" } });
     const v = (JSON.parse(doc.content) as { chatDefaults?: Record<string, unknown> }).chatDefaults;
     if (!v || typeof v !== "object") return empty;
     const s = (k: string) => (typeof v[k] === "string" ? (v[k] as string) : "");

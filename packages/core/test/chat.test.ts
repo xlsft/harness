@@ -3,17 +3,15 @@
  * replays, linking by code and by directory email, starting a session from a mention, progress, permission buttons that
  * only the owner can answer, steering from the thread, the final answer, policy switches and audit.
  */
-import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { RespondToPermissionRequest_Decision, SessionEventSchema, SessionStatus } from "../src/gen/harness/agent/v1/agent_pb.ts";
+import { RespondToPermissionRequest_Decision } from "../src/gen/harness/agent/v1/agent_pb.ts";
 import { ChatProvider } from "../src/gen/harness/chat/v1/chat_pb.ts";
-import { CommandAck_Outcome, type Command, type CommandAck } from "../src/gen/harness/relay/v1/relay_pb.ts";
 import { chatIdle, stopChatWatchers } from "../src/chat/service.ts";
 import { slackSignature } from "../src/chat/slack.ts";
+import { FakeHost } from "./helpers/fake-host.ts";
 import { createUserAndLogin, deviceLogin, startTestServer, type TestServer } from "./helpers/server.ts";
 
 const SECRET = "slack-signing-secret-test";
@@ -140,74 +138,6 @@ async function press(user: string, channel: string, messageTs: string, threadTs:
 
 let msgTs = 5000;
 const newTs = () => `${++msgTs}.000100`;
-
-/** A fake machine on the relay: answers folder queries, spawns, and records every other command. */
-class FakeHost {
-  hostId = "";
-  commands: Command[] = [];
-  sessionId = "";
-  epoch = 0n;
-  seq = 0;
-  private ctl = new AbortController();
-  constructor(
-    private readonly c: Clients,
-    private readonly folders: string[],
-  ) {}
-
-  async start(remoteStarts = true) {
-    this.hostId = (await this.c.relay.registerHost({ instanceId: `inst-${randomUUID()}`, clientVersion: "test", remoteStarts })).hostId;
-    void (async () => {
-      try {
-        for await (const r of this.c.relay.openHostStream({ hostId: this.hostId }, { signal: this.ctl.signal })) {
-          if (r.event.case === "command") await this.onCommand(r.event.value);
-        }
-      } catch {
-        // closed
-      }
-    })();
-  }
-
-  private async ack(a: Partial<CommandAck> & { commandId: string }) {
-    await this.c.relay.ackCommands({ hostId: this.hostId, acks: [{ outcome: CommandAck_Outcome.OK, ...a } as never] });
-  }
-
-  private async onCommand(cmd: Command) {
-    this.commands.push(cmd);
-    switch (cmd.payload.case) {
-      case "listRecentFolders":
-        return this.ack({ commandId: cmd.commandId, result: { case: "listRecentFolders", value: { folders: this.folders.map((path) => ({ path, name: path, exists: true })) } } as never });
-      case "spawnSession": {
-        const id = `ses-${randomUUID()}`;
-        const r = await this.c.relay.registerSession({ hostId: this.hostId, session: { id, cwd: cmd.payload.value.create?.cwd ?? "", title: "t", status: SessionStatus.IDLE } });
-        this.sessionId = id;
-        this.epoch = r.epoch;
-        return this.ack({ commandId: cmd.commandId, result: { case: "spawnSession", value: { session: { id, cwd: cmd.payload.value.create?.cwd } } } as never });
-      }
-      case "respondToPermission":
-        return this.ack({ commandId: cmd.commandId });
-      case "sendUserMessage":
-        return this.ack({ commandId: cmd.commandId });
-      default:
-        return this.ack({ commandId: cmd.commandId });
-    }
-  }
-
-  async publish(...events: MessageInitShape<typeof SessionEventSchema>["event"][]) {
-    await this.c.relay.publishEvents({
-      hostId: this.hostId,
-      sessionId: this.sessionId,
-      epoch: this.epoch,
-      events: events.map((event) => {
-        const seq = ++this.seq;
-        return { uuid: `${this.sessionId}-${seq}`, event: create(SessionEventSchema, { seq: BigInt(seq), sessionId: this.sessionId, event }) };
-      }),
-    });
-  }
-
-  stop() {
-    this.ctl.abort();
-  }
-}
 
 const posted = (pred: (b: Record<string, any>) => boolean) => calls.find((c) => c.method === "chat.postMessage" && pred(c.body));
 

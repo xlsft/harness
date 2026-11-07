@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -65,6 +66,15 @@ func TestChatDefaultsAreSyncedPreferences(t *testing.T) {
 	}
 	if _, err := update(&agentv1.ChatDefaults{Folder: "relative/dir"}); connect.CodeOf(err) != connect.CodeInvalidArgument {
 		t.Fatalf("relative folder: %v", err)
+	}
+	if _, err := update(&agentv1.ChatDefaults{AgentHostId: "ahs_1", RepositoryKey: "acme/widgets"}); connect.CodeOf(err) != connect.CodeInvalidArgument {
+		t.Fatalf("always-on host without a full repository key: %v", err)
+	}
+	if _, err := update(&agentv1.ChatDefaults{AgentHostId: "ahs_1", RepositoryKey: "github.com/acme/widgets"}); err != nil {
+		t.Fatal(err)
+	}
+	if c := strings.Join(strings.Fields(docs.content), ""); !strings.Contains(c, `"agentHostId":"ahs_1"`) || !strings.Contains(c, `"repositoryKey":"github.com/acme/widgets"`) {
+		t.Fatalf("always-on host defaults not stored: %s", docs.content)
 	}
 	if _, err := update(&agentv1.ChatDefaults{DeviceId: "dev_1", Folder: "/work/proj", PermissionMode: "acceptEdits"}); err != nil {
 		t.Fatal(err)
