@@ -17,11 +17,20 @@ func (m *Manager) createWorktree(ctx context.Context, id string) (*worktree.Resu
 	name := "agent-" + id
 	if h := vcshooks.Of(m.cfg.Hooks); h.Isolates() {
 		c, err := h.Create(ctx, vcshooks.CreateRequest{Source: m.cfg.Cwd, Name: name, Kind: vcshooks.KindAgent, AgentID: id})
+		if errors.Is(err, vcshooks.ErrDeclined) {
+			if _, gerr := worktree.Find(ctx, m.cfg.Cwd); gerr == nil {
+				return m.gitWorktree(ctx, name)
+			}
+		}
 		if err != nil {
 			return nil, fmt.Errorf("cannot create a working copy for the agent: %w. The agent did not start; ask the user before starting it without isolation", err)
 		}
 		return &worktree.Result{Name: c.Name, Path: c.Path, Cwd: c.Cwd, BaseRef: c.Base, RepositoryPath: c.Source, Hook: true}, nil
 	}
+	return m.gitWorktree(ctx, name)
+}
+
+func (m *Manager) gitWorktree(ctx context.Context, name string) (*worktree.Result, error) {
 	r, err := worktree.Create(ctx, m.cfg.Cwd, worktree.Options{Name: name})
 	if err != nil {
 		return nil, fmt.Errorf("cannot create a worktree for the agent: %w", err)

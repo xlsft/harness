@@ -148,6 +148,8 @@ const (
 	FileDiffSource_FILE_DIFF_SOURCE_HISTORY FileDiffSource = 2
 	// Without a snapshot (created since, or in the scratch or private directory): diffed against nothing.
 	FileDiffSource_FILE_DIFF_SOURCE_NEW_FILE FileDiffSource = 3
+	// A VcsStatus hook listed it and a VcsDiff hook diffed it: a folder outside git under another version control.
+	FileDiffSource_FILE_DIFF_SOURCE_VCS FileDiffSource = 4
 )
 
 // Enum value maps for FileDiffSource.
@@ -157,12 +159,14 @@ var (
 		1: "FILE_DIFF_SOURCE_GIT",
 		2: "FILE_DIFF_SOURCE_HISTORY",
 		3: "FILE_DIFF_SOURCE_NEW_FILE",
+		4: "FILE_DIFF_SOURCE_VCS",
 	}
 	FileDiffSource_value = map[string]int32{
 		"FILE_DIFF_SOURCE_UNSPECIFIED": 0,
 		"FILE_DIFF_SOURCE_GIT":         1,
 		"FILE_DIFF_SOURCE_HISTORY":     2,
 		"FILE_DIFF_SOURCE_NEW_FILE":    3,
+		"FILE_DIFF_SOURCE_VCS":         4,
 	}
 )
 
@@ -1139,12 +1143,13 @@ const file_harness_agent_v1_session_diff_proto_rawDesc = "" +
 	"\x16FILE_DIFF_STATUS_ADDED\x10\x01\x12\x1d\n" +
 	"\x19FILE_DIFF_STATUS_MODIFIED\x10\x02\x12\x1c\n" +
 	"\x18FILE_DIFF_STATUS_DELETED\x10\x03\x12\x1c\n" +
-	"\x18FILE_DIFF_STATUS_RENAMED\x10\x04*\x89\x01\n" +
+	"\x18FILE_DIFF_STATUS_RENAMED\x10\x04*\xa3\x01\n" +
 	"\x0eFileDiffSource\x12 \n" +
 	"\x1cFILE_DIFF_SOURCE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14FILE_DIFF_SOURCE_GIT\x10\x01\x12\x1c\n" +
 	"\x18FILE_DIFF_SOURCE_HISTORY\x10\x02\x12\x1d\n" +
-	"\x19FILE_DIFF_SOURCE_NEW_FILE\x10\x03B\xd1\x01\n" +
+	"\x19FILE_DIFF_SOURCE_NEW_FILE\x10\x03\x12\x18\n" +
+	"\x14FILE_DIFF_SOURCE_VCS\x10\x04B\xd1\x01\n" +
 	"\x14com.harness.agent.v1B\x10SessionDiffProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
 var (

@@ -30,6 +30,9 @@ const (
 var (
 	// ErrNoAnswer: the hooks ran and none gave what the event asks for.
 	ErrNoAnswer = errors.New("no hook answered")
+	// ErrDeclined: the WorktreeCreate hooks ran and printed nothing, which says the folder is not theirs. In a git
+	// repository the caller then makes a git worktree; elsewhere there is nothing to isolate with.
+	ErrDeclined = errors.New("the WorktreeCreate hook printed no path: it does not handle this folder")
 	// ErrNoRemoveHook: WorktreeCreate is configured, WorktreeRemove is not, so a copy stays where it is.
 	ErrNoRemoveHook = errors.New("no WorktreeRemove hook is configured")
 )
@@ -109,7 +112,8 @@ func failed(ev hooks.Event, out hooks.Outcome) error {
 }
 
 // Create runs WorktreeCreate. The last handler in configuration order that gives a path wins (configure one); a handler
-// that fails fails the whole, after the others finished, so nothing is used half made.
+// that fails fails the whole, after the others finished, so nothing is used half made. ErrDeclined when none printed
+// anything.
 func (h Hooks) Create(ctx context.Context, req CreateRequest) (*Created, error) {
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
@@ -143,7 +147,7 @@ func (h Hooks) Create(ctx context.Context, req CreateRequest) (*Created, error) 
 			return c, nil
 		}
 	}
-	return nil, fmt.Errorf("%w: the WorktreeCreate hook printed no path", ErrNoAnswer)
+	return nil, ErrDeclined
 }
 
 // createdFrom reads one handler's answer: JSON with worktreePath, or the path as the last line of plain output. nil when

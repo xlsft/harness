@@ -26,6 +26,7 @@ import (
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/vcshooks"
 )
 
 // The session's changes as they are on disk (session_diff.proto): GetSessionDiff for the Diff pane, and the
@@ -76,6 +77,8 @@ type diffSources struct {
 	// folderStore is where the snapshots of its directories outside git are kept (folderbaseline.go); "" for none.
 	// harnessHome stays out of them: the client's own files change all the time.
 	folderStore, harnessHome string
+	// vcs is the session's VcsStatus and VcsDiff hooks, for folders outside git (sessiondiff_vcs.go); nil for none.
+	vcs vcsSource
 }
 
 func (ls *liveSession) diffSources() *diffSources {
@@ -96,6 +99,9 @@ func (ls *liveSession) diffSources() *diffSources {
 	}
 	if ls.sess.FileHistory != nil {
 		src.baselines = ls.sess.FileHistory.Baselines()
+	}
+	if h := vcshooks.Of(ls.sess.Hooks); h.Reports() {
+		src.vcs = h
 	}
 	return src
 }
@@ -241,6 +247,16 @@ func computeSessionFileDiff(ctx context.Context, src *diffSources, base *agentv1
 			}
 		}
 	}
+	for _, r := range b.hookRepos {
+		for _, e := range r.status.Files {
+			if !found && r.abs(e.Path) == path {
+				found = true
+				if f, err = b.hookFile(ctx, r, e); err != nil {
+					return nil, err
+				}
+			}
+		}
+	}
 	for _, c := range b.candidates {
 		if !found && sanitizeUTF8(c.path) == path {
 			found = true
@@ -264,6 +280,11 @@ func scanSessionDiff(ctx context.Context, src *diffSources, base *agentv1.DiffBa
 	folders := b.findRepos(ctx)
 	if err := b.resolveBases(ctx, choice); err != nil {
 		return nil, err
+	}
+	if src.vcs != nil && b.kind != agentv1.DiffBaseKind_DIFF_BASE_KIND_COMMIT {
+		if folders, err = b.scanHookRepos(ctx, folders); err != nil {
+			return nil, err
+		}
 	}
 	b.sign(b.kind.String(), b.baseLabel, b.headLabel, src.cwd)
 	b.sign(src.dirs...)
@@ -375,6 +396,8 @@ type diskCandidate struct {
 type diffBuilder struct {
 	src   *diffSources
 	repos []*diffRepo
+	// hookRepos are the folders outside git a VcsStatus hook answered for.
+	hookRepos []*hookRepo
 	files []*agentv1.FileDiff
 	// seen holds the resolved paths already decided.
 	seen      map[string]bool
@@ -437,6 +460,11 @@ func (b *diffBuilder) measure(ctx context.Context) error {
 	for _, r := range b.repos {
 		if err := b.measureRepo(ctx, r); err != nil {
 			return fmt.Errorf("%s: %w", r.root, err)
+		}
+	}
+	for _, r := range b.hookRepos {
+		if err := b.measureHookRepo(ctx, r); err != nil {
+			return err
 		}
 	}
 	for _, c := range b.candidates {
@@ -555,6 +583,11 @@ func (b *diffBuilder) display(path string) string {
 			return rel
 		}
 	}
+	for _, r := range b.hookRepos {
+		if rel, ok := relWithinEither(r.root, path); ok {
+			return rel
+		}
+	}
 	if home, err := os.UserHomeDir(); err == nil {
 		if rel, ok := relWithin(home, path); ok {
 			return "~/" + rel
@@ -615,6 +648,9 @@ func (b *diffBuilder) scanHistory() {
 }
 
 func (b *diffBuilder) inRepo(real string) bool {
+	if b.inHookRepo(real) {
+		return true
+	}
 	for _, r := range b.repos {
 		if real == r.top {
 			return true
@@ -1003,6 +1039,11 @@ func (b *diffBuilder) addHunks(ctx context.Context) error {
 			if f := byPath[p.Path]; f != nil {
 				f.Status, f.OldPath, f.Additions, f.Deletions, f.Binary, f.Hunks = p.Status, p.OldPath, p.Additions, p.Deletions, p.Binary, p.Hunks
 			}
+		}
+	}
+	for _, r := range b.hookRepos {
+		if err := b.addHookHunks(ctx, r, byPath); err != nil {
+			return err
 		}
 	}
 	return nil

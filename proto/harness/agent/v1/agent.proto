@@ -886,6 +886,8 @@ message SessionEvent {
     TaskGraphUpdated task_graph_updated = 141;
     // Always-on hosts (docs/design/hosts.md): what became of the session's work; numbered apart like the shell events.
     HostWorkUpdated host_work_updated = 230;
+    // Version control through hooks (hooks.proto, docs/design/vcs-hooks.md); numbered apart like the shell events.
+    VcsHooksSuggested vcs_hooks_suggested = 410;
   }
 }
 

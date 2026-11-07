@@ -657,6 +657,63 @@ func (*SetHooksTrustResponse) Descriptor() ([]byte, []int) {
 	return file_harness_agent_v1_hooks_proto_rawDescGZIP(), []int{5}
 }
 
+// The session's folder is under a version control that git does not cover (Mercurial, Jujutsu, Perforce), and no
+// WorktreeCreate or VcsStatus hook runs for it: worktrees cannot isolate it and the Changes pane falls back to snapshots.
+// Published once per working copy on this device, when a session opens there. Not stored or replayed.
+type VcsHooksSuggested struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// "mercurial", "jujutsu" or "perforce".
+	Vcs string `protobuf:"bytes,1,opt,name=vcs,proto3" json:"vcs,omitempty"`
+	// The working copy's root.
+	Root          string `protobuf:"bytes,2,opt,name=root,proto3" json:"root,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VcsHooksSuggested) Reset() {
+	*x = VcsHooksSuggested{}
+	mi := &file_harness_agent_v1_hooks_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VcsHooksSuggested) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VcsHooksSuggested) ProtoMessage() {}
+
+func (x *VcsHooksSuggested) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_hooks_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VcsHooksSuggested.ProtoReflect.Descriptor instead.
+func (*VcsHooksSuggested) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_hooks_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *VcsHooksSuggested) GetVcs() string {
+	if x != nil {
+		return x.Vcs
+	}
+	return ""
+}
+
+func (x *VcsHooksSuggested) GetRoot() string {
+	if x != nil {
+		return x.Root
+	}
+	return ""
+}
+
 var File_harness_agent_v1_hooks_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_hooks_proto_rawDesc = "" +
@@ -724,7 +781,10 @@ const file_harness_agent_v1_hooks_proto_rawDesc = "" +
 	"\x14SetHooksTrustRequest\x12\x12\n" +
 	"\x04hash\x18\x01 \x01(\tR\x04hash\x12\x18\n" +
 	"\atrusted\x18\x02 \x01(\bR\atrusted\"\x17\n" +
-	"\x15SetHooksTrustResponseB\xcb\x01\n" +
+	"\x15SetHooksTrustResponse\"9\n" +
+	"\x11VcsHooksSuggested\x12\x10\n" +
+	"\x03vcs\x18\x01 \x01(\tR\x03vcs\x12\x12\n" +
+	"\x04root\x18\x02 \x01(\tR\x04rootB\xcb\x01\n" +
 	"\x14com.harness.agent.v1B\n" +
 	"HooksProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
@@ -741,7 +801,7 @@ func file_harness_agent_v1_hooks_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_agent_v1_hooks_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_harness_agent_v1_hooks_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_harness_agent_v1_hooks_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_harness_agent_v1_hooks_proto_goTypes = []any{
 	(HookRun_Status)(0),           // 0: harness.agent.v1.HookRun.Status
 	(ConfiguredHook_Status)(0),    // 1: harness.agent.v1.ConfiguredHook.Status
@@ -751,6 +811,7 @@ var file_harness_agent_v1_hooks_proto_goTypes = []any{
 	(*ListHooksResponse)(nil),     // 5: harness.agent.v1.ListHooksResponse
 	(*SetHooksTrustRequest)(nil),  // 6: harness.agent.v1.SetHooksTrustRequest
 	(*SetHooksTrustResponse)(nil), // 7: harness.agent.v1.SetHooksTrustResponse
+	(*VcsHooksSuggested)(nil),     // 8: harness.agent.v1.VcsHooksSuggested
 }
 var file_harness_agent_v1_hooks_proto_depIdxs = []int32{
 	0, // 0: harness.agent.v1.HookRun.status:type_name -> harness.agent.v1.HookRun.Status
@@ -775,7 +836,7 @@ func file_harness_agent_v1_hooks_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_hooks_proto_rawDesc), len(file_harness_agent_v1_hooks_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

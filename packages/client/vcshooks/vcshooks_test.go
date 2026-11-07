@@ -79,7 +79,7 @@ func TestCreateFailures(t *testing.T) {
 		name, body, want string
 	}{
 		{"exit", "echo broken >&2; exit 1\n", "broken"},
-		{"no path", "true\n", "printed no path"},
+		{"no path", "true\n", "does not handle"},
 		{"missing folder", "echo /nonexistent/vcs-hooks-test\n", "not a folder"},
 		{"source itself", `echo "` + src + `"` + "\n", "source folder itself"},
 		{"cwd outside", `printf '{"worktreePath":"%s","cwd":"/"}' "` + t.TempDir() + `"` + "\n", "not inside"},

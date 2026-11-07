@@ -38,8 +38,14 @@ func (s *Server) createWorktree(ctx context.Context, m *agentv1.CreateSessionReq
 	if h, release, err := s.folderVcsHooks(ctx, m.GetCwd(), sessionID); err != nil {
 		return nil, nil, err
 	} else if h.Isolates() {
-		defer release()
-		return createHookWorktree(ctx, h, m, o)
+		r, w, err := createHookWorktree(ctx, h, m, o)
+		release()
+		if !errors.Is(err, vcshooks.ErrDeclined) {
+			return r, w, err
+		}
+		if _, gerr := worktree.Find(ctx, m.GetCwd()); gerr != nil {
+			return nil, nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
 	} else {
 		release()
 	}
@@ -61,9 +67,15 @@ func (s *Server) createWorktree(ctx context.Context, m *agentv1.CreateSessionReq
 // shows it and offers to start in the folder itself, which happens only when the user picks that.
 func createHookWorktree(ctx context.Context, h vcshooks.Hooks, m *agentv1.CreateSessionRequest, o *agentv1.WorktreeOptions) (*worktree.Result, *session.Worktree, error) {
 	if o.GetFromPr() != "" || o.GetBranch() != "" {
+		if _, err := worktree.Find(ctx, m.GetCwd()); err == nil {
+			return nil, nil, vcshooks.ErrDeclined // a git worktree, as asked
+		}
 		return nil, nil, connect.NewError(connect.CodeInvalidArgument, errors.New("this folder makes its working copies through WorktreeCreate hooks, which take no branch or pull request"))
 	}
 	c, err := h.Create(ctx, vcshooks.CreateRequest{Source: m.GetCwd(), Name: o.GetName(), Kind: vcshooks.KindSession, BaseRevision: o.GetBaseRef()})
+	if errors.Is(err, vcshooks.ErrDeclined) {
+		return nil, nil, err
+	}
 	if err != nil {
 		code := connect.CodeFailedPrecondition
 		if errors.Is(err, worktree.ErrInvalidName) {

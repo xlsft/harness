@@ -9,6 +9,8 @@ package harness.agent.v1;
 // - in a git repository of the session (of a working directory or the cwd): the working tree against HEAD, staged
 //   and untracked files included, .gitignore respected; in a worktree the client created, against the merge base
 //   of its base ref, so what the session committed there still counts;
+// - outside git, in a folder a VcsStatus hook claims (docs/design/vcs-hooks.md): what that hook lists, against its
+//   version control's base (the hook's label), with hunks from the VcsDiff hook;
 // - elsewhere: for files the file tools touched, their content before the session first touched them; for the rest
 //   of a working directory, a snapshot taken when the session first measured it (a file too big to copy is listed
 //   as changed without hunks; a directory too big to walk compares only the files reached, finding no new ones);
@@ -147,6 +149,8 @@ enum FileDiffSource {
   FILE_DIFF_SOURCE_HISTORY = 2;
   // Without a snapshot (created since, or in the scratch or private directory): diffed against nothing.
   FILE_DIFF_SOURCE_NEW_FILE = 3;
+  // A VcsStatus hook listed it and a VcsDiff hook diffed it: a folder outside git under another version control.
+  FILE_DIFF_SOURCE_VCS = 4;
 }
 
 message FileDiffHunk {

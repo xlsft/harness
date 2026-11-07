@@ -124,7 +124,9 @@ func (*EnterWorktree) Run(ctx context.Context, env *Env, call Call) Result {
 	}
 	cwd := env.CurrentDir()
 	if h := vcsHooksOf(m); h.Isolates() {
-		return enterHookWorktree(ctx, m, h, cwd, in.Name, in.BaseRef, in.PullRequest)
+		if res, declined := enterHookWorktree(ctx, m, h, cwd, in.Name, in.BaseRef, in.PullRequest); !declined {
+			return res
+		}
 	}
 	created, err := worktree.Create(ctx, cwd, worktree.Options{Name: in.Name, BaseRef: in.BaseRef, PullRequest: in.PullRequest})
 	if errors.Is(err, worktree.ErrNotRepository) {
@@ -154,14 +156,23 @@ func (*EnterWorktree) Run(ctx context.Context, env *Env, call Call) Result {
 	return moveResult(text, "Entered "+created.Branch, map[string]any{"cwd": created.Cwd, "worktreePath": created.Path, "branch": created.Branch, "baseRef": created.BaseRef})
 }
 
-// enterHookWorktree is EnterWorktree when WorktreeCreate hooks replace git worktrees.
-func enterHookWorktree(ctx context.Context, m Mover, h vcshooks.Hooks, cwd, name, base, pr string) Result {
+// enterHookWorktree is EnterWorktree when WorktreeCreate hooks replace git worktrees. declined: the hooks printed nothing
+// and the folder is in git, so a git worktree is made after all.
+func enterHookWorktree(ctx context.Context, m Mover, h vcshooks.Hooks, cwd, name, base, pr string) (res Result, declined bool) {
 	if strings.TrimSpace(pr) != "" {
-		return ErrorResult("pull_request needs a git worktree, and this session makes its working copies through WorktreeCreate hooks. Leave it out.")
+		if _, err := worktree.Find(ctx, cwd); err == nil {
+			return Result{}, true
+		}
+		return ErrorResult("pull_request needs a git worktree, and this session makes its working copies through WorktreeCreate hooks. Leave it out."), false
 	}
 	created, err := h.Create(ctx, vcshooks.CreateRequest{Source: cwd, Name: name, Kind: vcshooks.KindSession, BaseRevision: strings.TrimSpace(base)})
+	if errors.Is(err, vcshooks.ErrDeclined) {
+		if _, gerr := worktree.Find(ctx, cwd); gerr == nil {
+			return Result{}, true
+		}
+	}
 	if err != nil {
-		return ErrorResult("could not create the working copy: %v. The session still works in %s; ask the user before working there instead.", err, cwd)
+		return ErrorResult("could not create the working copy: %v. The session still works in %s; ask the user before working there instead.", err, cwd), false
 	}
 	wt := &session.Worktree{Path: created.Path, BaseRef: created.Base, RepositoryPath: cwd, OriginalCwd: cwd, Hook: true, Name: created.Name}
 	from := ""
@@ -172,12 +183,12 @@ func enterHookWorktree(ctx context.Context, m Mover, h vcshooks.Hooks, cwd, name
 	if err := m.Move(ctx, Move{Cwd: created.Cwd, Worktree: wt, Notice: notice}); err != nil {
 		rerr := h.Remove(context.WithoutCancel(ctx), vcshooks.RemoveRequest{Path: created.Path, Source: cwd, Name: created.Name, Kind: vcshooks.KindSession, Force: true})
 		if rerr != nil && !errors.Is(rerr, vcshooks.ErrNoRemoveHook) {
-			return ErrorResult("could not move the session into the working copy (%v), and %s could not be removed: %v", err, created.Path, rerr)
+			return ErrorResult("could not move the session into the working copy (%v), and %s could not be removed: %v", err, created.Path, rerr), false
 		}
-		return ErrorResult("could not move the session into the working copy: %v", err)
+		return ErrorResult("could not move the session into the working copy: %v", err), false
 	}
 	text := fmt.Sprintf("The session now works in %s, a working copy a WorktreeCreate hook made%s. Your shell is there. Use paths under the new folder, and read files again before editing them there.", created.Cwd, from)
-	return moveResult(text, "Entered "+created.Name, map[string]any{"cwd": created.Cwd, "worktreePath": created.Path, "baseRef": created.Base, "hook": true})
+	return moveResult(text, "Entered "+created.Name, map[string]any{"cwd": created.Cwd, "worktreePath": created.Path, "baseRef": created.Base, "hook": true}), false
 }
 
 // ---- ExitWorktree ----
