@@ -11,6 +11,7 @@ import (
 	_ "image/png"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -224,9 +225,19 @@ func (m *Manager) Capture(ctx context.Context, udid string) (Frame, error) {
 	if err := m.ready(ctx); err != nil {
 		return Frame{}, err
 	}
-	out, err := m.r.Simctl(ctx, nil, "io", udid, "screenshot", "--type=jpeg", "-")
+	// simctl takes "-" as a file name, not stdout: write into a private temporary folder and read it back.
+	dir, err := os.MkdirTemp("", "harness-sim-shot-")
 	if err != nil {
 		return Frame{}, err
+	}
+	defer os.RemoveAll(dir)
+	path := filepath.Join(dir, "frame.jpg")
+	if _, err := m.r.Simctl(ctx, nil, "io", udid, "screenshot", "--type=jpeg", path); err != nil {
+		return Frame{}, err
+	}
+	out, err := os.ReadFile(path)
+	if err != nil {
+		return Frame{}, fmt.Errorf("simctl screenshot: %w", err)
 	}
 	cfg, _, err := image.DecodeConfig(bytes.NewReader(out))
 	if err != nil {

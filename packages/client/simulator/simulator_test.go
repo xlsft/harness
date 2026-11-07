@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -24,7 +25,9 @@ type fakeRunner struct {
 	shot  []byte
 }
 
-func (f *fakeRunner) DeveloperDir(context.Context) string { return "/Applications/Xcode.app/Contents/Developer" }
+func (f *fakeRunner) DeveloperDir(context.Context) string {
+	return "/Applications/Xcode.app/Contents/Developer"
+}
 
 func (f *fakeRunner) Simctl(_ context.Context, stdin []byte, args ...string) ([]byte, error) {
 	f.mu.Lock()
@@ -35,7 +38,11 @@ func (f *fakeRunner) Simctl(_ context.Context, stdin []byte, args ...string) ([]
 	case "list":
 		return []byte(f.list), nil
 	case "io":
-		return f.shot, nil
+		// Like the real simctl: the screenshot goes to the file named last, nothing to stdout.
+		if err := os.WriteFile(args[len(args)-1], f.shot, 0o600); err != nil {
+			return nil, err
+		}
+		return []byte("Wrote screenshot to: " + args[len(args)-1] + "\n"), nil
 	case "launch":
 		return []byte(args[len(args)-1] + ": 4242\n"), nil
 	case "boot":
