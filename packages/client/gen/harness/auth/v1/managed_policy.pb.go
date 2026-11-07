@@ -64,8 +64,14 @@ type ManagedPolicy struct {
 	ExternalSkillSearchDisabled bool `protobuf:"varint,21,opt,name=external_skill_search_disabled,json=externalSkillSearchDisabled,proto3" json:"external_skill_search_disabled,omitempty"`
 	// Only always-on hosts registered by an admin may be used: nobody registers or runs a host of their own.
 	PersonalHostsDisabled bool `protobuf:"varint,230,opt,name=personal_hosts_disabled,json=personalHostsDisabled,proto3" json:"personal_hosts_disabled,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// Best-of-N (docs/design/hosts.md, decision 29). maxAttempts: attempts in a group, 2 to 5; 0, the default of 5.
+	MaxAttempts int32 `protobuf:"varint,360,opt,name=max_attempts,json=maxAttempts,proto3" json:"max_attempts,omitempty"`
+	// maxParallelAttempts: attempts of a group that work at once; 0, no cap.
+	MaxParallelAttempts int32 `protobuf:"varint,361,opt,name=max_parallel_attempts,json=maxParallelAttempts,proto3" json:"max_parallel_attempts,omitempty"`
+	// attemptBudgetUsd: what one attempt may spend; 0, no cap.
+	AttemptBudgetUsd float64 `protobuf:"fixed64,362,opt,name=attempt_budget_usd,json=attemptBudgetUsd,proto3" json:"attempt_budget_usd,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -250,6 +256,27 @@ func (x *ManagedPolicy) GetPersonalHostsDisabled() bool {
 		return x.PersonalHostsDisabled
 	}
 	return false
+}
+
+func (x *ManagedPolicy) GetMaxAttempts() int32 {
+	if x != nil {
+		return x.MaxAttempts
+	}
+	return 0
+}
+
+func (x *ManagedPolicy) GetMaxParallelAttempts() int32 {
+	if x != nil {
+		return x.MaxParallelAttempts
+	}
+	return 0
+}
+
+func (x *ManagedPolicy) GetAttemptBudgetUsd() float64 {
+	if x != nil {
+		return x.AttemptBudgetUsd
+	}
+	return 0
 }
 
 type GetManagedPolicyRequest struct {
@@ -510,7 +537,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xa9\b\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xb1\t\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -536,7 +563,10 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\x0eallowed_skills\x18\x13 \x03(\tR\rallowedSkills\x12%\n" +
 	"\x0eblocked_skills\x18\x14 \x03(\tR\rblockedSkills\x12C\n" +
 	"\x1eexternal_skill_search_disabled\x18\x15 \x01(\bR\x1bexternalSkillSearchDisabled\x127\n" +
-	"\x17personal_hosts_disabled\x18\xe6\x01 \x01(\bR\x15personalHostsDisabled\"\x19\n" +
+	"\x17personal_hosts_disabled\x18\xe6\x01 \x01(\bR\x15personalHostsDisabled\x12\"\n" +
+	"\fmax_attempts\x18\xe8\x02 \x01(\x05R\vmaxAttempts\x123\n" +
+	"\x15max_parallel_attempts\x18\xe9\x02 \x01(\x05R\x13maxParallelAttempts\x12-\n" +
+	"\x12attempt_budget_usd\x18\xea\x02 \x01(\x01R\x10attemptBudgetUsd\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +
 	"\x06policy\x18\x01 \x01(\v2\x1e.harness.auth.v1.ManagedPolicyR\x06policy\x12\x1d\n" +

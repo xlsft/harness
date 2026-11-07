@@ -5,6 +5,7 @@ package harness.relay.v1;
 import "harness/agent/v1/agent.proto";
 import "harness/agent/v1/auto_fix.proto";
 import "harness/agent/v1/device_settings.proto";
+import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/session_links.proto";
 import "harness/agent/v1/slash_commands.proto";
 import "harness/agent/v1/subagents.proto";
@@ -126,6 +127,9 @@ service RelayService {
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
   rpc ListOutputStyles(ListOutputStylesRequest) returns (ListOutputStylesResponse);
   rpc ListSlashCommands(ListSlashCommandsRequest) returns (ListSlashCommandsResponse);
+  // The Changes pane of a session of another machine: what is on its disk (docs/design/hosts.md, decision 31).
+  rpc GetSessionDiff(GetSessionDiffRequest) returns (GetSessionDiffResponse);
+  rpc GetSessionFileDiff(GetSessionFileDiffRequest) returns (GetSessionFileDiffResponse);
   // "New session on machine X in folder Y". Only to daemon hosts, only under their allowed roots (checked by
   // the server and again by the host). Held until the host acks with the created session (max ~30 s).
   rpc SpawnSession(SpawnSessionRequest) returns (SpawnSessionResponse);
@@ -240,6 +244,9 @@ message Command {
     // A job of the auto-fix pipeline. Sent by the server itself, never by a viewer. It waits for the machine like a session
     // note and reaches a closed session on that machine too.
     harness.agent.v1.DeliverAutoFixJobRequest deliver_auto_fix_job = 150;
+    // Queries of the Changes pane.
+    harness.agent.v1.GetSessionDiffRequest get_session_diff = 360;
+    harness.agent.v1.GetSessionFileDiffRequest get_session_file_diff = 361;
   }
   // RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
   string expires_at = 7;
@@ -349,6 +356,8 @@ message CommandAck {
     harness.agent.v1.GetSubagentTranscriptResponse get_subagent_transcript = 31;
     harness.agent.v1.StopWorkflowResponse stop_workflow = 40;
     harness.agent.v1.ListSlashCommandsResponse list_slash_commands = 110;
+    harness.agent.v1.GetSessionDiffResponse get_session_diff = 360;
+    harness.agent.v1.GetSessionFileDiffResponse get_session_file_diff = 361;
   }
 }
 
@@ -731,6 +740,22 @@ message RewindRequest {
 
 message RewindResponse {
   CommandResult result = 1;
+}
+
+message GetSessionDiffRequest {
+  harness.agent.v1.GetSessionDiffRequest request = 1;
+}
+
+message GetSessionDiffResponse {
+  harness.agent.v1.GetSessionDiffResponse response = 1;
+}
+
+message GetSessionFileDiffRequest {
+  harness.agent.v1.GetSessionFileDiffRequest request = 1;
+}
+
+message GetSessionFileDiffResponse {
+  harness.agent.v1.GetSessionFileDiffResponse response = 1;
 }
 
 message ListCheckpointsRequest {

@@ -134,6 +134,10 @@ const (
 	HostWorkKind_HOST_WORK_KIND_AUTO_FIX HostWorkKind = 2
 	// An @mention on a pull request with no session.
 	HostWorkKind_HOST_WORK_KIND_MENTION HostWorkKind = 3
+	// A session the user moved here from another machine: its branch and its transcript (decisions 21 to 27).
+	HostWorkKind_HOST_WORK_KIND_MOVE HostWorkKind = 4
+	// One attempt of a best-of-N group.
+	HostWorkKind_HOST_WORK_KIND_ATTEMPT HostWorkKind = 5
 )
 
 // Enum value maps for HostWorkKind.
@@ -143,12 +147,16 @@ var (
 		1: "HOST_WORK_KIND_NEW_SESSION",
 		2: "HOST_WORK_KIND_AUTO_FIX",
 		3: "HOST_WORK_KIND_MENTION",
+		4: "HOST_WORK_KIND_MOVE",
+		5: "HOST_WORK_KIND_ATTEMPT",
 	}
 	HostWorkKind_value = map[string]int32{
 		"HOST_WORK_KIND_UNSPECIFIED": 0,
 		"HOST_WORK_KIND_NEW_SESSION": 1,
 		"HOST_WORK_KIND_AUTO_FIX":    2,
 		"HOST_WORK_KIND_MENTION":     3,
+		"HOST_WORK_KIND_MOVE":        4,
+		"HOST_WORK_KIND_ATTEMPT":     5,
 	}
 )
 
@@ -193,6 +201,8 @@ const (
 	HostWorkState_HOST_WORK_STATE_FAILED    HostWorkState = 5
 	HostWorkState_HOST_WORK_STATE_CANCELLED HostWorkState = 6
 	HostWorkState_HOST_WORK_STATE_EXPIRED   HostWorkState = 7
+	// A move whose branch the other machine is still pushing; no daemon claims it yet.
+	HostWorkState_HOST_WORK_STATE_AWAITING_PUSH HostWorkState = 8
 )
 
 // Enum value maps for HostWorkState.
@@ -206,16 +216,18 @@ var (
 		5: "HOST_WORK_STATE_FAILED",
 		6: "HOST_WORK_STATE_CANCELLED",
 		7: "HOST_WORK_STATE_EXPIRED",
+		8: "HOST_WORK_STATE_AWAITING_PUSH",
 	}
 	HostWorkState_value = map[string]int32{
-		"HOST_WORK_STATE_UNSPECIFIED": 0,
-		"HOST_WORK_STATE_QUEUED":      1,
-		"HOST_WORK_STATE_CLAIMED":     2,
-		"HOST_WORK_STATE_RUNNING":     3,
-		"HOST_WORK_STATE_DONE":        4,
-		"HOST_WORK_STATE_FAILED":      5,
-		"HOST_WORK_STATE_CANCELLED":   6,
-		"HOST_WORK_STATE_EXPIRED":     7,
+		"HOST_WORK_STATE_UNSPECIFIED":   0,
+		"HOST_WORK_STATE_QUEUED":        1,
+		"HOST_WORK_STATE_CLAIMED":       2,
+		"HOST_WORK_STATE_RUNNING":       3,
+		"HOST_WORK_STATE_DONE":          4,
+		"HOST_WORK_STATE_FAILED":        5,
+		"HOST_WORK_STATE_CANCELLED":     6,
+		"HOST_WORK_STATE_EXPIRED":       7,
+		"HOST_WORK_STATE_AWAITING_PUSH": 8,
 	}
 )
 
@@ -299,6 +311,70 @@ func (x HostWorkLanding) Number() protoreflect.EnumNumber {
 // Deprecated: Use HostWorkLanding.Descriptor instead.
 func (HostWorkLanding) EnumDescriptor() ([]byte, []int) {
 	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{4}
+}
+
+type AttemptState int32
+
+const (
+	AttemptState_ATTEMPT_STATE_UNSPECIFIED AttemptState = 0
+	// Not started: waiting for its place (parallelism) or its host.
+	AttemptState_ATTEMPT_STATE_PENDING AttemptState = 1
+	AttemptState_ATTEMPT_STATE_RUNNING AttemptState = 2
+	// Its turn ended; it waits for the user, like any session.
+	AttemptState_ATTEMPT_STATE_IDLE   AttemptState = 3
+	AttemptState_ATTEMPT_STATE_FAILED AttemptState = 4
+	// The user discarded it; its checkout and branch are on their way out.
+	AttemptState_ATTEMPT_STATE_DISCARDING AttemptState = 5
+	AttemptState_ATTEMPT_STATE_DISCARDED  AttemptState = 6
+)
+
+// Enum value maps for AttemptState.
+var (
+	AttemptState_name = map[int32]string{
+		0: "ATTEMPT_STATE_UNSPECIFIED",
+		1: "ATTEMPT_STATE_PENDING",
+		2: "ATTEMPT_STATE_RUNNING",
+		3: "ATTEMPT_STATE_IDLE",
+		4: "ATTEMPT_STATE_FAILED",
+		5: "ATTEMPT_STATE_DISCARDING",
+		6: "ATTEMPT_STATE_DISCARDED",
+	}
+	AttemptState_value = map[string]int32{
+		"ATTEMPT_STATE_UNSPECIFIED": 0,
+		"ATTEMPT_STATE_PENDING":     1,
+		"ATTEMPT_STATE_RUNNING":     2,
+		"ATTEMPT_STATE_IDLE":        3,
+		"ATTEMPT_STATE_FAILED":      4,
+		"ATTEMPT_STATE_DISCARDING":  5,
+		"ATTEMPT_STATE_DISCARDED":   6,
+	}
+)
+
+func (x AttemptState) Enum() *AttemptState {
+	p := new(AttemptState)
+	*p = x
+	return p
+}
+
+func (x AttemptState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AttemptState) Descriptor() protoreflect.EnumDescriptor {
+	return file_harness_relay_v1_hosts_proto_enumTypes[5].Descriptor()
+}
+
+func (AttemptState) Type() protoreflect.EnumType {
+	return &file_harness_relay_v1_hosts_proto_enumTypes[5]
+}
+
+func (x AttemptState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AttemptState.Descriptor instead.
+func (AttemptState) EnumDescriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{5}
 }
 
 type AgentHost struct {
@@ -1124,8 +1200,15 @@ type HostWork struct {
 	Error          string `protobuf:"bytes,21,opt,name=error,proto3" json:"error,omitempty"`
 	Attempts       int32  `protobuf:"varint,22,opt,name=attempts,proto3" json:"attempts,omitempty"`
 	// RFC 3339, UTC.
-	CreatedAt     string `protobuf:"bytes,23,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     string `protobuf:"bytes,24,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	CreatedAt string `protobuf:"bytes,23,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt string `protobuf:"bytes,24,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	// An attempt's group and its number in it, from 0.
+	AttemptGroupId string `protobuf:"bytes,25,opt,name=attempt_group_id,json=attemptGroupId,proto3" json:"attempt_group_id,omitempty"`
+	AttemptIndex   int32  `protobuf:"varint,26,opt,name=attempt_index,json=attemptIndex,proto3" json:"attempt_index,omitempty"`
+	// Attempts: what runs in the checkout when a turn ends. Empty in other people's listings.
+	TestCommand string `protobuf:"bytes,27,opt,name=test_command,json=testCommand,proto3" json:"test_command,omitempty"`
+	// Attempts: what the session may spend; 0, no limit.
+	BudgetUsd     float64 `protobuf:"fixed64,28,opt,name=budget_usd,json=budgetUsd,proto3" json:"budget_usd,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1328,6 +1411,34 @@ func (x *HostWork) GetUpdatedAt() string {
 	return ""
 }
 
+func (x *HostWork) GetAttemptGroupId() string {
+	if x != nil {
+		return x.AttemptGroupId
+	}
+	return ""
+}
+
+func (x *HostWork) GetAttemptIndex() int32 {
+	if x != nil {
+		return x.AttemptIndex
+	}
+	return 0
+}
+
+func (x *HostWork) GetTestCommand() string {
+	if x != nil {
+		return x.TestCommand
+	}
+	return ""
+}
+
+func (x *HostWork) GetBudgetUsd() float64 {
+	if x != nil {
+		return x.BudgetUsd
+	}
+	return 0
+}
+
 type StartHostWorkRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	HostId        string                 `protobuf:"bytes,1,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
@@ -1343,8 +1454,13 @@ type StartHostWorkRequest struct {
 	FreshClone     bool               `protobuf:"varint,10,opt,name=fresh_clone,json=freshClone,proto3" json:"fresh_clone,omitempty"`
 	// Retrying with the same key returns the same work.
 	IdempotencyKey string `protobuf:"bytes,11,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// NEW_SESSION (unspecified) or MOVE. A move needs branch (harness/...) and fork_session_id, a session of the caller's, and
+	// starts AWAITING_PUSH.
+	Kind          HostWorkKind `protobuf:"varint,12,opt,name=kind,proto3,enum=harness.relay.v1.HostWorkKind" json:"kind,omitempty"`
+	Branch        string       `protobuf:"bytes,13,opt,name=branch,proto3" json:"branch,omitempty"`
+	ForkSessionId string       `protobuf:"bytes,14,opt,name=fork_session_id,json=forkSessionId,proto3" json:"fork_session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StartHostWorkRequest) Reset() {
@@ -1450,6 +1566,27 @@ func (x *StartHostWorkRequest) GetFreshClone() bool {
 func (x *StartHostWorkRequest) GetIdempotencyKey() string {
 	if x != nil {
 		return x.IdempotencyKey
+	}
+	return ""
+}
+
+func (x *StartHostWorkRequest) GetKind() HostWorkKind {
+	if x != nil {
+		return x.Kind
+	}
+	return HostWorkKind_HOST_WORK_KIND_UNSPECIFIED
+}
+
+func (x *StartHostWorkRequest) GetBranch() string {
+	if x != nil {
+		return x.Branch
+	}
+	return ""
+}
+
+func (x *StartHostWorkRequest) GetForkSessionId() string {
+	if x != nil {
+		return x.ForkSessionId
 	}
 	return ""
 }
@@ -2162,11 +2299,14 @@ func (x *ReportAgentHostRequest) GetDiskFreeBytes() int64 {
 }
 
 type ReportAgentHostResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Draining      bool                   `protobuf:"varint,1,opt,name=draining,proto3" json:"draining,omitempty"`
-	MaxSessions   int32                  `protobuf:"varint,2,opt,name=max_sessions,json=maxSessions,proto3" json:"max_sessions,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Draining    bool                   `protobuf:"varint,1,opt,name=draining,proto3" json:"draining,omitempty"`
+	MaxSessions int32                  `protobuf:"varint,2,opt,name=max_sessions,json=maxSessions,proto3" json:"max_sessions,omitempty"`
+	// Attempts the user discarded (decision 32): close the session, remove the checkout, delete the work's harness/ branch, then
+	// UpdateHostWork with discarded.
+	DiscardWorkIds []string `protobuf:"bytes,3,rep,name=discard_work_ids,json=discardWorkIds,proto3" json:"discard_work_ids,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *ReportAgentHostResponse) Reset() {
@@ -2211,6 +2351,13 @@ func (x *ReportAgentHostResponse) GetMaxSessions() int32 {
 		return x.MaxSessions
 	}
 	return 0
+}
+
+func (x *ReportAgentHostResponse) GetDiscardWorkIds() []string {
+	if x != nil {
+		return x.DiscardWorkIds
+	}
+	return nil
 }
 
 type ClaimHostWorkRequest struct {
@@ -2329,8 +2476,10 @@ type UpdateHostWorkRequest struct {
 	Branch         string        `protobuf:"bytes,4,opt,name=branch,proto3" json:"branch,omitempty"`
 	PullRequestUrl string        `protobuf:"bytes,5,opt,name=pull_request_url,json=pullRequestUrl,proto3" json:"pull_request_url,omitempty"`
 	Error          string        `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// The work was discarded as asked: its session, checkout and branch are gone.
+	Discarded     bool `protobuf:"varint,7,opt,name=discarded,proto3" json:"discarded,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateHostWorkRequest) Reset() {
@@ -2403,6 +2552,13 @@ func (x *UpdateHostWorkRequest) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *UpdateHostWorkRequest) GetDiscarded() bool {
+	if x != nil {
+		return x.Discarded
+	}
+	return false
 }
 
 type UpdateHostWorkResponse struct {
@@ -2965,6 +3121,1362 @@ func (x *IssueWorkerTokenResponse) GetDeviceToken() string {
 	return ""
 }
 
+type IssueMoveCredentialsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WorkId        string                 `protobuf:"bytes,1,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IssueMoveCredentialsRequest) Reset() {
+	*x = IssueMoveCredentialsRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IssueMoveCredentialsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IssueMoveCredentialsRequest) ProtoMessage() {}
+
+func (x *IssueMoveCredentialsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IssueMoveCredentialsRequest.ProtoReflect.Descriptor instead.
+func (*IssueMoveCredentialsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *IssueMoveCredentialsRequest) GetWorkId() string {
+	if x != nil {
+		return x.WorkId
+	}
+	return ""
+}
+
+type IssueMoveCredentialsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// As IssueGitCredentialsResponse.
+	Credentials   *IssueGitCredentialsResponse `protobuf:"bytes,1,opt,name=credentials,proto3" json:"credentials,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IssueMoveCredentialsResponse) Reset() {
+	*x = IssueMoveCredentialsResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IssueMoveCredentialsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IssueMoveCredentialsResponse) ProtoMessage() {}
+
+func (x *IssueMoveCredentialsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IssueMoveCredentialsResponse.ProtoReflect.Descriptor instead.
+func (*IssueMoveCredentialsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *IssueMoveCredentialsResponse) GetCredentials() *IssueGitCredentialsResponse {
+	if x != nil {
+		return x.Credentials
+	}
+	return nil
+}
+
+type QueueMovedWorkRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	WorkId string                 `protobuf:"bytes,1,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
+	// The commit the branch is at now.
+	Head          string `protobuf:"bytes,2,opt,name=head,proto3" json:"head,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueueMovedWorkRequest) Reset() {
+	*x = QueueMovedWorkRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueueMovedWorkRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueueMovedWorkRequest) ProtoMessage() {}
+
+func (x *QueueMovedWorkRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueueMovedWorkRequest.ProtoReflect.Descriptor instead.
+func (*QueueMovedWorkRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *QueueMovedWorkRequest) GetWorkId() string {
+	if x != nil {
+		return x.WorkId
+	}
+	return ""
+}
+
+func (x *QueueMovedWorkRequest) GetHead() string {
+	if x != nil {
+		return x.Head
+	}
+	return ""
+}
+
+type QueueMovedWorkResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Work          *HostWork              `protobuf:"bytes,1,opt,name=work,proto3" json:"work,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueueMovedWorkResponse) Reset() {
+	*x = QueueMovedWorkResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueueMovedWorkResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueueMovedWorkResponse) ProtoMessage() {}
+
+func (x *QueueMovedWorkResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueueMovedWorkResponse.ProtoReflect.Descriptor instead.
+func (*QueueMovedWorkResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *QueueMovedWorkResponse) GetWork() *HostWork {
+	if x != nil {
+		return x.Work
+	}
+	return nil
+}
+
+type Attempt struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// From 0.
+	Index int32        `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	State AttemptState `protobuf:"varint,2,opt,name=state,proto3,enum=harness.relay.v1.AttemptState" json:"state,omitempty"`
+	// A host's attempts.
+	WorkId    string `protobuf:"bytes,3,opt,name=work_id,json=workId,proto3" json:"work_id,omitempty"`
+	SessionId string `protobuf:"bytes,4,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Branch    string `protobuf:"bytes,5,opt,name=branch,proto3" json:"branch,omitempty"`
+	Error     string `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+	// The last test result.
+	Check *v11.AttemptCheck `protobuf:"bytes,7,opt,name=check,proto3" json:"check,omitempty"`
+	Kept  bool              `protobuf:"varint,8,opt,name=kept,proto3" json:"kept,omitempty"`
+	// RFC 3339, UTC.
+	UpdatedAt     string `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Attempt) Reset() {
+	*x = Attempt{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Attempt) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Attempt) ProtoMessage() {}
+
+func (x *Attempt) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Attempt.ProtoReflect.Descriptor instead.
+func (*Attempt) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *Attempt) GetIndex() int32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *Attempt) GetState() AttemptState {
+	if x != nil {
+		return x.State
+	}
+	return AttemptState_ATTEMPT_STATE_UNSPECIFIED
+}
+
+func (x *Attempt) GetWorkId() string {
+	if x != nil {
+		return x.WorkId
+	}
+	return ""
+}
+
+func (x *Attempt) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *Attempt) GetBranch() string {
+	if x != nil {
+		return x.Branch
+	}
+	return ""
+}
+
+func (x *Attempt) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *Attempt) GetCheck() *v11.AttemptCheck {
+	if x != nil {
+		return x.Check
+	}
+	return nil
+}
+
+func (x *Attempt) GetKept() bool {
+	if x != nil {
+		return x.Kept
+	}
+	return false
+}
+
+func (x *Attempt) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type AttemptGroup struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// atg_...
+	Id     string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Prompt string `protobuf:"bytes,2,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	Title  string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	// Empty: local worktrees of device_id.
+	HostId   string `protobuf:"bytes,4,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
+	HostName string `protobuf:"bytes,5,opt,name=host_name,json=hostName,proto3" json:"host_name,omitempty"`
+	DeviceId string `protobuf:"bytes,6,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	// Local groups: the folder the worktrees come from.
+	Cwd            string             `protobuf:"bytes,7,opt,name=cwd,proto3" json:"cwd,omitempty"`
+	RepositoryKey  string             `protobuf:"bytes,8,opt,name=repository_key,json=repositoryKey,proto3" json:"repository_key,omitempty"`
+	BaseRef        string             `protobuf:"bytes,9,opt,name=base_ref,json=baseRef,proto3" json:"base_ref,omitempty"`
+	Model          string             `protobuf:"bytes,10,opt,name=model,proto3" json:"model,omitempty"`
+	Effort         v1.Effort          `protobuf:"varint,11,opt,name=effort,proto3,enum=harness.llm.v1.Effort" json:"effort,omitempty"`
+	PermissionMode v11.PermissionMode `protobuf:"varint,12,opt,name=permission_mode,json=permissionMode,proto3,enum=harness.agent.v1.PermissionMode" json:"permission_mode,omitempty"`
+	TestCommand    string             `protobuf:"bytes,13,opt,name=test_command,json=testCommand,proto3" json:"test_command,omitempty"`
+	// What applies, after the policy: how many work at once, and what one may spend (0: no limit).
+	Parallel  int32   `protobuf:"varint,14,opt,name=parallel,proto3" json:"parallel,omitempty"`
+	BudgetUsd float64 `protobuf:"fixed64,15,opt,name=budget_usd,json=budgetUsd,proto3" json:"budget_usd,omitempty"`
+	// -1: none kept yet.
+	KeptIndex int32      `protobuf:"varint,16,opt,name=kept_index,json=keptIndex,proto3" json:"kept_index,omitempty"`
+	Attempts  []*Attempt `protobuf:"bytes,17,rep,name=attempts,proto3" json:"attempts,omitempty"`
+	// RFC 3339, UTC.
+	CreatedAt     string `protobuf:"bytes,18,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	UpdatedAt     string `protobuf:"bytes,19,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AttemptGroup) Reset() {
+	*x = AttemptGroup{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AttemptGroup) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AttemptGroup) ProtoMessage() {}
+
+func (x *AttemptGroup) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AttemptGroup.ProtoReflect.Descriptor instead.
+func (*AttemptGroup) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *AttemptGroup) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AttemptGroup) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+func (x *AttemptGroup) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *AttemptGroup) GetHostId() string {
+	if x != nil {
+		return x.HostId
+	}
+	return ""
+}
+
+func (x *AttemptGroup) GetHostName() string {
+	if x != nil {
+		return x.HostName
+	}
+	return ""
+}
+
+func (x *AttemptGroup) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *AttemptGroup) GetCwd() string {
+	if x != nil {
+		return x.Cwd
+	}
+	return ""
+}
+
+func (x *AttemptGroup) GetRepositoryKey() string {
+	if x != nil {
+		return x.RepositoryKey
+	}
+	return ""
+}
+
+func (x *AttemptGroup) GetBaseRef() string {
+	if x != nil {
+		return x.BaseRef
+	}
+	return ""
+}
+
+func (x *AttemptGroup) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *AttemptGroup) GetEffort() v1.Effort {
+	if x != nil {
+		return x.Effort
+	}
+	return v1.Effort(0)
+}
+
+func (x *AttemptGroup) GetPermissionMode() v11.PermissionMode {
+	if x != nil {
+		return x.PermissionMode
+	}
+	return v11.PermissionMode(0)
+}
+
+func (x *AttemptGroup) GetTestCommand() string {
+	if x != nil {
+		return x.TestCommand
+	}
+	return ""
+}
+
+func (x *AttemptGroup) GetParallel() int32 {
+	if x != nil {
+		return x.Parallel
+	}
+	return 0
+}
+
+func (x *AttemptGroup) GetBudgetUsd() float64 {
+	if x != nil {
+		return x.BudgetUsd
+	}
+	return 0
+}
+
+func (x *AttemptGroup) GetKeptIndex() int32 {
+	if x != nil {
+		return x.KeptIndex
+	}
+	return 0
+}
+
+func (x *AttemptGroup) GetAttempts() []*Attempt {
+	if x != nil {
+		return x.Attempts
+	}
+	return nil
+}
+
+func (x *AttemptGroup) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *AttemptGroup) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+type StartAttemptsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Empty: local worktrees of the calling client.
+	HostId string `protobuf:"bytes,1,opt,name=host_id,json=hostId,proto3" json:"host_id,omitempty"`
+	// 2 to 5, or less where the policy says so.
+	Count  int32  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	Prompt string `protobuf:"bytes,3,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	Title  string `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
+	// Host groups: host/owner/name. Local groups: the client fills it from cwd when it can.
+	RepositoryKey string    `protobuf:"bytes,5,opt,name=repository_key,json=repositoryKey,proto3" json:"repository_key,omitempty"`
+	BaseRef       string    `protobuf:"bytes,6,opt,name=base_ref,json=baseRef,proto3" json:"base_ref,omitempty"`
+	Model         string    `protobuf:"bytes,7,opt,name=model,proto3" json:"model,omitempty"`
+	Effort        v1.Effort `protobuf:"varint,8,opt,name=effort,proto3,enum=harness.llm.v1.Effort" json:"effort,omitempty"`
+	// PERMISSION_MODE_BYPASS_PERMISSIONS is refused.
+	PermissionMode v11.PermissionMode `protobuf:"varint,9,opt,name=permission_mode,json=permissionMode,proto3,enum=harness.agent.v1.PermissionMode" json:"permission_mode,omitempty"`
+	TestCommand    string             `protobuf:"bytes,10,opt,name=test_command,json=testCommand,proto3" json:"test_command,omitempty"`
+	// The user's choices; the policy caps them. 0: the client's settings, else all at once and no budget.
+	Parallel  int32   `protobuf:"varint,11,opt,name=parallel,proto3" json:"parallel,omitempty"`
+	BudgetUsd float64 `protobuf:"fixed64,12,opt,name=budget_usd,json=budgetUsd,proto3" json:"budget_usd,omitempty"`
+	// Local groups: the folder.
+	Cwd            string `protobuf:"bytes,13,opt,name=cwd,proto3" json:"cwd,omitempty"`
+	IdempotencyKey string `protobuf:"bytes,14,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *StartAttemptsRequest) Reset() {
+	*x = StartAttemptsRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartAttemptsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartAttemptsRequest) ProtoMessage() {}
+
+func (x *StartAttemptsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartAttemptsRequest.ProtoReflect.Descriptor instead.
+func (*StartAttemptsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *StartAttemptsRequest) GetHostId() string {
+	if x != nil {
+		return x.HostId
+	}
+	return ""
+}
+
+func (x *StartAttemptsRequest) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+func (x *StartAttemptsRequest) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+func (x *StartAttemptsRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *StartAttemptsRequest) GetRepositoryKey() string {
+	if x != nil {
+		return x.RepositoryKey
+	}
+	return ""
+}
+
+func (x *StartAttemptsRequest) GetBaseRef() string {
+	if x != nil {
+		return x.BaseRef
+	}
+	return ""
+}
+
+func (x *StartAttemptsRequest) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *StartAttemptsRequest) GetEffort() v1.Effort {
+	if x != nil {
+		return x.Effort
+	}
+	return v1.Effort(0)
+}
+
+func (x *StartAttemptsRequest) GetPermissionMode() v11.PermissionMode {
+	if x != nil {
+		return x.PermissionMode
+	}
+	return v11.PermissionMode(0)
+}
+
+func (x *StartAttemptsRequest) GetTestCommand() string {
+	if x != nil {
+		return x.TestCommand
+	}
+	return ""
+}
+
+func (x *StartAttemptsRequest) GetParallel() int32 {
+	if x != nil {
+		return x.Parallel
+	}
+	return 0
+}
+
+func (x *StartAttemptsRequest) GetBudgetUsd() float64 {
+	if x != nil {
+		return x.BudgetUsd
+	}
+	return 0
+}
+
+func (x *StartAttemptsRequest) GetCwd() string {
+	if x != nil {
+		return x.Cwd
+	}
+	return ""
+}
+
+func (x *StartAttemptsRequest) GetIdempotencyKey() string {
+	if x != nil {
+		return x.IdempotencyKey
+	}
+	return ""
+}
+
+type StartAttemptsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Group         *AttemptGroup          `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartAttemptsResponse) Reset() {
+	*x = StartAttemptsResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartAttemptsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartAttemptsResponse) ProtoMessage() {}
+
+func (x *StartAttemptsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartAttemptsResponse.ProtoReflect.Descriptor instead.
+func (*StartAttemptsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *StartAttemptsResponse) GetGroup() *AttemptGroup {
+	if x != nil {
+		return x.Group
+	}
+	return nil
+}
+
+type GetAttemptGroupRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAttemptGroupRequest) Reset() {
+	*x = GetAttemptGroupRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAttemptGroupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAttemptGroupRequest) ProtoMessage() {}
+
+func (x *GetAttemptGroupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAttemptGroupRequest.ProtoReflect.Descriptor instead.
+func (*GetAttemptGroupRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *GetAttemptGroupRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type GetAttemptGroupResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Group         *AttemptGroup          `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAttemptGroupResponse) Reset() {
+	*x = GetAttemptGroupResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAttemptGroupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAttemptGroupResponse) ProtoMessage() {}
+
+func (x *GetAttemptGroupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAttemptGroupResponse.ProtoReflect.Descriptor instead.
+func (*GetAttemptGroupResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *GetAttemptGroupResponse) GetGroup() *AttemptGroup {
+	if x != nil {
+		return x.Group
+	}
+	return nil
+}
+
+type ListAttemptGroupsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAttemptGroupsRequest) Reset() {
+	*x = ListAttemptGroupsRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAttemptGroupsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAttemptGroupsRequest) ProtoMessage() {}
+
+func (x *ListAttemptGroupsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAttemptGroupsRequest.ProtoReflect.Descriptor instead.
+func (*ListAttemptGroupsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *ListAttemptGroupsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type ListAttemptGroupsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Newest first.
+	Groups        []*AttemptGroup `protobuf:"bytes,1,rep,name=groups,proto3" json:"groups,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAttemptGroupsResponse) Reset() {
+	*x = ListAttemptGroupsResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAttemptGroupsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAttemptGroupsResponse) ProtoMessage() {}
+
+func (x *ListAttemptGroupsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAttemptGroupsResponse.ProtoReflect.Descriptor instead.
+func (*ListAttemptGroupsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *ListAttemptGroupsResponse) GetGroups() []*AttemptGroup {
+	if x != nil {
+		return x.Groups
+	}
+	return nil
+}
+
+type ReportAttemptRequest struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	GroupId string                 `protobuf:"bytes,1,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	Index   int32                  `protobuf:"varint,2,opt,name=index,proto3" json:"index,omitempty"`
+	// UNSPECIFIED leaves it.
+	State         AttemptState      `protobuf:"varint,3,opt,name=state,proto3,enum=harness.relay.v1.AttemptState" json:"state,omitempty"`
+	SessionId     string            `protobuf:"bytes,4,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Branch        string            `protobuf:"bytes,5,opt,name=branch,proto3" json:"branch,omitempty"`
+	Error         string            `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+	Check         *v11.AttemptCheck `protobuf:"bytes,7,opt,name=check,proto3" json:"check,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportAttemptRequest) Reset() {
+	*x = ReportAttemptRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportAttemptRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportAttemptRequest) ProtoMessage() {}
+
+func (x *ReportAttemptRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportAttemptRequest.ProtoReflect.Descriptor instead.
+func (*ReportAttemptRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *ReportAttemptRequest) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
+	}
+	return ""
+}
+
+func (x *ReportAttemptRequest) GetIndex() int32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *ReportAttemptRequest) GetState() AttemptState {
+	if x != nil {
+		return x.State
+	}
+	return AttemptState_ATTEMPT_STATE_UNSPECIFIED
+}
+
+func (x *ReportAttemptRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *ReportAttemptRequest) GetBranch() string {
+	if x != nil {
+		return x.Branch
+	}
+	return ""
+}
+
+func (x *ReportAttemptRequest) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *ReportAttemptRequest) GetCheck() *v11.AttemptCheck {
+	if x != nil {
+		return x.Check
+	}
+	return nil
+}
+
+type ReportAttemptResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReportAttemptResponse) Reset() {
+	*x = ReportAttemptResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReportAttemptResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReportAttemptResponse) ProtoMessage() {}
+
+func (x *ReportAttemptResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReportAttemptResponse.ProtoReflect.Descriptor instead.
+func (*ReportAttemptResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{53}
+}
+
+type KeepAttemptRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GroupId       string                 `protobuf:"bytes,1,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	Index         int32                  `protobuf:"varint,2,opt,name=index,proto3" json:"index,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KeepAttemptRequest) Reset() {
+	*x = KeepAttemptRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KeepAttemptRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KeepAttemptRequest) ProtoMessage() {}
+
+func (x *KeepAttemptRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KeepAttemptRequest.ProtoReflect.Descriptor instead.
+func (*KeepAttemptRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *KeepAttemptRequest) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
+	}
+	return ""
+}
+
+func (x *KeepAttemptRequest) GetIndex() int32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+type KeepAttemptResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Group         *AttemptGroup          `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KeepAttemptResponse) Reset() {
+	*x = KeepAttemptResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KeepAttemptResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KeepAttemptResponse) ProtoMessage() {}
+
+func (x *KeepAttemptResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KeepAttemptResponse.ProtoReflect.Descriptor instead.
+func (*KeepAttemptResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{55}
+}
+
+func (x *KeepAttemptResponse) GetGroup() *AttemptGroup {
+	if x != nil {
+		return x.Group
+	}
+	return nil
+}
+
+type DiscardAttemptsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GroupId       string                 `protobuf:"bytes,1,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiscardAttemptsRequest) Reset() {
+	*x = DiscardAttemptsRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[56]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiscardAttemptsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiscardAttemptsRequest) ProtoMessage() {}
+
+func (x *DiscardAttemptsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[56]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiscardAttemptsRequest.ProtoReflect.Descriptor instead.
+func (*DiscardAttemptsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{56}
+}
+
+func (x *DiscardAttemptsRequest) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
+	}
+	return ""
+}
+
+type DiscardAttemptsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Group         *AttemptGroup          `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiscardAttemptsResponse) Reset() {
+	*x = DiscardAttemptsResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiscardAttemptsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiscardAttemptsResponse) ProtoMessage() {}
+
+func (x *DiscardAttemptsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiscardAttemptsResponse.ProtoReflect.Descriptor instead.
+func (*DiscardAttemptsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *DiscardAttemptsResponse) GetGroup() *AttemptGroup {
+	if x != nil {
+		return x.Group
+	}
+	return nil
+}
+
+type StartLocalAttemptsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Request       *StartAttemptsRequest  `protobuf:"bytes,1,opt,name=request,proto3" json:"request,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartLocalAttemptsRequest) Reset() {
+	*x = StartLocalAttemptsRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartLocalAttemptsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartLocalAttemptsRequest) ProtoMessage() {}
+
+func (x *StartLocalAttemptsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartLocalAttemptsRequest.ProtoReflect.Descriptor instead.
+func (*StartLocalAttemptsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{58}
+}
+
+func (x *StartLocalAttemptsRequest) GetRequest() *StartAttemptsRequest {
+	if x != nil {
+		return x.Request
+	}
+	return nil
+}
+
+type StartLocalAttemptsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Group         *AttemptGroup          `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartLocalAttemptsResponse) Reset() {
+	*x = StartLocalAttemptsResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartLocalAttemptsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartLocalAttemptsResponse) ProtoMessage() {}
+
+func (x *StartLocalAttemptsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartLocalAttemptsResponse.ProtoReflect.Descriptor instead.
+func (*StartLocalAttemptsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{59}
+}
+
+func (x *StartLocalAttemptsResponse) GetGroup() *AttemptGroup {
+	if x != nil {
+		return x.Group
+	}
+	return nil
+}
+
+type DiscardLocalAttemptsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GroupId       string                 `protobuf:"bytes,1,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiscardLocalAttemptsRequest) Reset() {
+	*x = DiscardLocalAttemptsRequest{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiscardLocalAttemptsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiscardLocalAttemptsRequest) ProtoMessage() {}
+
+func (x *DiscardLocalAttemptsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiscardLocalAttemptsRequest.ProtoReflect.Descriptor instead.
+func (*DiscardLocalAttemptsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{60}
+}
+
+func (x *DiscardLocalAttemptsRequest) GetGroupId() string {
+	if x != nil {
+		return x.GroupId
+	}
+	return ""
+}
+
+type DiscardLocalAttemptsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Group         *AttemptGroup          `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DiscardLocalAttemptsResponse) Reset() {
+	*x = DiscardLocalAttemptsResponse{}
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DiscardLocalAttemptsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DiscardLocalAttemptsResponse) ProtoMessage() {}
+
+func (x *DiscardLocalAttemptsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_hosts_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DiscardLocalAttemptsResponse.ProtoReflect.Descriptor instead.
+func (*DiscardLocalAttemptsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_hosts_proto_rawDescGZIP(), []int{61}
+}
+
+func (x *DiscardLocalAttemptsResponse) GetGroup() *AttemptGroup {
+	if x != nil {
+		return x.Group
+	}
+	return nil
+}
+
 var File_harness_relay_v1_hosts_proto protoreflect.FileDescriptor
 
 const file_harness_relay_v1_hosts_proto_rawDesc = "" +
@@ -3042,7 +4554,7 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\x04host\x18\x01 \x01(\v2\x1b.harness.relay.v1.AgentHostR\x04host\"(\n" +
 	"\x16DeleteAgentHostRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x19\n" +
-	"\x17DeleteAgentHostResponse\"\xdc\x06\n" +
+	"\x17DeleteAgentHostResponse\"\xed\a\n" +
 	"\bHostWork\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\ahost_id\x18\x02 \x01(\tR\x06hostId\x12\x1b\n" +
@@ -3072,7 +4584,12 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x17 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x18 \x01(\tR\tupdatedAt\"\xb7\x03\n" +
+	"updated_at\x18\x18 \x01(\tR\tupdatedAt\x12(\n" +
+	"\x10attempt_group_id\x18\x19 \x01(\tR\x0eattemptGroupId\x12#\n" +
+	"\rattempt_index\x18\x1a \x01(\x05R\fattemptIndex\x12!\n" +
+	"\ftest_command\x18\x1b \x01(\tR\vtestCommand\x12\x1d\n" +
+	"\n" +
+	"budget_usd\x18\x1c \x01(\x01R\tbudgetUsd\"\xab\x04\n" +
 	"\x14StartHostWorkRequest\x12\x17\n" +
 	"\ahost_id\x18\x01 \x01(\tR\x06hostId\x12%\n" +
 	"\x0erepository_key\x18\x02 \x01(\tR\rrepositoryKey\x12\x19\n" +
@@ -3086,7 +4603,10 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\vfresh_clone\x18\n" +
 	" \x01(\bR\n" +
 	"freshClone\x12'\n" +
-	"\x0fidempotency_key\x18\v \x01(\tR\x0eidempotencyKey\"G\n" +
+	"\x0fidempotency_key\x18\v \x01(\tR\x0eidempotencyKey\x122\n" +
+	"\x04kind\x18\f \x01(\x0e2\x1e.harness.relay.v1.HostWorkKindR\x04kind\x12\x16\n" +
+	"\x06branch\x18\r \x01(\tR\x06branch\x12&\n" +
+	"\x0ffork_session_id\x18\x0e \x01(\tR\rforkSessionId\"G\n" +
 	"\x15StartHostWorkResponse\x12.\n" +
 	"\x04work\x18\x01 \x01(\v2\x1a.harness.relay.v1.HostWorkR\x04work\"$\n" +
 	"\x12GetHostWorkRequest\x12\x0e\n" +
@@ -3128,16 +4648,17 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\x16ReportAgentHostRequest\x12)\n" +
 	"\x10working_sessions\x18\x01 \x01(\x05R\x0fworkingSessions\x12!\n" +
 	"\fload_average\x18\x02 \x01(\x01R\vloadAverage\x12&\n" +
-	"\x0fdisk_free_bytes\x18\x03 \x01(\x03R\rdiskFreeBytes\"X\n" +
+	"\x0fdisk_free_bytes\x18\x03 \x01(\x03R\rdiskFreeBytes\"\x82\x01\n" +
 	"\x17ReportAgentHostResponse\x12\x1a\n" +
 	"\bdraining\x18\x01 \x01(\bR\bdraining\x12!\n" +
-	"\fmax_sessions\x18\x02 \x01(\x05R\vmaxSessions\"9\n" +
+	"\fmax_sessions\x18\x02 \x01(\x05R\vmaxSessions\x12(\n" +
+	"\x10discard_work_ids\x18\x03 \x03(\tR\x0ediscardWorkIds\"9\n" +
 	"\x14ClaimHostWorkRequest\x12!\n" +
 	"\fwait_seconds\x18\x01 \x01(\x05R\vwaitSeconds\"\x7f\n" +
 	"\x15ClaimHostWorkResponse\x12.\n" +
 	"\x04work\x18\x01 \x01(\v2\x1a.harness.relay.v1.HostWorkR\x04work\x12\x19\n" +
 	"\bgit_name\x18\x02 \x01(\tR\agitName\x12\x1b\n" +
-	"\tgit_email\x18\x03 \x01(\tR\bgitEmail\"\xde\x01\n" +
+	"\tgit_email\x18\x03 \x01(\tR\bgitEmail\"\xfc\x01\n" +
 	"\x15UpdateHostWorkRequest\x12\x17\n" +
 	"\awork_id\x18\x01 \x01(\tR\x06workId\x125\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x1f.harness.relay.v1.HostWorkStateR\x05state\x12\x1d\n" +
@@ -3145,7 +4666,8 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"session_id\x18\x03 \x01(\tR\tsessionId\x12\x16\n" +
 	"\x06branch\x18\x04 \x01(\tR\x06branch\x12(\n" +
 	"\x10pull_request_url\x18\x05 \x01(\tR\x0epullRequestUrl\x12\x14\n" +
-	"\x05error\x18\x06 \x01(\tR\x05error\"6\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error\x12\x1c\n" +
+	"\tdiscarded\x18\a \x01(\bR\tdiscarded\"6\n" +
 	"\x16UpdateHostWorkResponse\x12\x1c\n" +
 	"\tcancelled\x18\x01 \x01(\bR\tcancelled\"C\n" +
 	"\x1aIssueGitCredentialsRequest\x12%\n" +
@@ -3183,7 +4705,107 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"Z\n" +
 	"\x18IssueWorkerTokenResponse\x12\x1b\n" +
 	"\tdevice_id\x18\x01 \x01(\tR\bdeviceId\x12!\n" +
-	"\fdevice_token\x18\x02 \x01(\tR\vdeviceToken*h\n" +
+	"\fdevice_token\x18\x02 \x01(\tR\vdeviceToken\"6\n" +
+	"\x1bIssueMoveCredentialsRequest\x12\x17\n" +
+	"\awork_id\x18\x01 \x01(\tR\x06workId\"o\n" +
+	"\x1cIssueMoveCredentialsResponse\x12O\n" +
+	"\vcredentials\x18\x01 \x01(\v2-.harness.relay.v1.IssueGitCredentialsResponseR\vcredentials\"D\n" +
+	"\x15QueueMovedWorkRequest\x12\x17\n" +
+	"\awork_id\x18\x01 \x01(\tR\x06workId\x12\x12\n" +
+	"\x04head\x18\x02 \x01(\tR\x04head\"H\n" +
+	"\x16QueueMovedWorkResponse\x12.\n" +
+	"\x04work\x18\x01 \x01(\v2\x1a.harness.relay.v1.HostWorkR\x04work\"\xa4\x02\n" +
+	"\aAttempt\x12\x14\n" +
+	"\x05index\x18\x01 \x01(\x05R\x05index\x124\n" +
+	"\x05state\x18\x02 \x01(\x0e2\x1e.harness.relay.v1.AttemptStateR\x05state\x12\x17\n" +
+	"\awork_id\x18\x03 \x01(\tR\x06workId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x04 \x01(\tR\tsessionId\x12\x16\n" +
+	"\x06branch\x18\x05 \x01(\tR\x06branch\x12\x14\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error\x124\n" +
+	"\x05check\x18\a \x01(\v2\x1e.harness.agent.v1.AttemptCheckR\x05check\x12\x12\n" +
+	"\x04kept\x18\b \x01(\bR\x04kept\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\t \x01(\tR\tupdatedAt\"\xf6\x04\n" +
+	"\fAttemptGroup\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06prompt\x18\x02 \x01(\tR\x06prompt\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12\x17\n" +
+	"\ahost_id\x18\x04 \x01(\tR\x06hostId\x12\x1b\n" +
+	"\thost_name\x18\x05 \x01(\tR\bhostName\x12\x1b\n" +
+	"\tdevice_id\x18\x06 \x01(\tR\bdeviceId\x12\x10\n" +
+	"\x03cwd\x18\a \x01(\tR\x03cwd\x12%\n" +
+	"\x0erepository_key\x18\b \x01(\tR\rrepositoryKey\x12\x19\n" +
+	"\bbase_ref\x18\t \x01(\tR\abaseRef\x12\x14\n" +
+	"\x05model\x18\n" +
+	" \x01(\tR\x05model\x12.\n" +
+	"\x06effort\x18\v \x01(\x0e2\x16.harness.llm.v1.EffortR\x06effort\x12I\n" +
+	"\x0fpermission_mode\x18\f \x01(\x0e2 .harness.agent.v1.PermissionModeR\x0epermissionMode\x12!\n" +
+	"\ftest_command\x18\r \x01(\tR\vtestCommand\x12\x1a\n" +
+	"\bparallel\x18\x0e \x01(\x05R\bparallel\x12\x1d\n" +
+	"\n" +
+	"budget_usd\x18\x0f \x01(\x01R\tbudgetUsd\x12\x1d\n" +
+	"\n" +
+	"kept_index\x18\x10 \x01(\x05R\tkeptIndex\x125\n" +
+	"\battempts\x18\x11 \x03(\v2\x19.harness.relay.v1.AttemptR\battempts\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x12 \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"updated_at\x18\x13 \x01(\tR\tupdatedAt\"\xdf\x03\n" +
+	"\x14StartAttemptsRequest\x12\x17\n" +
+	"\ahost_id\x18\x01 \x01(\tR\x06hostId\x12\x14\n" +
+	"\x05count\x18\x02 \x01(\x05R\x05count\x12\x16\n" +
+	"\x06prompt\x18\x03 \x01(\tR\x06prompt\x12\x14\n" +
+	"\x05title\x18\x04 \x01(\tR\x05title\x12%\n" +
+	"\x0erepository_key\x18\x05 \x01(\tR\rrepositoryKey\x12\x19\n" +
+	"\bbase_ref\x18\x06 \x01(\tR\abaseRef\x12\x14\n" +
+	"\x05model\x18\a \x01(\tR\x05model\x12.\n" +
+	"\x06effort\x18\b \x01(\x0e2\x16.harness.llm.v1.EffortR\x06effort\x12I\n" +
+	"\x0fpermission_mode\x18\t \x01(\x0e2 .harness.agent.v1.PermissionModeR\x0epermissionMode\x12!\n" +
+	"\ftest_command\x18\n" +
+	" \x01(\tR\vtestCommand\x12\x1a\n" +
+	"\bparallel\x18\v \x01(\x05R\bparallel\x12\x1d\n" +
+	"\n" +
+	"budget_usd\x18\f \x01(\x01R\tbudgetUsd\x12\x10\n" +
+	"\x03cwd\x18\r \x01(\tR\x03cwd\x12'\n" +
+	"\x0fidempotency_key\x18\x0e \x01(\tR\x0eidempotencyKey\"M\n" +
+	"\x15StartAttemptsResponse\x124\n" +
+	"\x05group\x18\x01 \x01(\v2\x1e.harness.relay.v1.AttemptGroupR\x05group\"(\n" +
+	"\x16GetAttemptGroupRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"O\n" +
+	"\x17GetAttemptGroupResponse\x124\n" +
+	"\x05group\x18\x01 \x01(\v2\x1e.harness.relay.v1.AttemptGroupR\x05group\"0\n" +
+	"\x18ListAttemptGroupsRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\"S\n" +
+	"\x19ListAttemptGroupsResponse\x126\n" +
+	"\x06groups\x18\x01 \x03(\v2\x1e.harness.relay.v1.AttemptGroupR\x06groups\"\x80\x02\n" +
+	"\x14ReportAttemptRequest\x12\x19\n" +
+	"\bgroup_id\x18\x01 \x01(\tR\agroupId\x12\x14\n" +
+	"\x05index\x18\x02 \x01(\x05R\x05index\x124\n" +
+	"\x05state\x18\x03 \x01(\x0e2\x1e.harness.relay.v1.AttemptStateR\x05state\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x04 \x01(\tR\tsessionId\x12\x16\n" +
+	"\x06branch\x18\x05 \x01(\tR\x06branch\x12\x14\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error\x124\n" +
+	"\x05check\x18\a \x01(\v2\x1e.harness.agent.v1.AttemptCheckR\x05check\"\x17\n" +
+	"\x15ReportAttemptResponse\"E\n" +
+	"\x12KeepAttemptRequest\x12\x19\n" +
+	"\bgroup_id\x18\x01 \x01(\tR\agroupId\x12\x14\n" +
+	"\x05index\x18\x02 \x01(\x05R\x05index\"K\n" +
+	"\x13KeepAttemptResponse\x124\n" +
+	"\x05group\x18\x01 \x01(\v2\x1e.harness.relay.v1.AttemptGroupR\x05group\"3\n" +
+	"\x16DiscardAttemptsRequest\x12\x19\n" +
+	"\bgroup_id\x18\x01 \x01(\tR\agroupId\"O\n" +
+	"\x17DiscardAttemptsResponse\x124\n" +
+	"\x05group\x18\x01 \x01(\v2\x1e.harness.relay.v1.AttemptGroupR\x05group\"]\n" +
+	"\x19StartLocalAttemptsRequest\x12@\n" +
+	"\arequest\x18\x01 \x01(\v2&.harness.relay.v1.StartAttemptsRequestR\arequest\"R\n" +
+	"\x1aStartLocalAttemptsResponse\x124\n" +
+	"\x05group\x18\x01 \x01(\v2\x1e.harness.relay.v1.AttemptGroupR\x05group\"8\n" +
+	"\x1bDiscardLocalAttemptsRequest\x12\x19\n" +
+	"\bgroup_id\x18\x01 \x01(\tR\agroupId\"T\n" +
+	"\x1cDiscardLocalAttemptsResponse\x124\n" +
+	"\x05group\x18\x01 \x01(\v2\x1e.harness.relay.v1.AttemptGroupR\x05group*h\n" +
 	"\x0eAgentHostScope\x12 \n" +
 	"\x1cAGENT_HOST_SCOPE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15AGENT_HOST_SCOPE_USER\x10\x01\x12\x19\n" +
@@ -3191,12 +4813,14 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\x12AgentHostIsolation\x12$\n" +
 	" AGENT_HOST_ISOLATION_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19AGENT_HOST_ISOLATION_NONE\x10\x01\x12\x1c\n" +
-	"\x18AGENT_HOST_ISOLATION_UID\x10\x02*\x87\x01\n" +
+	"\x18AGENT_HOST_ISOLATION_UID\x10\x02*\xbc\x01\n" +
 	"\fHostWorkKind\x12\x1e\n" +
 	"\x1aHOST_WORK_KIND_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aHOST_WORK_KIND_NEW_SESSION\x10\x01\x12\x1b\n" +
 	"\x17HOST_WORK_KIND_AUTO_FIX\x10\x02\x12\x1a\n" +
-	"\x16HOST_WORK_KIND_MENTION\x10\x03*\xf8\x01\n" +
+	"\x16HOST_WORK_KIND_MENTION\x10\x03\x12\x17\n" +
+	"\x13HOST_WORK_KIND_MOVE\x10\x04\x12\x1a\n" +
+	"\x16HOST_WORK_KIND_ATTEMPT\x10\x05*\x9b\x02\n" +
 	"\rHostWorkState\x12\x1f\n" +
 	"\x1bHOST_WORK_STATE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16HOST_WORK_STATE_QUEUED\x10\x01\x12\x1b\n" +
@@ -3205,12 +4829,21 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\x14HOST_WORK_STATE_DONE\x10\x04\x12\x1a\n" +
 	"\x16HOST_WORK_STATE_FAILED\x10\x05\x12\x1d\n" +
 	"\x19HOST_WORK_STATE_CANCELLED\x10\x06\x12\x1b\n" +
-	"\x17HOST_WORK_STATE_EXPIRED\x10\a*\x92\x01\n" +
+	"\x17HOST_WORK_STATE_EXPIRED\x10\a\x12!\n" +
+	"\x1dHOST_WORK_STATE_AWAITING_PUSH\x10\b*\x92\x01\n" +
 	"\x0fHostWorkLanding\x12!\n" +
 	"\x1dHOST_WORK_LANDING_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eHOST_WORK_LANDING_PULL_REQUEST\x10\x01\x12\x1c\n" +
 	"\x18HOST_WORK_LANDING_BRANCH\x10\x02\x12\x1a\n" +
-	"\x16HOST_WORK_LANDING_NONE\x10\x032\xf4\a\n" +
+	"\x16HOST_WORK_LANDING_NONE\x10\x03*\xd0\x01\n" +
+	"\fAttemptState\x12\x1d\n" +
+	"\x19ATTEMPT_STATE_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15ATTEMPT_STATE_PENDING\x10\x01\x12\x19\n" +
+	"\x15ATTEMPT_STATE_RUNNING\x10\x02\x12\x16\n" +
+	"\x12ATTEMPT_STATE_IDLE\x10\x03\x12\x18\n" +
+	"\x14ATTEMPT_STATE_FAILED\x10\x04\x12\x1c\n" +
+	"\x18ATTEMPT_STATE_DISCARDING\x10\x05\x12\x1b\n" +
+	"\x17ATTEMPT_STATE_DISCARDED\x10\x062\xd2\f\n" +
 	"\fHostsService\x12c\n" +
 	"\x0eListAgentHosts\x12'.harness.relay.v1.ListAgentHostsRequest\x1a(.harness.relay.v1.ListAgentHostsResponse\x12f\n" +
 	"\x0fCreateAgentHost\x12(.harness.relay.v1.CreateAgentHostRequest\x1a).harness.relay.v1.CreateAgentHostResponse\x12f\n" +
@@ -3221,7 +4854,16 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\fListHostWork\x12%.harness.relay.v1.ListHostWorkRequest\x1a&.harness.relay.v1.ListHostWorkResponse\x12c\n" +
 	"\x0eCancelHostWork\x12'.harness.relay.v1.CancelHostWorkRequest\x1a(.harness.relay.v1.CancelHostWorkResponse\x12Z\n" +
 	"\vSetAwayHost\x12$.harness.relay.v1.SetAwayHostRequest\x1a%.harness.relay.v1.SetAwayHostResponse\x12i\n" +
-	"\x10ClaimScheduleRun\x12).harness.relay.v1.ClaimScheduleRunRequest\x1a*.harness.relay.v1.ClaimScheduleRunResponse2\xf0\x06\n" +
+	"\x10ClaimScheduleRun\x12).harness.relay.v1.ClaimScheduleRunRequest\x1a*.harness.relay.v1.ClaimScheduleRunResponse\x12`\n" +
+	"\rStartAttempts\x12&.harness.relay.v1.StartAttemptsRequest\x1a'.harness.relay.v1.StartAttemptsResponse\x12f\n" +
+	"\x0fGetAttemptGroup\x12(.harness.relay.v1.GetAttemptGroupRequest\x1a).harness.relay.v1.GetAttemptGroupResponse\x12l\n" +
+	"\x11ListAttemptGroups\x12*.harness.relay.v1.ListAttemptGroupsRequest\x1a+.harness.relay.v1.ListAttemptGroupsResponse\x12`\n" +
+	"\rReportAttempt\x12&.harness.relay.v1.ReportAttemptRequest\x1a'.harness.relay.v1.ReportAttemptResponse\x12Z\n" +
+	"\vKeepAttempt\x12$.harness.relay.v1.KeepAttemptRequest\x1a%.harness.relay.v1.KeepAttemptResponse\x12f\n" +
+	"\x0fDiscardAttempts\x12(.harness.relay.v1.DiscardAttemptsRequest\x1a).harness.relay.v1.DiscardAttemptsResponse2\xfe\x01\n" +
+	"\x14LocalAttemptsService\x12o\n" +
+	"\x12StartLocalAttempts\x12+.harness.relay.v1.StartLocalAttemptsRequest\x1a,.harness.relay.v1.StartLocalAttemptsResponse\x12u\n" +
+	"\x14DiscardLocalAttempts\x12-.harness.relay.v1.DiscardLocalAttemptsRequest\x1a..harness.relay.v1.DiscardLocalAttemptsResponse2\xcc\b\n" +
 	"\x10HostAgentService\x12l\n" +
 	"\x11RegisterAgentHost\x12*.harness.relay.v1.RegisterAgentHostRequest\x1a+.harness.relay.v1.RegisterAgentHostResponse\x12f\n" +
 	"\x0fReportAgentHost\x12(.harness.relay.v1.ReportAgentHostRequest\x1a).harness.relay.v1.ReportAgentHostResponse\x12`\n" +
@@ -3230,7 +4872,9 @@ const file_harness_relay_v1_hosts_proto_rawDesc = "" +
 	"\x13IssueGitCredentials\x12,.harness.relay.v1.IssueGitCredentialsRequest\x1a-.harness.relay.v1.IssueGitCredentialsResponse\x12r\n" +
 	"\x13OpenHostPullRequest\x12,.harness.relay.v1.OpenHostPullRequestRequest\x1a-.harness.relay.v1.OpenHostPullRequestResponse\x12l\n" +
 	"\x11ListWantedWorkers\x12*.harness.relay.v1.ListWantedWorkersRequest\x1a+.harness.relay.v1.ListWantedWorkersResponse\x12i\n" +
-	"\x10IssueWorkerToken\x12).harness.relay.v1.IssueWorkerTokenRequest\x1a*.harness.relay.v1.IssueWorkerTokenResponseB\xcb\x01\n" +
+	"\x10IssueWorkerToken\x12).harness.relay.v1.IssueWorkerTokenRequest\x1a*.harness.relay.v1.IssueWorkerTokenResponse\x12u\n" +
+	"\x14IssueMoveCredentials\x12-.harness.relay.v1.IssueMoveCredentialsRequest\x1a..harness.relay.v1.IssueMoveCredentialsResponse\x12c\n" +
+	"\x0eQueueMovedWork\x12'.harness.relay.v1.QueueMovedWorkRequest\x1a(.harness.relay.v1.QueueMovedWorkResponseB\xcb\x01\n" +
 	"\x14com.harness.relay.v1B\n" +
 	"HostsProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/relay/v1;relayv1\xa2\x02\x03HRX\xaa\x02\x10Harness.Relay.V1\xca\x02\x10Harness\\Relay\\V1\xe2\x02\x1cHarness\\Relay\\V1\\GPBMetadata\xea\x02\x12Harness::Relay::V1b\x06proto3"
 
@@ -3246,125 +4890,189 @@ func file_harness_relay_v1_hosts_proto_rawDescGZIP() []byte {
 	return file_harness_relay_v1_hosts_proto_rawDescData
 }
 
-var file_harness_relay_v1_hosts_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_harness_relay_v1_hosts_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
+var file_harness_relay_v1_hosts_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_harness_relay_v1_hosts_proto_msgTypes = make([]protoimpl.MessageInfo, 62)
 var file_harness_relay_v1_hosts_proto_goTypes = []any{
-	(AgentHostScope)(0),                 // 0: harness.relay.v1.AgentHostScope
-	(AgentHostIsolation)(0),             // 1: harness.relay.v1.AgentHostIsolation
-	(HostWorkKind)(0),                   // 2: harness.relay.v1.HostWorkKind
-	(HostWorkState)(0),                  // 3: harness.relay.v1.HostWorkState
-	(HostWorkLanding)(0),                // 4: harness.relay.v1.HostWorkLanding
-	(*AgentHost)(nil),                   // 5: harness.relay.v1.AgentHost
-	(*AgentHostWorker)(nil),             // 6: harness.relay.v1.AgentHostWorker
-	(*ListAgentHostsRequest)(nil),       // 7: harness.relay.v1.ListAgentHostsRequest
-	(*ListAgentHostsResponse)(nil),      // 8: harness.relay.v1.ListAgentHostsResponse
-	(*CreateAgentHostRequest)(nil),      // 9: harness.relay.v1.CreateAgentHostRequest
-	(*CreateAgentHostResponse)(nil),     // 10: harness.relay.v1.CreateAgentHostResponse
-	(*UpdateAgentHostRequest)(nil),      // 11: harness.relay.v1.UpdateAgentHostRequest
-	(*UpdateAgentHostResponse)(nil),     // 12: harness.relay.v1.UpdateAgentHostResponse
-	(*DeleteAgentHostRequest)(nil),      // 13: harness.relay.v1.DeleteAgentHostRequest
-	(*DeleteAgentHostResponse)(nil),     // 14: harness.relay.v1.DeleteAgentHostResponse
-	(*HostWork)(nil),                    // 15: harness.relay.v1.HostWork
-	(*StartHostWorkRequest)(nil),        // 16: harness.relay.v1.StartHostWorkRequest
-	(*StartHostWorkResponse)(nil),       // 17: harness.relay.v1.StartHostWorkResponse
-	(*GetHostWorkRequest)(nil),          // 18: harness.relay.v1.GetHostWorkRequest
-	(*GetHostWorkResponse)(nil),         // 19: harness.relay.v1.GetHostWorkResponse
-	(*ListHostWorkRequest)(nil),         // 20: harness.relay.v1.ListHostWorkRequest
-	(*ListHostWorkResponse)(nil),        // 21: harness.relay.v1.ListHostWorkResponse
-	(*CancelHostWorkRequest)(nil),       // 22: harness.relay.v1.CancelHostWorkRequest
-	(*CancelHostWorkResponse)(nil),      // 23: harness.relay.v1.CancelHostWorkResponse
-	(*SetAwayHostRequest)(nil),          // 24: harness.relay.v1.SetAwayHostRequest
-	(*SetAwayHostResponse)(nil),         // 25: harness.relay.v1.SetAwayHostResponse
-	(*ClaimScheduleRunRequest)(nil),     // 26: harness.relay.v1.ClaimScheduleRunRequest
-	(*ClaimScheduleRunResponse)(nil),    // 27: harness.relay.v1.ClaimScheduleRunResponse
-	(*RegisterAgentHostRequest)(nil),    // 28: harness.relay.v1.RegisterAgentHostRequest
-	(*RegisterAgentHostResponse)(nil),   // 29: harness.relay.v1.RegisterAgentHostResponse
-	(*ReportAgentHostRequest)(nil),      // 30: harness.relay.v1.ReportAgentHostRequest
-	(*ReportAgentHostResponse)(nil),     // 31: harness.relay.v1.ReportAgentHostResponse
-	(*ClaimHostWorkRequest)(nil),        // 32: harness.relay.v1.ClaimHostWorkRequest
-	(*ClaimHostWorkResponse)(nil),       // 33: harness.relay.v1.ClaimHostWorkResponse
-	(*UpdateHostWorkRequest)(nil),       // 34: harness.relay.v1.UpdateHostWorkRequest
-	(*UpdateHostWorkResponse)(nil),      // 35: harness.relay.v1.UpdateHostWorkResponse
-	(*IssueGitCredentialsRequest)(nil),  // 36: harness.relay.v1.IssueGitCredentialsRequest
-	(*IssueGitCredentialsResponse)(nil), // 37: harness.relay.v1.IssueGitCredentialsResponse
-	(*OpenHostPullRequestRequest)(nil),  // 38: harness.relay.v1.OpenHostPullRequestRequest
-	(*OpenHostPullRequestResponse)(nil), // 39: harness.relay.v1.OpenHostPullRequestResponse
-	(*ListWantedWorkersRequest)(nil),    // 40: harness.relay.v1.ListWantedWorkersRequest
-	(*WantedWorker)(nil),                // 41: harness.relay.v1.WantedWorker
-	(*ListWantedWorkersResponse)(nil),   // 42: harness.relay.v1.ListWantedWorkersResponse
-	(*IssueWorkerTokenRequest)(nil),     // 43: harness.relay.v1.IssueWorkerTokenRequest
-	(*IssueWorkerTokenResponse)(nil),    // 44: harness.relay.v1.IssueWorkerTokenResponse
-	(v1.Effort)(0),                      // 45: harness.llm.v1.Effort
-	(v11.PermissionMode)(0),             // 46: harness.agent.v1.PermissionMode
-	(*v11.AutoFixJob)(nil),              // 47: harness.agent.v1.AutoFixJob
+	(AgentHostScope)(0),                  // 0: harness.relay.v1.AgentHostScope
+	(AgentHostIsolation)(0),              // 1: harness.relay.v1.AgentHostIsolation
+	(HostWorkKind)(0),                    // 2: harness.relay.v1.HostWorkKind
+	(HostWorkState)(0),                   // 3: harness.relay.v1.HostWorkState
+	(HostWorkLanding)(0),                 // 4: harness.relay.v1.HostWorkLanding
+	(AttemptState)(0),                    // 5: harness.relay.v1.AttemptState
+	(*AgentHost)(nil),                    // 6: harness.relay.v1.AgentHost
+	(*AgentHostWorker)(nil),              // 7: harness.relay.v1.AgentHostWorker
+	(*ListAgentHostsRequest)(nil),        // 8: harness.relay.v1.ListAgentHostsRequest
+	(*ListAgentHostsResponse)(nil),       // 9: harness.relay.v1.ListAgentHostsResponse
+	(*CreateAgentHostRequest)(nil),       // 10: harness.relay.v1.CreateAgentHostRequest
+	(*CreateAgentHostResponse)(nil),      // 11: harness.relay.v1.CreateAgentHostResponse
+	(*UpdateAgentHostRequest)(nil),       // 12: harness.relay.v1.UpdateAgentHostRequest
+	(*UpdateAgentHostResponse)(nil),      // 13: harness.relay.v1.UpdateAgentHostResponse
+	(*DeleteAgentHostRequest)(nil),       // 14: harness.relay.v1.DeleteAgentHostRequest
+	(*DeleteAgentHostResponse)(nil),      // 15: harness.relay.v1.DeleteAgentHostResponse
+	(*HostWork)(nil),                     // 16: harness.relay.v1.HostWork
+	(*StartHostWorkRequest)(nil),         // 17: harness.relay.v1.StartHostWorkRequest
+	(*StartHostWorkResponse)(nil),        // 18: harness.relay.v1.StartHostWorkResponse
+	(*GetHostWorkRequest)(nil),           // 19: harness.relay.v1.GetHostWorkRequest
+	(*GetHostWorkResponse)(nil),          // 20: harness.relay.v1.GetHostWorkResponse
+	(*ListHostWorkRequest)(nil),          // 21: harness.relay.v1.ListHostWorkRequest
+	(*ListHostWorkResponse)(nil),         // 22: harness.relay.v1.ListHostWorkResponse
+	(*CancelHostWorkRequest)(nil),        // 23: harness.relay.v1.CancelHostWorkRequest
+	(*CancelHostWorkResponse)(nil),       // 24: harness.relay.v1.CancelHostWorkResponse
+	(*SetAwayHostRequest)(nil),           // 25: harness.relay.v1.SetAwayHostRequest
+	(*SetAwayHostResponse)(nil),          // 26: harness.relay.v1.SetAwayHostResponse
+	(*ClaimScheduleRunRequest)(nil),      // 27: harness.relay.v1.ClaimScheduleRunRequest
+	(*ClaimScheduleRunResponse)(nil),     // 28: harness.relay.v1.ClaimScheduleRunResponse
+	(*RegisterAgentHostRequest)(nil),     // 29: harness.relay.v1.RegisterAgentHostRequest
+	(*RegisterAgentHostResponse)(nil),    // 30: harness.relay.v1.RegisterAgentHostResponse
+	(*ReportAgentHostRequest)(nil),       // 31: harness.relay.v1.ReportAgentHostRequest
+	(*ReportAgentHostResponse)(nil),      // 32: harness.relay.v1.ReportAgentHostResponse
+	(*ClaimHostWorkRequest)(nil),         // 33: harness.relay.v1.ClaimHostWorkRequest
+	(*ClaimHostWorkResponse)(nil),        // 34: harness.relay.v1.ClaimHostWorkResponse
+	(*UpdateHostWorkRequest)(nil),        // 35: harness.relay.v1.UpdateHostWorkRequest
+	(*UpdateHostWorkResponse)(nil),       // 36: harness.relay.v1.UpdateHostWorkResponse
+	(*IssueGitCredentialsRequest)(nil),   // 37: harness.relay.v1.IssueGitCredentialsRequest
+	(*IssueGitCredentialsResponse)(nil),  // 38: harness.relay.v1.IssueGitCredentialsResponse
+	(*OpenHostPullRequestRequest)(nil),   // 39: harness.relay.v1.OpenHostPullRequestRequest
+	(*OpenHostPullRequestResponse)(nil),  // 40: harness.relay.v1.OpenHostPullRequestResponse
+	(*ListWantedWorkersRequest)(nil),     // 41: harness.relay.v1.ListWantedWorkersRequest
+	(*WantedWorker)(nil),                 // 42: harness.relay.v1.WantedWorker
+	(*ListWantedWorkersResponse)(nil),    // 43: harness.relay.v1.ListWantedWorkersResponse
+	(*IssueWorkerTokenRequest)(nil),      // 44: harness.relay.v1.IssueWorkerTokenRequest
+	(*IssueWorkerTokenResponse)(nil),     // 45: harness.relay.v1.IssueWorkerTokenResponse
+	(*IssueMoveCredentialsRequest)(nil),  // 46: harness.relay.v1.IssueMoveCredentialsRequest
+	(*IssueMoveCredentialsResponse)(nil), // 47: harness.relay.v1.IssueMoveCredentialsResponse
+	(*QueueMovedWorkRequest)(nil),        // 48: harness.relay.v1.QueueMovedWorkRequest
+	(*QueueMovedWorkResponse)(nil),       // 49: harness.relay.v1.QueueMovedWorkResponse
+	(*Attempt)(nil),                      // 50: harness.relay.v1.Attempt
+	(*AttemptGroup)(nil),                 // 51: harness.relay.v1.AttemptGroup
+	(*StartAttemptsRequest)(nil),         // 52: harness.relay.v1.StartAttemptsRequest
+	(*StartAttemptsResponse)(nil),        // 53: harness.relay.v1.StartAttemptsResponse
+	(*GetAttemptGroupRequest)(nil),       // 54: harness.relay.v1.GetAttemptGroupRequest
+	(*GetAttemptGroupResponse)(nil),      // 55: harness.relay.v1.GetAttemptGroupResponse
+	(*ListAttemptGroupsRequest)(nil),     // 56: harness.relay.v1.ListAttemptGroupsRequest
+	(*ListAttemptGroupsResponse)(nil),    // 57: harness.relay.v1.ListAttemptGroupsResponse
+	(*ReportAttemptRequest)(nil),         // 58: harness.relay.v1.ReportAttemptRequest
+	(*ReportAttemptResponse)(nil),        // 59: harness.relay.v1.ReportAttemptResponse
+	(*KeepAttemptRequest)(nil),           // 60: harness.relay.v1.KeepAttemptRequest
+	(*KeepAttemptResponse)(nil),          // 61: harness.relay.v1.KeepAttemptResponse
+	(*DiscardAttemptsRequest)(nil),       // 62: harness.relay.v1.DiscardAttemptsRequest
+	(*DiscardAttemptsResponse)(nil),      // 63: harness.relay.v1.DiscardAttemptsResponse
+	(*StartLocalAttemptsRequest)(nil),    // 64: harness.relay.v1.StartLocalAttemptsRequest
+	(*StartLocalAttemptsResponse)(nil),   // 65: harness.relay.v1.StartLocalAttemptsResponse
+	(*DiscardLocalAttemptsRequest)(nil),  // 66: harness.relay.v1.DiscardLocalAttemptsRequest
+	(*DiscardLocalAttemptsResponse)(nil), // 67: harness.relay.v1.DiscardLocalAttemptsResponse
+	(v1.Effort)(0),                       // 68: harness.llm.v1.Effort
+	(v11.PermissionMode)(0),              // 69: harness.agent.v1.PermissionMode
+	(*v11.AutoFixJob)(nil),               // 70: harness.agent.v1.AutoFixJob
+	(*v11.AttemptCheck)(nil),             // 71: harness.agent.v1.AttemptCheck
 }
 var file_harness_relay_v1_hosts_proto_depIdxs = []int32{
 	0,  // 0: harness.relay.v1.AgentHost.scope:type_name -> harness.relay.v1.AgentHostScope
 	1,  // 1: harness.relay.v1.AgentHost.isolation:type_name -> harness.relay.v1.AgentHostIsolation
-	6,  // 2: harness.relay.v1.AgentHost.workers:type_name -> harness.relay.v1.AgentHostWorker
-	5,  // 3: harness.relay.v1.ListAgentHostsResponse.hosts:type_name -> harness.relay.v1.AgentHost
+	7,  // 2: harness.relay.v1.AgentHost.workers:type_name -> harness.relay.v1.AgentHostWorker
+	6,  // 3: harness.relay.v1.ListAgentHostsResponse.hosts:type_name -> harness.relay.v1.AgentHost
 	0,  // 4: harness.relay.v1.CreateAgentHostRequest.scope:type_name -> harness.relay.v1.AgentHostScope
-	5,  // 5: harness.relay.v1.CreateAgentHostResponse.host:type_name -> harness.relay.v1.AgentHost
-	5,  // 6: harness.relay.v1.UpdateAgentHostResponse.host:type_name -> harness.relay.v1.AgentHost
+	6,  // 5: harness.relay.v1.CreateAgentHostResponse.host:type_name -> harness.relay.v1.AgentHost
+	6,  // 6: harness.relay.v1.UpdateAgentHostResponse.host:type_name -> harness.relay.v1.AgentHost
 	2,  // 7: harness.relay.v1.HostWork.kind:type_name -> harness.relay.v1.HostWorkKind
 	3,  // 8: harness.relay.v1.HostWork.state:type_name -> harness.relay.v1.HostWorkState
 	4,  // 9: harness.relay.v1.HostWork.landing:type_name -> harness.relay.v1.HostWorkLanding
-	45, // 10: harness.relay.v1.HostWork.effort:type_name -> harness.llm.v1.Effort
-	46, // 11: harness.relay.v1.HostWork.permission_mode:type_name -> harness.agent.v1.PermissionMode
-	47, // 12: harness.relay.v1.HostWork.job:type_name -> harness.agent.v1.AutoFixJob
-	45, // 13: harness.relay.v1.StartHostWorkRequest.effort:type_name -> harness.llm.v1.Effort
-	46, // 14: harness.relay.v1.StartHostWorkRequest.permission_mode:type_name -> harness.agent.v1.PermissionMode
+	68, // 10: harness.relay.v1.HostWork.effort:type_name -> harness.llm.v1.Effort
+	69, // 11: harness.relay.v1.HostWork.permission_mode:type_name -> harness.agent.v1.PermissionMode
+	70, // 12: harness.relay.v1.HostWork.job:type_name -> harness.agent.v1.AutoFixJob
+	68, // 13: harness.relay.v1.StartHostWorkRequest.effort:type_name -> harness.llm.v1.Effort
+	69, // 14: harness.relay.v1.StartHostWorkRequest.permission_mode:type_name -> harness.agent.v1.PermissionMode
 	4,  // 15: harness.relay.v1.StartHostWorkRequest.landing:type_name -> harness.relay.v1.HostWorkLanding
-	15, // 16: harness.relay.v1.StartHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
-	15, // 17: harness.relay.v1.GetHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
-	15, // 18: harness.relay.v1.ListHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
-	15, // 19: harness.relay.v1.CancelHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
-	1,  // 20: harness.relay.v1.RegisterAgentHostRequest.isolation:type_name -> harness.relay.v1.AgentHostIsolation
-	5,  // 21: harness.relay.v1.RegisterAgentHostResponse.host:type_name -> harness.relay.v1.AgentHost
-	15, // 22: harness.relay.v1.ClaimHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
-	3,  // 23: harness.relay.v1.UpdateHostWorkRequest.state:type_name -> harness.relay.v1.HostWorkState
-	41, // 24: harness.relay.v1.ListWantedWorkersResponse.workers:type_name -> harness.relay.v1.WantedWorker
-	7,  // 25: harness.relay.v1.HostsService.ListAgentHosts:input_type -> harness.relay.v1.ListAgentHostsRequest
-	9,  // 26: harness.relay.v1.HostsService.CreateAgentHost:input_type -> harness.relay.v1.CreateAgentHostRequest
-	11, // 27: harness.relay.v1.HostsService.UpdateAgentHost:input_type -> harness.relay.v1.UpdateAgentHostRequest
-	13, // 28: harness.relay.v1.HostsService.DeleteAgentHost:input_type -> harness.relay.v1.DeleteAgentHostRequest
-	16, // 29: harness.relay.v1.HostsService.StartHostWork:input_type -> harness.relay.v1.StartHostWorkRequest
-	18, // 30: harness.relay.v1.HostsService.GetHostWork:input_type -> harness.relay.v1.GetHostWorkRequest
-	20, // 31: harness.relay.v1.HostsService.ListHostWork:input_type -> harness.relay.v1.ListHostWorkRequest
-	22, // 32: harness.relay.v1.HostsService.CancelHostWork:input_type -> harness.relay.v1.CancelHostWorkRequest
-	24, // 33: harness.relay.v1.HostsService.SetAwayHost:input_type -> harness.relay.v1.SetAwayHostRequest
-	26, // 34: harness.relay.v1.HostsService.ClaimScheduleRun:input_type -> harness.relay.v1.ClaimScheduleRunRequest
-	28, // 35: harness.relay.v1.HostAgentService.RegisterAgentHost:input_type -> harness.relay.v1.RegisterAgentHostRequest
-	30, // 36: harness.relay.v1.HostAgentService.ReportAgentHost:input_type -> harness.relay.v1.ReportAgentHostRequest
-	32, // 37: harness.relay.v1.HostAgentService.ClaimHostWork:input_type -> harness.relay.v1.ClaimHostWorkRequest
-	34, // 38: harness.relay.v1.HostAgentService.UpdateHostWork:input_type -> harness.relay.v1.UpdateHostWorkRequest
-	36, // 39: harness.relay.v1.HostAgentService.IssueGitCredentials:input_type -> harness.relay.v1.IssueGitCredentialsRequest
-	38, // 40: harness.relay.v1.HostAgentService.OpenHostPullRequest:input_type -> harness.relay.v1.OpenHostPullRequestRequest
-	40, // 41: harness.relay.v1.HostAgentService.ListWantedWorkers:input_type -> harness.relay.v1.ListWantedWorkersRequest
-	43, // 42: harness.relay.v1.HostAgentService.IssueWorkerToken:input_type -> harness.relay.v1.IssueWorkerTokenRequest
-	8,  // 43: harness.relay.v1.HostsService.ListAgentHosts:output_type -> harness.relay.v1.ListAgentHostsResponse
-	10, // 44: harness.relay.v1.HostsService.CreateAgentHost:output_type -> harness.relay.v1.CreateAgentHostResponse
-	12, // 45: harness.relay.v1.HostsService.UpdateAgentHost:output_type -> harness.relay.v1.UpdateAgentHostResponse
-	14, // 46: harness.relay.v1.HostsService.DeleteAgentHost:output_type -> harness.relay.v1.DeleteAgentHostResponse
-	17, // 47: harness.relay.v1.HostsService.StartHostWork:output_type -> harness.relay.v1.StartHostWorkResponse
-	19, // 48: harness.relay.v1.HostsService.GetHostWork:output_type -> harness.relay.v1.GetHostWorkResponse
-	21, // 49: harness.relay.v1.HostsService.ListHostWork:output_type -> harness.relay.v1.ListHostWorkResponse
-	23, // 50: harness.relay.v1.HostsService.CancelHostWork:output_type -> harness.relay.v1.CancelHostWorkResponse
-	25, // 51: harness.relay.v1.HostsService.SetAwayHost:output_type -> harness.relay.v1.SetAwayHostResponse
-	27, // 52: harness.relay.v1.HostsService.ClaimScheduleRun:output_type -> harness.relay.v1.ClaimScheduleRunResponse
-	29, // 53: harness.relay.v1.HostAgentService.RegisterAgentHost:output_type -> harness.relay.v1.RegisterAgentHostResponse
-	31, // 54: harness.relay.v1.HostAgentService.ReportAgentHost:output_type -> harness.relay.v1.ReportAgentHostResponse
-	33, // 55: harness.relay.v1.HostAgentService.ClaimHostWork:output_type -> harness.relay.v1.ClaimHostWorkResponse
-	35, // 56: harness.relay.v1.HostAgentService.UpdateHostWork:output_type -> harness.relay.v1.UpdateHostWorkResponse
-	37, // 57: harness.relay.v1.HostAgentService.IssueGitCredentials:output_type -> harness.relay.v1.IssueGitCredentialsResponse
-	39, // 58: harness.relay.v1.HostAgentService.OpenHostPullRequest:output_type -> harness.relay.v1.OpenHostPullRequestResponse
-	42, // 59: harness.relay.v1.HostAgentService.ListWantedWorkers:output_type -> harness.relay.v1.ListWantedWorkersResponse
-	44, // 60: harness.relay.v1.HostAgentService.IssueWorkerToken:output_type -> harness.relay.v1.IssueWorkerTokenResponse
-	43, // [43:61] is the sub-list for method output_type
-	25, // [25:43] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	2,  // 16: harness.relay.v1.StartHostWorkRequest.kind:type_name -> harness.relay.v1.HostWorkKind
+	16, // 17: harness.relay.v1.StartHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
+	16, // 18: harness.relay.v1.GetHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
+	16, // 19: harness.relay.v1.ListHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
+	16, // 20: harness.relay.v1.CancelHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
+	1,  // 21: harness.relay.v1.RegisterAgentHostRequest.isolation:type_name -> harness.relay.v1.AgentHostIsolation
+	6,  // 22: harness.relay.v1.RegisterAgentHostResponse.host:type_name -> harness.relay.v1.AgentHost
+	16, // 23: harness.relay.v1.ClaimHostWorkResponse.work:type_name -> harness.relay.v1.HostWork
+	3,  // 24: harness.relay.v1.UpdateHostWorkRequest.state:type_name -> harness.relay.v1.HostWorkState
+	42, // 25: harness.relay.v1.ListWantedWorkersResponse.workers:type_name -> harness.relay.v1.WantedWorker
+	38, // 26: harness.relay.v1.IssueMoveCredentialsResponse.credentials:type_name -> harness.relay.v1.IssueGitCredentialsResponse
+	16, // 27: harness.relay.v1.QueueMovedWorkResponse.work:type_name -> harness.relay.v1.HostWork
+	5,  // 28: harness.relay.v1.Attempt.state:type_name -> harness.relay.v1.AttemptState
+	71, // 29: harness.relay.v1.Attempt.check:type_name -> harness.agent.v1.AttemptCheck
+	68, // 30: harness.relay.v1.AttemptGroup.effort:type_name -> harness.llm.v1.Effort
+	69, // 31: harness.relay.v1.AttemptGroup.permission_mode:type_name -> harness.agent.v1.PermissionMode
+	50, // 32: harness.relay.v1.AttemptGroup.attempts:type_name -> harness.relay.v1.Attempt
+	68, // 33: harness.relay.v1.StartAttemptsRequest.effort:type_name -> harness.llm.v1.Effort
+	69, // 34: harness.relay.v1.StartAttemptsRequest.permission_mode:type_name -> harness.agent.v1.PermissionMode
+	51, // 35: harness.relay.v1.StartAttemptsResponse.group:type_name -> harness.relay.v1.AttemptGroup
+	51, // 36: harness.relay.v1.GetAttemptGroupResponse.group:type_name -> harness.relay.v1.AttemptGroup
+	51, // 37: harness.relay.v1.ListAttemptGroupsResponse.groups:type_name -> harness.relay.v1.AttemptGroup
+	5,  // 38: harness.relay.v1.ReportAttemptRequest.state:type_name -> harness.relay.v1.AttemptState
+	71, // 39: harness.relay.v1.ReportAttemptRequest.check:type_name -> harness.agent.v1.AttemptCheck
+	51, // 40: harness.relay.v1.KeepAttemptResponse.group:type_name -> harness.relay.v1.AttemptGroup
+	51, // 41: harness.relay.v1.DiscardAttemptsResponse.group:type_name -> harness.relay.v1.AttemptGroup
+	52, // 42: harness.relay.v1.StartLocalAttemptsRequest.request:type_name -> harness.relay.v1.StartAttemptsRequest
+	51, // 43: harness.relay.v1.StartLocalAttemptsResponse.group:type_name -> harness.relay.v1.AttemptGroup
+	51, // 44: harness.relay.v1.DiscardLocalAttemptsResponse.group:type_name -> harness.relay.v1.AttemptGroup
+	8,  // 45: harness.relay.v1.HostsService.ListAgentHosts:input_type -> harness.relay.v1.ListAgentHostsRequest
+	10, // 46: harness.relay.v1.HostsService.CreateAgentHost:input_type -> harness.relay.v1.CreateAgentHostRequest
+	12, // 47: harness.relay.v1.HostsService.UpdateAgentHost:input_type -> harness.relay.v1.UpdateAgentHostRequest
+	14, // 48: harness.relay.v1.HostsService.DeleteAgentHost:input_type -> harness.relay.v1.DeleteAgentHostRequest
+	17, // 49: harness.relay.v1.HostsService.StartHostWork:input_type -> harness.relay.v1.StartHostWorkRequest
+	19, // 50: harness.relay.v1.HostsService.GetHostWork:input_type -> harness.relay.v1.GetHostWorkRequest
+	21, // 51: harness.relay.v1.HostsService.ListHostWork:input_type -> harness.relay.v1.ListHostWorkRequest
+	23, // 52: harness.relay.v1.HostsService.CancelHostWork:input_type -> harness.relay.v1.CancelHostWorkRequest
+	25, // 53: harness.relay.v1.HostsService.SetAwayHost:input_type -> harness.relay.v1.SetAwayHostRequest
+	27, // 54: harness.relay.v1.HostsService.ClaimScheduleRun:input_type -> harness.relay.v1.ClaimScheduleRunRequest
+	52, // 55: harness.relay.v1.HostsService.StartAttempts:input_type -> harness.relay.v1.StartAttemptsRequest
+	54, // 56: harness.relay.v1.HostsService.GetAttemptGroup:input_type -> harness.relay.v1.GetAttemptGroupRequest
+	56, // 57: harness.relay.v1.HostsService.ListAttemptGroups:input_type -> harness.relay.v1.ListAttemptGroupsRequest
+	58, // 58: harness.relay.v1.HostsService.ReportAttempt:input_type -> harness.relay.v1.ReportAttemptRequest
+	60, // 59: harness.relay.v1.HostsService.KeepAttempt:input_type -> harness.relay.v1.KeepAttemptRequest
+	62, // 60: harness.relay.v1.HostsService.DiscardAttempts:input_type -> harness.relay.v1.DiscardAttemptsRequest
+	64, // 61: harness.relay.v1.LocalAttemptsService.StartLocalAttempts:input_type -> harness.relay.v1.StartLocalAttemptsRequest
+	66, // 62: harness.relay.v1.LocalAttemptsService.DiscardLocalAttempts:input_type -> harness.relay.v1.DiscardLocalAttemptsRequest
+	29, // 63: harness.relay.v1.HostAgentService.RegisterAgentHost:input_type -> harness.relay.v1.RegisterAgentHostRequest
+	31, // 64: harness.relay.v1.HostAgentService.ReportAgentHost:input_type -> harness.relay.v1.ReportAgentHostRequest
+	33, // 65: harness.relay.v1.HostAgentService.ClaimHostWork:input_type -> harness.relay.v1.ClaimHostWorkRequest
+	35, // 66: harness.relay.v1.HostAgentService.UpdateHostWork:input_type -> harness.relay.v1.UpdateHostWorkRequest
+	37, // 67: harness.relay.v1.HostAgentService.IssueGitCredentials:input_type -> harness.relay.v1.IssueGitCredentialsRequest
+	39, // 68: harness.relay.v1.HostAgentService.OpenHostPullRequest:input_type -> harness.relay.v1.OpenHostPullRequestRequest
+	41, // 69: harness.relay.v1.HostAgentService.ListWantedWorkers:input_type -> harness.relay.v1.ListWantedWorkersRequest
+	44, // 70: harness.relay.v1.HostAgentService.IssueWorkerToken:input_type -> harness.relay.v1.IssueWorkerTokenRequest
+	46, // 71: harness.relay.v1.HostAgentService.IssueMoveCredentials:input_type -> harness.relay.v1.IssueMoveCredentialsRequest
+	48, // 72: harness.relay.v1.HostAgentService.QueueMovedWork:input_type -> harness.relay.v1.QueueMovedWorkRequest
+	9,  // 73: harness.relay.v1.HostsService.ListAgentHosts:output_type -> harness.relay.v1.ListAgentHostsResponse
+	11, // 74: harness.relay.v1.HostsService.CreateAgentHost:output_type -> harness.relay.v1.CreateAgentHostResponse
+	13, // 75: harness.relay.v1.HostsService.UpdateAgentHost:output_type -> harness.relay.v1.UpdateAgentHostResponse
+	15, // 76: harness.relay.v1.HostsService.DeleteAgentHost:output_type -> harness.relay.v1.DeleteAgentHostResponse
+	18, // 77: harness.relay.v1.HostsService.StartHostWork:output_type -> harness.relay.v1.StartHostWorkResponse
+	20, // 78: harness.relay.v1.HostsService.GetHostWork:output_type -> harness.relay.v1.GetHostWorkResponse
+	22, // 79: harness.relay.v1.HostsService.ListHostWork:output_type -> harness.relay.v1.ListHostWorkResponse
+	24, // 80: harness.relay.v1.HostsService.CancelHostWork:output_type -> harness.relay.v1.CancelHostWorkResponse
+	26, // 81: harness.relay.v1.HostsService.SetAwayHost:output_type -> harness.relay.v1.SetAwayHostResponse
+	28, // 82: harness.relay.v1.HostsService.ClaimScheduleRun:output_type -> harness.relay.v1.ClaimScheduleRunResponse
+	53, // 83: harness.relay.v1.HostsService.StartAttempts:output_type -> harness.relay.v1.StartAttemptsResponse
+	55, // 84: harness.relay.v1.HostsService.GetAttemptGroup:output_type -> harness.relay.v1.GetAttemptGroupResponse
+	57, // 85: harness.relay.v1.HostsService.ListAttemptGroups:output_type -> harness.relay.v1.ListAttemptGroupsResponse
+	59, // 86: harness.relay.v1.HostsService.ReportAttempt:output_type -> harness.relay.v1.ReportAttemptResponse
+	61, // 87: harness.relay.v1.HostsService.KeepAttempt:output_type -> harness.relay.v1.KeepAttemptResponse
+	63, // 88: harness.relay.v1.HostsService.DiscardAttempts:output_type -> harness.relay.v1.DiscardAttemptsResponse
+	65, // 89: harness.relay.v1.LocalAttemptsService.StartLocalAttempts:output_type -> harness.relay.v1.StartLocalAttemptsResponse
+	67, // 90: harness.relay.v1.LocalAttemptsService.DiscardLocalAttempts:output_type -> harness.relay.v1.DiscardLocalAttemptsResponse
+	30, // 91: harness.relay.v1.HostAgentService.RegisterAgentHost:output_type -> harness.relay.v1.RegisterAgentHostResponse
+	32, // 92: harness.relay.v1.HostAgentService.ReportAgentHost:output_type -> harness.relay.v1.ReportAgentHostResponse
+	34, // 93: harness.relay.v1.HostAgentService.ClaimHostWork:output_type -> harness.relay.v1.ClaimHostWorkResponse
+	36, // 94: harness.relay.v1.HostAgentService.UpdateHostWork:output_type -> harness.relay.v1.UpdateHostWorkResponse
+	38, // 95: harness.relay.v1.HostAgentService.IssueGitCredentials:output_type -> harness.relay.v1.IssueGitCredentialsResponse
+	40, // 96: harness.relay.v1.HostAgentService.OpenHostPullRequest:output_type -> harness.relay.v1.OpenHostPullRequestResponse
+	43, // 97: harness.relay.v1.HostAgentService.ListWantedWorkers:output_type -> harness.relay.v1.ListWantedWorkersResponse
+	45, // 98: harness.relay.v1.HostAgentService.IssueWorkerToken:output_type -> harness.relay.v1.IssueWorkerTokenResponse
+	47, // 99: harness.relay.v1.HostAgentService.IssueMoveCredentials:output_type -> harness.relay.v1.IssueMoveCredentialsResponse
+	49, // 100: harness.relay.v1.HostAgentService.QueueMovedWork:output_type -> harness.relay.v1.QueueMovedWorkResponse
+	73, // [73:101] is the sub-list for method output_type
+	45, // [45:73] is the sub-list for method input_type
+	45, // [45:45] is the sub-list for extension type_name
+	45, // [45:45] is the sub-list for extension extendee
+	0,  // [0:45] is the sub-list for field type_name
 }
 
 func init() { file_harness_relay_v1_hosts_proto_init() }
@@ -3378,10 +5086,10 @@ func file_harness_relay_v1_hosts_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_relay_v1_hosts_proto_rawDesc), len(file_harness_relay_v1_hosts_proto_rawDesc)),
-			NumEnums:      5,
-			NumMessages:   40,
+			NumEnums:      6,
+			NumMessages:   62,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   3,
 		},
 		GoTypes:           file_harness_relay_v1_hosts_proto_goTypes,
 		DependencyIndexes: file_harness_relay_v1_hosts_proto_depIdxs,

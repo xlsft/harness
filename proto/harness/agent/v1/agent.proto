@@ -299,6 +299,14 @@ service AgentService {
   // FAILED_PRECONDITION for a session of another machine.
   rpc GetSessionDiff(GetSessionDiffRequest) returns (GetSessionDiffResponse);
 
+  // --- Moving a session to an always-on host (docs/design/hosts.md, decisions 21 to 27) ---
+
+  // Whether the session can move to the host, and what would go: for the confirmation. Changes nothing.
+  rpc CheckSessionMove(CheckSessionMoveRequest) returns (CheckSessionMoveResponse);
+  // After the user confirmed: pushes the session's work to harness/<session id>, queues it for the host, and makes the session
+  // read-only here. FAILED_PRECONDITION with the reasons when it can't move.
+  rpc MoveSession(MoveSessionRequest) returns (MoveSessionResponse);
+
   // --- Subagents (subagents.proto) ---
 
   // Stops a running or queued subagent of the session, with the agents it started. NOT_FOUND for an unknown agent.
@@ -579,6 +587,10 @@ message SessionInfo {
   string effort = 60;
   // "Keep computer awake" is on for the session (SetKeepAwake). Live sessions only.
   bool keep_awake = 61;
+  // The session moved to an always-on host and is read-only here.
+  SessionMoved moved = 360;
+  // The session is an attempt of a best-of-N group.
+  SessionAttempt attempt = 361;
 }
 
 // A git worktree a session runs in. `cwd` of the session is inside `path`.
@@ -880,7 +892,103 @@ message SessionEvent {
     TaskGraphUpdated task_graph_updated = 141;
     // Always-on hosts (docs/design/hosts.md): what became of the session's work; numbered apart like the shell events.
     HostWorkUpdated host_work_updated = 230;
+    // The session moved to an always-on host and is read-only here (docs/design/hosts.md, decision 24). Stored and replayed.
+    SessionMoved session_moved = 360;
+    // An attempt of a best-of-N group ran its test command (decision 30). Stored and replayed.
+    AttemptCheck attempt_checked = 361;
   }
+}
+
+// Where a moved session went. The host's session is found through the work row (HostsService.GetHostWork).
+message SessionMoved {
+  string host_id = 1;
+  string host_name = 2;
+  // hwk_...
+  string work_id = 3;
+  string branch = 4;
+  // RFC 3339, UTC.
+  string moved_at = 5;
+}
+
+message CheckSessionMoveRequest {
+  string session_id = 1;
+  // ahs_...
+  string host_id = 2;
+}
+
+// Why a session can't move, one reason at a time.
+message SessionMoveProblem {
+  // "not_git", "no_remote", "url_rewrite", "working", "secrets", "submodule", "outside_changes", "no_transcript",
+  // "no_folder", "remote", "moved", "acp", "host", "no_server", "detached", "base_unknown".
+  string code = 1;
+  string message = 2;
+  // The files or folders it is about, relative to the repository where they are in it.
+  repeated string paths = 3;
+}
+
+message SessionMoveCheck {
+  // Nothing in the way (problems is empty).
+  bool ok = 1;
+  repeated SessionMoveProblem problems = 2;
+  string host_name = 3;
+  // host/owner/name.
+  string repository_key = 4;
+  // What goes up: harness/<session id>, from base.
+  string branch = 5;
+  string base = 6;
+  // Commits on top of the base, and files changed and not committed, that go with it.
+  int32 commits = 7;
+  int32 uncommitted_files = 8;
+  // The mode the host session gets, and why it is not the session's when it is not.
+  PermissionMode permission_mode = 9;
+  string permission_note = 10;
+  // The session is in a turn; MoveSessionRequest.stop_turn stops it first.
+  bool working = 11;
+}
+
+message CheckSessionMoveResponse {
+  SessionMoveCheck check = 1;
+}
+
+message MoveSessionRequest {
+  string session_id = 1;
+  string host_id = 2;
+  // Stop the turn the session is in, then move. Without it a working session is refused.
+  bool stop_turn = 3;
+  // A first message for the host's session, in the user's words. Empty: it waits for one.
+  string message = 4;
+  // Open a draft pull request when the host lands the work, rather than only pushing the branch.
+  bool open_pull_request = 5;
+}
+
+message MoveSessionResponse {
+  SessionMoved moved = 1;
+}
+
+// One run of an attempt's test command, in its own checkout.
+message AttemptCheck {
+  // atg_...; the attempt's number in it, from 0.
+  string group_id = 1;
+  int32 index = 2;
+  string command = 3;
+  int32 exit_code = 4;
+  // The end of what it printed, at most 8 KB.
+  string output = 5;
+  // A deny rule covers the command; it did not run.
+  bool refused = 6;
+  // It ran out of time, or could not start (then exit_code is -1).
+  bool timed_out = 7;
+  // The commit the checkout was at, and when.
+  string head = 8;
+  // RFC 3339, UTC.
+  string checked_at = 9;
+}
+
+// A session that is one attempt of a best-of-N group.
+message SessionAttempt {
+  string group_id = 1;
+  int32 index = 2;
+  int32 count = 3;
 }
 
 // A host pushed the session's work, opened a pull request, or could not. Stored and replayed like other events.
@@ -1585,6 +1693,11 @@ message UserPreferences {
   ManagedPolicyView managed_policy = 16;
   // How requests use the models (settings keys speedTier, cacheTtl, advisorModel).
   ModelTuning model_tuning = 26;
+  // Best-of-N: how many attempts of a group work at once (settings key bestOfNParallel), 1 to 5. 0: all of them. The managed
+  // policy may cap it lower; the server applies the cap.
+  int32 best_of_n_parallel = 58;
+  // Best-of-N: what one attempt may spend in USD (settings key bestOfNBudgetUsd). 0: no limit of the user's own.
+  double best_of_n_budget_usd = 59;
 }
 
 // Choices about how a user's requests run. Sessions opened from then on follow them.
@@ -1635,6 +1748,10 @@ message UpdateUserPreferencesRequest {
   optional bool auto_memory_enabled = 24;
   optional bool schedules_enabled = 18;
   optional int32 goal_max_turns = 19;
+  // INVALID_ARGUMENT outside 1 to 5.
+  optional int32 best_of_n_parallel = 58;
+  // INVALID_ARGUMENT below 0 or above 1000.
+  optional double best_of_n_budget_usd = 59;
 }
 
 message UpdateUserPreferencesResponse {

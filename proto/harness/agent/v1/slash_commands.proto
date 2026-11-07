@@ -93,6 +93,8 @@ message SlashCommandResult {
     // Open the Plugins tab of Extensions.
     ACTION_OPEN_PLUGINS = 160;
     ACTION_OPEN_SCHEDULED = 140;
+    // Open the confirmation to move the session to an always-on host (/move). Nothing moves before the user confirms.
+    ACTION_OPEN_MOVE = 360;
   }
   // The client-generated id of the message (SendUserMessageRequest.uuid).
   string uuid = 1;

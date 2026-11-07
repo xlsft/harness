@@ -4,7 +4,7 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { PermissionMode } from "../../agent/v1/agent_pb";
+import type { AttemptCheck, PermissionMode } from "../../agent/v1/agent_pb";
 import { file_harness_agent_v1_agent } from "../../agent/v1/agent_pb";
 import type { AutoFixJob } from "../../agent/v1/auto_fix_pb";
 import { file_harness_agent_v1_auto_fix } from "../../agent/v1/auto_fix_pb";
@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/relay/v1/hosts.proto.
  */
 export const file_harness_relay_v1_hosts: GenFile = /*@__PURE__*/
-  fileDesc("ChxoYXJuZXNzL3JlbGF5L3YxL2hvc3RzLnByb3RvEhBoYXJuZXNzLnJlbGF5LnYxIp0FCglBZ2VudEhvc3QSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIvCgVzY29wZRgDIAEoDjIgLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0U2NvcGUSFQoNb3duZXJfdXNlcl9pZBgEIAEoCRISCgpvd25lcl9uYW1lGAUgASgJEhAKCGdyb3VwX2lkGAYgASgJEhIKCmdyb3VwX25hbWUYByABKAkSDgoGb25saW5lGAggASgIEhAKCGRyYWluaW5nGAkgASgIEhoKEnVuYXZhaWxhYmxlX3JlYXNvbhgKIAEoCRIUCgxtYXhfc2Vzc2lvbnMYCyABKAUSHQoVbWF4X3Nlc3Npb25zX3Blcl91c2VyGAwgASgFEhgKEHdvcmtpbmdfc2Vzc2lvbnMYDSABKAUSEwoLcXVldWVkX3dvcmsYDiABKAUSNwoJaXNvbGF0aW9uGA8gASgOMiQuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3RJc29sYXRpb24SFgoOc2FuZGJveF9kcml2ZXIYECABKAkSCgoCb3MYESABKAkSDAoEYXJjaBgSIAEoCRIWCg5jbGllbnRfdmVyc2lvbhgTIAEoCRIRCgljcHVfY291bnQYFCABKAUSFAoMbG9hZF9hdmVyYWdlGBUgASgBEhcKD2Rpc2tfZnJlZV9ieXRlcxgWIAEoAxIcChRhbGxvd2VkX3JlcG9zaXRvcmllcxgXIAMoCRIRCglhd2F5X2hvc3QYGCABKAgSFAoMbGFzdF9zZWVuX2F0GBkgASgJEhIKCmNyZWF0ZWRfYXQYGiABKAkSMgoHd29ya2VycxgbIAMoCzIhLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0V29ya2VyInIKD0FnZW50SG9zdFdvcmtlchIPCgd1c2VyX2lkGAEgASgJEhEKCXVzZXJfbmFtZRgCIAEoCRIRCglkZXZpY2VfaWQYAyABKAkSDgoGb25saW5lGAQgASgIEhgKEHdvcmtpbmdfc2Vzc2lvbnMYBSABKAUiJAoVTGlzdEFnZW50SG9zdHNSZXF1ZXN0EgsKA2FsbBgBIAEoCCJEChZMaXN0QWdlbnRIb3N0c1Jlc3BvbnNlEioKBWhvc3RzGAEgAygLMhsuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3QivAEKFkNyZWF0ZUFnZW50SG9zdFJlcXVlc3QSDAoEbmFtZRgBIAEoCRIvCgVzY29wZRgCIAEoDjIgLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0U2NvcGUSEAoIZ3JvdXBfaWQYAyABKAkSFAoMbWF4X3Nlc3Npb25zGAQgASgFEh0KFW1heF9zZXNzaW9uc19wZXJfdXNlchgFIAEoBRIcChRhbGxvd2VkX3JlcG9zaXRvcmllcxgGIAMoCSJaChdDcmVhdGVBZ2VudEhvc3RSZXNwb25zZRIpCgRob3N0GAEgASgLMhsuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3QSFAoMZGV2aWNlX3Rva2VuGAIgASgJIrICChZVcGRhdGVBZ2VudEhvc3RSZXF1ZXN0EgoKAmlkGAEgASgJEhEKBG5hbWUYAiABKAlIAIgBARIVCghkcmFpbmluZxgDIAEoCEgBiAEBEhkKDG1heF9zZXNzaW9ucxgEIAEoBUgCiAEBEiIKFW1heF9zZXNzaW9uc19wZXJfdXNlchgFIAEoBUgDiAEBEhUKCGdyb3VwX2lkGAYgASgJSASIAQESIAoYc2V0X2FsbG93ZWRfcmVwb3NpdG9yaWVzGAcgASgIEhwKFGFsbG93ZWRfcmVwb3NpdG9yaWVzGAggAygJQgcKBV9uYW1lQgsKCV9kcmFpbmluZ0IPCg1fbWF4X3Nlc3Npb25zQhgKFl9tYXhfc2Vzc2lvbnNfcGVyX3VzZXJCCwoJX2dyb3VwX2lkIkQKF1VwZGF0ZUFnZW50SG9zdFJlc3BvbnNlEikKBGhvc3QYASABKAsyGy5oYXJuZXNzLnJlbGF5LnYxLkFnZW50SG9zdCIkChZEZWxldGVBZ2VudEhvc3RSZXF1ZXN0EgoKAmlkGAEgASgJIhkKF0RlbGV0ZUFnZW50SG9zdFJlc3BvbnNlIvgECghIb3N0V29yaxIKCgJpZBgBIAEoCRIPCgdob3N0X2lkGAIgASgJEhEKCWhvc3RfbmFtZRgDIAEoCRIPCgd1c2VyX2lkGAQgASgJEiwKBGtpbmQYBSABKA4yHi5oYXJuZXNzLnJlbGF5LnYxLkhvc3RXb3JrS2luZBIuCgVzdGF0ZRgGIAEoDjIfLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmtTdGF0ZRIWCg5yZXBvc2l0b3J5X2tleRgHIAEoCRIQCghiYXNlX3JlZhgIIAEoCRIOCgZicmFuY2gYCSABKAkSMgoHbGFuZGluZxgKIAEoDjIhLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmtMYW5kaW5nEhMKC2ZyZXNoX2Nsb25lGAsgASgIEg4KBnByb21wdBgMIAEoCRINCgV0aXRsZRgNIAEoCRINCgVtb2RlbBgOIAEoCRImCgZlZmZvcnQYDyABKA4yFi5oYXJuZXNzLmxsbS52MS5FZmZvcnQSOQoPcGVybWlzc2lvbl9tb2RlGBAgASgOMiAuaGFybmVzcy5hZ2VudC52MS5QZXJtaXNzaW9uTW9kZRIpCgNqb2IYESABKAsyHC5oYXJuZXNzLmFnZW50LnYxLkF1dG9GaXhKb2ISFwoPZm9ya19zZXNzaW9uX2lkGBIgASgJEhIKCnNlc3Npb25faWQYEyABKAkSGAoQcHVsbF9yZXF1ZXN0X3VybBgUIAEoCRINCgVlcnJvchgVIAEoCRIQCghhdHRlbXB0cxgWIAEoBRISCgpjcmVhdGVkX2F0GBcgASgJEhIKCnVwZGF0ZWRfYXQYGCABKAkixAIKFFN0YXJ0SG9zdFdvcmtSZXF1ZXN0Eg8KB2hvc3RfaWQYASABKAkSFgoOcmVwb3NpdG9yeV9rZXkYAiABKAkSEAoIYmFzZV9yZWYYAyABKAkSDgoGcHJvbXB0GAQgASgJEg0KBXRpdGxlGAUgASgJEg0KBW1vZGVsGAYgASgJEiYKBmVmZm9ydBgHIAEoDjIWLmhhcm5lc3MubGxtLnYxLkVmZm9ydBI5Cg9wZXJtaXNzaW9uX21vZGUYCCABKA4yIC5oYXJuZXNzLmFnZW50LnYxLlBlcm1pc3Npb25Nb2RlEjIKB2xhbmRpbmcYCSABKA4yIS5oYXJuZXNzLnJlbGF5LnYxLkhvc3RXb3JrTGFuZGluZxITCgtmcmVzaF9jbG9uZRgKIAEoCBIXCg9pZGVtcG90ZW5jeV9rZXkYCyABKAkiQQoVU3RhcnRIb3N0V29ya1Jlc3BvbnNlEigKBHdvcmsYASABKAsyGi5oYXJuZXNzLnJlbGF5LnYxLkhvc3RXb3JrIiAKEkdldEhvc3RXb3JrUmVxdWVzdBIKCgJpZBgBIAEoCSI/ChNHZXRIb3N0V29ya1Jlc3BvbnNlEigKBHdvcmsYASABKAsyGi5oYXJuZXNzLnJlbGF5LnYxLkhvc3RXb3JrIjUKE0xpc3RIb3N0V29ya1JlcXVlc3QSDwoHaG9zdF9pZBgBIAEoCRINCgVsaW1pdBgCIAEoBSJAChRMaXN0SG9zdFdvcmtSZXNwb25zZRIoCgR3b3JrGAEgAygLMhouaGFybmVzcy5yZWxheS52MS5Ib3N0V29yayIjChVDYW5jZWxIb3N0V29ya1JlcXVlc3QSCgoCaWQYASABKAkiQgoWQ2FuY2VsSG9zdFdvcmtSZXNwb25zZRIoCgR3b3JrGAEgASgLMhouaGFybmVzcy5yZWxheS52MS5Ib3N0V29yayIlChJTZXRBd2F5SG9zdFJlcXVlc3QSDwoHaG9zdF9pZBgBIAEoCSIVChNTZXRBd2F5SG9zdFJlc3BvbnNlIj4KF0NsYWltU2NoZWR1bGVSdW5SZXF1ZXN0EhMKC3NjaGVkdWxlX2lkGAEgASgJEg4KBmR1ZV9hdBgCIAEoCSIrChhDbGFpbVNjaGVkdWxlUnVuUmVzcG9uc2USDwoHZ3JhbnRlZBgBIAEoCCLUAQoYUmVnaXN0ZXJBZ2VudEhvc3RSZXF1ZXN0EgwKBG5hbWUYASABKAkSNwoJaXNvbGF0aW9uGAIgASgOMiQuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3RJc29sYXRpb24SFgoOc2FuZGJveF9kcml2ZXIYAyABKAkSCgoCb3MYBCABKAkSDAoEYXJjaBgFIAEoCRIWCg5jbGllbnRfdmVyc2lvbhgGIAEoCRIRCgljcHVfY291bnQYByABKAUSFAoMbWF4X3Nlc3Npb25zGAggASgFIloKGVJlZ2lzdGVyQWdlbnRIb3N0UmVzcG9uc2USKQoEaG9zdBgBIAEoCzIbLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0EhIKCnN1cGVydmlzb3IYAiABKAgiYQoWUmVwb3J0QWdlbnRIb3N0UmVxdWVzdBIYChB3b3JraW5nX3Nlc3Npb25zGAEgASgFEhQKDGxvYWRfYXZlcmFnZRgCIAEoARIXCg9kaXNrX2ZyZWVfYnl0ZXMYAyABKAMiQQoXUmVwb3J0QWdlbnRIb3N0UmVzcG9uc2USEAoIZHJhaW5pbmcYASABKAgSFAoMbWF4X3Nlc3Npb25zGAIgASgFIiwKFENsYWltSG9zdFdvcmtSZXF1ZXN0EhQKDHdhaXRfc2Vjb25kcxgBIAEoBSJmChVDbGFpbUhvc3RXb3JrUmVzcG9uc2USKAoEd29yaxgBIAEoCzIaLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmsSEAoIZ2l0X25hbWUYAiABKAkSEQoJZ2l0X2VtYWlsGAMgASgJIqUBChVVcGRhdGVIb3N0V29ya1JlcXVlc3QSDwoHd29ya19pZBgBIAEoCRIuCgVzdGF0ZRgCIAEoDjIfLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmtTdGF0ZRISCgpzZXNzaW9uX2lkGAMgASgJEg4KBmJyYW5jaBgEIAEoCRIYChBwdWxsX3JlcXVlc3RfdXJsGAUgASgJEg0KBWVycm9yGAYgASgJIisKFlVwZGF0ZUhvc3RXb3JrUmVzcG9uc2USEQoJY2FuY2VsbGVkGAEgASgIIjQKGklzc3VlR2l0Q3JlZGVudGlhbHNSZXF1ZXN0EhYKDnJlcG9zaXRvcnlfa2V5GAEgASgJInkKG0lzc3VlR2l0Q3JlZGVudGlhbHNSZXNwb25zZRIRCgljbG9uZV91cmwYASABKAkSEAoIdXNlcm5hbWUYAiABKAkSEAoIcGFzc3dvcmQYAyABKAkSEgoKZXhwaXJlc19hdBgEIAEoCRIPCgdhc191c2VyGAUgASgIIp4BChpPcGVuSG9zdFB1bGxSZXF1ZXN0UmVxdWVzdBIWCg5yZXBvc2l0b3J5X2tleRgBIAEoCRITCgtoZWFkX2JyYW5jaBgCIAEoCRITCgtiYXNlX2JyYW5jaBgDIAEoCRINCgV0aXRsZRgEIAEoCRIMCgRib2R5GAUgASgJEg0KBWRyYWZ0GAYgASgIEhIKCnNlc3Npb25faWQYByABKAkiOgobT3Blbkhvc3RQdWxsUmVxdWVzdFJlc3BvbnNlEgsKA3VybBgBIAEoCRIOCgZudW1iZXIYAiABKAMiMAoYTGlzdFdhbnRlZFdvcmtlcnNSZXF1ZXN0EhQKDHdhaXRfc2Vjb25kcxgBIAEoBSIyCgxXYW50ZWRXb3JrZXISDwoHdXNlcl9pZBgBIAEoCRIRCglkZXZpY2VfaWQYAiABKAkiYwoZTGlzdFdhbnRlZFdvcmtlcnNSZXNwb25zZRIvCgd3b3JrZXJzGAEgAygLMh4uaGFybmVzcy5yZWxheS52MS5XYW50ZWRXb3JrZXISFQoNc3RvcF91c2VyX2lkcxgCIAMoCSIqChdJc3N1ZVdvcmtlclRva2VuUmVxdWVzdBIPCgd1c2VyX2lkGAEgASgJIkMKGElzc3VlV29ya2VyVG9rZW5SZXNwb25zZRIRCglkZXZpY2VfaWQYASABKAkSFAoMZGV2aWNlX3Rva2VuGAIgASgJKmgKDkFnZW50SG9zdFNjb3BlEiAKHEFHRU5UX0hPU1RfU0NPUEVfVU5TUEVDSUZJRUQQABIZChVBR0VOVF9IT1NUX1NDT1BFX1VTRVIQARIZChVBR0VOVF9IT1NUX1NDT1BFX1RFQU0QAip3ChJBZ2VudEhvc3RJc29sYXRpb24SJAogQUdFTlRfSE9TVF9JU09MQVRJT05fVU5TUEVDSUZJRUQQABIdChlBR0VOVF9IT1NUX0lTT0xBVElPTl9OT05FEAESHAoYQUdFTlRfSE9TVF9JU09MQVRJT05fVUlEEAIqhwEKDEhvc3RXb3JrS2luZBIeChpIT1NUX1dPUktfS0lORF9VTlNQRUNJRklFRBAAEh4KGkhPU1RfV09SS19LSU5EX05FV19TRVNTSU9OEAESGwoXSE9TVF9XT1JLX0tJTkRfQVVUT19GSVgQAhIaChZIT1NUX1dPUktfS0lORF9NRU5USU9OEAMq+AEKDUhvc3RXb3JrU3RhdGUSHwobSE9TVF9XT1JLX1NUQVRFX1VOU1BFQ0lGSUVEEAASGgoWSE9TVF9XT1JLX1NUQVRFX1FVRVVFRBABEhsKF0hPU1RfV09SS19TVEFURV9DTEFJTUVEEAISGwoXSE9TVF9XT1JLX1NUQVRFX1JVTk5JTkcQAxIYChRIT1NUX1dPUktfU1RBVEVfRE9ORRAEEhoKFkhPU1RfV09SS19TVEFURV9GQUlMRUQQBRIdChlIT1NUX1dPUktfU1RBVEVfQ0FOQ0VMTEVEEAYSGwoXSE9TVF9XT1JLX1NUQVRFX0VYUElSRUQQByqSAQoPSG9zdFdvcmtMYW5kaW5nEiEKHUhPU1RfV09SS19MQU5ESU5HX1VOU1BFQ0lGSUVEEAASIgoeSE9TVF9XT1JLX0xBTkRJTkdfUFVMTF9SRVFVRVNUEAESHAoYSE9TVF9XT1JLX0xBTkRJTkdfQlJBTkNIEAISGgoWSE9TVF9XT1JLX0xBTkRJTkdfTk9ORRADMvQHCgxIb3N0c1NlcnZpY2USYwoOTGlzdEFnZW50SG9zdHMSJy5oYXJuZXNzLnJlbGF5LnYxLkxpc3RBZ2VudEhvc3RzUmVxdWVzdBooLmhhcm5lc3MucmVsYXkudjEuTGlzdEFnZW50SG9zdHNSZXNwb25zZRJmCg9DcmVhdGVBZ2VudEhvc3QSKC5oYXJuZXNzLnJlbGF5LnYxLkNyZWF0ZUFnZW50SG9zdFJlcXVlc3QaKS5oYXJuZXNzLnJlbGF5LnYxLkNyZWF0ZUFnZW50SG9zdFJlc3BvbnNlEmYKD1VwZGF0ZUFnZW50SG9zdBIoLmhhcm5lc3MucmVsYXkudjEuVXBkYXRlQWdlbnRIb3N0UmVxdWVzdBopLmhhcm5lc3MucmVsYXkudjEuVXBkYXRlQWdlbnRIb3N0UmVzcG9uc2USZgoPRGVsZXRlQWdlbnRIb3N0EiguaGFybmVzcy5yZWxheS52MS5EZWxldGVBZ2VudEhvc3RSZXF1ZXN0GikuaGFybmVzcy5yZWxheS52MS5EZWxldGVBZ2VudEhvc3RSZXNwb25zZRJgCg1TdGFydEhvc3RXb3JrEiYuaGFybmVzcy5yZWxheS52MS5TdGFydEhvc3RXb3JrUmVxdWVzdBonLmhhcm5lc3MucmVsYXkudjEuU3RhcnRIb3N0V29ya1Jlc3BvbnNlEloKC0dldEhvc3RXb3JrEiQuaGFybmVzcy5yZWxheS52MS5HZXRIb3N0V29ya1JlcXVlc3QaJS5oYXJuZXNzLnJlbGF5LnYxLkdldEhvc3RXb3JrUmVzcG9uc2USXQoMTGlzdEhvc3RXb3JrEiUuaGFybmVzcy5yZWxheS52MS5MaXN0SG9zdFdvcmtSZXF1ZXN0GiYuaGFybmVzcy5yZWxheS52MS5MaXN0SG9zdFdvcmtSZXNwb25zZRJjCg5DYW5jZWxIb3N0V29yaxInLmhhcm5lc3MucmVsYXkudjEuQ2FuY2VsSG9zdFdvcmtSZXF1ZXN0GiguaGFybmVzcy5yZWxheS52MS5DYW5jZWxIb3N0V29ya1Jlc3BvbnNlEloKC1NldEF3YXlIb3N0EiQuaGFybmVzcy5yZWxheS52MS5TZXRBd2F5SG9zdFJlcXVlc3QaJS5oYXJuZXNzLnJlbGF5LnYxLlNldEF3YXlIb3N0UmVzcG9uc2USaQoQQ2xhaW1TY2hlZHVsZVJ1bhIpLmhhcm5lc3MucmVsYXkudjEuQ2xhaW1TY2hlZHVsZVJ1blJlcXVlc3QaKi5oYXJuZXNzLnJlbGF5LnYxLkNsYWltU2NoZWR1bGVSdW5SZXNwb25zZTLwBgoQSG9zdEFnZW50U2VydmljZRJsChFSZWdpc3RlckFnZW50SG9zdBIqLmhhcm5lc3MucmVsYXkudjEuUmVnaXN0ZXJBZ2VudEhvc3RSZXF1ZXN0GisuaGFybmVzcy5yZWxheS52MS5SZWdpc3RlckFnZW50SG9zdFJlc3BvbnNlEmYKD1JlcG9ydEFnZW50SG9zdBIoLmhhcm5lc3MucmVsYXkudjEuUmVwb3J0QWdlbnRIb3N0UmVxdWVzdBopLmhhcm5lc3MucmVsYXkudjEuUmVwb3J0QWdlbnRIb3N0UmVzcG9uc2USYAoNQ2xhaW1Ib3N0V29yaxImLmhhcm5lc3MucmVsYXkudjEuQ2xhaW1Ib3N0V29ya1JlcXVlc3QaJy5oYXJuZXNzLnJlbGF5LnYxLkNsYWltSG9zdFdvcmtSZXNwb25zZRJjCg5VcGRhdGVIb3N0V29yaxInLmhhcm5lc3MucmVsYXkudjEuVXBkYXRlSG9zdFdvcmtSZXF1ZXN0GiguaGFybmVzcy5yZWxheS52MS5VcGRhdGVIb3N0V29ya1Jlc3BvbnNlEnIKE0lzc3VlR2l0Q3JlZGVudGlhbHMSLC5oYXJuZXNzLnJlbGF5LnYxLklzc3VlR2l0Q3JlZGVudGlhbHNSZXF1ZXN0Gi0uaGFybmVzcy5yZWxheS52MS5Jc3N1ZUdpdENyZWRlbnRpYWxzUmVzcG9uc2UScgoTT3Blbkhvc3RQdWxsUmVxdWVzdBIsLmhhcm5lc3MucmVsYXkudjEuT3Blbkhvc3RQdWxsUmVxdWVzdFJlcXVlc3QaLS5oYXJuZXNzLnJlbGF5LnYxLk9wZW5Ib3N0UHVsbFJlcXVlc3RSZXNwb25zZRJsChFMaXN0V2FudGVkV29ya2VycxIqLmhhcm5lc3MucmVsYXkudjEuTGlzdFdhbnRlZFdvcmtlcnNSZXF1ZXN0GisuaGFybmVzcy5yZWxheS52MS5MaXN0V2FudGVkV29ya2Vyc1Jlc3BvbnNlEmkKEElzc3VlV29ya2VyVG9rZW4SKS5oYXJuZXNzLnJlbGF5LnYxLklzc3VlV29ya2VyVG9rZW5SZXF1ZXN0GiouaGFybmVzcy5yZWxheS52MS5Jc3N1ZVdvcmtlclRva2VuUmVzcG9uc2VCywEKFGNvbS5oYXJuZXNzLnJlbGF5LnYxQgpIb3N0c1Byb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvcmVsYXkvdjE7cmVsYXl2MaICA0hSWKoCEEhhcm5lc3MuUmVsYXkuVjHKAhBIYXJuZXNzXFJlbGF5XFYx4gIcSGFybmVzc1xSZWxheVxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OlJlbGF5OjpWMWIGcHJvdG8z", [file_harness_agent_v1_agent, file_harness_agent_v1_auto_fix, file_harness_llm_v1_content]);
+  fileDesc("ChxoYXJuZXNzL3JlbGF5L3YxL2hvc3RzLnByb3RvEhBoYXJuZXNzLnJlbGF5LnYxIp0FCglBZ2VudEhvc3QSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIvCgVzY29wZRgDIAEoDjIgLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0U2NvcGUSFQoNb3duZXJfdXNlcl9pZBgEIAEoCRISCgpvd25lcl9uYW1lGAUgASgJEhAKCGdyb3VwX2lkGAYgASgJEhIKCmdyb3VwX25hbWUYByABKAkSDgoGb25saW5lGAggASgIEhAKCGRyYWluaW5nGAkgASgIEhoKEnVuYXZhaWxhYmxlX3JlYXNvbhgKIAEoCRIUCgxtYXhfc2Vzc2lvbnMYCyABKAUSHQoVbWF4X3Nlc3Npb25zX3Blcl91c2VyGAwgASgFEhgKEHdvcmtpbmdfc2Vzc2lvbnMYDSABKAUSEwoLcXVldWVkX3dvcmsYDiABKAUSNwoJaXNvbGF0aW9uGA8gASgOMiQuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3RJc29sYXRpb24SFgoOc2FuZGJveF9kcml2ZXIYECABKAkSCgoCb3MYESABKAkSDAoEYXJjaBgSIAEoCRIWCg5jbGllbnRfdmVyc2lvbhgTIAEoCRIRCgljcHVfY291bnQYFCABKAUSFAoMbG9hZF9hdmVyYWdlGBUgASgBEhcKD2Rpc2tfZnJlZV9ieXRlcxgWIAEoAxIcChRhbGxvd2VkX3JlcG9zaXRvcmllcxgXIAMoCRIRCglhd2F5X2hvc3QYGCABKAgSFAoMbGFzdF9zZWVuX2F0GBkgASgJEhIKCmNyZWF0ZWRfYXQYGiABKAkSMgoHd29ya2VycxgbIAMoCzIhLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0V29ya2VyInIKD0FnZW50SG9zdFdvcmtlchIPCgd1c2VyX2lkGAEgASgJEhEKCXVzZXJfbmFtZRgCIAEoCRIRCglkZXZpY2VfaWQYAyABKAkSDgoGb25saW5lGAQgASgIEhgKEHdvcmtpbmdfc2Vzc2lvbnMYBSABKAUiJAoVTGlzdEFnZW50SG9zdHNSZXF1ZXN0EgsKA2FsbBgBIAEoCCJEChZMaXN0QWdlbnRIb3N0c1Jlc3BvbnNlEioKBWhvc3RzGAEgAygLMhsuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3QivAEKFkNyZWF0ZUFnZW50SG9zdFJlcXVlc3QSDAoEbmFtZRgBIAEoCRIvCgVzY29wZRgCIAEoDjIgLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0U2NvcGUSEAoIZ3JvdXBfaWQYAyABKAkSFAoMbWF4X3Nlc3Npb25zGAQgASgFEh0KFW1heF9zZXNzaW9uc19wZXJfdXNlchgFIAEoBRIcChRhbGxvd2VkX3JlcG9zaXRvcmllcxgGIAMoCSJaChdDcmVhdGVBZ2VudEhvc3RSZXNwb25zZRIpCgRob3N0GAEgASgLMhsuaGFybmVzcy5yZWxheS52MS5BZ2VudEhvc3QSFAoMZGV2aWNlX3Rva2VuGAIgASgJIrICChZVcGRhdGVBZ2VudEhvc3RSZXF1ZXN0EgoKAmlkGAEgASgJEhEKBG5hbWUYAiABKAlIAIgBARIVCghkcmFpbmluZxgDIAEoCEgBiAEBEhkKDG1heF9zZXNzaW9ucxgEIAEoBUgCiAEBEiIKFW1heF9zZXNzaW9uc19wZXJfdXNlchgFIAEoBUgDiAEBEhUKCGdyb3VwX2lkGAYgASgJSASIAQESIAoYc2V0X2FsbG93ZWRfcmVwb3NpdG9yaWVzGAcgASgIEhwKFGFsbG93ZWRfcmVwb3NpdG9yaWVzGAggAygJQgcKBV9uYW1lQgsKCV9kcmFpbmluZ0IPCg1fbWF4X3Nlc3Npb25zQhgKFl9tYXhfc2Vzc2lvbnNfcGVyX3VzZXJCCwoJX2dyb3VwX2lkIkQKF1VwZGF0ZUFnZW50SG9zdFJlc3BvbnNlEikKBGhvc3QYASABKAsyGy5oYXJuZXNzLnJlbGF5LnYxLkFnZW50SG9zdCIkChZEZWxldGVBZ2VudEhvc3RSZXF1ZXN0EgoKAmlkGAEgASgJIhkKF0RlbGV0ZUFnZW50SG9zdFJlc3BvbnNlItMFCghIb3N0V29yaxIKCgJpZBgBIAEoCRIPCgdob3N0X2lkGAIgASgJEhEKCWhvc3RfbmFtZRgDIAEoCRIPCgd1c2VyX2lkGAQgASgJEiwKBGtpbmQYBSABKA4yHi5oYXJuZXNzLnJlbGF5LnYxLkhvc3RXb3JrS2luZBIuCgVzdGF0ZRgGIAEoDjIfLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmtTdGF0ZRIWCg5yZXBvc2l0b3J5X2tleRgHIAEoCRIQCghiYXNlX3JlZhgIIAEoCRIOCgZicmFuY2gYCSABKAkSMgoHbGFuZGluZxgKIAEoDjIhLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmtMYW5kaW5nEhMKC2ZyZXNoX2Nsb25lGAsgASgIEg4KBnByb21wdBgMIAEoCRINCgV0aXRsZRgNIAEoCRINCgVtb2RlbBgOIAEoCRImCgZlZmZvcnQYDyABKA4yFi5oYXJuZXNzLmxsbS52MS5FZmZvcnQSOQoPcGVybWlzc2lvbl9tb2RlGBAgASgOMiAuaGFybmVzcy5hZ2VudC52MS5QZXJtaXNzaW9uTW9kZRIpCgNqb2IYESABKAsyHC5oYXJuZXNzLmFnZW50LnYxLkF1dG9GaXhKb2ISFwoPZm9ya19zZXNzaW9uX2lkGBIgASgJEhIKCnNlc3Npb25faWQYEyABKAkSGAoQcHVsbF9yZXF1ZXN0X3VybBgUIAEoCRINCgVlcnJvchgVIAEoCRIQCghhdHRlbXB0cxgWIAEoBRISCgpjcmVhdGVkX2F0GBcgASgJEhIKCnVwZGF0ZWRfYXQYGCABKAkSGAoQYXR0ZW1wdF9ncm91cF9pZBgZIAEoCRIVCg1hdHRlbXB0X2luZGV4GBogASgFEhQKDHRlc3RfY29tbWFuZBgbIAEoCRISCgpidWRnZXRfdXNkGBwgASgBIpsDChRTdGFydEhvc3RXb3JrUmVxdWVzdBIPCgdob3N0X2lkGAEgASgJEhYKDnJlcG9zaXRvcnlfa2V5GAIgASgJEhAKCGJhc2VfcmVmGAMgASgJEg4KBnByb21wdBgEIAEoCRINCgV0aXRsZRgFIAEoCRINCgVtb2RlbBgGIAEoCRImCgZlZmZvcnQYByABKA4yFi5oYXJuZXNzLmxsbS52MS5FZmZvcnQSOQoPcGVybWlzc2lvbl9tb2RlGAggASgOMiAuaGFybmVzcy5hZ2VudC52MS5QZXJtaXNzaW9uTW9kZRIyCgdsYW5kaW5nGAkgASgOMiEuaGFybmVzcy5yZWxheS52MS5Ib3N0V29ya0xhbmRpbmcSEwoLZnJlc2hfY2xvbmUYCiABKAgSFwoPaWRlbXBvdGVuY3lfa2V5GAsgASgJEiwKBGtpbmQYDCABKA4yHi5oYXJuZXNzLnJlbGF5LnYxLkhvc3RXb3JrS2luZBIOCgZicmFuY2gYDSABKAkSFwoPZm9ya19zZXNzaW9uX2lkGA4gASgJIkEKFVN0YXJ0SG9zdFdvcmtSZXNwb25zZRIoCgR3b3JrGAEgASgLMhouaGFybmVzcy5yZWxheS52MS5Ib3N0V29yayIgChJHZXRIb3N0V29ya1JlcXVlc3QSCgoCaWQYASABKAkiPwoTR2V0SG9zdFdvcmtSZXNwb25zZRIoCgR3b3JrGAEgASgLMhouaGFybmVzcy5yZWxheS52MS5Ib3N0V29yayI1ChNMaXN0SG9zdFdvcmtSZXF1ZXN0Eg8KB2hvc3RfaWQYASABKAkSDQoFbGltaXQYAiABKAUiQAoUTGlzdEhvc3RXb3JrUmVzcG9uc2USKAoEd29yaxgBIAMoCzIaLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmsiIwoVQ2FuY2VsSG9zdFdvcmtSZXF1ZXN0EgoKAmlkGAEgASgJIkIKFkNhbmNlbEhvc3RXb3JrUmVzcG9uc2USKAoEd29yaxgBIAEoCzIaLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmsiJQoSU2V0QXdheUhvc3RSZXF1ZXN0Eg8KB2hvc3RfaWQYASABKAkiFQoTU2V0QXdheUhvc3RSZXNwb25zZSI+ChdDbGFpbVNjaGVkdWxlUnVuUmVxdWVzdBITCgtzY2hlZHVsZV9pZBgBIAEoCRIOCgZkdWVfYXQYAiABKAkiKwoYQ2xhaW1TY2hlZHVsZVJ1blJlc3BvbnNlEg8KB2dyYW50ZWQYASABKAgi1AEKGFJlZ2lzdGVyQWdlbnRIb3N0UmVxdWVzdBIMCgRuYW1lGAEgASgJEjcKCWlzb2xhdGlvbhgCIAEoDjIkLmhhcm5lc3MucmVsYXkudjEuQWdlbnRIb3N0SXNvbGF0aW9uEhYKDnNhbmRib3hfZHJpdmVyGAMgASgJEgoKAm9zGAQgASgJEgwKBGFyY2gYBSABKAkSFgoOY2xpZW50X3ZlcnNpb24YBiABKAkSEQoJY3B1X2NvdW50GAcgASgFEhQKDG1heF9zZXNzaW9ucxgIIAEoBSJaChlSZWdpc3RlckFnZW50SG9zdFJlc3BvbnNlEikKBGhvc3QYASABKAsyGy5oYXJuZXNzLnJlbGF5LnYxLkFnZW50SG9zdBISCgpzdXBlcnZpc29yGAIgASgIImEKFlJlcG9ydEFnZW50SG9zdFJlcXVlc3QSGAoQd29ya2luZ19zZXNzaW9ucxgBIAEoBRIUCgxsb2FkX2F2ZXJhZ2UYAiABKAESFwoPZGlza19mcmVlX2J5dGVzGAMgASgDIlsKF1JlcG9ydEFnZW50SG9zdFJlc3BvbnNlEhAKCGRyYWluaW5nGAEgASgIEhQKDG1heF9zZXNzaW9ucxgCIAEoBRIYChBkaXNjYXJkX3dvcmtfaWRzGAMgAygJIiwKFENsYWltSG9zdFdvcmtSZXF1ZXN0EhQKDHdhaXRfc2Vjb25kcxgBIAEoBSJmChVDbGFpbUhvc3RXb3JrUmVzcG9uc2USKAoEd29yaxgBIAEoCzIaLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmsSEAoIZ2l0X25hbWUYAiABKAkSEQoJZ2l0X2VtYWlsGAMgASgJIrgBChVVcGRhdGVIb3N0V29ya1JlcXVlc3QSDwoHd29ya19pZBgBIAEoCRIuCgVzdGF0ZRgCIAEoDjIfLmhhcm5lc3MucmVsYXkudjEuSG9zdFdvcmtTdGF0ZRISCgpzZXNzaW9uX2lkGAMgASgJEg4KBmJyYW5jaBgEIAEoCRIYChBwdWxsX3JlcXVlc3RfdXJsGAUgASgJEg0KBWVycm9yGAYgASgJEhEKCWRpc2NhcmRlZBgHIAEoCCIrChZVcGRhdGVIb3N0V29ya1Jlc3BvbnNlEhEKCWNhbmNlbGxlZBgBIAEoCCI0ChpJc3N1ZUdpdENyZWRlbnRpYWxzUmVxdWVzdBIWCg5yZXBvc2l0b3J5X2tleRgBIAEoCSJ5ChtJc3N1ZUdpdENyZWRlbnRpYWxzUmVzcG9uc2USEQoJY2xvbmVfdXJsGAEgASgJEhAKCHVzZXJuYW1lGAIgASgJEhAKCHBhc3N3b3JkGAMgASgJEhIKCmV4cGlyZXNfYXQYBCABKAkSDwoHYXNfdXNlchgFIAEoCCKeAQoaT3Blbkhvc3RQdWxsUmVxdWVzdFJlcXVlc3QSFgoOcmVwb3NpdG9yeV9rZXkYASABKAkSEwoLaGVhZF9icmFuY2gYAiABKAkSEwoLYmFzZV9icmFuY2gYAyABKAkSDQoFdGl0bGUYBCABKAkSDAoEYm9keRgFIAEoCRINCgVkcmFmdBgGIAEoCBISCgpzZXNzaW9uX2lkGAcgASgJIjoKG09wZW5Ib3N0UHVsbFJlcXVlc3RSZXNwb25zZRILCgN1cmwYASABKAkSDgoGbnVtYmVyGAIgASgDIjAKGExpc3RXYW50ZWRXb3JrZXJzUmVxdWVzdBIUCgx3YWl0X3NlY29uZHMYASABKAUiMgoMV2FudGVkV29ya2VyEg8KB3VzZXJfaWQYASABKAkSEQoJZGV2aWNlX2lkGAIgASgJImMKGUxpc3RXYW50ZWRXb3JrZXJzUmVzcG9uc2USLwoHd29ya2VycxgBIAMoCzIeLmhhcm5lc3MucmVsYXkudjEuV2FudGVkV29ya2VyEhUKDXN0b3BfdXNlcl9pZHMYAiADKAkiKgoXSXNzdWVXb3JrZXJUb2tlblJlcXVlc3QSDwoHdXNlcl9pZBgBIAEoCSJDChhJc3N1ZVdvcmtlclRva2VuUmVzcG9uc2USEQoJZGV2aWNlX2lkGAEgASgJEhQKDGRldmljZV90b2tlbhgCIAEoCSIuChtJc3N1ZU1vdmVDcmVkZW50aWFsc1JlcXVlc3QSDwoHd29ya19pZBgBIAEoCSJiChxJc3N1ZU1vdmVDcmVkZW50aWFsc1Jlc3BvbnNlEkIKC2NyZWRlbnRpYWxzGAEgASgLMi0uaGFybmVzcy5yZWxheS52MS5Jc3N1ZUdpdENyZWRlbnRpYWxzUmVzcG9uc2UiNgoVUXVldWVNb3ZlZFdvcmtSZXF1ZXN0Eg8KB3dvcmtfaWQYASABKAkSDAoEaGVhZBgCIAEoCSJCChZRdWV1ZU1vdmVkV29ya1Jlc3BvbnNlEigKBHdvcmsYASABKAsyGi5oYXJuZXNzLnJlbGF5LnYxLkhvc3RXb3JrItwBCgdBdHRlbXB0Eg0KBWluZGV4GAEgASgFEi0KBXN0YXRlGAIgASgOMh4uaGFybmVzcy5yZWxheS52MS5BdHRlbXB0U3RhdGUSDwoHd29ya19pZBgDIAEoCRISCgpzZXNzaW9uX2lkGAQgASgJEg4KBmJyYW5jaBgFIAEoCRINCgVlcnJvchgGIAEoCRItCgVjaGVjaxgHIAEoCzIeLmhhcm5lc3MuYWdlbnQudjEuQXR0ZW1wdENoZWNrEgwKBGtlcHQYCCABKAgSEgoKdXBkYXRlZF9hdBgJIAEoCSK+AwoMQXR0ZW1wdEdyb3VwEgoKAmlkGAEgASgJEg4KBnByb21wdBgCIAEoCRINCgV0aXRsZRgDIAEoCRIPCgdob3N0X2lkGAQgASgJEhEKCWhvc3RfbmFtZRgFIAEoCRIRCglkZXZpY2VfaWQYBiABKAkSCwoDY3dkGAcgASgJEhYKDnJlcG9zaXRvcnlfa2V5GAggASgJEhAKCGJhc2VfcmVmGAkgASgJEg0KBW1vZGVsGAogASgJEiYKBmVmZm9ydBgLIAEoDjIWLmhhcm5lc3MubGxtLnYxLkVmZm9ydBI5Cg9wZXJtaXNzaW9uX21vZGUYDCABKA4yIC5oYXJuZXNzLmFnZW50LnYxLlBlcm1pc3Npb25Nb2RlEhQKDHRlc3RfY29tbWFuZBgNIAEoCRIQCghwYXJhbGxlbBgOIAEoBRISCgpidWRnZXRfdXNkGA8gASgBEhIKCmtlcHRfaW5kZXgYECABKAUSKwoIYXR0ZW1wdHMYESADKAsyGS5oYXJuZXNzLnJlbGF5LnYxLkF0dGVtcHQSEgoKY3JlYXRlZF9hdBgSIAEoCRISCgp1cGRhdGVkX2F0GBMgASgJItMCChRTdGFydEF0dGVtcHRzUmVxdWVzdBIPCgdob3N0X2lkGAEgASgJEg0KBWNvdW50GAIgASgFEg4KBnByb21wdBgDIAEoCRINCgV0aXRsZRgEIAEoCRIWCg5yZXBvc2l0b3J5X2tleRgFIAEoCRIQCghiYXNlX3JlZhgGIAEoCRINCgVtb2RlbBgHIAEoCRImCgZlZmZvcnQYCCABKA4yFi5oYXJuZXNzLmxsbS52MS5FZmZvcnQSOQoPcGVybWlzc2lvbl9tb2RlGAkgASgOMiAuaGFybmVzcy5hZ2VudC52MS5QZXJtaXNzaW9uTW9kZRIUCgx0ZXN0X2NvbW1hbmQYCiABKAkSEAoIcGFyYWxsZWwYCyABKAUSEgoKYnVkZ2V0X3VzZBgMIAEoARILCgNjd2QYDSABKAkSFwoPaWRlbXBvdGVuY3lfa2V5GA4gASgJIkYKFVN0YXJ0QXR0ZW1wdHNSZXNwb25zZRItCgVncm91cBgBIAEoCzIeLmhhcm5lc3MucmVsYXkudjEuQXR0ZW1wdEdyb3VwIiQKFkdldEF0dGVtcHRHcm91cFJlcXVlc3QSCgoCaWQYASABKAkiSAoXR2V0QXR0ZW1wdEdyb3VwUmVzcG9uc2USLQoFZ3JvdXAYASABKAsyHi5oYXJuZXNzLnJlbGF5LnYxLkF0dGVtcHRHcm91cCIpChhMaXN0QXR0ZW1wdEdyb3Vwc1JlcXVlc3QSDQoFbGltaXQYASABKAUiSwoZTGlzdEF0dGVtcHRHcm91cHNSZXNwb25zZRIuCgZncm91cHMYASADKAsyHi5oYXJuZXNzLnJlbGF5LnYxLkF0dGVtcHRHcm91cCLIAQoUUmVwb3J0QXR0ZW1wdFJlcXVlc3QSEAoIZ3JvdXBfaWQYASABKAkSDQoFaW5kZXgYAiABKAUSLQoFc3RhdGUYAyABKA4yHi5oYXJuZXNzLnJlbGF5LnYxLkF0dGVtcHRTdGF0ZRISCgpzZXNzaW9uX2lkGAQgASgJEg4KBmJyYW5jaBgFIAEoCRINCgVlcnJvchgGIAEoCRItCgVjaGVjaxgHIAEoCzIeLmhhcm5lc3MuYWdlbnQudjEuQXR0ZW1wdENoZWNrIhcKFVJlcG9ydEF0dGVtcHRSZXNwb25zZSI1ChJLZWVwQXR0ZW1wdFJlcXVlc3QSEAoIZ3JvdXBfaWQYASABKAkSDQoFaW5kZXgYAiABKAUiRAoTS2VlcEF0dGVtcHRSZXNwb25zZRItCgVncm91cBgBIAEoCzIeLmhhcm5lc3MucmVsYXkudjEuQXR0ZW1wdEdyb3VwIioKFkRpc2NhcmRBdHRlbXB0c1JlcXVlc3QSEAoIZ3JvdXBfaWQYASABKAkiSAoXRGlzY2FyZEF0dGVtcHRzUmVzcG9uc2USLQoFZ3JvdXAYASABKAsyHi5oYXJuZXNzLnJlbGF5LnYxLkF0dGVtcHRHcm91cCJUChlTdGFydExvY2FsQXR0ZW1wdHNSZXF1ZXN0EjcKB3JlcXVlc3QYASABKAsyJi5oYXJuZXNzLnJlbGF5LnYxLlN0YXJ0QXR0ZW1wdHNSZXF1ZXN0IksKGlN0YXJ0TG9jYWxBdHRlbXB0c1Jlc3BvbnNlEi0KBWdyb3VwGAEgASgLMh4uaGFybmVzcy5yZWxheS52MS5BdHRlbXB0R3JvdXAiLwobRGlzY2FyZExvY2FsQXR0ZW1wdHNSZXF1ZXN0EhAKCGdyb3VwX2lkGAEgASgJIk0KHERpc2NhcmRMb2NhbEF0dGVtcHRzUmVzcG9uc2USLQoFZ3JvdXAYASABKAsyHi5oYXJuZXNzLnJlbGF5LnYxLkF0dGVtcHRHcm91cCpoCg5BZ2VudEhvc3RTY29wZRIgChxBR0VOVF9IT1NUX1NDT1BFX1VOU1BFQ0lGSUVEEAASGQoVQUdFTlRfSE9TVF9TQ09QRV9VU0VSEAESGQoVQUdFTlRfSE9TVF9TQ09QRV9URUFNEAIqdwoSQWdlbnRIb3N0SXNvbGF0aW9uEiQKIEFHRU5UX0hPU1RfSVNPTEFUSU9OX1VOU1BFQ0lGSUVEEAASHQoZQUdFTlRfSE9TVF9JU09MQVRJT05fTk9ORRABEhwKGEFHRU5UX0hPU1RfSVNPTEFUSU9OX1VJRBACKrwBCgxIb3N0V29ya0tpbmQSHgoaSE9TVF9XT1JLX0tJTkRfVU5TUEVDSUZJRUQQABIeChpIT1NUX1dPUktfS0lORF9ORVdfU0VTU0lPThABEhsKF0hPU1RfV09SS19LSU5EX0FVVE9fRklYEAISGgoWSE9TVF9XT1JLX0tJTkRfTUVOVElPThADEhcKE0hPU1RfV09SS19LSU5EX01PVkUQBBIaChZIT1NUX1dPUktfS0lORF9BVFRFTVBUEAUqmwIKDUhvc3RXb3JrU3RhdGUSHwobSE9TVF9XT1JLX1NUQVRFX1VOU1BFQ0lGSUVEEAASGgoWSE9TVF9XT1JLX1NUQVRFX1FVRVVFRBABEhsKF0hPU1RfV09SS19TVEFURV9DTEFJTUVEEAISGwoXSE9TVF9XT1JLX1NUQVRFX1JVTk5JTkcQAxIYChRIT1NUX1dPUktfU1RBVEVfRE9ORRAEEhoKFkhPU1RfV09SS19TVEFURV9GQUlMRUQQBRIdChlIT1NUX1dPUktfU1RBVEVfQ0FOQ0VMTEVEEAYSGwoXSE9TVF9XT1JLX1NUQVRFX0VYUElSRUQQBxIhCh1IT1NUX1dPUktfU1RBVEVfQVdBSVRJTkdfUFVTSBAIKpIBCg9Ib3N0V29ya0xhbmRpbmcSIQodSE9TVF9XT1JLX0xBTkRJTkdfVU5TUEVDSUZJRUQQABIiCh5IT1NUX1dPUktfTEFORElOR19QVUxMX1JFUVVFU1QQARIcChhIT1NUX1dPUktfTEFORElOR19CUkFOQ0gQAhIaChZIT1NUX1dPUktfTEFORElOR19OT05FEAMq0AEKDEF0dGVtcHRTdGF0ZRIdChlBVFRFTVBUX1NUQVRFX1VOU1BFQ0lGSUVEEAASGQoVQVRURU1QVF9TVEFURV9QRU5ESU5HEAESGQoVQVRURU1QVF9TVEFURV9SVU5OSU5HEAISFgoSQVRURU1QVF9TVEFURV9JRExFEAMSGAoUQVRURU1QVF9TVEFURV9GQUlMRUQQBBIcChhBVFRFTVBUX1NUQVRFX0RJU0NBUkRJTkcQBRIbChdBVFRFTVBUX1NUQVRFX0RJU0NBUkRFRBAGMtIMCgxIb3N0c1NlcnZpY2USYwoOTGlzdEFnZW50SG9zdHMSJy5oYXJuZXNzLnJlbGF5LnYxLkxpc3RBZ2VudEhvc3RzUmVxdWVzdBooLmhhcm5lc3MucmVsYXkudjEuTGlzdEFnZW50SG9zdHNSZXNwb25zZRJmCg9DcmVhdGVBZ2VudEhvc3QSKC5oYXJuZXNzLnJlbGF5LnYxLkNyZWF0ZUFnZW50SG9zdFJlcXVlc3QaKS5oYXJuZXNzLnJlbGF5LnYxLkNyZWF0ZUFnZW50SG9zdFJlc3BvbnNlEmYKD1VwZGF0ZUFnZW50SG9zdBIoLmhhcm5lc3MucmVsYXkudjEuVXBkYXRlQWdlbnRIb3N0UmVxdWVzdBopLmhhcm5lc3MucmVsYXkudjEuVXBkYXRlQWdlbnRIb3N0UmVzcG9uc2USZgoPRGVsZXRlQWdlbnRIb3N0EiguaGFybmVzcy5yZWxheS52MS5EZWxldGVBZ2VudEhvc3RSZXF1ZXN0GikuaGFybmVzcy5yZWxheS52MS5EZWxldGVBZ2VudEhvc3RSZXNwb25zZRJgCg1TdGFydEhvc3RXb3JrEiYuaGFybmVzcy5yZWxheS52MS5TdGFydEhvc3RXb3JrUmVxdWVzdBonLmhhcm5lc3MucmVsYXkudjEuU3RhcnRIb3N0V29ya1Jlc3BvbnNlEloKC0dldEhvc3RXb3JrEiQuaGFybmVzcy5yZWxheS52MS5HZXRIb3N0V29ya1JlcXVlc3QaJS5oYXJuZXNzLnJlbGF5LnYxLkdldEhvc3RXb3JrUmVzcG9uc2USXQoMTGlzdEhvc3RXb3JrEiUuaGFybmVzcy5yZWxheS52MS5MaXN0SG9zdFdvcmtSZXF1ZXN0GiYuaGFybmVzcy5yZWxheS52MS5MaXN0SG9zdFdvcmtSZXNwb25zZRJjCg5DYW5jZWxIb3N0V29yaxInLmhhcm5lc3MucmVsYXkudjEuQ2FuY2VsSG9zdFdvcmtSZXF1ZXN0GiguaGFybmVzcy5yZWxheS52MS5DYW5jZWxIb3N0V29ya1Jlc3BvbnNlEloKC1NldEF3YXlIb3N0EiQuaGFybmVzcy5yZWxheS52MS5TZXRBd2F5SG9zdFJlcXVlc3QaJS5oYXJuZXNzLnJlbGF5LnYxLlNldEF3YXlIb3N0UmVzcG9uc2USaQoQQ2xhaW1TY2hlZHVsZVJ1bhIpLmhhcm5lc3MucmVsYXkudjEuQ2xhaW1TY2hlZHVsZVJ1blJlcXVlc3QaKi5oYXJuZXNzLnJlbGF5LnYxLkNsYWltU2NoZWR1bGVSdW5SZXNwb25zZRJgCg1TdGFydEF0dGVtcHRzEiYuaGFybmVzcy5yZWxheS52MS5TdGFydEF0dGVtcHRzUmVxdWVzdBonLmhhcm5lc3MucmVsYXkudjEuU3RhcnRBdHRlbXB0c1Jlc3BvbnNlEmYKD0dldEF0dGVtcHRHcm91cBIoLmhhcm5lc3MucmVsYXkudjEuR2V0QXR0ZW1wdEdyb3VwUmVxdWVzdBopLmhhcm5lc3MucmVsYXkudjEuR2V0QXR0ZW1wdEdyb3VwUmVzcG9uc2USbAoRTGlzdEF0dGVtcHRHcm91cHMSKi5oYXJuZXNzLnJlbGF5LnYxLkxpc3RBdHRlbXB0R3JvdXBzUmVxdWVzdBorLmhhcm5lc3MucmVsYXkudjEuTGlzdEF0dGVtcHRHcm91cHNSZXNwb25zZRJgCg1SZXBvcnRBdHRlbXB0EiYuaGFybmVzcy5yZWxheS52MS5SZXBvcnRBdHRlbXB0UmVxdWVzdBonLmhhcm5lc3MucmVsYXkudjEuUmVwb3J0QXR0ZW1wdFJlc3BvbnNlEloKC0tlZXBBdHRlbXB0EiQuaGFybmVzcy5yZWxheS52MS5LZWVwQXR0ZW1wdFJlcXVlc3QaJS5oYXJuZXNzLnJlbGF5LnYxLktlZXBBdHRlbXB0UmVzcG9uc2USZgoPRGlzY2FyZEF0dGVtcHRzEiguaGFybmVzcy5yZWxheS52MS5EaXNjYXJkQXR0ZW1wdHNSZXF1ZXN0GikuaGFybmVzcy5yZWxheS52MS5EaXNjYXJkQXR0ZW1wdHNSZXNwb25zZTL+AQoUTG9jYWxBdHRlbXB0c1NlcnZpY2USbwoSU3RhcnRMb2NhbEF0dGVtcHRzEisuaGFybmVzcy5yZWxheS52MS5TdGFydExvY2FsQXR0ZW1wdHNSZXF1ZXN0GiwuaGFybmVzcy5yZWxheS52MS5TdGFydExvY2FsQXR0ZW1wdHNSZXNwb25zZRJ1ChREaXNjYXJkTG9jYWxBdHRlbXB0cxItLmhhcm5lc3MucmVsYXkudjEuRGlzY2FyZExvY2FsQXR0ZW1wdHNSZXF1ZXN0Gi4uaGFybmVzcy5yZWxheS52MS5EaXNjYXJkTG9jYWxBdHRlbXB0c1Jlc3BvbnNlMswIChBIb3N0QWdlbnRTZXJ2aWNlEmwKEVJlZ2lzdGVyQWdlbnRIb3N0EiouaGFybmVzcy5yZWxheS52MS5SZWdpc3RlckFnZW50SG9zdFJlcXVlc3QaKy5oYXJuZXNzLnJlbGF5LnYxLlJlZ2lzdGVyQWdlbnRIb3N0UmVzcG9uc2USZgoPUmVwb3J0QWdlbnRIb3N0EiguaGFybmVzcy5yZWxheS52MS5SZXBvcnRBZ2VudEhvc3RSZXF1ZXN0GikuaGFybmVzcy5yZWxheS52MS5SZXBvcnRBZ2VudEhvc3RSZXNwb25zZRJgCg1DbGFpbUhvc3RXb3JrEiYuaGFybmVzcy5yZWxheS52MS5DbGFpbUhvc3RXb3JrUmVxdWVzdBonLmhhcm5lc3MucmVsYXkudjEuQ2xhaW1Ib3N0V29ya1Jlc3BvbnNlEmMKDlVwZGF0ZUhvc3RXb3JrEicuaGFybmVzcy5yZWxheS52MS5VcGRhdGVIb3N0V29ya1JlcXVlc3QaKC5oYXJuZXNzLnJlbGF5LnYxLlVwZGF0ZUhvc3RXb3JrUmVzcG9uc2UScgoTSXNzdWVHaXRDcmVkZW50aWFscxIsLmhhcm5lc3MucmVsYXkudjEuSXNzdWVHaXRDcmVkZW50aWFsc1JlcXVlc3QaLS5oYXJuZXNzLnJlbGF5LnYxLklzc3VlR2l0Q3JlZGVudGlhbHNSZXNwb25zZRJyChNPcGVuSG9zdFB1bGxSZXF1ZXN0EiwuaGFybmVzcy5yZWxheS52MS5PcGVuSG9zdFB1bGxSZXF1ZXN0UmVxdWVzdBotLmhhcm5lc3MucmVsYXkudjEuT3Blbkhvc3RQdWxsUmVxdWVzdFJlc3BvbnNlEmwKEUxpc3RXYW50ZWRXb3JrZXJzEiouaGFybmVzcy5yZWxheS52MS5MaXN0V2FudGVkV29ya2Vyc1JlcXVlc3QaKy5oYXJuZXNzLnJlbGF5LnYxLkxpc3RXYW50ZWRXb3JrZXJzUmVzcG9uc2USaQoQSXNzdWVXb3JrZXJUb2tlbhIpLmhhcm5lc3MucmVsYXkudjEuSXNzdWVXb3JrZXJUb2tlblJlcXVlc3QaKi5oYXJuZXNzLnJlbGF5LnYxLklzc3VlV29ya2VyVG9rZW5SZXNwb25zZRJ1ChRJc3N1ZU1vdmVDcmVkZW50aWFscxItLmhhcm5lc3MucmVsYXkudjEuSXNzdWVNb3ZlQ3JlZGVudGlhbHNSZXF1ZXN0Gi4uaGFybmVzcy5yZWxheS52MS5Jc3N1ZU1vdmVDcmVkZW50aWFsc1Jlc3BvbnNlEmMKDlF1ZXVlTW92ZWRXb3JrEicuaGFybmVzcy5yZWxheS52MS5RdWV1ZU1vdmVkV29ya1JlcXVlc3QaKC5oYXJuZXNzLnJlbGF5LnYxLlF1ZXVlTW92ZWRXb3JrUmVzcG9uc2VCywEKFGNvbS5oYXJuZXNzLnJlbGF5LnYxQgpIb3N0c1Byb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvcmVsYXkvdjE7cmVsYXl2MaICA0hSWKoCEEhhcm5lc3MuUmVsYXkuVjHKAhBIYXJuZXNzXFJlbGF5XFYx4gIcSGFybmVzc1xSZWxheVxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OlJlbGF5OjpWMWIGcHJvdG8z", [file_harness_agent_v1_agent, file_harness_agent_v1_auto_fix, file_harness_llm_v1_content]);
 
 /**
  * @generated from message harness.relay.v1.AgentHost
@@ -567,6 +567,32 @@ export type HostWork = Message<"harness.relay.v1.HostWork"> & {
    * @generated from field: string updated_at = 24;
    */
   updatedAt: string;
+
+  /**
+   * An attempt's group and its number in it, from 0.
+   *
+   * @generated from field: string attempt_group_id = 25;
+   */
+  attemptGroupId: string;
+
+  /**
+   * @generated from field: int32 attempt_index = 26;
+   */
+  attemptIndex: number;
+
+  /**
+   * Attempts: what runs in the checkout when a turn ends. Empty in other people's listings.
+   *
+   * @generated from field: string test_command = 27;
+   */
+  testCommand: string;
+
+  /**
+   * Attempts: what the session may spend; 0, no limit.
+   *
+   * @generated from field: double budget_usd = 28;
+   */
+  budgetUsd: number;
 };
 
 /**
@@ -638,6 +664,24 @@ export type StartHostWorkRequest = Message<"harness.relay.v1.StartHostWorkReques
    * @generated from field: string idempotency_key = 11;
    */
   idempotencyKey: string;
+
+  /**
+   * NEW_SESSION (unspecified) or MOVE. A move needs branch (harness/...) and fork_session_id, a session of the caller's, and
+   * starts AWAITING_PUSH.
+   *
+   * @generated from field: harness.relay.v1.HostWorkKind kind = 12;
+   */
+  kind: HostWorkKind;
+
+  /**
+   * @generated from field: string branch = 13;
+   */
+  branch: string;
+
+  /**
+   * @generated from field: string fork_session_id = 14;
+   */
+  forkSessionId: string;
 };
 
 /**
@@ -960,6 +1004,14 @@ export type ReportAgentHostResponse = Message<"harness.relay.v1.ReportAgentHostR
    * @generated from field: int32 max_sessions = 2;
    */
   maxSessions: number;
+
+  /**
+   * Attempts the user discarded (decision 32): close the session, remove the checkout, delete the work's harness/ branch, then
+   * UpdateHostWork with discarded.
+   *
+   * @generated from field: repeated string discard_work_ids = 3;
+   */
+  discardWorkIds: string[];
 };
 
 /**
@@ -1054,6 +1106,13 @@ export type UpdateHostWorkRequest = Message<"harness.relay.v1.UpdateHostWorkRequ
    * @generated from field: string error = 6;
    */
   error: string;
+
+  /**
+   * The work was discarded as asked: its session, checkout and branch are gone.
+   *
+   * @generated from field: bool discarded = 7;
+   */
+  discarded: boolean;
 };
 
 /**
@@ -1320,6 +1379,651 @@ export const IssueWorkerTokenResponseSchema: GenMessage<IssueWorkerTokenResponse
   messageDesc(file_harness_relay_v1_hosts, 39);
 
 /**
+ * @generated from message harness.relay.v1.IssueMoveCredentialsRequest
+ */
+export type IssueMoveCredentialsRequest = Message<"harness.relay.v1.IssueMoveCredentialsRequest"> & {
+  /**
+   * @generated from field: string work_id = 1;
+   */
+  workId: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.IssueMoveCredentialsRequest.
+ * Use `create(IssueMoveCredentialsRequestSchema)` to create a new message.
+ */
+export const IssueMoveCredentialsRequestSchema: GenMessage<IssueMoveCredentialsRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 40);
+
+/**
+ * @generated from message harness.relay.v1.IssueMoveCredentialsResponse
+ */
+export type IssueMoveCredentialsResponse = Message<"harness.relay.v1.IssueMoveCredentialsResponse"> & {
+  /**
+   * As IssueGitCredentialsResponse.
+   *
+   * @generated from field: harness.relay.v1.IssueGitCredentialsResponse credentials = 1;
+   */
+  credentials?: IssueGitCredentialsResponse | undefined;
+};
+
+/**
+ * Describes the message harness.relay.v1.IssueMoveCredentialsResponse.
+ * Use `create(IssueMoveCredentialsResponseSchema)` to create a new message.
+ */
+export const IssueMoveCredentialsResponseSchema: GenMessage<IssueMoveCredentialsResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 41);
+
+/**
+ * @generated from message harness.relay.v1.QueueMovedWorkRequest
+ */
+export type QueueMovedWorkRequest = Message<"harness.relay.v1.QueueMovedWorkRequest"> & {
+  /**
+   * @generated from field: string work_id = 1;
+   */
+  workId: string;
+
+  /**
+   * The commit the branch is at now.
+   *
+   * @generated from field: string head = 2;
+   */
+  head: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.QueueMovedWorkRequest.
+ * Use `create(QueueMovedWorkRequestSchema)` to create a new message.
+ */
+export const QueueMovedWorkRequestSchema: GenMessage<QueueMovedWorkRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 42);
+
+/**
+ * @generated from message harness.relay.v1.QueueMovedWorkResponse
+ */
+export type QueueMovedWorkResponse = Message<"harness.relay.v1.QueueMovedWorkResponse"> & {
+  /**
+   * @generated from field: harness.relay.v1.HostWork work = 1;
+   */
+  work?: HostWork | undefined;
+};
+
+/**
+ * Describes the message harness.relay.v1.QueueMovedWorkResponse.
+ * Use `create(QueueMovedWorkResponseSchema)` to create a new message.
+ */
+export const QueueMovedWorkResponseSchema: GenMessage<QueueMovedWorkResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 43);
+
+/**
+ * @generated from message harness.relay.v1.Attempt
+ */
+export type Attempt = Message<"harness.relay.v1.Attempt"> & {
+  /**
+   * From 0.
+   *
+   * @generated from field: int32 index = 1;
+   */
+  index: number;
+
+  /**
+   * @generated from field: harness.relay.v1.AttemptState state = 2;
+   */
+  state: AttemptState;
+
+  /**
+   * A host's attempts.
+   *
+   * @generated from field: string work_id = 3;
+   */
+  workId: string;
+
+  /**
+   * @generated from field: string session_id = 4;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: string branch = 5;
+   */
+  branch: string;
+
+  /**
+   * @generated from field: string error = 6;
+   */
+  error: string;
+
+  /**
+   * The last test result.
+   *
+   * @generated from field: harness.agent.v1.AttemptCheck check = 7;
+   */
+  check?: AttemptCheck | undefined;
+
+  /**
+   * @generated from field: bool kept = 8;
+   */
+  kept: boolean;
+
+  /**
+   * RFC 3339, UTC.
+   *
+   * @generated from field: string updated_at = 9;
+   */
+  updatedAt: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.Attempt.
+ * Use `create(AttemptSchema)` to create a new message.
+ */
+export const AttemptSchema: GenMessage<Attempt> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 44);
+
+/**
+ * @generated from message harness.relay.v1.AttemptGroup
+ */
+export type AttemptGroup = Message<"harness.relay.v1.AttemptGroup"> & {
+  /**
+   * atg_...
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string prompt = 2;
+   */
+  prompt: string;
+
+  /**
+   * @generated from field: string title = 3;
+   */
+  title: string;
+
+  /**
+   * Empty: local worktrees of device_id.
+   *
+   * @generated from field: string host_id = 4;
+   */
+  hostId: string;
+
+  /**
+   * @generated from field: string host_name = 5;
+   */
+  hostName: string;
+
+  /**
+   * @generated from field: string device_id = 6;
+   */
+  deviceId: string;
+
+  /**
+   * Local groups: the folder the worktrees come from.
+   *
+   * @generated from field: string cwd = 7;
+   */
+  cwd: string;
+
+  /**
+   * @generated from field: string repository_key = 8;
+   */
+  repositoryKey: string;
+
+  /**
+   * @generated from field: string base_ref = 9;
+   */
+  baseRef: string;
+
+  /**
+   * @generated from field: string model = 10;
+   */
+  model: string;
+
+  /**
+   * @generated from field: harness.llm.v1.Effort effort = 11;
+   */
+  effort: Effort;
+
+  /**
+   * @generated from field: harness.agent.v1.PermissionMode permission_mode = 12;
+   */
+  permissionMode: PermissionMode;
+
+  /**
+   * @generated from field: string test_command = 13;
+   */
+  testCommand: string;
+
+  /**
+   * What applies, after the policy: how many work at once, and what one may spend (0: no limit).
+   *
+   * @generated from field: int32 parallel = 14;
+   */
+  parallel: number;
+
+  /**
+   * @generated from field: double budget_usd = 15;
+   */
+  budgetUsd: number;
+
+  /**
+   * -1: none kept yet.
+   *
+   * @generated from field: int32 kept_index = 16;
+   */
+  keptIndex: number;
+
+  /**
+   * @generated from field: repeated harness.relay.v1.Attempt attempts = 17;
+   */
+  attempts: Attempt[];
+
+  /**
+   * RFC 3339, UTC.
+   *
+   * @generated from field: string created_at = 18;
+   */
+  createdAt: string;
+
+  /**
+   * @generated from field: string updated_at = 19;
+   */
+  updatedAt: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.AttemptGroup.
+ * Use `create(AttemptGroupSchema)` to create a new message.
+ */
+export const AttemptGroupSchema: GenMessage<AttemptGroup> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 45);
+
+/**
+ * @generated from message harness.relay.v1.StartAttemptsRequest
+ */
+export type StartAttemptsRequest = Message<"harness.relay.v1.StartAttemptsRequest"> & {
+  /**
+   * Empty: local worktrees of the calling client.
+   *
+   * @generated from field: string host_id = 1;
+   */
+  hostId: string;
+
+  /**
+   * 2 to 5, or less where the policy says so.
+   *
+   * @generated from field: int32 count = 2;
+   */
+  count: number;
+
+  /**
+   * @generated from field: string prompt = 3;
+   */
+  prompt: string;
+
+  /**
+   * @generated from field: string title = 4;
+   */
+  title: string;
+
+  /**
+   * Host groups: host/owner/name. Local groups: the client fills it from cwd when it can.
+   *
+   * @generated from field: string repository_key = 5;
+   */
+  repositoryKey: string;
+
+  /**
+   * @generated from field: string base_ref = 6;
+   */
+  baseRef: string;
+
+  /**
+   * @generated from field: string model = 7;
+   */
+  model: string;
+
+  /**
+   * @generated from field: harness.llm.v1.Effort effort = 8;
+   */
+  effort: Effort;
+
+  /**
+   * PERMISSION_MODE_BYPASS_PERMISSIONS is refused.
+   *
+   * @generated from field: harness.agent.v1.PermissionMode permission_mode = 9;
+   */
+  permissionMode: PermissionMode;
+
+  /**
+   * @generated from field: string test_command = 10;
+   */
+  testCommand: string;
+
+  /**
+   * The user's choices; the policy caps them. 0: the client's settings, else all at once and no budget.
+   *
+   * @generated from field: int32 parallel = 11;
+   */
+  parallel: number;
+
+  /**
+   * @generated from field: double budget_usd = 12;
+   */
+  budgetUsd: number;
+
+  /**
+   * Local groups: the folder.
+   *
+   * @generated from field: string cwd = 13;
+   */
+  cwd: string;
+
+  /**
+   * @generated from field: string idempotency_key = 14;
+   */
+  idempotencyKey: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.StartAttemptsRequest.
+ * Use `create(StartAttemptsRequestSchema)` to create a new message.
+ */
+export const StartAttemptsRequestSchema: GenMessage<StartAttemptsRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 46);
+
+/**
+ * @generated from message harness.relay.v1.StartAttemptsResponse
+ */
+export type StartAttemptsResponse = Message<"harness.relay.v1.StartAttemptsResponse"> & {
+  /**
+   * @generated from field: harness.relay.v1.AttemptGroup group = 1;
+   */
+  group?: AttemptGroup | undefined;
+};
+
+/**
+ * Describes the message harness.relay.v1.StartAttemptsResponse.
+ * Use `create(StartAttemptsResponseSchema)` to create a new message.
+ */
+export const StartAttemptsResponseSchema: GenMessage<StartAttemptsResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 47);
+
+/**
+ * @generated from message harness.relay.v1.GetAttemptGroupRequest
+ */
+export type GetAttemptGroupRequest = Message<"harness.relay.v1.GetAttemptGroupRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.GetAttemptGroupRequest.
+ * Use `create(GetAttemptGroupRequestSchema)` to create a new message.
+ */
+export const GetAttemptGroupRequestSchema: GenMessage<GetAttemptGroupRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 48);
+
+/**
+ * @generated from message harness.relay.v1.GetAttemptGroupResponse
+ */
+export type GetAttemptGroupResponse = Message<"harness.relay.v1.GetAttemptGroupResponse"> & {
+  /**
+   * @generated from field: harness.relay.v1.AttemptGroup group = 1;
+   */
+  group?: AttemptGroup | undefined;
+};
+
+/**
+ * Describes the message harness.relay.v1.GetAttemptGroupResponse.
+ * Use `create(GetAttemptGroupResponseSchema)` to create a new message.
+ */
+export const GetAttemptGroupResponseSchema: GenMessage<GetAttemptGroupResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 49);
+
+/**
+ * @generated from message harness.relay.v1.ListAttemptGroupsRequest
+ */
+export type ListAttemptGroupsRequest = Message<"harness.relay.v1.ListAttemptGroupsRequest"> & {
+  /**
+   * @generated from field: int32 limit = 1;
+   */
+  limit: number;
+};
+
+/**
+ * Describes the message harness.relay.v1.ListAttemptGroupsRequest.
+ * Use `create(ListAttemptGroupsRequestSchema)` to create a new message.
+ */
+export const ListAttemptGroupsRequestSchema: GenMessage<ListAttemptGroupsRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 50);
+
+/**
+ * @generated from message harness.relay.v1.ListAttemptGroupsResponse
+ */
+export type ListAttemptGroupsResponse = Message<"harness.relay.v1.ListAttemptGroupsResponse"> & {
+  /**
+   * Newest first.
+   *
+   * @generated from field: repeated harness.relay.v1.AttemptGroup groups = 1;
+   */
+  groups: AttemptGroup[];
+};
+
+/**
+ * Describes the message harness.relay.v1.ListAttemptGroupsResponse.
+ * Use `create(ListAttemptGroupsResponseSchema)` to create a new message.
+ */
+export const ListAttemptGroupsResponseSchema: GenMessage<ListAttemptGroupsResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 51);
+
+/**
+ * @generated from message harness.relay.v1.ReportAttemptRequest
+ */
+export type ReportAttemptRequest = Message<"harness.relay.v1.ReportAttemptRequest"> & {
+  /**
+   * @generated from field: string group_id = 1;
+   */
+  groupId: string;
+
+  /**
+   * @generated from field: int32 index = 2;
+   */
+  index: number;
+
+  /**
+   * UNSPECIFIED leaves it.
+   *
+   * @generated from field: harness.relay.v1.AttemptState state = 3;
+   */
+  state: AttemptState;
+
+  /**
+   * @generated from field: string session_id = 4;
+   */
+  sessionId: string;
+
+  /**
+   * @generated from field: string branch = 5;
+   */
+  branch: string;
+
+  /**
+   * @generated from field: string error = 6;
+   */
+  error: string;
+
+  /**
+   * @generated from field: harness.agent.v1.AttemptCheck check = 7;
+   */
+  check?: AttemptCheck | undefined;
+};
+
+/**
+ * Describes the message harness.relay.v1.ReportAttemptRequest.
+ * Use `create(ReportAttemptRequestSchema)` to create a new message.
+ */
+export const ReportAttemptRequestSchema: GenMessage<ReportAttemptRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 52);
+
+/**
+ * @generated from message harness.relay.v1.ReportAttemptResponse
+ */
+export type ReportAttemptResponse = Message<"harness.relay.v1.ReportAttemptResponse"> & {
+};
+
+/**
+ * Describes the message harness.relay.v1.ReportAttemptResponse.
+ * Use `create(ReportAttemptResponseSchema)` to create a new message.
+ */
+export const ReportAttemptResponseSchema: GenMessage<ReportAttemptResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 53);
+
+/**
+ * @generated from message harness.relay.v1.KeepAttemptRequest
+ */
+export type KeepAttemptRequest = Message<"harness.relay.v1.KeepAttemptRequest"> & {
+  /**
+   * @generated from field: string group_id = 1;
+   */
+  groupId: string;
+
+  /**
+   * @generated from field: int32 index = 2;
+   */
+  index: number;
+};
+
+/**
+ * Describes the message harness.relay.v1.KeepAttemptRequest.
+ * Use `create(KeepAttemptRequestSchema)` to create a new message.
+ */
+export const KeepAttemptRequestSchema: GenMessage<KeepAttemptRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 54);
+
+/**
+ * @generated from message harness.relay.v1.KeepAttemptResponse
+ */
+export type KeepAttemptResponse = Message<"harness.relay.v1.KeepAttemptResponse"> & {
+  /**
+   * @generated from field: harness.relay.v1.AttemptGroup group = 1;
+   */
+  group?: AttemptGroup | undefined;
+};
+
+/**
+ * Describes the message harness.relay.v1.KeepAttemptResponse.
+ * Use `create(KeepAttemptResponseSchema)` to create a new message.
+ */
+export const KeepAttemptResponseSchema: GenMessage<KeepAttemptResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 55);
+
+/**
+ * @generated from message harness.relay.v1.DiscardAttemptsRequest
+ */
+export type DiscardAttemptsRequest = Message<"harness.relay.v1.DiscardAttemptsRequest"> & {
+  /**
+   * @generated from field: string group_id = 1;
+   */
+  groupId: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.DiscardAttemptsRequest.
+ * Use `create(DiscardAttemptsRequestSchema)` to create a new message.
+ */
+export const DiscardAttemptsRequestSchema: GenMessage<DiscardAttemptsRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 56);
+
+/**
+ * @generated from message harness.relay.v1.DiscardAttemptsResponse
+ */
+export type DiscardAttemptsResponse = Message<"harness.relay.v1.DiscardAttemptsResponse"> & {
+  /**
+   * @generated from field: harness.relay.v1.AttemptGroup group = 1;
+   */
+  group?: AttemptGroup | undefined;
+};
+
+/**
+ * Describes the message harness.relay.v1.DiscardAttemptsResponse.
+ * Use `create(DiscardAttemptsResponseSchema)` to create a new message.
+ */
+export const DiscardAttemptsResponseSchema: GenMessage<DiscardAttemptsResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 57);
+
+/**
+ * @generated from message harness.relay.v1.StartLocalAttemptsRequest
+ */
+export type StartLocalAttemptsRequest = Message<"harness.relay.v1.StartLocalAttemptsRequest"> & {
+  /**
+   * @generated from field: harness.relay.v1.StartAttemptsRequest request = 1;
+   */
+  request?: StartAttemptsRequest | undefined;
+};
+
+/**
+ * Describes the message harness.relay.v1.StartLocalAttemptsRequest.
+ * Use `create(StartLocalAttemptsRequestSchema)` to create a new message.
+ */
+export const StartLocalAttemptsRequestSchema: GenMessage<StartLocalAttemptsRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 58);
+
+/**
+ * @generated from message harness.relay.v1.StartLocalAttemptsResponse
+ */
+export type StartLocalAttemptsResponse = Message<"harness.relay.v1.StartLocalAttemptsResponse"> & {
+  /**
+   * @generated from field: harness.relay.v1.AttemptGroup group = 1;
+   */
+  group?: AttemptGroup | undefined;
+};
+
+/**
+ * Describes the message harness.relay.v1.StartLocalAttemptsResponse.
+ * Use `create(StartLocalAttemptsResponseSchema)` to create a new message.
+ */
+export const StartLocalAttemptsResponseSchema: GenMessage<StartLocalAttemptsResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 59);
+
+/**
+ * @generated from message harness.relay.v1.DiscardLocalAttemptsRequest
+ */
+export type DiscardLocalAttemptsRequest = Message<"harness.relay.v1.DiscardLocalAttemptsRequest"> & {
+  /**
+   * @generated from field: string group_id = 1;
+   */
+  groupId: string;
+};
+
+/**
+ * Describes the message harness.relay.v1.DiscardLocalAttemptsRequest.
+ * Use `create(DiscardLocalAttemptsRequestSchema)` to create a new message.
+ */
+export const DiscardLocalAttemptsRequestSchema: GenMessage<DiscardLocalAttemptsRequest> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 60);
+
+/**
+ * @generated from message harness.relay.v1.DiscardLocalAttemptsResponse
+ */
+export type DiscardLocalAttemptsResponse = Message<"harness.relay.v1.DiscardLocalAttemptsResponse"> & {
+  /**
+   * @generated from field: harness.relay.v1.AttemptGroup group = 1;
+   */
+  group?: AttemptGroup | undefined;
+};
+
+/**
+ * Describes the message harness.relay.v1.DiscardLocalAttemptsResponse.
+ * Use `create(DiscardLocalAttemptsResponseSchema)` to create a new message.
+ */
+export const DiscardLocalAttemptsResponseSchema: GenMessage<DiscardLocalAttemptsResponse> = /*@__PURE__*/
+  messageDesc(file_harness_relay_v1_hosts, 61);
+
+/**
  * @generated from enum harness.relay.v1.AgentHostScope
  */
 export enum AgentHostScope {
@@ -1406,6 +2110,20 @@ export enum HostWorkKind {
    * @generated from enum value: HOST_WORK_KIND_MENTION = 3;
    */
   MENTION = 3,
+
+  /**
+   * A session the user moved here from another machine: its branch and its transcript (decisions 21 to 27).
+   *
+   * @generated from enum value: HOST_WORK_KIND_MOVE = 4;
+   */
+  MOVE = 4,
+
+  /**
+   * One attempt of a best-of-N group.
+   *
+   * @generated from enum value: HOST_WORK_KIND_ATTEMPT = 5;
+   */
+  ATTEMPT = 5,
 }
 
 /**
@@ -1463,6 +2181,13 @@ export enum HostWorkState {
    * @generated from enum value: HOST_WORK_STATE_EXPIRED = 7;
    */
   EXPIRED = 7,
+
+  /**
+   * A move whose branch the other machine is still pushing; no daemon claims it yet.
+   *
+   * @generated from enum value: HOST_WORK_STATE_AWAITING_PUSH = 8;
+   */
+  AWAITING_PUSH = 8,
 }
 
 /**
@@ -1507,6 +2232,58 @@ export enum HostWorkLanding {
  */
 export const HostWorkLandingSchema: GenEnum<HostWorkLanding> = /*@__PURE__*/
   enumDesc(file_harness_relay_v1_hosts, 4);
+
+/**
+ * @generated from enum harness.relay.v1.AttemptState
+ */
+export enum AttemptState {
+  /**
+   * @generated from enum value: ATTEMPT_STATE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Not started: waiting for its place (parallelism) or its host.
+   *
+   * @generated from enum value: ATTEMPT_STATE_PENDING = 1;
+   */
+  PENDING = 1,
+
+  /**
+   * @generated from enum value: ATTEMPT_STATE_RUNNING = 2;
+   */
+  RUNNING = 2,
+
+  /**
+   * Its turn ended; it waits for the user, like any session.
+   *
+   * @generated from enum value: ATTEMPT_STATE_IDLE = 3;
+   */
+  IDLE = 3,
+
+  /**
+   * @generated from enum value: ATTEMPT_STATE_FAILED = 4;
+   */
+  FAILED = 4,
+
+  /**
+   * The user discarded it; its checkout and branch are on their way out.
+   *
+   * @generated from enum value: ATTEMPT_STATE_DISCARDING = 5;
+   */
+  DISCARDING = 5,
+
+  /**
+   * @generated from enum value: ATTEMPT_STATE_DISCARDED = 6;
+   */
+  DISCARDED = 6,
+}
+
+/**
+ * Describes the enum harness.relay.v1.AttemptState.
+ */
+export const AttemptStateSchema: GenEnum<AttemptState> = /*@__PURE__*/
+  enumDesc(file_harness_relay_v1_hosts, 5);
 
 /**
  * @generated from service harness.relay.v1.HostsService
@@ -1609,8 +2386,95 @@ export const HostsService: GenService<{
     input: typeof ClaimScheduleRunRequestSchema;
     output: typeof ClaimScheduleRunResponseSchema;
   },
+  /**
+   * Best-of-N (decisions 28 to 33). Makes a group of attempts of one prompt: on a host, as queued work; locally, as rows the
+   * calling client fills in (LocalAttemptsService). The managed policy's limits apply here.
+   *
+   * @generated from rpc harness.relay.v1.HostsService.StartAttempts
+   */
+  startAttempts: {
+    methodKind: "unary";
+    input: typeof StartAttemptsRequestSchema;
+    output: typeof StartAttemptsResponseSchema;
+  },
+  /**
+   * The caller's own groups only; anyone else's are NOT_FOUND.
+   *
+   * @generated from rpc harness.relay.v1.HostsService.GetAttemptGroup
+   */
+  getAttemptGroup: {
+    methodKind: "unary";
+    input: typeof GetAttemptGroupRequestSchema;
+    output: typeof GetAttemptGroupResponseSchema;
+  },
+  /**
+   * @generated from rpc harness.relay.v1.HostsService.ListAttemptGroups
+   */
+  listAttemptGroups: {
+    methodKind: "unary";
+    input: typeof ListAttemptGroupsRequestSchema;
+    output: typeof ListAttemptGroupsResponseSchema;
+  },
+  /**
+   * What became of one attempt: its session and branch, its state, its test result. From the client or the host that runs it.
+   *
+   * @generated from rpc harness.relay.v1.HostsService.ReportAttempt
+   */
+  reportAttempt: {
+    methodKind: "unary";
+    input: typeof ReportAttemptRequestSchema;
+    output: typeof ReportAttemptResponseSchema;
+  },
+  /**
+   * Marks the attempt the user keeps. Deletes nothing.
+   *
+   * @generated from rpc harness.relay.v1.HostsService.KeepAttempt
+   */
+  keepAttempt: {
+    methodKind: "unary";
+    input: typeof KeepAttemptRequestSchema;
+    output: typeof KeepAttemptResponseSchema;
+  },
+  /**
+   * After the user confirmed: the attempts other than the kept one go, with their checkouts and branches. A host's attempts
+   * are cancelled or handed to their daemon (ReportAgentHostResponse.discard_work_ids). A local group's are removed by its
+   * own client (LocalAttemptsService.DiscardAttempts), which reports them: here FAILED_PRECONDITION.
+   *
+   * @generated from rpc harness.relay.v1.HostsService.DiscardAttempts
+   */
+  discardAttempts: {
+    methodKind: "unary";
+    input: typeof DiscardAttemptsRequestSchema;
+    output: typeof DiscardAttemptsResponseSchema;
+  },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_relay_v1_hosts, 0);
+
+/**
+ * Served by the client (harness-client) to its frontends, for what needs this machine: attempts in local worktrees, and the
+ * removal of their worktrees and branches. Host groups go through it too, so that a frontend has one way to start one.
+ *
+ * @generated from service harness.relay.v1.LocalAttemptsService
+ */
+export const LocalAttemptsService: GenService<{
+  /**
+   * @generated from rpc harness.relay.v1.LocalAttemptsService.StartLocalAttempts
+   */
+  startLocalAttempts: {
+    methodKind: "unary";
+    input: typeof StartLocalAttemptsRequestSchema;
+    output: typeof StartLocalAttemptsResponseSchema;
+  },
+  /**
+   * @generated from rpc harness.relay.v1.LocalAttemptsService.DiscardLocalAttempts
+   */
+  discardLocalAttempts: {
+    methodKind: "unary";
+    input: typeof DiscardLocalAttemptsRequestSchema;
+    output: typeof DiscardLocalAttemptsResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_harness_relay_v1_hosts, 1);
 
 /**
  * @generated from service harness.relay.v1.HostAgentService
@@ -1696,6 +2560,27 @@ export const HostAgentService: GenService<{
     input: typeof IssueWorkerTokenRequestSchema;
     output: typeof IssueWorkerTokenResponseSchema;
   },
+  /**
+   * The laptop moving a session (decision 22): push credentials for the repository of the caller's own MOVE work while it is
+   * AWAITING_PUSH, as the target host would get them. Any device of the user; not proxied to frontends.
+   *
+   * @generated from rpc harness.relay.v1.HostAgentService.IssueMoveCredentials
+   */
+  issueMoveCredentials: {
+    methodKind: "unary";
+    input: typeof IssueMoveCredentialsRequestSchema;
+    output: typeof IssueMoveCredentialsResponseSchema;
+  },
+  /**
+   * The laptop pushed the branch: the MOVE work goes to the queue.
+   *
+   * @generated from rpc harness.relay.v1.HostAgentService.QueueMovedWork
+   */
+  queueMovedWork: {
+    methodKind: "unary";
+    input: typeof QueueMovedWorkRequestSchema;
+    output: typeof QueueMovedWorkResponseSchema;
+  },
 }> = /*@__PURE__*/
-  serviceDesc(file_harness_relay_v1_hosts, 1);
+  serviceDesc(file_harness_relay_v1_hosts, 2);
 
