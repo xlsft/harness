@@ -98,6 +98,7 @@ const allBlocks = computed<Block[]>(() => {
       if (HIDDEN_TOOLS.has(item.name)) continue
       // The access card replaces the call; after a client restart there is no card, and the row stays.
       if (item.name === 'ComputerAccess' && props.session.items.some(i => i.kind === 'computerAccess' && i.toolUseId === item.id)) continue
+      if (item.name === 'DemoSkillSave' && props.session.items.some(i => i.kind === 'demoSkillReview' && i.toolUseId === item.id)) continue
       if (item.grouped && !SESSION_CARD_TOOLS.has(item.name)) {
         const last = out[out.length - 1]
         if (last?.kind === 'group' && last.tools[0]?.messageId === item.messageId) {
@@ -406,6 +407,11 @@ function toBottom() {
             />
             <ComputerAccessCard
               v-else-if="b.item.kind === 'computerAccess'"
+              :item="b.item"
+              :session-id="session.meta.id"
+            />
+            <DemoSkillReviewCard
+              v-else-if="b.item.kind === 'demoSkillReview'"
               :item="b.item"
               :session-id="session.meta.id"
             />

@@ -1140,6 +1140,55 @@ export class MockTransport implements SessionTransport {
     await this.interrupt(sessionId)
   }
 
+  async listDemoRecordingApps() {
+    return {
+      apps: [
+        { id: 'com.apple.Notes', name: 'Notes', tier: 'full' as const, note: 'Full: clicks, typing and keys.' },
+        { id: 'com.apple.Safari', name: 'Safari', tier: 'read' as const, note: 'Read-only: screenshots and reading the interface.' },
+        { id: 'com.1password.1password', name: '1Password', tier: 'blocked' as const, note: 'Blocked by the security profile.' }
+      ],
+      unavailable: ''
+    }
+  }
+
+  async startDemoRecording(sessionId: string, appIds: string[]) {
+    const s = this.get(sessionId)
+    const apps = appIds.map(id => ({ id, name: id.split('.').pop() ?? id, tier: ComputerAccessTier.FULL }))
+    this.emit(s, b => b.demoRecordingState(true, 'rec_mock', 0, apps))
+  }
+
+  async stopDemoRecording(sessionId: string, discard: boolean) {
+    const s = this.get(sessionId)
+    this.emit(s, b => b.demoRecordingState(false, discard ? '' : 'rec_mock', 0, []))
+  }
+
+  async respondToDemoSkillReview(sessionId: string, requestId: string, a: { save: boolean, scope: 'project' | 'personal' }) {
+    const s = this.get(sessionId)
+    this.emit(s, b => b.demoSkillReviewResolved(requestId, a.save, a.scope))
+  }
+
+  private mockSimBooted = false
+
+  async listSimulators() {
+    return { devices: [{ udid: 'MOCK-0001', name: 'iPhone 17', state: this.mockSimBooted ? 'Booted' : 'Shutdown', runtimeName: 'iOS 26.0' }], unavailable: '' }
+  }
+
+  async bootSimulator() {
+    this.mockSimBooted = true
+  }
+
+  async shutdownSimulator() {
+    this.mockSimBooted = false
+  }
+
+  async watchSimulator(_udid: string, onFrame: (f: { url: string, width: number, height: number }) => void, signal: AbortSignal) {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844"><rect width="390" height="844" fill="#111"/><text x="195" y="422" fill="#888" font-size="20" text-anchor="middle">Simulator</text></svg>'
+    onFrame({ url: `data:image/svg+xml,${encodeURIComponent(svg)}`, width: 1170, height: 2532 })
+    await new Promise<void>(resolve => signal.addEventListener('abort', () => resolve(), { once: true }))
+  }
+
+  async simulatorInput() {}
+
   async respondToPermission(sessionId: string, requestId: string, decision: RespondToPermissionRequest_Decision) {
     this.resume(sessionId, requestId, decision)
   }

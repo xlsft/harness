@@ -238,6 +238,7 @@ function retry() {
       <UsageLimitBanner :session="session" />
       <GoalBanner :session="session" />
       <ComputerUseBar :session="session" />
+      <DemoRecordingBar :session="session" />
 
       <!-- context almost full -->
       <div

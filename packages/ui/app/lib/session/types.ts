@@ -237,6 +237,32 @@ export interface ComputerAccessItem {
   approved: string[]
 }
 
+// DemoSkillSave: a skill the agent drafted from a demo recording, for the user to edit and save (DemoSkillReviewRequested).
+// Nothing is written until the user saves it here.
+export interface DemoSkillReviewItem {
+  kind: 'demoSkillReview'
+  id: string
+  toolUseId: string
+  recordingId: string
+  name: string
+  scope: 'project' | 'personal'
+  content: string
+  // Where it goes for each scope; '' when the session has no folder of that scope.
+  paths: { project: string, personal: string }
+  state: 'pending' | 'saved' | 'discarded' | 'cancelled'
+}
+
+// The session's demo recording (DemoRecordingState): the indicator and Stop while the user records.
+export interface DemoRecordingVM {
+  recording: boolean
+  id: string
+  startedAt: string
+  steps: number
+  apps: { id: string, name: string, tier: ComputerTierName }[]
+  hotkey: string
+  lastStep: string
+}
+
 // The agent wants a site in the user's own Chrome (BrowserSiteRequested).
 export interface BrowserSiteItem {
   kind: 'browserSite'
@@ -460,6 +486,7 @@ export type TranscriptItem
     | PermissionItem
     | QuestionItem
     | ComputerAccessItem
+    | DemoSkillReviewItem
     | BrowserSiteItem
     | PlanItem
     | TodosItem
@@ -616,8 +643,13 @@ export interface SessionState {
   pendingQuestion: string | null
   pendingPlan: string | null
   pendingComputerAccess: string | null
+  pendingDemoReview: string | null
   // Computer use in this session; undefined until the client reported any.
   computerUse?: ComputerUseVM
+  // A demo recording of this session; undefined until the client reported one.
+  demoRecording?: DemoRecordingVM
+  // The latest thing the agent did to an iOS Simulator (SimulatorActivity), for the Simulator pane.
+  simulatorActivity?: { udid: string, action: string, at: number }
   // The latest Show request not yet followed by a user message; the UI opens it once the session is open.
   showRequest: ShowRequest | null
   // What the latest slash command left to do (useSlashActions).
