@@ -155,6 +155,8 @@ type Entry struct {
 	Content    string          `json:"content,omitempty"`
 	Level      string          `json:"level,omitempty"`
 	IsMeta     bool            `json:"isMeta,omitempty"`
+	// Origin says where a user entry came from when it is not the user's own prompt (Claude Code).
+	Origin *Origin `json:"origin,omitempty"`
 	// Skill marks the meta entry holding the text of a skill that started, or came back after a compaction.
 	Skill                   *SkillUse `json:"skillUse,omitempty"`
 	PromptID                string    `json:"promptId,omitempty"`
@@ -466,7 +468,39 @@ func (s Store) Find(cwd, id string) (string, error) {
 	return "", fmt.Errorf("session %s not found", id)
 }
 
-// Load reads all entries of a transcript. Malformed lines are skipped.
+// Origin is the source of a user entry that is not the user's prompt.
+type Origin struct {
+	Kind string `json:"kind"`
+}
+
+// OriginTaskNotification is Claude Code's report of a background task that finished: a user entry the model reads,
+// which the user did not write.
+const OriginTaskNotification = "task-notification"
+
+const taskNotificationTag = "<task-notification>"
+
+// TaskNotification reports whether e is Claude Code's report of a background task. Older versions wrote no origin,
+// only the tag.
+func (e *Entry) TaskNotification() bool {
+	if e.Type != TypeUser || e.Message == nil {
+		return false
+	}
+	if e.Origin != nil && e.Origin.Kind == OriginTaskNotification {
+		return true
+	}
+	var text string
+	if json.Unmarshal(e.Message.Content, &text) != nil {
+		blocks := e.Blocks()
+		if len(blocks) == 0 || blocks[0].Type != llm.BlockText {
+			return false
+		}
+		text = blocks[0].Text
+	}
+	return strings.HasPrefix(strings.TrimSpace(text), taskNotificationTag)
+}
+
+// Load reads all entries of a transcript. Malformed lines are skipped. A task notification from Claude Code is
+// read as a meta entry, like the reports harness writes itself: the model keeps it, and it is not a prompt.
 func Load(path string) ([]Entry, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -484,6 +518,9 @@ func Load(path string) ([]Entry, error) {
 		var e Entry
 		if err := json.Unmarshal(line, &e); err != nil {
 			continue
+		}
+		if !e.IsMeta && e.TaskNotification() {
+			e.IsMeta = true
 		}
 		out = append(out, e)
 	}
@@ -569,7 +606,62 @@ func ActiveChain(entries []Entry, logical bool) []Entry {
 	for l, r := 0, len(chain)-1; l < r; l, r = l+1, r-1 {
 		chain[l], chain[r] = chain[r], chain[l]
 	}
-	return chain
+	return withSideResults(entries, chain)
+}
+
+// withSideResults puts back the tool results that hang off the chain. Claude Code writes the calls of one message
+// as a chain of assistant entries, one call each, but parents each result on the entry with its own call: only the
+// last call's result lies on the path from the leaf. Each result found that way goes after its message's calls,
+// before what follows them, so every call keeps its result.
+func withSideResults(entries, chain []Entry) []Entry {
+	onChain := make(map[string]bool, len(chain))
+	calls := map[string]bool{}
+	answered := map[string]bool{}
+	for _, e := range chain {
+		onChain[e.UUID] = true
+		for _, b := range e.Blocks() {
+			switch {
+			case e.Type == TypeAssistant && b.Type == llm.BlockToolUse:
+				calls[b.ID] = true
+			case e.Type == TypeUser && b.Type == llm.BlockToolResult:
+				answered[b.ToolUseID] = true
+			}
+		}
+	}
+	side := map[string][]Entry{}
+	found := false
+	for _, e := range entries {
+		if e.Type != TypeUser || e.ParentUUID == nil || !onChain[*e.ParentUUID] || onChain[e.UUID] || e.UUID == "" {
+			continue
+		}
+		blocks := e.Blocks()
+		ok := len(blocks) > 0
+		for _, b := range blocks {
+			ok = ok && b.Type == llm.BlockToolResult && calls[b.ToolUseID] && !answered[b.ToolUseID]
+		}
+		if !ok {
+			continue
+		}
+		for _, b := range blocks {
+			answered[b.ToolUseID] = true
+		}
+		side[*e.ParentUUID] = append(side[*e.ParentUUID], e)
+		found = true
+	}
+	if !found {
+		return chain
+	}
+	out := make([]Entry, 0, len(chain)+len(side))
+	var held []Entry
+	for _, e := range chain {
+		if e.Type != TypeAssistant {
+			out = append(out, held...)
+			held = nil
+		}
+		out = append(out, e)
+		held = append(held, side[e.UUID]...)
+	}
+	return append(out, held...)
 }
 
 // Rebuild converts entries into API messages along the active branch.
