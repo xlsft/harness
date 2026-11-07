@@ -59,7 +59,7 @@ intended behaviour of a signed-in session.
 - `Session.ToolReport()` (`bootstrap/tooldiag.go`) lists the definitions the next request carries, in request order
   (`Agent.OfferedTools`, the same function the request loop uses), then each registered tool that is not offered with
   a reason: `disabled` (a deny rule without a pattern), `hidden` (a `ModelHider` whose device-local switch is off),
-  `mcp_deferred` (loaded with ToolSearch), `no_prompt` (the session's frozen bundle has no definition, e.g. a resumed
+  `mcp_deferred` (loaded with ToolSearch), `deferred` (a built-in tool held back by tool deferral until loaded; `docs/design/tool-deferral.md`), `no_prompt` (the session's frozen bundle has no definition, e.g. a resumed
   session on an old bundle), and `needs_sync` for the library tools when the session has no sync client, with the
   reason sync is off.
 - `/tools` (built-in slash command), `AgentService.ListSessionTools` (`proto/harness/agent/v1/diagnostics.proto`) and

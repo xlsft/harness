@@ -96,6 +96,13 @@ defineProps<{ policy: ManagedPolicyView }>()
         {{ policy.allowedMcpServers.join(', ') || 'none' }}
       </dd>
     </template>
+    <template v-if="policy.deferBuiltinTools !== undefined">
+      <dt class="text-muted">
+        {{ tt('Rarely used tools') }}
+      </dt><dd class="m-0 text-toned">
+        {{ policy.deferBuiltinTools ? tt('Loaded on demand.') : tt('Always loaded.') }}
+      </dd>
+    </template>
   </dl>
   <p
     v-else

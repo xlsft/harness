@@ -99,7 +99,8 @@ export function policyView(p: ManagedPolicyPb | undefined): ManagedPolicy {
     restrictSkills: p?.restrictSkills ?? false,
     allowedSkills: p?.allowedSkills ?? [],
     blockedSkills: p?.blockedSkills ?? [],
-    externalSkillSearchDisabled: p?.externalSkillSearchDisabled ?? false
+    externalSkillSearchDisabled: p?.externalSkillSearchDisabled ?? false,
+    deferBuiltinTools: p?.deferBuiltinTools ?? null
   }
 }
 
@@ -286,7 +287,7 @@ export class ConnectEnterpriseApi implements EnterpriseApi {
   }
 
   async setManagedPolicy(p: ManagedPolicy): Promise<ManagedPolicyState> {
-    await this.policy.setManagedPolicy({ policy: p })
+    await this.policy.setManagedPolicy({ policy: { ...p, deferBuiltinTools: p.deferBuiltinTools ?? undefined } })
     return this.getManagedPolicy()
   }
 }
