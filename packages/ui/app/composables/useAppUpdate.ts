@@ -15,15 +15,28 @@ export function useAppUpdate() {
   // Why this build can't update; empty when it can.
   const unavailable = useState('app-update-unavailable', () => '')
   const error = useState('app-update-error', () => '')
+  // A newer release the organization's maximum version holds back ('' when none), and that maximum.
+  const held = useState('app-update-held', () => ({ version: '', max: '' }))
   const { runningWork } = useRunningWork()
+  const store = useSessionStore()
+
+  /** The managed policy's maximum client version, as the client merged it; '' when none or unknown. */
+  async function maxVersion() {
+    try {
+      return (await store.transport?.getUserPreferences())?.managedPolicy?.maxClientVersion ?? ''
+    } catch {
+      return ''
+    }
+  }
 
   async function check() {
     // Once installed, the next start is what's left; a found update stays until it's acted on.
     if (!isDesktop() || phase.value === 'installing' || phase.value === 'installed') return
     try {
-      const r = await updateCheck()
+      const r = await updateCheck(await maxVersion())
       current.value = r.current
       unavailable.value = r.state === 'unavailable' ? r.reason : ''
+      held.value = r.state === 'held' ? { version: r.version, max: r.max } : { version: '', max: '' }
       if (r.state === 'available') {
         version.value = r.version
         notes.value = r.notes
@@ -60,7 +73,7 @@ export function useAppUpdate() {
     await restart()
   }
 
-  return { phase, version, notes, current, unavailable, error, check, install, restart }
+  return { phase, version, notes, current, unavailable, held, error, check, install, restart }
 }
 
 let started = false

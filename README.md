@@ -19,7 +19,7 @@ docker run -d --name harness -p 3000:3000 -v harness-data:/data \
   ghcr.io/xlsft/harness:latest
 ```
 
-[Download the app](https://github.com/xlsft/harness/releases/latest) for macOS, move it to Applications and sign in to your server. Add a provider under **Settings > Models** and start a session.
+[Download the app](https://github.com/xlsft/harness/releases/latest) for macOS, move it to Applications and sign in to your server. Or, for the client alone: `curl -fsSL https://raw.githubusercontent.com/xlsft/harness/main/scripts/install.sh | sh`, then `harness-client login <server>` and `harness-client doctor` ([more](docs/release.md#installing)). Add a provider under **Settings > Models** and start a session.
 
 Coming from Claude Code? **Settings > Import** brings your configuration and sessions across, and `CLAUDE.md` and `AGENTS.md` are read as they are. <sub>xlsft\`s harness is independent and isn't affiliated with Anthropic. Claude Code is a trademark of Anthropic.</sub>
 

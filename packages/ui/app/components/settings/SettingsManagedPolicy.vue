@@ -93,6 +93,7 @@ function addServer(id: string) {
 
 const area = 'min-h-[72px] w-full resize-y border border-accented bg-default px-2 py-1.5 font-mono text-[12px] text-strong outline-none focus:border-accent disabled:opacity-60'
 const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
+const input = 'h-8 w-full border border-accented bg-default px-2 font-mono text-[12px] text-strong outline-none focus:border-accent disabled:opacity-60'
 </script>
 
 <template>
@@ -375,6 +376,35 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
           :disabled="!writable"
           :label="tt('Turn off external skill search')"
         />
+      </div>
+
+      <h3 class="m-0 mt-2 text-[12.5px] font-semibold text-strong">
+        {{ tt('Client versions') }}
+      </h3>
+      <p class="m-0 text-[11.5px] text-muted">
+        {{ tt('The versions of the app and harness-client people may run, as X.Y.Z. Outside them clients warn and keep working, and their updates go no further than the maximum. Empty: no bound.') }}
+      </p>
+      <div class="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+        <label :class="label">
+          {{ tt('Minimum') }}
+          <input
+            v-model.trim="policy.minClientVersion"
+            :disabled="!writable"
+            placeholder="0.2.0"
+            spellcheck="false"
+            :class="input"
+          >
+        </label>
+        <label :class="label">
+          {{ tt('Maximum') }}
+          <input
+            v-model.trim="policy.maxClientVersion"
+            :disabled="!writable"
+            placeholder="0.4.9"
+            spellcheck="false"
+            :class="input"
+          >
+        </label>
       </div>
 
       <div

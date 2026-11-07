@@ -154,6 +154,9 @@ jobs:
       packages: write # the moving image tags
       id-token: write # keyless Sigstore signature of checksums.txt, and the provenance
       attestations: write
+    outputs:
+      newest: ${{ steps.newest.outputs.newest }}
+      signing: ${{ steps.signing.outputs.signing }}
     env:
       TAG: ${{ github.ref_name }}
       VERSION: ${{ needs.preflight.outputs.version }}
@@ -179,6 +182,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: scripts/release/assemble.sh "$TAG" dist "$RUNNER_TEMP"
+      - name: How the app was signed
+        id: signing
+        run: echo "signing=$(cat "$RUNNER_TEMP/signing")" >> "$GITHUB_OUTPUT"
       - name: Sign the checksums
         working-directory: dist
         run: cosign sign-blob --yes --bundle checksums.txt.sigstore.json checksums.txt
@@ -252,3 +258,33 @@ jobs:
             echo "Released [$TAG]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG)"
             echo "Newest stable release: $NEWEST. Signing of the app: $(cat "$RUNNER_TEMP/signing")"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # The Homebrew tap (docs/release.md, Homebrew): a formula for harness-client and a cask for the app, from the published
+  # checksums.txt. Only for the newest stable release, and only when the repository has a token for the tap; without one this
+  # job does nothing. A job of its own, after the release is public, so a failure here can be re-run alone.
+  homebrew:
+    needs: [preflight, publish]
+    if: needs.publish.outputs.newest == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      HOMEBREW_TAP: ${{ vars.HOMEBREW_TAP || 'xlsft/homebrew-harness' }}
+      SIGNING: ${{ needs.publish.outputs.signing }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Write and publish the formula and the cask
+        run: |
+          if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
+            echo "No HOMEBREW_TAP_TOKEN secret: the tap isn't updated." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          mkdir -p "$RUNNER_TEMP/release"
+          gh release download "$TAG" --pattern checksums.txt --dir "$RUNNER_TEMP/release"
+          scripts/release/homebrew.sh "$TAG" "$RUNNER_TEMP/release" "$RUNNER_TEMP/tap" "$SIGNING"
+          scripts/release/homebrew-publish.sh "$TAG" "$RUNNER_TEMP/tap"
+          echo "Homebrew: $TAG in $HOMEBREW_TAP" >> "$GITHUB_STEP_SUMMARY"

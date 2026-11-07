@@ -318,6 +318,8 @@ func TestManagedExecutable(t *testing.T) {
 		{"/Applications/x.app/Contents/MacOS/harness-client", "", "desktop"},
 		{"/somewhere/target/debug/harness-client", "desktop", "desktop"},
 		{"/usr/local/bin/harness-client", "", ""},
+		{"/opt/homebrew/Cellar/harness-client/0.3.0/bin/harness-client", "", "homebrew"},
+		{"/Users/ada/.harness/bin/harness-client", "", ""},
 	}
 	for _, c := range cases {
 		if got := ManagedExecutable(c.exe, c.dist); got != c.want {

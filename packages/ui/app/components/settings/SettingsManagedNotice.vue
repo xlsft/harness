@@ -96,6 +96,13 @@ defineProps<{ policy: ManagedPolicyView }>()
         {{ policy.allowedMcpServers.join(', ') || 'none' }}
       </dd>
     </template>
+    <template v-if="policy.minClientVersion || policy.maxClientVersion">
+      <dt class="text-muted">
+        {{ tt('Client versions') }}
+      </dt><dd class="m-0 tabular-nums text-toned">
+        {{ policy.minClientVersion && policy.maxClientVersion ? tt('{0} to {1}', [policy.minClientVersion, policy.maxClientVersion]) : policy.minClientVersion ? tt('{0} or newer', [policy.minClientVersion]) : tt('Up to {0}', [policy.maxClientVersion]) }}
+      </dd>
+    </template>
   </dl>
   <p
     v-else

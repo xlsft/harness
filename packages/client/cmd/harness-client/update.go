@@ -52,8 +52,12 @@ func runUpdate(ctx context.Context, args []string) int {
 	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
 		exe = resolved
 	}
-	if selfupdate.ManagedExecutable(exe, config.Distribution) == "desktop" {
+	switch selfupdate.ManagedExecutable(exe, config.Distribution) {
+	case "desktop":
 		fmt.Fprintf(os.Stderr, "This harness-client is the desktop app's sidecar. It is updated with the app, not by this command: use Settings → About in the app.\n")
+		return 1
+	case "homebrew":
+		fmt.Fprintf(os.Stderr, "This harness-client was installed by Homebrew, which updates it: brew upgrade harness-client\n")
 		return 1
 	}
 	u := selfupdate.Updater{

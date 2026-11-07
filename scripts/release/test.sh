@@ -134,6 +134,45 @@ expect "...creates the tag" "g rev-parse -q --verify refs/tags/v0.1.0"
 refuse "...and pushes nothing" "git -C '$work/origin.git' rev-parse -q --verify refs/tags/v0.1.0"
 refuse "release.sh refuses an existing tag" "release v0.1.0"
 
+# homebrew.sh and homebrew-publish.sh: the formula and cask from a release's checksums.txt, pushed into a local stand-in tap.
+brew_dist="$work/brew-dist"
+mkdir -p "$brew_dist"
+for f in harness-client_1.4.0_darwin_arm64.tar.gz harness-client_1.4.0_darwin_amd64.tar.gz harness_1.4.0_darwin_arm64.dmg harness_1.4.0_darwin_amd64.dmg; do
+  echo "$f" >"$brew_dist/$f"
+done
+(cd "$brew_dist" && shasum -a 256 ./* | sed 's# \./# #' >checksums.txt)
+hb="$root/scripts/release/homebrew.sh"
+expect "homebrew.sh writes the formula and the cask" "GITHUB_REPOSITORY=o/r '$hb' v1.4.0 '$brew_dist' '$work/brew-out' unsigned"
+formula="$work/brew-out/Formula/harness-client.rb"
+cask="$work/brew-out/Casks/harness.rb"
+arm="$(awk '$2 == "harness-client_1.4.0_darwin_arm64.tar.gz" { print $1 }' "$brew_dist/checksums.txt")"
+dmg="$(awk '$2 == "harness_1.4.0_darwin_amd64.dmg" { print $1 }' "$brew_dist/checksums.txt")"
+expect "...the formula has the archive's checksum" "grep -q 'sha256 \"$arm\"' '$formula'"
+expect "...and its release URL" "grep -q 'https://github.com/o/r/releases/download/v#{version}/harness-client_#{version}_darwin_arm64.tar.gz' '$formula' && grep -q 'version \"1.4.0\"' '$formula'"
+expect "...and installs completions from the binary" "grep -q 'generate_completions_from_executable(bin/\"harness-client\", \"completion\")' '$formula'"
+expect "...the cask has the DMG's checksum and the app" "grep -q 'intel: \"$dmg\"' '$cask' && grep -q 'app \"xlsft\`s harness.app\"' '$cask'"
+expect "...says how to open an app that isn't notarized" "grep -q 'Open Anyway' '$cask'"
+if command -v ruby >/dev/null; then
+  expect "...both are valid Ruby" "ruby -c '$formula' && ruby -c '$cask'"
+fi
+expect "a notarized cask has no such note" "GITHUB_REPOSITORY=o/r '$hb' v1.4.0 '$brew_dist' '$work/brew-notarized' notarized && ! grep -q 'Open Anyway' '$work/brew-notarized/Casks/harness.rb'"
+refuse "homebrew.sh refuses a pre-release" "'$hb' v1.4.0-rc.1 '$brew_dist' '$work/brew-rc'"
+grep -v darwin_amd64.dmg "$brew_dist/checksums.txt" >"$work/partial.txt" && mkdir -p "$work/brew-partial" && cp "$work/partial.txt" "$work/brew-partial/checksums.txt"
+refuse "homebrew.sh refuses a release missing a file" "'$hb' v1.4.0 '$work/brew-partial' '$work/brew-partial-out'"
+
+git init -q --bare "$work/tap.git"
+git -C "$work/tap.git" symbolic-ref HEAD refs/heads/main
+tapclone="$work/tap-seed"
+git init -q -b main "$tapclone"
+echo "# tap" >"$tapclone/README.md"
+git -C "$tapclone" add . && git -C "$tapclone" -c user.name=t -c user.email=t@t -c commit.gpgsign=false commit -qm "Tap" && git -C "$tapclone" push -q "$work/tap.git" main
+hp="$root/scripts/release/homebrew-publish.sh"
+expect "homebrew-publish.sh pushes them into the tap" "HOMEBREW_TAP_URL='$work/tap.git' '$hp' v1.4.0 '$work/brew-out'"
+expect "...as one commit" "git -C '$work/tap.git' log --format=%s main | head -1 | grep -q 'harness-client and harness v1.4.0' && git -C '$work/tap.git' show main:Formula/harness-client.rb | grep -q '1.4.0'"
+expect "...and again changes nothing" "HOMEBREW_TAP_URL='$work/tap.git' '$hp' v1.4.0 '$work/brew-out' | grep -q 'already has'"
+refuse "...and refuses a tap that doesn't exist" "HOMEBREW_TAP_URL='$work/no-tap.git' '$hp' v1.4.0 '$work/brew-out'"
+expect "the release pushes to the tap only with its token" "grep -q 'HOMEBREW_TAP_TOKEN' '$root/.github/workflows/release.yml'"
+
 # The real image never sets a minimum client version.
 refuse "the image sets no minimum client version" "grep -rq HARNESS_MIN_CLIENT_VERSION '$root/deploy/Dockerfile' '$root/deploy/rootfs'"
 

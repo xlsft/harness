@@ -1,6 +1,7 @@
 // SessionTransport: everything the UI needs from a harness client (harness.agent.v1.AgentService).
 // Two implementations: MockTransport (scripted events, the default) and ConnectTransport (connect-web).
 
+import type { DoctorReport } from '~/lib/doctor'
 import type { SshApi } from '~/lib/ssh'
 import type { VcsApi } from '~/lib/vcs/types'
 import type { OutgoingAttachment } from '~/lib/session/attachments'
@@ -134,6 +135,9 @@ export interface ManagedPolicyView {
   allowedSkills: string[]
   blockedSkills: string[]
   externalSkillSearchDisabled: boolean
+  // The client versions allowed (X.Y.Z); '' is no bound.
+  minClientVersion: string
+  maxClientVersion: string
 }
 
 export interface UserPreferences {
@@ -375,6 +379,9 @@ export interface SessionTransport {
   // Trusts on this machine hooks the server delivered (device-local, never synced); applies from the next session.
   setHooksTrust(hash: string, trusted: boolean): Promise<void>
 
+  // The checks of `harness-client doctor` on the machine of this client (Settings > About). skipMcp: don't start MCP
+  // servers, which takes the longest.
+  runDoctor(o?: { skipMcp?: boolean }): Promise<DoctorReport>
   // This device's preferences; an update changes only the fields it sets and returns them all.
   getDeviceSettings(): Promise<DeviceSettings>
   updateDeviceSettings(patch: Partial<DeviceSettings>): Promise<DeviceSettings>

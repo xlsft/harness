@@ -259,10 +259,15 @@ func extractBinary(archive, out string) error {
 }
 
 // ManagedExecutable says who updates the binary at exe when it is not this command: the desktop app's sidecar comes with
-// the app and is replaced with it. Empty when the binary is on its own.
+// the app and is replaced with it; Homebrew's copy lives in its Cellar and `brew upgrade` replaces it. Empty when the binary
+// is on its own.
 func ManagedExecutable(exe, distribution string) string {
-	if distribution == "desktop" || strings.Contains(filepath.ToSlash(exe), ".app/Contents/MacOS/") {
+	p := filepath.ToSlash(exe)
+	switch {
+	case distribution == "desktop" || strings.Contains(p, ".app/Contents/MacOS/"):
 		return "desktop"
+	case distribution == "homebrew" || strings.Contains(p, "/Cellar/harness-client/"):
+		return "homebrew"
 	}
 	return ""
 }

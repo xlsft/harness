@@ -193,6 +193,9 @@ export interface ManagedPolicy {
   allowedSkills: string[]
   blockedSkills: string[]
   externalSkillSearchDisabled: boolean
+  // The client versions allowed (X.Y.Z); '' is no bound.
+  minClientVersion: string
+  maxClientVersion: string
 }
 
 export interface PolicyChoice {
@@ -208,7 +211,7 @@ export interface ManagedPolicyState {
 }
 
 export function emptyManagedPolicy(): ManagedPolicy {
-  return { allowRules: [], askRules: [], denyRules: [], managedRulesOnly: false, sandboxRequired: false, sandboxOutsideRefused: false, restrictProviders: false, allowedProviders: [], personalProvidersDisabled: false, restrictMcpServers: false, allowedMcpServers: [], restrictPluginSources: false, allowedPluginSources: [], blockedPluginSources: [], distributedMarketplaces: [], distributedPlugins: [], blockedPlugins: [], restrictSkills: false, allowedSkills: [], blockedSkills: [], externalSkillSearchDisabled: false }
+  return { allowRules: [], askRules: [], denyRules: [], managedRulesOnly: false, sandboxRequired: false, sandboxOutsideRefused: false, restrictProviders: false, allowedProviders: [], personalProvidersDisabled: false, restrictMcpServers: false, allowedMcpServers: [], restrictPluginSources: false, allowedPluginSources: [], blockedPluginSources: [], distributedMarketplaces: [], distributedPlugins: [], blockedPlugins: [], restrictSkills: false, allowedSkills: [], blockedSkills: [], externalSkillSearchDisabled: false, minClientVersion: '', maxClientVersion: '' }
 }
 
 export interface EnterpriseApi {

@@ -98,7 +98,9 @@ export function policyView(p: ManagedPolicyPb | undefined): ManagedPolicy {
     restrictSkills: p?.restrictSkills ?? false,
     allowedSkills: p?.allowedSkills ?? [],
     blockedSkills: p?.blockedSkills ?? [],
-    externalSkillSearchDisabled: p?.externalSkillSearchDisabled ?? false
+    externalSkillSearchDisabled: p?.externalSkillSearchDisabled ?? false,
+    minClientVersion: p?.minClientVersion ?? '',
+    maxClientVersion: p?.maxClientVersion ?? ''
   }
 }
 
