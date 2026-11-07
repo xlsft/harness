@@ -871,7 +871,12 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.ConnectPR(nil)
 	s.startMCP(conv)
 	s.open, s.log = o, log
-	log.Info("session opened", "session", s.ID, "model", s.Model, "resumed", s.Resumed, "fork", o.Fork, "no_folder", o.NoFolder,
+	// Info for the client's log file (cmd's logger); a caller with the default logger (tests, embedders) gets no line on stderr.
+	level := slog.LevelDebug
+	if o.Logger != nil {
+		level = slog.LevelInfo
+	}
+	log.Log(ctx, level, "session opened", "session", s.ID, "model", s.Model, "resumed", s.Resumed, "fork", o.Fork, "no_folder", o.NoFolder,
 		"bundle", s.Bundle.Version, "offered_tools", len(s.ToolNames()), "sync", s.SyncState())
 	return s, nil
 }
