@@ -126,12 +126,29 @@ func TestSideChats(t *testing.T) {
 	}
 
 	// Stop keeps the partial text; the second question sees the first exchange as history.
+	sideChatRequests := func() int {
+		n := 0
+		for _, r := range h.gw.Requests() {
+			if isSideChatRequest(r) {
+				n++
+			}
+		}
+		return n
+	}
+	asked := sideChatRequests()
 	done := make(chan *agentv1.AskSideChatResponse, 1)
 	go func() {
 		_, _, ans := h.askSideChat(&agentv1.AskSideChatRequest{SessionId: sid, SideChatId: sc.SideChatId, Text: "hold on"})
 		done <- ans
 	}()
 	deadline := time.Now().Add(5 * time.Second)
+	// Stop only once the question reached the model: stopping earlier is valid, but leaves no second request to look at.
+	for sideChatRequests() == asked {
+		if time.Now().After(deadline) {
+			t.Fatal("the question never reached the model")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
 	for {
 		resp, err := h.client.StopSideChat(h.ctx, connect.NewRequest(&agentv1.StopSideChatRequest{SessionId: sid, SideChatId: sc.SideChatId}))
 		if err != nil {
