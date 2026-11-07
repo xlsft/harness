@@ -74,7 +74,7 @@ harness-client sync --watch                         # catch up the sync cache, u
 Environment variables:
 - `HARNESS_HOME` overrides `~/.harness`.
 - `HARNESS_KEYRING=0` stores credentials only in `~/.harness/credentials.json` (and the environments' encryption key only in `~/.harness/environments/key`).
-- `HARNESS_WEB_URL` is reported as `InitializeResponse.web_url`: a web UI that opens a session at `<url>/?session=<id>`.
+- `HARNESS_WEB_URL` is reported as `InitializeResponse.web_url`: a web UI that opens a session at `<url>/?session=<id>`. Unset, the web UI the signed-in server serves (its `/api/health` says where) is reported instead.
 - `HARNESS_SERVER_URL` + `HARNESS_ACCESS_TOKEN` use a fixed access token (for example on SSH runners).
 - `HARNESS_TMPDIR` sets the root of the per-session scratch directories.
 - `HARNESS_NO_VCS=1` stops the session from polling PR/CI state through `gh`/`glab`.

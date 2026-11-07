@@ -192,8 +192,8 @@ export type InitializeResponse = Message<"harness.agent.v1.InitializeResponse"> 
 
   /**
    * Base URL of a web UI that opens this user's sessions: "<web_url>/?session=<id>" opens a session (the UI's
-   * session query parameter). Empty when none is configured (HARNESS_WEB_URL on the client); the harness
-   * server does not serve the UI yet.
+   * session query parameter). HARNESS_WEB_URL on the client, else the web UI the server serves (its /api/health says
+   * where); empty when there is neither.
    *
    * @generated from field: string web_url = 8;
    */

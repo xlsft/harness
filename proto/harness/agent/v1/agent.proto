@@ -476,8 +476,8 @@ message InitializeResponse {
   // while: the policy can change while the client runs.
   repeated PermissionMode disabled_permission_modes = 7;
   // Base URL of a web UI that opens this user's sessions: "<web_url>/?session=<id>" opens a session (the UI's
-  // session query parameter). Empty when none is configured (HARNESS_WEB_URL on the client); the harness
-  // server does not serve the UI yet.
+  // session query parameter). HARNESS_WEB_URL on the client, else the web UI the server serves (its /api/health says
+  // where); empty when there is neither.
   string web_url = 8;
   // Version of the server this client is signed in to (its /api/health); empty when it can't be read, or a server older
   // than the first release. "0.0.0-dev" for a server not built by the release workflow.

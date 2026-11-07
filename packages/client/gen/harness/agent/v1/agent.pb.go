@@ -1222,8 +1222,8 @@ type InitializeResponse struct {
 	// while: the policy can change while the client runs.
 	DisabledPermissionModes []PermissionMode `protobuf:"varint,7,rep,packed,name=disabled_permission_modes,json=disabledPermissionModes,proto3,enum=harness.agent.v1.PermissionMode" json:"disabled_permission_modes,omitempty"`
 	// Base URL of a web UI that opens this user's sessions: "<web_url>/?session=<id>" opens a session (the UI's
-	// session query parameter). Empty when none is configured (HARNESS_WEB_URL on the client); the harness
-	// server does not serve the UI yet.
+	// session query parameter). HARNESS_WEB_URL on the client, else the web UI the server serves (its /api/health says
+	// where); empty when there is neither.
 	WebUrl string `protobuf:"bytes,8,opt,name=web_url,json=webUrl,proto3" json:"web_url,omitempty"`
 	// Version of the server this client is signed in to (its /api/health); empty when it can't be read, or a server older
 	// than the first release. "0.0.0-dev" for a server not built by the release workflow.

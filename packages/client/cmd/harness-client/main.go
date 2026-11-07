@@ -296,7 +296,7 @@ func cmdServe(ctx context.Context, args []string) int {
 	srv.SSHBinaries = sshBinaries
 	srv.DoctorOptions = func(context.Context) doctor.Options { return doctorOptions(*f.serverURL) }
 	srv.Logger = log
-	// A web UI that opens sessions by ?session=<id> (Initialize web_url); the harness server serves none yet.
+	// A web UI that opens sessions by ?session=<id> (Initialize web_url); without one, the server's own UI (ServerHealth).
 	srv.WebURL = strings.TrimRight(strings.TrimSpace(os.Getenv("HARNESS_WEB_URL")), "/")
 	// Why sessions are not mirrored (the session relay switch shows it); cleared when a relay host attaches.
 	srv.RelayOffReason = relay.DisabledReason(*f.remote, "", false)
@@ -309,7 +309,8 @@ func cmdServe(ctx context.Context, args []string) int {
 		if msg := (selfupdate.Bounds{Min: m.MinClientVersion, Max: m.MaxClientVersion}).Message("harness-client", config.Version); msg != "" {
 			fmt.Fprintln(os.Stderr, "Warning:", msg)
 		}
-		srv.ServerVersion = func(ctx context.Context) string { return server.ReadServerVersion(ctx, rpc.HTTPClient(url), url) }
+		// The server's version, and its web UI when HARNESS_WEB_URL names none (InitializeResponse.web_url).
+		srv.ServerHealth = func(ctx context.Context) server.Health { return server.ReadServerHealth(ctx, rpc.HTTPClient(url), url) }
 		// Settings screens (providers, classifier) reach the server through this client.
 		srv.Core = &server.CoreProxy{URL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens}
 		srv.MCPClient = mcp.NewClient(url, rpc.HTTPClient(url), tokens)

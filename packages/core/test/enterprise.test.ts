@@ -455,6 +455,20 @@ describe("managed policy", () => {
     }
   });
 
+  it("bounds client versions in the keys clients read, and refuses bounds that aren't versions", async () => {
+    try {
+      const set = await admin.policy.setManagedPolicy({ policy: { minClientVersion: "v0.2.0", maxClientVersion: "0.4.1" } });
+      expect(set.policy).toMatchObject({ minClientVersion: "0.2.0", maxClientVersion: "0.4.1" });
+      const doc = await plain.sync.getDocument({ selector: { case: "ref", value: { scope: Scope.ORG, kind: DocumentKind.POLICY, key: "default", projectKey: "" } } });
+      expect(JSON.parse(doc.document!.content)).toMatchObject({ minimumClientVersion: "0.2.0", maximumClientVersion: "0.4.1" });
+      expect(await code(admin.policy.setManagedPolicy({ policy: { minClientVersion: "latest" } }))).toBe(Code.InvalidArgument);
+      expect(await code(admin.policy.setManagedPolicy({ policy: { minClientVersion: "0.5.0", maxClientVersion: "0.4.0" } }))).toBe(Code.InvalidArgument);
+      expect((await admin.policy.setManagedPolicy({ policy: { minClientVersion: "0.4.0-rc.1", maxClientVersion: "0.4.0" } })).policy?.minClientVersion).toBe("0.4.0-rc.1");
+    } finally {
+      await admin.policy.setManagedPolicy({ policy: {} });
+    }
+  });
+
   it("refuses what is not a permission rule", async () => {
     expect(await code(admin.policy.setManagedPolicy({ policy: { denyRules: ["(((not a rule"] } }))).toBe(Code.InvalidArgument);
   });
@@ -525,12 +539,19 @@ describe("web console and the served UI", () => {
       expect(js.headers.get("cache-control")).toContain("immutable");
       expect((await fetch(`${ts.url}/_nuxt/missing.js`)).status).toBe(404);
       expect((await fetch(`${ts.url}/..%2Fharness-outside-web.txt`)).status).toBe(404);
-      // The server's own routes are unaffected.
-      expect((await fetch(`${ts.url}/api/health`)).status).toBe(200);
+      // The server's own routes are unaffected, and its health says where the app is.
+      expect(await fetch(`${ts.url}/api/health`).then((r) => r.json())).toMatchObject({ ok: true, web: "/" });
       expect(await fetch(`${ts.url}/device`).then((r) => r.text())).toContain("Sign in");
       expect((await fetch(`${ts.url}/api/nothing`)).status).toBe(404);
+      // Switched off, the image's UI is gone and the health says so.
+      process.env.HARNESS_WEB_UI = "off";
+      expect((await fetch(`${ts.url}/`)).status).toBe(404);
+      expect((await fetch(`${ts.url}/settings`)).status).toBe(404);
+      expect(await fetch(`${ts.url}/api/health`).then((r) => r.json())).toMatchObject({ ok: true, web: "" });
+      expect(await fetch(`${ts.url}/device`).then((r) => r.text())).toContain("Sign in");
     } finally {
       delete process.env.HARNESS_WEB_DIR;
+      delete process.env.HARNESS_WEB_UI;
     }
   });
 

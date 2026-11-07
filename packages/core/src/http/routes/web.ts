@@ -1,6 +1,7 @@
 /**
- * Serves the built web UI (packages/ui, `nuxt generate`) when HARNESS_WEB_DIR names its directory, as the image does. The UI
- * is a single page app, so any path that is no file gets its entry page. Without the directory nothing changes: 404.
+ * Serves the built web UI (packages/ui, `nuxt generate`) at `/` when HARNESS_WEB_DIR names its directory, as the image does,
+ * unless HARNESS_WEB_UI is off. The UI is a single page app, so any path that is no file gets its entry page. Without the
+ * directory, or switched off, nothing changes: 404, and /api/health says no web UI.
  *
  * It runs in the browser with no secrets of its own. Agent work goes to a client the user runs (the page connects to it
  * with the client's token); signed in with the session cookie, it reaches the server's own administration services.
@@ -56,8 +57,21 @@ function file(path: string): { path: string; size: number } | undefined {
   }
 }
 
-export default defineHandler((event) => {
+/** The directory of the web UI when the server serves one: HARNESS_WEB_DIR, unless HARNESS_WEB_UI is off. */
+export function webDir(): string | undefined {
   const dir = process.env.HARNESS_WEB_DIR;
+  const off = /^(off|0|false|no)$/i.test((process.env.HARNESS_WEB_UI ?? "").trim());
+  return dir && !off ? dir : undefined;
+}
+
+/** The path the web UI is served at, for /api/health ("" when none): clients open sessions there (web_url). */
+export function webPath(): string {
+  const dir = webDir();
+  return dir && (file(join(resolve(dir), "200.html")) ?? file(join(resolve(dir), "index.html"))) ? "/" : "";
+}
+
+export default defineHandler((event) => {
+  const dir = webDir();
   if (!dir) return notFound();
   const root = resolve(dir);
   let rel: string;
