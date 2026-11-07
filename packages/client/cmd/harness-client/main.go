@@ -22,6 +22,7 @@ import (
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/decision"
+	"github.com/xlsft/harness/packages/client/extensions"
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
 	"github.com/xlsft/harness/packages/client/localmodels"
 	"github.com/xlsft/harness/packages/client/mcp"
@@ -255,6 +256,7 @@ func cmdServe(ctx context.Context, args []string) int {
 		// Settings screens (providers, classifier) reach the server through this client.
 		srv.Core = &server.CoreProxy{URL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens}
 		srv.MCPClient = mcp.NewClient(url, rpc.HTTPClient(url), tokens)
+		srv.SkillSearch = extensions.NewSkillSearch(url, rpc.HTTPClient(url), tokens)
 		// Frontends read the object store through this client, with a ticket instead of the agent token (<img>, <video>).
 		srv.Objects = server.NewObjectProxy(url, rpc.HTTPClient(url), tokens)
 		// Dictation and read-aloud with the server's global speech providers (local engines need no server).

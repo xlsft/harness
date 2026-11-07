@@ -20,7 +20,7 @@ export function pluginFromProto(p: Plugin): PluginVM {
   return {
     id: p.id, name: p.name, marketplace: p.marketplace, displayName: p.displayName, description: p.description, version: p.version, commit: p.commit,
     contentHash: p.contentHash, status: STATUS[p.status] ?? 'broken', reason: p.reason, enabled: p.enabled, approved: p.approved, pinned: p.pinned, managed: p.managed,
-    suggestedBy: p.suggestedBy, source: p.source, problems: p.problems,
+    suggestedBy: p.suggestedBy, source: p.source, installedAt: p.installedAt, problems: p.problems,
     contents: {
       skills: c?.skills ?? [], commands: c?.commands ?? [], agents: c?.agents ?? [], outputStyles: c?.outputStyles ?? [],
       hooks: (c?.hooks ?? []).map(h => ({ event: h.event, matcher: h.matcher, type: h.type, command: h.command, fromSkill: h.fromSkill })),

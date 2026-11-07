@@ -16,7 +16,7 @@ import (
 
 // noTerminal is why approve is refused without a terminal: the model's shell commands have none, and it must not approve its own
 // plugins. Everything else a command does runs nothing.
-const noTerminal = "approving a plugin needs someone at a terminal; run this in one, or approve it in Settings > Plugins"
+const noTerminal = "approving a plugin needs someone at a terminal; run this in one, or approve it in Extensions > Plugins"
 
 // runPlugin implements `harness-client plugin ...`.
 func runPlugin(args []string) int {

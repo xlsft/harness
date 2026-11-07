@@ -1,4 +1,4 @@
-// What the mock client reports for the slash menu and Customize: the built-ins the real one has, and one skill and one
+// What the mock client reports for the slash menu and Extensions: the built-ins the real one has, and one skill and one
 // command for the switch.
 import { create } from '@bufbuild/protobuf'
 import { SlashCommandKind, SlashCommandSchema, type SlashCommand } from '~/gen/harness/agent/v1/slash_commands_pb'
@@ -22,7 +22,7 @@ export function mockSlashCatalog(disabled: ReadonlySet<string>): SlashCatalog {
     builtin('goal', 'Keep working until a condition holds, with a cap on the turns', '[--max N] <condition> | stop | resume', true),
     builtin('loop', 'Repeat a prompt or command here, on an interval or at the model\'s pace', '[interval] <prompt or /command> | stop | list', true),
     builtin('schedule', 'Open Scheduled: tasks that run by themselves'),
-    builtin('skills', 'Open Customize: skills and commands, with their switches'),
+    builtin('skills', 'Open Extensions: skills and commands, with their switches'),
     own('release-notes', 'Draft release notes from the commits since the last tag', SlashCommandKind.SKILL, '.harness/skills/release-notes/SKILL.md'),
     own('fe:test', 'Run the frontend tests', SlashCommandKind.COMMAND, '.harness/commands/fe/test.md')
   ]

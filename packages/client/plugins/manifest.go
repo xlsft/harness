@@ -42,16 +42,19 @@ func ValidName(s string) bool { return nameRe.MatchString(s) && !strings.Contain
 
 // Manifest is a plugin.json. Component fields are kept raw: each takes several shapes.
 type Manifest struct {
-	Name           string          `json:"name,omitempty"`
-	DisplayName    string          `json:"displayName,omitempty"`
-	Version        string          `json:"version,omitempty"`
-	Description    string          `json:"description,omitempty"`
-	Author         json.RawMessage `json:"author,omitempty"`
-	Homepage       string          `json:"homepage,omitempty"`
-	Repository     json.RawMessage `json:"repository,omitempty"`
-	License        string          `json:"license,omitempty"`
-	Keywords       []string        `json:"keywords,omitempty"`
-	DefaultEnabled *bool           `json:"defaultEnabled,omitempty"`
+	Name        string          `json:"name,omitempty"`
+	DisplayName string          `json:"displayName,omitempty"`
+	Version     string          `json:"version,omitempty"`
+	Description string          `json:"description,omitempty"`
+	Author      json.RawMessage `json:"author,omitempty"`
+	Homepage    string          `json:"homepage,omitempty"`
+	Repository  json.RawMessage `json:"repository,omitempty"`
+	License     string          `json:"license,omitempty"`
+	Keywords    []string        `json:"keywords,omitempty"`
+	// Category and Tags are what marketplace entries say about themselves. An odd value reads as nothing.
+	Category       LooseText `json:"category,omitempty"`
+	Tags           LooseList `json:"tags,omitempty"`
+	DefaultEnabled *bool     `json:"defaultEnabled,omitempty"`
 
 	Skills       json.RawMessage `json:"skills,omitempty"`
 	Commands     json.RawMessage `json:"commands,omitempty"`

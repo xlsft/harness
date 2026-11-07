@@ -22,13 +22,11 @@ const SECTIONS = [
   { key: 'sessions', label: tt('Sessions'), icon: 'session', group: 'app' },
   { key: 'sandbox', label: tt('Sandbox'), icon: 'box', group: 'app' },
   { key: 'hooks', label: tt('Hooks'), icon: 'hook', group: 'app' },
-  { key: 'plugins', label: tt('Plugins'), icon: 'grid', group: 'app' },
   { key: 'memory', label: tt('Memory'), icon: 'doc', group: 'app' },
   { key: 'codehosts', label: tt('Code hosts'), icon: 'pull-request', group: 'app' },
   { key: 'import', label: tt('Import'), icon: 'download', group: 'app' },
   { key: 'models', label: tt('Models'), icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: tt('Classifiers'), icon: 'filter', group: 'ai' },
-  { key: 'mcp', label: 'MCP', icon: 'link', group: 'ai' },
   { key: 'search', label: tt('Search'), icon: 'search', group: 'ai' },
   { key: 'speech', label: tt('Speech'), icon: 'mic', group: 'ai' },
   { key: 'computer', label: tt('Computer use'), icon: 'monitor', group: 'ai' },
@@ -66,14 +64,12 @@ const KEYWORDS: Record<Section, string> = {
   appearance: 'theme light dark mode system colours',
   sessions: 'permission modes ask auto plan bypass new sessions worktree defaults compact idle compaction context',
   sandbox: 'sandbox seatbelt restrict commands bash write paths network hosts proxy allowlist localhost',
-  plugins: 'plugins marketplace install update approve bundle skills commands agents output styles hooks mcp claude-plugin',
   codehosts: 'github gitlab vcs code host pull request merge request pr connect app oauth gh glab webhook',
   hooks: 'hooks pretooluse posttooluse stop sessionstart scripts automation disable trust',
   memory: 'memory auto notes remember forget index project MEMORY.md',
   import: 'import bring claude code migrate memory skills agents commands output styles mcp sessions history',
   models: 'providers llm keys slots default model title effort',
   classifiers: 'classifier decision model rules',
-  mcp: 'mcp model context protocol servers tools resources prompts oauth sign in stdio http sse websocket approval audit log project .mcp.json',
   search: 'web search providers searxng brave tavily exa kagi perplexity',
   speech: 'voice dictation microphone read aloud stt tts parakeet whisper piper elevenlabs openai deepgram minimax',
   computer: 'computer use desktop apps control screen recording accessibility permissions click type your chrome real browser sites',
@@ -83,7 +79,7 @@ const KEYWORDS: Record<Section, string> = {
   ldap: 'ldap directory active directory sign in bind',
   sso: 'sso single sign-on oidc saml identity provider okta entra two-factor mfa totp require',
   provisioning: 'scim provisioning okta azure entra tokens groups',
-  audit: 'audit log compliance events sign-ins csv export',
+  audit: 'audit log compliance events sign-ins csv export mcp tool calls servers',
   policy: 'managed policy permission rules sandbox required allowed providers mcp servers plugins marketplaces administrator',
   about: 'version about'
 }
@@ -169,7 +165,6 @@ const notifications = computed({
       <SettingsSandbox v-else-if="section === 'sandbox'" />
 
       <SettingsHooks v-else-if="section === 'hooks'" />
-      <SettingsPlugins v-else-if="section === 'plugins'" />
 
       <SettingsCodeHosts v-else-if="section === 'codehosts'" />
 
@@ -222,8 +217,6 @@ const notifications = computed({
       <SettingsMemory v-else-if="section === 'memory'" />
 
       <SettingsImport v-else-if="section === 'import'" />
-
-      <SettingsMcp v-else-if="section === 'mcp'" />
 
       <template v-else-if="section === 'models' || section === 'classifiers'">
         <p

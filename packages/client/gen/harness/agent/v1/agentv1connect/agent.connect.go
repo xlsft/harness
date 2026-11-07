@@ -748,7 +748,7 @@ type AgentServiceClient interface {
 	// Remembers on this device that the offer for a folder was dismissed.
 	DismissProjectImport(context.Context, *connect.Request[v1.DismissProjectImportRequest]) (*connect.Response[v1.DismissProjectImportResponse], error)
 	// --- MCP servers (mcp.proto) -------------------------------------------------------------------------
-	// Settings > MCP: every server this device can use, with who manages it (this device, the account, an admin,
+	// Extensions > Connectors: every server this device can use, with who manages it (this device, the account, an admin,
 	// the repository's .mcp.json).
 	ListMcpServers(context.Context, *connect.Request[v1.ListMcpServersRequest]) (*connect.Response[v1.ListMcpServersResponse], error)
 	// Connects to one server (a stdio server only when approved on this device) and reports its tools, prompts,
@@ -766,7 +766,7 @@ type AgentServiceClient interface {
 	// The session's MCP resources, for @-mentions in the composer.
 	ListMcpResources(context.Context, *connect.Request[v1.ListMcpResourcesRequest]) (*connect.Response[v1.ListMcpResourcesResponse], error)
 	// Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
-	// (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
+	// (slash_commands.proto). Read when the menu or the Extensions screen opens; files on disk are read again every time.
 	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
 	// Scheduled tasks (schedules.proto): the Scheduled screen. Device-local schedules are this machine's; synced ones are
 	// the user's, whichever machine runs them.
@@ -2785,7 +2785,7 @@ type AgentServiceHandler interface {
 	// Remembers on this device that the offer for a folder was dismissed.
 	DismissProjectImport(context.Context, *connect.Request[v1.DismissProjectImportRequest]) (*connect.Response[v1.DismissProjectImportResponse], error)
 	// --- MCP servers (mcp.proto) -------------------------------------------------------------------------
-	// Settings > MCP: every server this device can use, with who manages it (this device, the account, an admin,
+	// Extensions > Connectors: every server this device can use, with who manages it (this device, the account, an admin,
 	// the repository's .mcp.json).
 	ListMcpServers(context.Context, *connect.Request[v1.ListMcpServersRequest]) (*connect.Response[v1.ListMcpServersResponse], error)
 	// Connects to one server (a stdio server only when approved on this device) and reports its tools, prompts,
@@ -2803,7 +2803,7 @@ type AgentServiceHandler interface {
 	// The session's MCP resources, for @-mentions in the composer.
 	ListMcpResources(context.Context, *connect.Request[v1.ListMcpResourcesRequest]) (*connect.Response[v1.ListMcpResourcesResponse], error)
 	// Everything runnable from the composer: built-ins, skills, custom commands, the commands of an ACP agent
-	// (slash_commands.proto). Read when the menu or the Customize screen opens; files on disk are read again every time.
+	// (slash_commands.proto). Read when the menu or the Extensions screen opens; files on disk are read again every time.
 	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
 	// Scheduled tasks (schedules.proto): the Scheduled screen. Device-local schedules are this machine's; synced ones are
 	// the user's, whichever machine runs them.

@@ -45,6 +45,7 @@ import { ConnectLimitsApi } from '~/lib/limits/connect'
 import { ConnectAcpApi } from '~/lib/acp/connect'
 import { ConnectMcpApi } from '~/lib/mcp/connect'
 import { ConnectPluginsApi } from '~/lib/plugins/connect'
+import { ConnectExtensionsApi } from '~/lib/extensions/connect'
 import { ConnectLibraryApi } from '~/lib/library/connect'
 import { ConnectVcsApi } from '~/lib/vcs/connect'
 import { ConnectBrowserApi } from '~/lib/browser/connect'
@@ -60,7 +61,7 @@ const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
 function preferencesVM(p: UserPreferences_pb | undefined): UserPreferences {
   const b = p?.sandbox
   const m = p?.managedPolicy
-  return { autoMemoryEnabled: p?.autoMemoryEnabled ?? true, managedPolicy: { active: m?.active ?? false, allowRules: m?.allowRules ?? [], askRules: m?.askRules ?? [], denyRules: m?.denyRules ?? [], managedRulesOnly: m?.managedRulesOnly ?? false, sandboxRequired: m?.sandboxRequired ?? false, sandboxOutsideRefused: m?.sandboxOutsideRefused ?? false, disabledModes: m?.disabledModes ?? [], restrictProviders: m?.restrictProviders ?? false, allowedProviders: m?.allowedProviders ?? [], personalProvidersDisabled: m?.personalProvidersDisabled ?? false, restrictMcpServers: m?.restrictMcpServers ?? false, allowedMcpServers: m?.allowedMcpServers ?? [], localModelsDisabled: m?.localModelsDisabled ?? false }, compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
+  return { autoMemoryEnabled: p?.autoMemoryEnabled ?? true, managedPolicy: { active: m?.active ?? false, allowRules: m?.allowRules ?? [], askRules: m?.askRules ?? [], denyRules: m?.denyRules ?? [], managedRulesOnly: m?.managedRulesOnly ?? false, sandboxRequired: m?.sandboxRequired ?? false, sandboxOutsideRefused: m?.sandboxOutsideRefused ?? false, disabledModes: m?.disabledModes ?? [], restrictProviders: m?.restrictProviders ?? false, allowedProviders: m?.allowedProviders ?? [], personalProvidersDisabled: m?.personalProvidersDisabled ?? false, restrictMcpServers: m?.restrictMcpServers ?? false, allowedMcpServers: m?.allowedMcpServers ?? [], localModelsDisabled: m?.localModelsDisabled ?? false, restrictSkills: m?.restrictSkills ?? false, allowedSkills: m?.allowedSkills ?? [], blockedSkills: m?.blockedSkills ?? [], externalSkillSearchDisabled: m?.externalSkillSearchDisabled ?? false }, compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
     sandbox: { enabled: b?.enabled ?? true, allowedWritePaths: b?.allowedWritePaths ?? [], allowedHosts: b?.allowedHosts ?? [], allowLocalhost: b?.allowLocalhost ?? true, autoAllowBash: b?.autoAllowBash ?? false, outsideWithoutPrompt: b?.outsideWithoutPrompt ?? false },
     hooksEnabled: p?.hooksEnabled ?? true, schedulesEnabled: p?.schedulesEnabled ?? true, goalMaxTurns: p?.goalMaxTurns || 20,
     modelTuning: { speedTier: p?.modelTuning?.speedTier ?? '', cacheTtl: p?.modelTuning?.cacheTtl ?? '', advisorModel: p?.modelTuning?.advisorModel ?? '' } }
@@ -112,6 +113,7 @@ export class ConnectTransport implements SessionTransport {
     this.acpApi = new ConnectAcpApi(transport)
     this.mcpApi = new ConnectMcpApi(transport)
     this.pluginsApi = new ConnectPluginsApi(transport)
+    this.extensionsApi = new ConnectExtensionsApi(transport)
     this.libraryApi = new ConnectLibraryApi(transport, baseUrl)
     this.vcsApi = new ConnectVcsApi(transport)
     this.browserApi = new ConnectBrowserApi(transport, baseUrl)
@@ -524,6 +526,11 @@ export class ConnectTransport implements SessionTransport {
   private localModelsApi?: ConnectLocalModelsApi
   localModels() {
     return (this.localModelsApi ??= new ConnectLocalModelsApi(this.transport))
+  }
+
+  private extensionsApi!: ConnectExtensionsApi
+  extensions() {
+    return this.extensionsApi
   }
 
   private pluginsApi!: ConnectPluginsApi

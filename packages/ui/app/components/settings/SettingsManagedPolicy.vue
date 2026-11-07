@@ -21,6 +21,8 @@ const pluginBlocked = ref('')
 const pluginMarkets = ref('')
 const pluginsOn = ref('')
 const pluginsOff = ref('')
+const skillsAllowed = ref('')
+const skillsBlocked = ref('')
 const view = ref<ManagedPolicyView | null>(null)
 const error = ref('')
 const saved = ref(false)
@@ -42,6 +44,8 @@ function show(s: ManagedPolicyState) {
   pluginMarkets.value = s.policy.distributedMarketplaces.join('\n')
   pluginsOn.value = s.policy.distributedPlugins.join('\n')
   pluginsOff.value = s.policy.blockedPlugins.join('\n')
+  skillsAllowed.value = s.policy.allowedSkills.join('\n')
+  skillsBlocked.value = s.policy.blockedSkills.join('\n')
 }
 
 onMounted(async () => {
@@ -68,7 +72,9 @@ async function save() {
       blockedPluginSources: lines(pluginBlocked.value),
       distributedMarketplaces: lines(pluginMarkets.value),
       distributedPlugins: lines(pluginsOn.value),
-      blockedPlugins: lines(pluginsOff.value)
+      blockedPlugins: lines(pluginsOff.value),
+      allowedSkills: lines(skillsAllowed.value),
+      blockedSkills: lines(skillsBlocked.value)
     }))
     error.value = ''
     saved.value = true
@@ -328,6 +334,48 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
         spellcheck="false"
         :class="area"
       />
+
+      <div class="flex items-center justify-between gap-4">
+        <div class="set-label">
+          <span>{{ tt('Only these skills') }}</span>
+          <span class="set-desc">{{ tt('One name per line;') }} <code>kit:*</code> {{ tt('names all of a plugin. An empty list allows none. Built-in commands aren\'t skills. Clients enforce it and show it as set by you.') }}</span>
+        </div>
+        <HToggle
+          v-model="policy.restrictSkills"
+          :disabled="!writable"
+          :label="tt('Only these skills')"
+        />
+      </div>
+      <textarea
+        v-if="policy.restrictSkills"
+        v-model="skillsAllowed"
+        :aria-label="tt('Allowed skills')"
+        :disabled="!writable"
+        spellcheck="false"
+        :class="area"
+      />
+      <div class="set-label mt-2">
+        <span>{{ tt('Blocked skills') }}</span>
+        <span class="set-desc">{{ tt('The same forms, checked first.') }}</span>
+      </div>
+      <textarea
+        v-model="skillsBlocked"
+        :aria-label="tt('Blocked skills')"
+        :disabled="!writable"
+        spellcheck="false"
+        :class="area"
+      />
+      <div class="flex items-center justify-between gap-4">
+        <div class="set-label">
+          <span>{{ tt('Turn off external skill search') }}</span>
+          <span class="set-desc">{{ tt('No search of public skill directories, on the server or on clients. Skills already installed from it stay until you block them.') }}</span>
+        </div>
+        <HToggle
+          v-model="policy.externalSkillSearchDisabled"
+          :disabled="!writable"
+          :label="tt('Turn off external skill search')"
+        />
+      </div>
 
       <div
         v-if="writable"

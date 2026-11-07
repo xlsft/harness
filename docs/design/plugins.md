@@ -91,7 +91,7 @@ The form has one line per source: `owner/repo`, `owner/*`, a URL, an absolute pa
 
 ## Commands
 
-`/plugin ...` in a session, and `harness-client plugin ...` in a shell, take the same words: `list`, `info`, `install`, `approve`, `revoke`, `enable`, `disable`, `update`, `pin`, `unpin`, `remove`, `marketplace add|update|remove|list`, `new` and `validate`. `new` writes a plugin's starting files. Settings > Plugins does the same over `PluginService`. `/plugin` alone also opens that screen.
+`/plugin ...` in a session, and `harness-client plugin ...` in a shell, take the same words: `list`, `info`, `install`, `approve`, `revoke`, `enable`, `disable`, `update`, `pin`, `unpin`, `remove`, `marketplace add|update|remove|list`, `new` and `validate`. `new` writes a plugin's starting files. Extensions > Plugins does the same over `PluginService`. `/plugin` alone also opens that screen.
 
 ## Hooks in frontmatter
 

@@ -1,6 +1,5 @@
-// What the client reports for the slash menu and the Customize screen, as these show it. The client decides what exists,
+// What the client reports for the slash menu and the Extensions screen, as these show it. The client decides what exists,
 // what wins a name and what is on; here it only becomes rows.
-import { tt } from '~/utils/i18n'
 import { SlashCommandKind, SlashCommandResult_Action, type ListSlashCommandsResponse, type SlashCommand } from '~/gen/harness/agent/v1/slash_commands_pb'
 import { fuzzyScore } from '~/lib/files/tree'
 import type { MenuOption } from '~/utils/composer'
@@ -102,21 +101,6 @@ export function commandFacts(c: SlashCommand): string[] {
   if (c.allowedTools.length) out.push(`may use ${c.allowedTools.join(', ')}`)
   if (c.paths.length) out.push(`for ${c.paths.join(', ')}`)
   return out
-}
-
-export interface CustomizeSection {
-  title: string
-  rows: SlashCommand[]
-}
-
-/** The Customize screen's sections: only what isn't empty, in the client's order. */
-export function customizeSections(list: readonly SlashCommand[]): CustomizeSection[] {
-  const pick = (kind: SlashCommandKind) => list.filter(c => c.kind === kind)
-  return [
-    { title: tt('Skills'), rows: pick(SlashCommandKind.SKILL) },
-    { title: tt('Commands'), rows: pick(SlashCommandKind.COMMAND) },
-    { title: tt('Built-in commands'), rows: pick(SlashCommandKind.BUILTIN) }
-  ].filter(s => s.rows.length)
 }
 
 /** What's left to do after a slash command: an action once, while it is fresh, so a reload doesn't repeat it. */

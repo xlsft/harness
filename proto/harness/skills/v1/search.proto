@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package harness.skills.v1;
+
+// External skill search: the server reads skills.sh with its optional token, caches, and applies the organization's policy. Clients
+// never see the token. What is found here is only offered; installing is the client's, with a pinned hash and this device's approval.
+service SkillSearchService {
+  // Whether search can be used by this user at all. Asks nobody upstream.
+  rpc GetSkillSearchStatus(GetSkillSearchStatusRequest) returns (GetSkillSearchStatusResponse);
+  rpc SearchSkills(SearchSkillsRequest) returns (SearchSkillsResponse);
+  // The source's own curated set, for browsing before a search.
+  rpc ListCuratedSkills(ListCuratedSkillsRequest) returns (ListCuratedSkillsResponse);
+  // A skill with its files, as the source's snapshot.
+  rpc GetSkillSnapshot(GetSkillSnapshotRequest) returns (GetSkillSnapshotResponse);
+}
+
+// One partner's verdict, as the source gives it.
+message SkillAudit {
+  string provider = 1;
+  // "pass", "warn" or "fail"; whatever else the source says is kept as it is.
+  string status = 2;
+  string summary = 3;
+  // RFC 3339.
+  string audited_at = 4;
+  string risk_level = 5;
+}
+
+message ExternalSkill {
+  // {source}/{slug}.
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  // owner/repo, or a provider's domain.
+  string source = 4;
+  // The source's count; 0 when it gives none.
+  int64 installs = 5;
+  string url = 6;
+  repeated SkillAudit audits = 7;
+}
+
+message SkillFile {
+  // Relative to the skill's folder.
+  string path = 1;
+  string contents = 2;
+}
+
+message GetSkillSearchStatusRequest {}
+
+message GetSkillSearchStatusResponse {
+  bool available = 1;
+  // Why not: "not_configured" (no token on this server) or "policy" (the organization turned it off).
+  string reason = 2;
+}
+
+message SearchSkillsRequest {
+  // At least two characters.
+  string query = 1;
+  // 0: 50. At most 200.
+  int32 limit = 2;
+}
+
+message SearchSkillsResponse {
+  repeated ExternalSkill skills = 1;
+}
+
+message ListCuratedSkillsRequest {
+  // 0: 50. At most 200.
+  int32 limit = 1;
+}
+
+message ListCuratedSkillsResponse {
+  repeated ExternalSkill skills = 1;
+}
+
+message GetSkillSnapshotRequest {
+  string id = 1;
+}
+
+message GetSkillSnapshotResponse {
+  ExternalSkill skill = 1;
+  // The source's hash of the files. Empty with no files: it holds no snapshot.
+  string hash = 2;
+  repeated SkillFile files = 3;
+}

@@ -39,6 +39,6 @@ describe('plugins', () => {
     await api.install('release-notes@acme')
     const { marketplaces, plugins } = await api.list()
     expect(plugins.map(x => x.id)).toContain('release-notes@acme')
-    expect(marketplaces[0]!.plugins.find(l => l.id === 'release-notes@acme')!.installed).toBe(true)
+    expect(marketplaces.find(m => m.name === 'acme')!.plugins.find(l => l.id === 'release-notes@acme')!.installed).toBe(true)
   })
 })

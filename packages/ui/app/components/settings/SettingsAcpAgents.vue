@@ -178,7 +178,7 @@ function resets(at: string) {
         v-for="(a, i) in installed"
         :key="a.id"
         class="flex flex-col"
-        :class="i && 'border-t border-default'"
+        :class="i > 0 && 'border-t border-default'"
       >
         <div class="flex items-center gap-3 px-3 py-2.5">
           <span
@@ -317,7 +317,7 @@ function resets(at: string) {
       <!-- The registry -->
       <div
         class="flex flex-col"
-        :class="installed.length && 'border-t border-default'"
+        :class="installed.length > 0 && 'border-t border-default'"
       >
         <button
           type="button"

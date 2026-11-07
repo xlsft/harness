@@ -74,7 +74,7 @@ const time = computed(() => {
       >
         <span
           class="min-w-0 truncate"
-          :class="!current && failed && tools.length === 1 && 'text-bad'"
+          :class="!current && failed > 0 && tools.length === 1 && 'text-bad'"
         >{{ current ? action(current) : summary }}</span>
         <span
           v-if="!current && failed && tools.length > 1"

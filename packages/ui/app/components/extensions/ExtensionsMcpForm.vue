@@ -1,13 +1,22 @@
 <script setup lang="ts">
 // Add or edit an MCP server. The client and the server validate; this form only turns its fields into the message.
 // Secret values are write-only: stored ones are listed by name and can be replaced or removed, never read.
-import { draftOf, emptyDraft, McpServerSource, secretChangesOf, serverOf, sourcesFor, TRANSPORT_LABELS, type McpApi, type McpDraft, type McpServerEntry } from '~/lib/mcp/types'
+import { draftOf, emptyDraft, McpServerSource, secretChangesOf, serverFrom, serverOf, sourcesFor, TRANSPORT_LABELS, type McpApi, type McpDraft, type McpServerEntry } from '~/lib/mcp/types'
+import type { ConnectorOption } from '~/lib/extensions/types'
 
-const props = defineProps<{ entry: McpServerEntry | null, canManageOrg: boolean, api: McpApi }>()
+const props = defineProps<{ entry: McpServerEntry | null, canManageOrg: boolean, api: McpApi, initial?: ConnectorOption | null }>()
 const emit = defineEmits<{ saved: [], cancel: [] }>()
 
-const draft = ref<McpDraft>(props.entry?.server ? draftOf(props.entry.server) : emptyDraft())
-const source = ref<McpServerSource>(McpServerSource.DEVICE)
+function firstDraft(): McpDraft {
+  if (props.entry?.server) return draftOf(props.entry.server)
+  const offered = props.initial?.server
+  if (!offered) return emptyDraft()
+  // Discover says what it needs; the values are the user's to fill in.
+  const needed = (props.initial?.required ?? []).filter(r => r.secret).map(r => `${r.name}=`).join('\n')
+  return { ...draftOf(serverFrom(offered)), secrets: needed }
+}
+const draft = ref<McpDraft>(firstDraft())
+const source = ref<McpServerSource>(props.initial?.suggestedSource || McpServerSource.DEVICE)
 const error = ref('')
 const saving = ref(false)
 const more = ref(false)

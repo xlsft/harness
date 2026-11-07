@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// One server of Settings > MCP: its state and who manages it; opened, its tools with their permission rules, prompts,
-// resources and the error if connecting failed. Approval and sign-in live here, on the row that needs them.
+// One server in the detail of Extensions > Connectors: its state and who manages it, its tools with their permission rules, prompts,
+// resources and the error if connecting failed. Approval and sign-in live here.
 import { ApprovalState, canSignIn, GetOAuthFlowResponse_State, McpServerSource, McpServerState, needsDecision, stateView, TRANSPORT_LABELS, transportName, type InspectMcpServerResponse, type McpApi, type McpRule, type McpServerEntry } from '~/lib/mcp/types'
 import { AuthState } from '~/gen/harness/mcp/v1/mcp_pb'
 import { isDesktop, openExternal } from '~/lib/desktop'
@@ -14,7 +14,6 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ changed: [], edit: [], failed: [message: string] }>()
 
-const open = ref(false)
 const busy = ref(false)
 const server = computed(() => props.entry.server!)
 const state = computed(() => stateView(props.entry))
@@ -95,14 +94,9 @@ async function setRule(tool: string, value: string) {
 </script>
 
 <template>
-  <div class="flex flex-col">
-    <div class="flex items-center gap-3 px-3 py-2.5">
-      <button
-        type="button"
-        class="flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 border-0 bg-transparent p-0 text-left"
-        :aria-expanded="open"
-        @click="open = !open"
-      >
+  <div class="flex flex-col border border-default">
+    <div class="flex flex-wrap items-center gap-3 px-3 py-2.5">
+      <div class="flex min-w-0 flex-1 flex-col gap-0.5">
         <span class="flex items-center gap-2 text-[12.5px] text-strong">
           {{ server.name }}
           <span
@@ -127,7 +121,7 @@ async function setRule(tool: string, value: string) {
           v-if="entry.stateDetail"
           class="text-[11.5px] text-muted"
         >{{ entry.stateDetail }}</span>
-      </button>
+      </div>
 
       <template v-if="needsDecision(entry)">
         <HBtn
@@ -166,7 +160,6 @@ async function setRule(tool: string, value: string) {
     </div>
 
     <div
-      v-if="open"
       class="flex flex-col gap-3 border-t border-default px-3 py-3 text-[12px]"
     >
       <p
@@ -205,13 +198,14 @@ async function setRule(tool: string, value: string) {
         <div class="mb-1 flex items-center gap-2 text-strong">
           <span class="flex-1">{{ tt('Tools') }}</span>
           <span class="text-[11px] text-muted">{{ tt('Whole server') }}</span>
-          <HSelect
-            :model-value="'none'"
-            :options="RULES"
-            :aria-label="tt('Rule for every tool of {0}', [server.name])"
-            class="w-[100px]"
-            @update:model-value="(v: string) => setRule('', v)"
-          />
+          <div class="w-[110px] shrink-0">
+            <HSelect
+              :model-value="'none'"
+              :options="RULES"
+              :aria-label="tt('Rule for every tool of {0}', [server.name])"
+              @update:model-value="(v: string) => setRule('', v)"
+            />
+          </div>
         </div>
         <div
           v-for="t in inspection.tools"
@@ -222,13 +216,14 @@ async function setRule(tool: string, value: string) {
             <span class="truncate text-strong">{{ t.title || t.name }}</span>
             <span class="truncate text-[11.5px] text-muted">{{ t.description }}</span>
           </span>
-          <HSelect
-            :model-value="t.rule || 'none'"
-            :options="RULES"
-            :aria-label="tt('Rule for {0}', [t.name])"
-            class="w-[100px]"
-            @update:model-value="(v: string) => setRule(t.name, v)"
-          />
+          <div class="w-[110px] shrink-0">
+            <HSelect
+              :model-value="t.rule || 'none'"
+              :options="RULES"
+              :aria-label="tt('Rule for {0}', [t.name])"
+              @update:model-value="(v: string) => setRule(t.name, v)"
+            />
+          </div>
         </div>
       </div>
 

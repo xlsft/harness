@@ -467,7 +467,7 @@ export async function listTools(user: PublicUser, view: ServerView, cursor: stri
   return { tools: presentTools(view.row, tools), nextCursor: r.nextCursor ?? "" };
 }
 
-/** What the upstream says about itself (Settings > MCP). */
+/** What the upstream says about itself (Extensions > Connectors). */
 export async function getServerInfo(user: PublicUser, view: ServerView, signal?: AbortSignal) {
   return withClient(user, view, true, async (c) => {
     // The request proves the session is alive; a pooled session may have died since it connected.

@@ -88,9 +88,10 @@ const (
 	SlashCommandResult_ACTION_PICK_MODEL  SlashCommandResult_Action = 1
 	SlashCommandResult_ACTION_PICK_EFFORT SlashCommandResult_Action = 2
 	// Open the session in new_session_id.
-	SlashCommandResult_ACTION_OPEN_SESSION   SlashCommandResult_Action = 3
+	SlashCommandResult_ACTION_OPEN_SESSION SlashCommandResult_Action = 3
+	// Open Extensions.
 	SlashCommandResult_ACTION_OPEN_CUSTOMIZE SlashCommandResult_Action = 4
-	// Open Settings > Plugins.
+	// Open the Plugins tab of Extensions.
 	SlashCommandResult_ACTION_OPEN_PLUGINS   SlashCommandResult_Action = 160
 	SlashCommandResult_ACTION_OPEN_SCHEDULED SlashCommandResult_Action = 140
 )
@@ -364,7 +365,7 @@ type ListSlashCommandsRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// A session: its folder, its live state and, on an ACP agent, the agent's commands.
 	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	// Without a session: the folder to look in (the new-session screen, Customize). Empty: only what isn't tied to one.
+	// Without a session: the folder to look in (the new-session screen, Extensions). Empty: only what isn't tied to one.
 	Cwd           string `protobuf:"bytes,2,opt,name=cwd,proto3" json:"cwd,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

@@ -24,4 +24,9 @@ message ManagedPolicyView {
   bool restrict_mcp_servers = 12;
   repeated string allowed_mcp_servers = 13;
   bool local_models_disabled = 14;
+  // Only skills matching these may run. Meaningful when restrict_skills is set.
+  bool restrict_skills = 15;
+  repeated string allowed_skills = 16;
+  repeated string blocked_skills = 17;
+  bool external_skill_search_disabled = 18;
 }

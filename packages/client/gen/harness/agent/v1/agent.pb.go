@@ -8460,7 +8460,7 @@ func (x *ModelTuning) GetAdvisorModel() string {
 	return ""
 }
 
-// One switch of the Customize screen.
+// One switch of the Extensions screen.
 type SkillSwitch struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`

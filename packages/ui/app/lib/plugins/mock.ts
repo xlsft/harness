@@ -19,11 +19,26 @@ function plugin(over: Partial<PluginVM>): PluginVM {
 
 export class MockPluginsApi implements PluginsApi {
   private state: PluginsState = {
-    plugins: [plugin({})],
-    marketplaces: [{ name: 'acme', description: 'Plugins of the Acme team', source: 'acme/plugins', commit: 'a1b2c3d', updatedAt: '2026-11-01T10:00:00Z', managed: false, refusal: '', problem: '',
+    plugins: [
+      plugin({}),
+      plugin({ id: 'docs-kit@acme', name: 'docs-kit', displayName: 'Docs kit', description: 'Keeps documentation next to the code it describes', status: 'active', reason: '', approved: true, version: '2.0.1',
+        contents: { skills: ['docs-kit:write'], commands: [], agents: [], outputStyles: [], hooks: [], mcpServers: [{ name: 'plugin:docs-kit:tasks', transport: 'sse', command: 'https://mcp.tasks.example/sse' }], allowedTools: [], skipped: [] } }),
+      plugin({ id: 'plan-kit@acme', name: 'plan-kit', displayName: 'Plan kit', description: 'Specs and roadmaps from what is in the tracker', status: 'disabled', reason: 'It is turned off.', enabled: false, approved: true, version: '1.0.0',
+        contents: { skills: ['plan-kit:spec'], commands: [], agents: [], outputStyles: [], hooks: [], mcpServers: [{ name: 'plugin:plan-kit:tasks', transport: 'sse', command: 'https://mcp.tasks.example/sse' }], allowedTools: [], skipped: [] } }),
+      plugin({ id: 'org-standards@corp', name: 'org-standards', marketplace: 'corp', displayName: 'Org standards', description: 'What the organization requires of a change', status: 'needs_approval', managed: true, version: '3.1.0',
+        contents: { skills: ['org-standards:check'], commands: [], agents: [], outputStyles: [], hooks: [], mcpServers: [], allowedTools: [], skipped: [] } })
+    ],
+    marketplaces: [{ name: 'harness-catalog', description: 'Skills that ship with xlsft`s harness.', source: '~/.harness/plugins/builtin-catalog', commit: '', updatedAt: '2026-11-06T10:00:00Z', managed: false, refusal: '', problem: '',
+      plugins: [{ id: 'starter@harness-catalog', name: 'starter', description: 'A first skill to read and copy: find your way around a repository.', version: '0.1.0', installed: false }] }, { name: 'acme', description: 'Plugins of the Acme team', source: 'acme/plugins', commit: 'a1b2c3d', updatedAt: '2026-11-01T10:00:00Z', managed: false, refusal: '', problem: '',
       plugins: [
         { id: 'format-tools@acme', name: 'format-tools', description: 'Formats what the agent writes', version: '1.2.0', installed: true },
-        { id: 'release-notes@acme', name: 'release-notes', description: 'Writes release notes from the log', version: '0.3.0', installed: false }
+        { id: 'docs-kit@acme', name: 'docs-kit', description: 'Keeps documentation next to the code it describes', version: '2.0.1', installed: true },
+        { id: 'plan-kit@acme', name: 'plan-kit', description: 'Specs and roadmaps from what is in the tracker', version: '1.0.0', installed: true },
+        { id: 'release-notes@acme', name: 'release-notes', description: 'Writes release notes from the log', version: '0.3.0', installed: false },
+        { id: 'triage@acme', name: 'triage', description: 'Sorts an issue queue by what needs doing first', version: '0.2.0', installed: false },
+        { id: 'changelog@acme', name: 'changelog', description: 'Turns merged pull requests into a changelog people want to read, with a section per area and the breaking changes first', version: '1.4.0', installed: false },
+        { id: 'style-guide@acme', name: 'style-guide', description: 'Checks writing against the team\'s style guide', version: '0.9.0', installed: false },
+        { id: 'migrations@acme', name: 'migrations', description: 'Plans and reviews database migrations', version: '0.5.0', installed: false }
       ] }],
     sourcesRestricted: false,
     folderTrusted: true,
@@ -47,6 +62,12 @@ export class MockPluginsApi implements PluginsApi {
       p.status = 'active'
       p.reason = ''
     }
+  }
+
+  // The demo's first run: the built-in catalog and nothing else.
+  clearForDemo() {
+    this.state.plugins = []
+    this.state.marketplaces = this.state.marketplaces.filter(m => m.name === 'harness-catalog')
   }
 
   async list() {
@@ -93,6 +114,7 @@ export class MockPluginsApi implements PluginsApi {
   }
 
   async addMarketplace(source: string) {
+    if (this.state.sourcesRestricted) throw new Error(`${source} is not on your organization's list of allowed plugin sources.`)
     const name = source.split('/').pop() ?? source
     this.state.marketplaces.push({ name, description: '', source, commit: '', updatedAt: '', managed: false, refusal: '', problem: '', plugins: [] })
     return name
@@ -101,6 +123,7 @@ export class MockPluginsApi implements PluginsApi {
   async updateMarketplace() {}
 
   async removeMarketplace(name: string) {
+    if (name === 'harness-catalog') throw new Error(`the marketplace ${name} ships with this client`)
     this.state.marketplaces = this.state.marketplaces.filter(m => m.name !== name)
     this.state.plugins = this.state.plugins.filter(p => p.marketplace !== name)
   }

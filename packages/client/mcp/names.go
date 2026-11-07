@@ -8,7 +8,7 @@
 //     memory only.
 //
 // Servers can also be this device's own (LocalStore): stdio, Streamable HTTP or SSE, reached directly, kept in
-// HARNESS_HOME and never mentioned to the xlsft`s harness server. Inventory is what Settings > MCP works on.
+// HARNESS_HOME and never mentioned to the xlsft`s harness server. Inventory is what Extensions > Connectors works on.
 //
 // Besides tools a session gets the servers' instructions (within a size budget), their resources (agent tools and
 // @-mentions), their prompts (as /mcp__<server>__<prompt> commands), elicitations (through the question UI, not the

@@ -41,7 +41,6 @@ export function useSlashActions() {
   const store = useSessionStore()
   const done = useState<string[]>('slash-actions-done', () => [])
   const picker = usePickerRequest()
-  const settingsModal = useSettingsModal()
 
   watch(() => store.current?.slashAction?.id, async () => {
     const a = store.current?.slashAction
@@ -55,10 +54,10 @@ export function useSlashActions() {
         picker.value = 'effort'
         break
       case SlashCommandResult_Action.OPEN_CUSTOMIZE:
-        await navigateTo('/customize')
+        await navigateTo('/extensions')
         break
       case SlashCommandResult_Action.OPEN_PLUGINS:
-        settingsModal.open('plugins')
+        await navigateTo('/extensions?type=plugins')
         break
       case SlashCommandResult_Action.OPEN_SCHEDULED:
         await navigateTo('/scheduled')

@@ -37,6 +37,7 @@ import { registerMcpService } from "./mcp.ts";
 import { registerProviderService } from "./providers.ts";
 import { registerRelayService } from "./relay.ts";
 import { registerSearchService } from "./search.ts";
+import { registerSkillSearchService } from "./skills.ts";
 import { registerSpeechService } from "./speech.ts";
 import { registerSyncService } from "./sync.ts";
 import { registerLibraryServices } from "./library.ts";
@@ -248,6 +249,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   registerEnterpriseServices(router);
   registerSyncService(router);
   registerSearchService(router);
+  registerSkillSearchService(router);
   registerSpeechService(router);
   registerDecisionService(router);
   registerMcpService(router);

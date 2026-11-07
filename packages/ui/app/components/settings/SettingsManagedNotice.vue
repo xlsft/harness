@@ -67,6 +67,21 @@ defineProps<{ policy: ManagedPolicyView }>()
         {{ tt('Not allowed.') }}
       </dd>
     </template>
+    <template v-if="policy.restrictSkills || policy.blockedSkills.length || policy.externalSkillSearchDisabled">
+      <dt class="text-muted">
+        {{ tt('Skills') }}
+      </dt><dd class="m-0 text-toned">
+        <template v-if="policy.restrictSkills">
+          {{ tt('Only {0}.', [policy.allowedSkills.join(', ') || 'none']) }}
+        </template>
+        <template v-if="policy.blockedSkills.length">
+          {{ tt('Blocked: {0}.', [policy.blockedSkills.join(', ')]) }}
+        </template>
+        <template v-if="policy.externalSkillSearchDisabled">
+          {{ tt('External skill search is off.') }}
+        </template>
+      </dd>
+    </template>
     <template v-if="policy.localModelsDisabled">
       <dt class="text-muted">
         {{ tt('Local models') }}

@@ -54,8 +54,16 @@ type ManagedPolicy struct {
 	DistributedPlugins []string `protobuf:"bytes,16,rep,name=distributed_plugins,json=distributedPlugins,proto3" json:"distributed_plugins,omitempty"`
 	// enabledPlugins false: name@marketplace, blocked at every level.
 	BlockedPlugins []string `protobuf:"bytes,17,rep,name=blocked_plugins,json=blockedPlugins,proto3" json:"blocked_plugins,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// allowedSkills: only skills of these names may run, when restrict_skills is set (none listed: none). "kit:*" names all of a plugin.
+	// Built-in commands aren't skills. Enforced by clients, which show it as set by the administrator.
+	RestrictSkills bool     `protobuf:"varint,18,opt,name=restrict_skills,json=restrictSkills,proto3" json:"restrict_skills,omitempty"`
+	AllowedSkills  []string `protobuf:"bytes,19,rep,name=allowed_skills,json=allowedSkills,proto3" json:"allowed_skills,omitempty"`
+	// blockedSkills: the same forms, checked first.
+	BlockedSkills []string `protobuf:"bytes,20,rep,name=blocked_skills,json=blockedSkills,proto3" json:"blocked_skills,omitempty"`
+	// disableExternalSkillSearch: no search of public skill directories, on the server and on clients.
+	ExternalSkillSearchDisabled bool `protobuf:"varint,21,opt,name=external_skill_search_disabled,json=externalSkillSearchDisabled,proto3" json:"external_skill_search_disabled,omitempty"`
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -205,6 +213,34 @@ func (x *ManagedPolicy) GetBlockedPlugins() []string {
 		return x.BlockedPlugins
 	}
 	return nil
+}
+
+func (x *ManagedPolicy) GetRestrictSkills() bool {
+	if x != nil {
+		return x.RestrictSkills
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetAllowedSkills() []string {
+	if x != nil {
+		return x.AllowedSkills
+	}
+	return nil
+}
+
+func (x *ManagedPolicy) GetBlockedSkills() []string {
+	if x != nil {
+		return x.BlockedSkills
+	}
+	return nil
+}
+
+func (x *ManagedPolicy) GetExternalSkillSearchDisabled() bool {
+	if x != nil {
+		return x.ExternalSkillSearchDisabled
+	}
+	return false
 }
 
 type GetManagedPolicyRequest struct {
@@ -465,7 +501,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xb4\x06\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xf0\a\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -486,7 +522,11 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\x16blocked_plugin_sources\x18\x0e \x03(\tR\x14blockedPluginSources\x129\n" +
 	"\x18distributed_marketplaces\x18\x0f \x03(\tR\x17distributedMarketplaces\x12/\n" +
 	"\x13distributed_plugins\x18\x10 \x03(\tR\x12distributedPlugins\x12'\n" +
-	"\x0fblocked_plugins\x18\x11 \x03(\tR\x0eblockedPlugins\"\x19\n" +
+	"\x0fblocked_plugins\x18\x11 \x03(\tR\x0eblockedPlugins\x12'\n" +
+	"\x0frestrict_skills\x18\x12 \x01(\bR\x0erestrictSkills\x12%\n" +
+	"\x0eallowed_skills\x18\x13 \x03(\tR\rallowedSkills\x12%\n" +
+	"\x0eblocked_skills\x18\x14 \x03(\tR\rblockedSkills\x12C\n" +
+	"\x1eexternal_skill_search_disabled\x18\x15 \x01(\bR\x1bexternalSkillSearchDisabled\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +
 	"\x06policy\x18\x01 \x01(\v2\x1e.harness.auth.v1.ManagedPolicyR\x06policy\x12\x1d\n" +

@@ -466,7 +466,7 @@ func (m *Manager) buildTools(ctx context.Context) {
 			continue
 		}
 		if s.remote && s.cfg.GetAuth().GetState() == mcpv1.AuthState_AUTH_STATE_NEEDS_AUTH {
-			m.warn("MCP server %s needs authorization: open Settings > MCP in the xlsft`s harness web or desktop app to connect it", s.name())
+			m.warn("MCP server %s needs authorization: open Extensions > Connectors in the xlsft`s harness web or desktop app to connect it", s.name())
 			if len(list) == 0 {
 				m.addAuthTool(s)
 				continue

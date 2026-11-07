@@ -1,6 +1,9 @@
 package permissions
 
-import "slices"
+import (
+	"slices"
+	"strings"
+)
 
 // ManagedPolicy is what the organization's managed policy imposes (settings.PolicyManaged), kept with the live mode policy.
 // The zero value imposes nothing.
@@ -16,12 +19,30 @@ type ManagedPolicy struct {
 	RestrictMcpServers              bool
 	AllowedMcpServers               []string
 	LocalModelsDisabled             bool
+	RestrictSkills                  bool
+	AllowedSkills, BlockedSkills    []string
+	ExternalSkillSearchDisabled     bool
 }
 
 // Active reports whether it imposes anything.
 func (m ManagedPolicy) Active() bool {
 	return len(m.AllowRules)+len(m.AskRules)+len(m.DenyRules)+len(m.DisabledModes) > 0 || m.ManagedRulesOnly || m.SandboxRequired ||
-		m.SandboxOutsideRefused || m.RestrictProviders || m.PersonalProvidersDisabled || m.RestrictMcpServers || m.LocalModelsDisabled
+		m.SandboxOutsideRefused || m.RestrictProviders || m.PersonalProvidersDisabled || m.RestrictMcpServers || m.LocalModelsDisabled || m.RestrictSkills || len(m.BlockedSkills) > 0 || m.ExternalSkillSearchDisabled
+}
+
+// SkillAllowed reports whether a skill or command of this name may run. "kit:*" in a list names all of a plugin.
+func (m ManagedPolicy) SkillAllowed(name string) bool {
+	if slices.ContainsFunc(m.BlockedSkills, func(p string) bool { return skillPatternMatches(p, name) }) {
+		return false
+	}
+	return !m.RestrictSkills || slices.ContainsFunc(m.AllowedSkills, func(p string) bool { return skillPatternMatches(p, name) })
+}
+
+func skillPatternMatches(pattern, name string) bool {
+	if prefix, ok := strings.CutSuffix(pattern, "*"); ok {
+		return strings.HasPrefix(name, prefix)
+	}
+	return pattern == name
 }
 
 // McpServerAllowed reports whether an MCP server of this name may be used.

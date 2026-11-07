@@ -155,7 +155,7 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
         v-for="(p, i) in reachable"
         :key="p.id"
         class="flex flex-col"
-        :class="i && 'border-t border-default'"
+        :class="i > 0 && 'border-t border-default'"
       >
         <div class="flex items-center gap-3 px-3 py-2.5">
           <SettingsMonogram
@@ -257,7 +257,7 @@ const input = 'h-8 min-w-0 border border-accented bg-default px-2.5 text-[12.5px
       <!-- Custom endpoint -->
       <div
         class="flex flex-col"
-        :class="reachable.length && 'border-t border-default'"
+        :class="reachable.length > 0 && 'border-t border-default'"
       >
         <div class="flex items-center gap-3 px-3 py-2.5">
           <SettingsMonogram

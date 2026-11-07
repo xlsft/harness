@@ -68,6 +68,8 @@ type MarketplaceRecord struct {
 	Dir       string `json:"dir,omitempty"`
 	Commit    string `json:"commit,omitempty"`
 	UpdatedAt string `json:"updatedAt"`
+	// Builtin ships with the client and can't be removed.
+	Builtin bool `json:"builtin,omitempty"`
 }
 
 type stateFile struct {
@@ -87,6 +89,8 @@ type Manager struct {
 
 	mu   sync.Mutex
 	memo map[string]memoEntry
+	// browsed keeps what a marketplace's folders hold, while its copy stays the same.
+	browsed map[string]browseMemo
 	// syncMu lets one distribution run at a time.
 	syncMu sync.Mutex
 }
@@ -183,6 +187,8 @@ type Marketplace struct {
 	Commit, UpdatedAt string
 	// Managed: the organization distributes it, so it can't be removed here.
 	Managed bool
+	// Builtin: it ships with the client.
+	Builtin bool
 	// Refusal is the policy's word on it; Problem says why it can't be read.
 	Refusal, Problem string
 	Plugins          []Entry
@@ -362,6 +368,18 @@ func (m *Manager) UpdateMarketplace(ctx context.Context, name string) error {
 	})
 }
 
+// MarkBuiltin says a registered marketplace ships with the client.
+func (m *Manager) MarkBuiltin(name string) error {
+	return m.update(func(st *stateFile) error {
+		rec := st.Marketplaces[name]
+		if rec == nil {
+			return fmt.Errorf("no marketplace named %s", name)
+		}
+		rec.Builtin = true
+		return nil
+	})
+}
+
 // RemoveMarketplace unregisters a marketplace and removes the plugins installed from it.
 func (m *Manager) RemoveMarketplace(name string) error {
 	if _, ok := m.Policy().Distributed[name]; ok {
@@ -373,6 +391,9 @@ func (m *Manager) RemoveMarketplace(name string) error {
 		rec := st.Marketplaces[name]
 		if rec == nil {
 			return fmt.Errorf("no marketplace named %s", name)
+		}
+		if rec.Builtin {
+			return fmt.Errorf("the marketplace %s ships with this client", name)
 		}
 		dir = rec.Dir
 		delete(st.Marketplaces, name)
@@ -414,6 +435,7 @@ func (m *Manager) Marketplaces() ([]Marketplace, error) {
 	for _, rec := range st.Marketplaces {
 		mk := Marketplace{Name: rec.Name, Source: rec.Source, Commit: rec.Commit, UpdatedAt: rec.UpdatedAt, Refusal: pol.SourceRefusal(rec.Source)}
 		_, mk.Managed = pol.Distributed[rec.Name]
+		mk.Builtin = rec.Builtin
 		if man, _, err := m.readMarketplace(rec); err != nil {
 			mk.Problem = err.Error()
 		} else {
@@ -937,6 +959,8 @@ type Info struct {
 	Problems    []string
 	// Plugin is the folder read, when it could be.
 	Plugin *Plugin
+	// Meta is what the manifest and the marketplace entry say about it.
+	Meta Meta
 }
 
 func (m *Manager) read(rec *Record) (*Plugin, string, error) {
@@ -971,7 +995,9 @@ func (m *Manager) info(rec *Record, pol Policy, proj projectConfig, place Place,
 	p, hash, err := m.read(rec)
 	if err == nil && p != nil {
 		in.Plugin, in.Contents, in.Problems, in.DisplayName, in.Description = p, p.Contents, p.Problems, p.Manifest.DisplayName, p.Manifest.Description
+		in.Meta = metaOf(p.Manifest)
 		if rec.Overlay != nil {
+			in.Meta = in.Meta.over(metaOf(rec.Overlay.Manifest))
 			if rec.Overlay.DisplayName != "" {
 				in.DisplayName = rec.Overlay.DisplayName
 			}

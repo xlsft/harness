@@ -1,0 +1,14 @@
+{
+  "connectors": [
+    { "id": "linear", "name": "Linear", "publisher": "Linear", "description": "Find, create and update issues and projects.", "homepage": "https://linear.app", "url": "https://mcp.linear.app/mcp", "transport": "http", "featured": true },
+    { "id": "github", "name": "GitHub", "publisher": "GitHub", "description": "Read repositories, issues and pull requests, and act on them.", "homepage": "https://github.com/github/github-mcp-server", "url": "https://api.githubcopilot.com/mcp/", "transport": "http" },
+    { "id": "sentry", "name": "Sentry", "publisher": "Sentry", "description": "Look into errors and performance issues of your projects.", "homepage": "https://sentry.io", "url": "https://mcp.sentry.dev/mcp", "transport": "http" },
+    { "id": "notion", "name": "Notion", "publisher": "Notion", "description": "Search and edit pages and databases of a workspace.", "homepage": "https://www.notion.so", "url": "https://mcp.notion.com/mcp", "transport": "http" },
+    { "id": "stripe", "name": "Stripe", "publisher": "Stripe", "description": "Work with a Stripe account's data and read its documentation.", "homepage": "https://stripe.com", "url": "https://mcp.stripe.com", "transport": "http" },
+    { "id": "cloudflare-docs", "name": "Cloudflare docs", "publisher": "Cloudflare", "description": "Search Cloudflare's documentation.", "homepage": "https://www.cloudflare.com", "url": "https://docs.mcp.cloudflare.com/mcp", "transport": "http" },
+    { "id": "huggingface", "name": "Hugging Face", "publisher": "Hugging Face", "description": "Search models, datasets and papers on the Hub.", "homepage": "https://huggingface.co", "url": "https://huggingface.co/mcp", "transport": "http" },
+    { "id": "context7", "name": "Context7", "publisher": "Upstash", "description": "Current documentation of libraries, by version.", "homepage": "https://context7.com", "url": "https://mcp.context7.com/mcp", "transport": "http" },
+    { "id": "playwright", "name": "Playwright", "publisher": "Microsoft", "description": "Drive a browser from the agent, on this device.", "homepage": "https://github.com/microsoft/playwright-mcp", "command": "npx", "args": ["-y", "@playwright/mcp@latest"] },
+    { "id": "memory", "name": "Memory", "publisher": "Model Context Protocol", "description": "A small knowledge graph that stays on this device.", "homepage": "https://github.com/modelcontextprotocol/servers", "command": "npx", "args": ["-y", "@modelcontextprotocol/server-memory"] }
+  ]
+}

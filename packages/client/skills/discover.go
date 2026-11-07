@@ -72,6 +72,8 @@ type Options struct {
 	Disabled map[string]bool
 	// Plugins are the installed plugins allowed to run here (package plugins decides which).
 	Plugins []PluginSource
+	// Allowed is the organization's word on a name; nil allows all. What it refuses stays listed and can't run.
+	Allowed func(name string) bool
 }
 
 // PluginSource is what one plugin brings. Everything it holds is named below its prefix.
@@ -102,6 +104,7 @@ type Catalog struct {
 	UntrustedProject bool
 	byName           map[string]int
 	disabled         map[string]bool
+	allowed          func(string) bool
 }
 
 // Lookup returns the entry that wins for name (case-sensitive, a leading slash ignored).
@@ -117,7 +120,14 @@ func (c *Catalog) Lookup(name string) (Skill, bool) {
 }
 
 // Enabled reports the user's switch.
-func (c *Catalog) Enabled(name string) bool { return c == nil || !c.disabled[name] }
+func (c *Catalog) Enabled(name string) bool {
+	return c == nil || (!c.disabled[name] && !c.BlockedByPolicy(name))
+}
+
+// BlockedByPolicy reports that the organization keeps a name from running. No switch of the user's changes that.
+func (c *Catalog) BlockedByPolicy(name string) bool {
+	return c != nil && c.allowed != nil && !c.allowed(name)
+}
 
 var sourceRank = map[string]int{SourceOrganization: 0, SourcePersonal: 1, SourceImported: 2, SourceProject: 3, SourcePlugin: 4}
 
@@ -131,6 +141,8 @@ func (s Skill) rank() [3]int {
 
 // scanner collects entries in the order they rank.
 type scanner struct {
+	// held says a folder waits for this device's approval: it stays out of the catalog.
+	held  func(dir string) bool
 	found []Skill
 }
 
@@ -142,12 +154,16 @@ func (sc *scanner) add(s Skill) {
 // Discover reads the frontmatter of everything Options point at.
 func Discover(o Options) *Catalog {
 	sc := &scanner{}
+	if o.HarnessHome != "" {
+		sc.held = HeldExternal(o.HarnessHome)
+	}
 	sc.docs(o.Docs)
 	if o.HarnessHome != "" {
 		sc.skillsDir(filepath.Join(o.HarnessHome, "skills"), SourcePersonal)
 		sc.commandsDir(filepath.Join(o.HarnessHome, "commands"), SourcePersonal)
 	}
 	c := &Catalog{disabled: o.Disabled}
+	c.allowed = o.Allowed
 	roots := projectDirs(o)
 	for _, d := range roots {
 		if !o.Trusted {
@@ -388,6 +404,9 @@ func (sc *scanner) skillsDir(root, source string) {
 			}
 			md := filepath.Join(p, SkillFile)
 			if st, err := os.Stat(md); err == nil && st.Mode().IsRegular() {
+				if sc.held != nil && sc.held(p) {
+					continue
+				}
 				text, err := readHead(md)
 				if err != nil {
 					continue

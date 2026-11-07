@@ -56,6 +56,7 @@ func (s *Server) withManagedPolicy(p *agentv1.UserPreferences) *agentv1.UserPref
 		SandboxRequired: m.SandboxRequired, SandboxOutsideRefused: m.SandboxOutsideRefused, DisabledModes: m.DisabledModes,
 		RestrictProviders: m.RestrictProviders, AllowedProviders: m.AllowedProviders, PersonalProvidersDisabled: m.PersonalProvidersDisabled,
 		RestrictMcpServers: m.RestrictMcpServers, AllowedMcpServers: m.AllowedMcpServers, LocalModelsDisabled: m.LocalModelsDisabled,
+		RestrictSkills: m.RestrictSkills, AllowedSkills: m.AllowedSkills, BlockedSkills: m.BlockedSkills, ExternalSkillSearchDisabled: m.ExternalSkillSearchDisabled,
 	}
 	return p
 }

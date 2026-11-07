@@ -302,7 +302,7 @@ async function clearKey(p: SpeechProviderView) {
         v-for="(p, i) in [...local, ...global]"
         :key="p.id"
         class="flex flex-col"
-        :class="i && 'border-t border-default'"
+        :class="i > 0 && 'border-t border-default'"
       >
         <div class="flex items-center gap-3 px-3 py-2.5">
           <SettingsMonogram

@@ -542,7 +542,7 @@ func TestListWithoutASession(t *testing.T) {
 	}
 }
 
-func TestCustomizeSwitch(t *testing.T) {
+func TestSkillSwitch(t *testing.T) {
 	rec := &recording{}
 	calls := 0
 	rec.next = func(n int, r *llm.Request) fg.Reply {

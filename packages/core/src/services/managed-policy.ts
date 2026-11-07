@@ -43,6 +43,10 @@ export interface ManagedPolicy {
   distributed_marketplaces: string[];
   distributed_plugins: string[];
   blocked_plugins: string[];
+  restrict_skills: boolean;
+  allowed_skills: string[];
+  blocked_skills: string[];
+  external_skill_search_disabled: boolean;
 }
 
 const isObject = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
@@ -101,6 +105,15 @@ function sourceLines(v: unknown): string[] {
   return Array.isArray(v) ? v.map(sourceToLine).filter((s) => !!s) : [];
 }
 
+function skillFields(content: Json) {
+  return {
+    restrict_skills: Array.isArray(content.allowedSkills),
+    allowed_skills: strings(content.allowedSkills),
+    blocked_skills: strings(content.blockedSkills),
+    external_skill_search_disabled: content.disableExternalSkillSearch === true,
+  };
+}
+
 function pluginFields(content: Json) {
   const enabled = isObject(content.enabledPlugins) ? content.enabledPlugins : {};
   const extra = isObject(content.extraKnownMarketplaces) ? content.extraKnownMarketplaces : {};
@@ -134,6 +147,7 @@ export function managedOf(content: Json): ManagedPolicy {
     restrict_mcp_servers: Array.isArray(content.allowedMcpServers),
     allowed_mcp_servers: strings(content.allowedMcpServers),
     ...pluginFields(content),
+    ...skillFields(content),
   };
 }
 
@@ -171,6 +185,9 @@ export function withManaged(content: Json, p: ManagedPolicy): Json {
   for (const id of p.distributed_plugins) enabled[id] = true;
   for (const id of p.blocked_plugins) enabled[id] = false;
   setOrDelete(next, "enabledPlugins", enabled, Object.keys(enabled).length > 0);
+  setOrDelete(next, "allowedSkills", p.allowed_skills, p.restrict_skills);
+  setOrDelete(next, "blockedSkills", p.blocked_skills, p.blocked_skills.length > 0);
+  setOrDelete(next, "disableExternalSkillSearch", true, p.external_skill_search_disabled);
   return next;
 }
 
@@ -191,6 +208,8 @@ export function cleanManaged(p: ManagedPolicy): ManagedPolicy {
     distributed_marketplaces: list(p.distributed_marketplaces),
     distributed_plugins: list(p.distributed_plugins),
     blocked_plugins: list(p.blocked_plugins),
+    allowed_skills: list(p.allowed_skills),
+    blocked_skills: list(p.blocked_skills),
   };
   for (const l of [...out.allowed_plugin_sources, ...out.blocked_plugin_sources]) lineToSource(l);
   for (const l of out.distributed_marketplaces) {
@@ -257,6 +276,7 @@ export interface ServerPolicy {
   /** Undefined: no restriction. */
   allowedProviders?: string[];
   personalProvidersDisabled: boolean;
+  externalSkillSearchDisabled: boolean;
   allowedMcpServers?: string[];
 }
 
@@ -272,7 +292,7 @@ export async function serverPolicyFor(user: Pick<PublicUser, "role">): Promise<S
     .select({ content: d.content, targetRoles: d.targetRoles })
     .from(d)
     .where(and(eq(d.scope, Scope.ORG), eq(d.kind, DocumentKind.POLICY), isNull(d.deletedAt)));
-  const out: ServerPolicy = { personalProvidersDisabled: false };
+  const out: ServerPolicy = { personalProvidersDisabled: false, externalSkillSearchDisabled: false };
   for (const r of rows) {
     const roles = Array.isArray(r.targetRoles) ? (r.targetRoles as string[]) : [];
     if (roles.length && !roles.includes(user.role)) continue;
@@ -280,6 +300,7 @@ export async function serverPolicyFor(user: Pick<PublicUser, "role">): Promise<S
     if (m.restrict_providers) out.allowedProviders = intersect(out.allowedProviders, m.allowed_providers);
     if (m.restrict_mcp_servers) out.allowedMcpServers = intersect(out.allowedMcpServers, m.allowed_mcp_servers);
     out.personalProvidersDisabled ||= m.personal_providers_disabled;
+    out.externalSkillSearchDisabled ||= m.external_skill_search_disabled;
   }
   return out;
 }

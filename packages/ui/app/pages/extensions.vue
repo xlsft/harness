@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Customize: the skills and commands of a folder, with their switches.
+// Extensions: skills, connectors and plugins, what this device has and what it could add.
 useShortcuts()
 </script>
 
@@ -10,9 +10,9 @@ useShortcuts()
     storage-key="harness-layout-2"
   >
     <AppSidebar />
-    <div class="relative h-svh min-w-0 flex-1">
-      <PageHeader class="absolute inset-x-0 top-0 z-10" />
-      <CustomizePage />
+    <div class="flex h-svh min-w-0 flex-1 flex-col">
+      <PageHeader />
+      <ExtensionsPage class="min-h-0 flex-1" />
     </div>
   </UDashboardGroup>
 </template>
