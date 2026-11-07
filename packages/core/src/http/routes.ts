@@ -41,6 +41,7 @@ export const routes: RouteDef[] = [
   { route: "/harness.auth.v1.MfaService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.auth.v1.PolicyService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.auth.v1.SsoService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.chat.v1.ChatService/**", handler: "./src/http/routes/rpc.ts" },
 
   // Object bytes (ObjectsService writes): ranges, safe content types
   { route: "/api/objects/:sha256", handler: "./src/http/routes/object.ts" },
@@ -63,6 +64,9 @@ export const routes: RouteDef[] = [
   { route: "/api/vcs/github/manifest/callback", method: "get", handler: "./src/http/routes/vcs-github-manifest-callback.ts" },
   { route: "/api/vcs/github/setup", method: "get", handler: "./src/http/routes/vcs-github-setup.ts" },
   { route: "/api/vcs/sessions/:id/autofix-jobs", method: "get", handler: "./src/http/routes/vcs-session-autofix.ts" },
+
+  // Chat apps (src/chat): Slack events and button presses, signature-checked
+  { route: "/api/chat/slack/events", method: "post", handler: "./src/http/routes/chat-slack-events.ts" },
 
   // A scheduled task's webhook (services/schedule-webhook.ts): the secret in the URL is the authentication
   { route: "/api/schedules/webhook/:token", method: "post", handler: "./src/http/routes/schedule-webhook.ts" },

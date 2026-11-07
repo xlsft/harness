@@ -44,6 +44,7 @@ import { registerLibraryServices } from "./library.ts";
 import { registerObjectsService } from "./objects.ts";
 import { registerUsageService } from "./usage.ts";
 import { registerVcsService } from "./vcs.ts";
+import { registerChatService } from "./chat.ts";
 import { registerProviderLimitsService } from "./limits.ts";
 
 const POLL_STATUS = {
@@ -255,6 +256,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   registerMcpService(router);
   registerRelayService(router);
   registerVcsService(router);
+  registerChatService(router);
   registerProviderLimitsService(router);
 
   return router;

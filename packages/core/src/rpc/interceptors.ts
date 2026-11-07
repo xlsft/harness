@@ -41,6 +41,7 @@ const MCP = "harness.mcp.v1.McpService";
 const VCS = "harness.vcs.v1.VcsService";
 const SYNC = "harness.sync.v1.SyncService";
 const DEVICE = "harness.auth.v1.DeviceAuthService";
+const CHAT = "harness.chat.v1.ChatService";
 
 export const AUDITED: Record<string, Audited> = {
   [`${ADMIN}/CreateUser`]: { action: "user.create", targetType: "user", target: "email", details: ["name", "username", "role", "ldap", "generatePassword"] },
@@ -87,6 +88,16 @@ export const AUDITED: Record<string, Audited> = {
   [`${BILLING}/SetSessionBudget`]: { action: "quota.set_session_budget", targetType: "quota", details: ["sessionUsd"] },
 
   [`${POLICY}/SetManagedPolicy`]: { action: "policy.managed_update", targetType: "policy", details: ["policy"] },
+
+  [`${CHAT}/PutChatApp`]: {
+    action: "chat.app_update",
+    targetType: "chat_app",
+    target: "provider",
+    extra: (r) => ({ enabled: r.enabled, match_by_email: r.matchByEmail, token_changed: has(r.botToken), signing_secret_changed: has(r.signingSecret) }),
+  },
+  [`${CHAT}/DeleteChatApp`]: { action: "chat.app_delete", targetType: "chat_app", target: "provider" },
+  [`${CHAT}/StartChatLink`]: { action: "chat.link_start", targetType: "chat_app", target: "provider" },
+  [`${CHAT}/UnlinkChatIdentity`]: { action: "chat.unlink", targetType: "chat_identity", target: "externalUserId", details: ["teamId"] },
 
   [`${MFA}/ConfirmMfaEnrollment`]: { action: "mfa.enroll_confirm" },
   [`${MFA}/DisableMfa`]: { action: "mfa.disable" },

@@ -23,6 +23,7 @@ import { ProviderScope, ProviderService } from "../src/gen/harness/llm/v1/provid
 import { ProviderLimitsService } from "../src/gen/harness/llm/v1/limits_pb.ts";
 import { McpService, Transport } from "../src/gen/harness/mcp/v1/mcp_pb.ts";
 import { VcsService } from "../src/gen/harness/vcs/v1/vcs_pb.ts";
+import { ChatService } from "../src/gen/harness/chat/v1/chat_pb.ts";
 import { SpeechService } from "../src/gen/harness/speech/v1/speech_pb.ts";
 import { SyncService } from "../src/gen/harness/sync/v1/sync_pb.ts";
 import { Scope } from "../src/gen/harness/common/v1/scope_pb.ts";
@@ -213,7 +214,7 @@ describe("audit log", () => {
   });
 
   it("lists every audited method against the real services, so a rename cannot silently stop the logging", () => {
-    const services = [AdminService, AuditService, BillingService, DirectoryService, MfaService, PolicyService, SsoService, ProviderService, ProviderLimitsService, McpService, VcsService, SpeechService, SyncService, DeviceAuthService];
+    const services = [AdminService, AuditService, BillingService, DirectoryService, MfaService, PolicyService, SsoService, ProviderService, ProviderLimitsService, McpService, VcsService, SpeechService, SyncService, DeviceAuthService, ChatService];
     const known = new Set(services.flatMap((s) => s.methods.map((m) => `${s.typeName}/${m.name}`)));
     const missing = Object.keys(AUDITED).filter((k) => !known.has(k));
     expect(missing).toEqual([]);

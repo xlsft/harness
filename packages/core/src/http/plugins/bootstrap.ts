@@ -8,11 +8,13 @@ import { startObjectSweep } from "../../services/objects.ts";
 import { flushForwarders, kickForwarders } from "../../audit/forward.ts";
 import { purgeAudit } from "../../audit/log.ts";
 import { startTelemetry, stopTelemetry } from "../../telemetry/otel.ts";
+import { resumeChatWatchers, stopChatWatchers } from "../../chat/service.ts";
 
 export default definePlugin(async (nitroApp) => {
   // Graceful shutdown (SIGTERM/SIGINT): end the pg pool, or close PGlite so its data dir is left clean.
   startTelemetry();
   nitroApp.hooks.hook("close", async () => {
+    stopChatWatchers();
     await flushForwarders().catch(() => {});
     await stopTelemetry().catch(() => {});
     await closeDb();
@@ -24,6 +26,8 @@ export default definePlugin(async (nitroApp) => {
   // Moving avatars into the store and the sweep run in the background: a store that is still starting delays neither.
   startObjectSweep(migrateAvatars);
   startModelPriceRefresh();
+  // Chat threads whose sessions were being followed when the server stopped.
+  void resumeChatWatchers().catch((err) => console.error("[harness] could not resume chat threads", err));
   // Events written while a SIEM was unreachable or the server was down go out now; old ones past the retention go.
   kickForwarders();
   void purgeAudit().catch(() => {});
