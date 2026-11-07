@@ -45,6 +45,8 @@ type hostEntry struct {
 	host string
 	wild bool
 	port int
+	// trusted may resolve to a private address (Trusting).
+	trusted bool
 }
 
 // NewHosts parses entries, leaving out those ValidHost refuses.
@@ -97,10 +99,22 @@ func (h Hosts) allows(host string, port int) (ok, private bool) {
 		case e.wild && strings.HasSuffix(host, "."+e.host):
 			return true, false
 		case !e.wild && host == e.host:
-			return true, netguard.IsPrivateLiteral(host)
+			return true, e.trusted || netguard.IsPrivateLiteral(host)
 		}
 	}
 	return false, false
+}
+
+// Trusting adds a host (with an optional port) that may resolve to a private address: the server of a cloud runner's
+// containers, which is often a name on the same private network. The entry is skipped when it doesn't parse.
+func (h Hosts) Trusting(entry string) Hosts {
+	e, ok := parseHost(entry)
+	if !ok || e.wild {
+		return h
+	}
+	e.trusted = true
+	out := Hosts{entries: append(append([]hostEntry(nil), h.entries...), e)}
+	return out
 }
 
 // blockedHost is a request the proxy refused.
@@ -116,6 +130,8 @@ type proxy struct {
 	ln    net.Listener
 	srv   *http.Server
 	hosts func() Hosts
+	// hostsFor, when set, picks the list by who asks (NewEgressHandler).
+	hostsFor func(r *http.Request) (Hosts, bool)
 
 	mu      sync.Mutex
 	seq     uint64
@@ -133,6 +149,18 @@ func startProxy(hosts func() Hosts) (*proxy, error) {
 	p.srv = &http.Server{Handler: p, ReadHeaderTimeout: 30 * time.Second}
 	go func() { _ = p.srv.Serve(ln) }()
 	return p, nil
+}
+
+// NewEgressHandler is the allowlist proxy for clients told apart by the request: a cloud runner's containers, by their
+// address (docs/design/cloud-sessions.md, decision 11). hostsFor returns false for a client that may not use it at all.
+func NewEgressHandler(hostsFor func(r *http.Request) (Hosts, bool)) http.Handler {
+	return &proxy{hostsFor: hostsFor}
+}
+
+// Allows reports whether the list lets a client reach host:port.
+func (h Hosts) Allows(host string, port int) bool {
+	ok, _ := h.allows(host, port)
+	return ok
 }
 
 func (p *proxy) port() int { return p.ln.Addr().(*net.TCPAddr).Port }
@@ -232,7 +260,18 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	host = strings.Trim(host, "[]")
-	ok, private := p.hosts().allows(host, port)
+	var list Hosts
+	if p.hostsFor != nil {
+		l, known := p.hostsFor(r)
+		if !known {
+			http.Error(w, "harness egress: this address may not use the proxy", http.StatusForbidden)
+			return
+		}
+		list = l
+	} else {
+		list = p.hosts()
+	}
+	ok, private := list.allows(host, port)
 	if !ok {
 		label := host
 		if port != 80 && port != 443 {
