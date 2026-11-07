@@ -1,24 +1,40 @@
 /**
- * The knowledge base: text documents on the server, searched by agents with the KnowledgeSearch tool and managed on its
+ * Knowledge: text documents on the server, searched by agents with the KnowledgeSearch tool and managed on its
  * screen. Scope "org" is written by admins and read by everyone. Scope "user" belongs to its owner, and no role reaches
  * it: an admin sees someone's personal documents exactly as much as anyone else, not at all.
  *
  * A document is split into passages when written. Search is Postgres full text on the passages, with two configurations
  * in one vector: 'english' stems, 'simple' keeps words of every other language intact. Any word of the query may match;
  * passages matching more of them, or in the title, rank higher.
+ *
+ * Provider sources are read live through admin connections and never stored: a tracker's articles for everyone, ids
+ * conn:<connection id>:<article id>. Sources on the user's device are the client's, which merges them with this.
  */
 import { and, asc, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId } from "../lib/ids.ts";
+import { getConnection, listConnections, openProvider, providerMessage, type ConnectionRow } from "../tracker/connections.ts";
+import { freeTextTerms, snippetOf, type Article, type TrackerProvider } from "../tracker/provider.ts";
 import type { Principal } from "./devices.ts";
 
 export type KnowledgeScope = "user" | "org";
 type DocumentRow = typeof schema.knowledgeDocument.$inferSelect;
 
+export interface SourceRef {
+  id: string;
+  kind: "internal" | "provider";
+  scope: KnowledgeScope;
+  name: string;
+  provider: string;
+}
+
 export interface KnowledgeDocumentView {
   row: DocumentRow;
   editable: boolean;
+  source: SourceRef;
+  url: string;
+  hasChildren: boolean;
 }
 
 export interface KnowledgeHit {
@@ -27,6 +43,17 @@ export interface KnowledgeHit {
   scope: KnowledgeScope;
   snippet: string;
   score: number;
+  source: SourceRef;
+  url: string;
+}
+
+const INTERNAL_ORG: SourceRef = { id: "internal:org", kind: "internal", scope: "org", name: "Internal, for everyone", provider: "" };
+const INTERNAL_USER: SourceRef = { id: "internal:user", kind: "internal", scope: "user", name: "Internal, only you", provider: "" };
+const internalSource = (scope: string): SourceRef => (scope === "org" ? INTERNAL_ORG : INTERNAL_USER);
+const providerSource = (c: ConnectionRow): SourceRef => ({ id: c.id, kind: "provider", scope: "org", name: c.name, provider: c.provider });
+
+function documentView(row: DocumentRow, p: Principal): KnowledgeDocumentView {
+  return { row, editable: canEdit(row, p), source: internalSource(row.scope), url: "", hasChildren: false };
 }
 
 const TITLE_MAX = 200;
@@ -121,7 +148,7 @@ export async function createKnowledgeDocument(p: Principal, input: { scope: Know
     await tx.insert(schema.knowledgeDocument).values(row);
     await writeChunks(tx, row.id, title, input.content);
   });
-  return { row, editable: true };
+  return documentView(row, p);
 }
 
 export async function listKnowledgeDocuments(p: Principal, input: { scope?: KnowledgeScope; query?: string }): Promise<KnowledgeDocumentView[]> {
@@ -131,12 +158,13 @@ export async function listKnowledgeDocuments(p: Principal, input: { scope?: Know
   const q = input.query?.trim();
   if (q) conds.push(ilike(d.title, `%${q.replace(/[\\%_]/g, "\\$&")}%`));
   const rows = await getDb().select().from(d).where(and(...conds)).orderBy(asc(d.scope), desc(d.updatedAt)).limit(500);
-  return rows.map((row) => ({ row, editable: canEdit(row, p) }));
+  return rows.map((row) => documentView(row, p));
 }
 
 export async function getKnowledgeDocument(p: Principal, id: string): Promise<KnowledgeDocumentView> {
-  const row = await readable(p, id);
-  return { row, editable: canEdit(row, p) };
+  const ref = parseProviderId(id);
+  if (ref) return readProviderDocument(ref.connectionId, ref.articleId);
+  return documentView(await readable(p, id), p);
 }
 
 async function writable(p: Principal, id: string): Promise<DocumentRow> {
@@ -156,7 +184,7 @@ export async function updateKnowledgeDocument(p: Principal, id: string, patch: {
     await writeChunks(tx, id, title, content);
     return r!;
   });
-  return { row: updated, editable: true };
+  return documentView(updated, p);
 }
 
 export async function deleteKnowledgeDocument(p: Principal, id: string): Promise<void> {
@@ -172,8 +200,7 @@ export function orQuery(text: string): string {
   return [...new Set(kept)].map((w) => `'${w.replace(/'/g, "")}'`).join(" | ");
 }
 
-export async function searchKnowledge(p: Principal, input: { query: string; limit?: number; scope?: KnowledgeScope }): Promise<KnowledgeHit[]> {
-  await ensureDb();
+async function searchInternal(p: Principal, input: { query: string; limit?: number; scope?: KnowledgeScope }): Promise<KnowledgeHit[]> {
   const tsq = orQuery(input.query);
   if (!tsq) throw new ApiError("invalid_request", "query is required");
   const limit = Math.min(Math.max(input.limit || 8, 1), 30);
@@ -195,8 +222,149 @@ export async function searchKnowledge(p: Principal, input: { query: string; limi
     const n = perDoc.get(r.documentId) ?? 0;
     if (n >= 2) continue;
     perDoc.set(r.documentId, n + 1);
-    hits.push({ document_id: r.documentId, title: r.title, scope: r.scope as KnowledgeScope, snippet: r.text, score: Number(r.score) });
+    hits.push({ document_id: r.documentId, title: r.title, scope: r.scope as KnowledgeScope, snippet: r.text, score: Number(r.score), source: internalSource(r.scope), url: "" });
     if (hits.length >= limit) break;
   }
   return hits;
+}
+
+// ---- provider sources, read live ----
+
+const PROVIDER_ID = /^conn:([^:]+):(.+)$/;
+
+export function parseProviderId(id: string): { connectionId: string; articleId: string } | undefined {
+  const m = PROVIDER_ID.exec(id);
+  return m ? { connectionId: m[1]!, articleId: m[2]! } : undefined;
+}
+
+const providerDocumentId = (connectionId: string, articleId: string) => `conn:${connectionId}:${articleId}`;
+
+async function sourceConnections(): Promise<ConnectionRow[]> {
+  return (await listConnections()).filter((c) => c.enabled && c.knowledgeEnabled);
+}
+
+function articleProvider(conn: ConnectionRow): TrackerProvider {
+  const provider = openProvider(conn);
+  if (!provider.capabilities().knowledge || !provider.searchArticles || !provider.listArticles || !provider.getArticle) throw new ApiError("failed_precondition", `${conn.name} has no documents`);
+  return provider;
+}
+
+function articleView(conn: ConnectionRow, a: Article): KnowledgeDocumentView {
+  const updated = a.updatedAt ? new Date(a.updatedAt) : new Date(0);
+  return {
+    row: {
+      id: providerDocumentId(conn.id, a.id),
+      scope: "org",
+      ownerId: "",
+      title: a.title || a.id,
+      sourceName: a.project,
+      content: a.content,
+      size: Buffer.byteLength(a.content),
+      createdAt: updated,
+      updatedAt: updated,
+    },
+    editable: false,
+    source: providerSource(conn),
+    url: a.url,
+    hasChildren: a.hasChildren,
+  };
+}
+
+/** A source that is switched off does not exist for readers, so an old id can't get around that. */
+async function usableSource(connectionId: string): Promise<ConnectionRow> {
+  const conn = await getConnection(connectionId);
+  if (!conn?.enabled || !conn.knowledgeEnabled) throw new ApiError("not_found", "This source is not available");
+  return conn;
+}
+
+async function readProviderDocument(connectionId: string, articleId: string): Promise<KnowledgeDocumentView> {
+  const conn = await usableSource(connectionId);
+  try {
+    return articleView(conn, await articleProvider(conn).getArticle!(articleId));
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError("upstream", providerMessage(err));
+  }
+}
+
+export interface KnowledgeWarning {
+  source: SourceRef;
+  message: string;
+}
+
+/** Internal passages and each provider source's own order, taken in turn: their scores can't be compared. */
+function alternate(lists: KnowledgeHit[][], limit: number): KnowledgeHit[] {
+  const out: KnowledgeHit[] = [];
+  for (let i = 0; out.length < limit; i++) {
+    let any = false;
+    for (const list of lists) {
+      if (i < list.length && out.length < limit) {
+        out.push(list[i]!);
+        any = true;
+      }
+    }
+    if (!any) break;
+  }
+  return out;
+}
+
+export async function searchKnowledge(p: Principal, input: { query: string; limit?: number; scope?: KnowledgeScope }): Promise<{ hits: KnowledgeHit[]; warnings: KnowledgeWarning[] }> {
+  await ensureDb();
+  const limit = Math.min(Math.max(input.limit || 8, 1), 30);
+  const internal = await searchInternal(p, { ...input, limit });
+  const warnings: KnowledgeWarning[] = [];
+  const lists: KnowledgeHit[][] = [internal];
+  if (input.scope !== "user") {
+    const terms = freeTextTerms(input.query);
+    const results = await Promise.all(
+      (await sourceConnections()).map(async (conn) => {
+        try {
+          const articles = await articleProvider(conn).searchArticles!(input.query, conn.knowledgeQuery, limit);
+          return articles.map(
+            (a): KnowledgeHit => ({ document_id: providerDocumentId(conn.id, a.id), title: a.title || a.id, scope: "org", snippet: snippetOf(a.content, terms), score: 0, source: providerSource(conn), url: a.url }),
+          );
+        } catch (err) {
+          // Why it failed can name an internal host: admins are told, others only that it did.
+          warnings.push({ source: providerSource(conn), message: p.user.role === "admin" ? providerMessage(err) : "This source could not be searched right now." });
+          return [];
+        }
+      }),
+    );
+    lists.push(...results);
+  }
+  return { hits: alternate(lists, limit), warnings };
+}
+
+export interface KnowledgeSourceView {
+  ref: SourceRef;
+  documentCount: number;
+  writable: boolean;
+}
+
+export async function listKnowledgeSources(p: Principal): Promise<KnowledgeSourceView[]> {
+  await ensureDb();
+  const d = schema.knowledgeDocument;
+  const count = async (scope?: KnowledgeScope) => (await getDb().select({ n: sql<number>`count(*)` }).from(d).where(readableBy(p, scope)))[0]?.n ?? 0;
+  const out: KnowledgeSourceView[] = [
+    { ref: INTERNAL_ORG, documentCount: Number(await count("org")), writable: p.user.role === "admin" },
+    { ref: INTERNAL_USER, documentCount: Number(await count("user")), writable: true },
+  ];
+  for (const c of await sourceConnections()) out.push({ ref: providerSource(c), documentCount: 0, writable: false });
+  return out;
+}
+
+export async function browseKnowledgeSource(p: Principal, input: { sourceId: string; parentId?: string; limit?: number; offset?: number }): Promise<{ documents: KnowledgeDocumentView[]; hasMore: boolean }> {
+  await ensureDb();
+  if (input.sourceId === INTERNAL_ORG.id || input.sourceId === INTERNAL_USER.id) {
+    return { documents: await listKnowledgeDocuments(p, { scope: input.sourceId === INTERNAL_ORG.id ? "org" : "user" }), hasMore: false };
+  }
+  const conn = await usableSource(input.sourceId);
+  const limit = Math.min(Math.max(input.limit || 100, 1), 200);
+  try {
+    const r = await articleProvider(conn).listArticles!(input.parentId ?? "", conn.knowledgeQuery, { limit, offset: input.offset ?? 0 });
+    return { documents: r.articles.map((a) => articleView(conn, a)), hasMore: r.hasMore };
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError("upstream", providerMessage(err));
+  }
 }

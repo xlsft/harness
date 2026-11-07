@@ -80,7 +80,7 @@ createServer(async (req, res) => {
     const steps = [
       ["ArtifactPublish", { title: "E2E report", name: "report.html", content: "<h1>e2e page</h1>", description: "e2e report" }],
       ["Memory", { command: "write", name: "e2e_note", type: "project", description: "The e2e note", content: "Remember this." }],
-      ["TaskTracker", { action: "create", title: "E2E task", project: "e2e" }],
+      ["Issues", { operation: "create", title: "E2E issue" }],
       ["KnowledgeSearch", { query: "canary rollout", description: "e2e search" }],
     ];
     if (toolMsgs.length < steps.length) call(`call_l${toolMsgs.length}`, ...steps[toolMsgs.length]);

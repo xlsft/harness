@@ -246,5 +246,66 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE INDEX \"tracker_task_owner_idx\" ON \"tracker_task\" USING btree (\"owner_id\",\"status\",\"updated_at\");",
       "CREATE INDEX \"sync_session_entry_search_idx\" ON \"sync_session_entry\" USING gin (to_tsvector('simple', \"search_text\"));"
     ]
+  },
+  {
+    "id": "0015_third_nova",
+    "statements": [
+      "DROP TABLE \"tracker_task\" CASCADE;"
+    ]
+  },
+  {
+    "id": "0016_lethal_sage",
+    "statements": [
+      "CREATE TABLE \"board\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"project_id\" text NOT NULL,\n\t\"scope\" text NOT NULL,\n\t\"owner_id\" text,\n\t\"name\" text NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"board_card\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"board_id\" text NOT NULL,\n\t\"stage_id\" text NOT NULL,\n\t\"position\" double precision NOT NULL,\n\t\"project_id\" text NOT NULL,\n\t\"number\" integer NOT NULL,\n\t\"priority\" text DEFAULT 'normal' NOT NULL,\n\t\"labels\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"assignee_ids\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"due_at\" timestamp with time zone,\n\t\"comment_count\" integer DEFAULT 0 NOT NULL,\n\t\"title\" text NOT NULL,\n\t\"title_edited\" boolean DEFAULT false NOT NULL,\n\t\"description\" text DEFAULT '' NOT NULL,\n\t\"version\" integer DEFAULT 1 NOT NULL,\n\t\"connection_scope\" text DEFAULT '' NOT NULL,\n\t\"connection_id\" text DEFAULT '' NOT NULL,\n\t\"external_id\" text DEFAULT '' NOT NULL,\n\t\"external_url\" text DEFAULT '' NOT NULL,\n\t\"external_state\" text DEFAULT '' NOT NULL,\n\t\"external_checked_at\" timestamp with time zone,\n\t\"session_ids\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"pr_urls\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"branch\" text DEFAULT '' NOT NULL,\n\t\"created_by\" text DEFAULT '' NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"board_card_activity\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"card_id\" text NOT NULL,\n\t\"actor_id\" text DEFAULT '' NOT NULL,\n\t\"kind\" text NOT NULL,\n\t\"summary\" text DEFAULT '' NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"board_card_comment\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"card_id\" text NOT NULL,\n\t\"author_id\" text NOT NULL,\n\t\"text\" text NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"board_card_output\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"card_id\" text NOT NULL,\n\t\"stage_id\" text NOT NULL,\n\t\"connection_scope\" text NOT NULL,\n\t\"connection_id\" text NOT NULL,\n\t\"fields\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"comment\" text DEFAULT '' NOT NULL,\n\t\"status\" text DEFAULT 'pending' NOT NULL,\n\t\"attempts\" integer DEFAULT 0 NOT NULL,\n\t\"last_error\" text DEFAULT '' NOT NULL,\n\t\"next_attempt_at\" timestamp with time zone NOT NULL,\n\t\"lease_until\" timestamp with time zone,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"board_card_relation\" (\n\t\"card_id\" text NOT NULL,\n\t\"kind\" text NOT NULL,\n\t\"other_id\" text NOT NULL,\n\tCONSTRAINT \"board_card_relation_card_id_kind_other_id_pk\" PRIMARY KEY(\"card_id\",\"kind\",\"other_id\")\n);",
+      "CREATE TABLE \"board_input_seen\" (\n\t\"board_id\" text NOT NULL,\n\t\"connection_scope\" text NOT NULL,\n\t\"connection_id\" text NOT NULL,\n\t\"external_id\" text NOT NULL,\n\t\"first_seen_at\" timestamp with time zone NOT NULL,\n\tCONSTRAINT \"board_input_seen_board_id_connection_scope_connection_id_external_id_pk\" PRIMARY KEY(\"board_id\",\"connection_scope\",\"connection_id\",\"external_id\")\n);",
+      "CREATE TABLE \"board_stage\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"board_id\" text NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"position\" integer NOT NULL\n);",
+      "CREATE TABLE \"board_stage_input\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"stage_id\" text NOT NULL,\n\t\"connection_scope\" text NOT NULL,\n\t\"connection_id\" text NOT NULL,\n\t\"query\" text NOT NULL,\n\t\"interval_seconds\" integer DEFAULT 300 NOT NULL,\n\t\"last_polled_at\" timestamp with time zone,\n\t\"last_ok_at\" timestamp with time zone,\n\t\"last_error\" text DEFAULT '' NOT NULL,\n\t\"lease_until\" timestamp with time zone\n);",
+      "CREATE TABLE \"board_stage_output\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"stage_id\" text NOT NULL,\n\t\"connection_scope\" text NOT NULL,\n\t\"connection_id\" text NOT NULL,\n\t\"fields\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"comment\" text DEFAULT '' NOT NULL\n);",
+      "CREATE TABLE \"project\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"scope\" text NOT NULL,\n\t\"owner_id\" text,\n\t\"ticker\" text,\n\t\"name\" text,\n\t\"description\" text,\n\t\"logo\" text,\n\t\"color\" text,\n\t\"connection_scope\" text DEFAULT '' NOT NULL,\n\t\"connection_id\" text DEFAULT '' NOT NULL,\n\t\"external_key\" text DEFAULT '' NOT NULL,\n\t\"provider_values\" jsonb DEFAULT '{}'::jsonb NOT NULL,\n\t\"next_number\" integer DEFAULT 1 NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"project_share\" (\n\t\"project_id\" text NOT NULL,\n\t\"subject\" text NOT NULL,\n\t\"subject_id\" text DEFAULT '' NOT NULL,\n\t\"level\" text NOT NULL,\n\tCONSTRAINT \"project_share_project_id_subject_subject_id_pk\" PRIMARY KEY(\"project_id\",\"subject\",\"subject_id\")\n);",
+      "CREATE TABLE \"saved_view\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"owner_id\" text NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"filter\" jsonb DEFAULT '{}'::jsonb NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"tracker_connection\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"provider\" text NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"base_url\" text NOT NULL,\n\t\"auth\" text NOT NULL,\n\t\"login\" text DEFAULT '' NOT NULL,\n\t\"oauth_client_id\" text DEFAULT '' NOT NULL,\n\t\"secrets_enc\" text DEFAULT '' NOT NULL,\n\t\"enabled\" boolean DEFAULT true NOT NULL,\n\t\"allow_private_network\" boolean DEFAULT false NOT NULL,\n\t\"knowledge_enabled\" boolean DEFAULT false NOT NULL,\n\t\"knowledge_query\" text DEFAULT '' NOT NULL,\n\t\"healthy\" boolean DEFAULT false NOT NULL,\n\t\"last_error\" text DEFAULT '' NOT NULL,\n\t\"last_checked_at\" timestamp with time zone,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL,\n\t\"updated_by\" text DEFAULT '' NOT NULL\n);",
+      "ALTER TABLE \"board\" ADD CONSTRAINT \"board_project_id_project_id_fk\" FOREIGN KEY (\"project_id\") REFERENCES \"public\".\"project\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"board\" ADD CONSTRAINT \"board_owner_id_user_id_fk\" FOREIGN KEY (\"owner_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"board_card\" ADD CONSTRAINT \"board_card_board_id_board_id_fk\" FOREIGN KEY (\"board_id\") REFERENCES \"public\".\"board\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"board_card\" ADD CONSTRAINT \"board_card_stage_id_board_stage_id_fk\" FOREIGN KEY (\"stage_id\") REFERENCES \"public\".\"board_stage\"(\"id\") ON DELETE no action ON UPDATE no action;",
+      "ALTER TABLE \"board_card\" ADD CONSTRAINT \"board_card_project_id_project_id_fk\" FOREIGN KEY (\"project_id\") REFERENCES \"public\".\"project\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"board_card_activity\" ADD CONSTRAINT \"board_card_activity_card_id_board_card_id_fk\" FOREIGN KEY (\"card_id\") REFERENCES \"public\".\"board_card\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"board_card_comment\" ADD CONSTRAINT \"board_card_comment_card_id_board_card_id_fk\" FOREIGN KEY (\"card_id\") REFERENCES \"public\".\"board_card\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"board_card_output\" ADD CONSTRAINT \"board_card_output_card_id_board_card_id_fk\" FOREIGN KEY (\"card_id\") REFERENCES \"public\".\"board_card\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"board_card_relation\" ADD CONSTRAINT \"board_card_relation_card_id_board_card_id_fk\" FOREIGN KEY (\"card_id\") REFERENCES \"public\".\"board_card\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"board_card_relation\" ADD CONSTRAINT \"board_card_relation_other_id_board_card_id_fk\" FOREIGN KEY (\"other_id\") REFERENCES \"public\".\"board_card\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"board_input_seen\" ADD CONSTRAINT \"board_input_seen_board_id_board_id_fk\" FOREIGN KEY (\"board_id\") REFERENCES \"public\".\"board\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"board_stage\" ADD CONSTRAINT \"board_stage_board_id_board_id_fk\" FOREIGN KEY (\"board_id\") REFERENCES \"public\".\"board\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"board_stage_input\" ADD CONSTRAINT \"board_stage_input_stage_id_board_stage_id_fk\" FOREIGN KEY (\"stage_id\") REFERENCES \"public\".\"board_stage\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"board_stage_output\" ADD CONSTRAINT \"board_stage_output_stage_id_board_stage_id_fk\" FOREIGN KEY (\"stage_id\") REFERENCES \"public\".\"board_stage\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"project\" ADD CONSTRAINT \"project_owner_id_user_id_fk\" FOREIGN KEY (\"owner_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"project_share\" ADD CONSTRAINT \"project_share_project_id_project_id_fk\" FOREIGN KEY (\"project_id\") REFERENCES \"public\".\"project\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"saved_view\" ADD CONSTRAINT \"saved_view_owner_id_user_id_fk\" FOREIGN KEY (\"owner_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "CREATE INDEX \"board_project_idx\" ON \"board\" USING btree (\"project_id\",\"scope\",\"owner_id\");",
+      "CREATE INDEX \"board_card_stage_idx\" ON \"board_card\" USING btree (\"stage_id\",\"position\");",
+      "CREATE INDEX \"board_card_board_idx\" ON \"board_card\" USING btree (\"board_id\",\"updated_at\");",
+      "CREATE INDEX \"board_card_link_idx\" ON \"board_card\" USING btree (\"connection_scope\",\"connection_id\",\"external_checked_at\");",
+      "CREATE INDEX \"board_card_sessions_idx\" ON \"board_card\" USING gin (\"session_ids\");",
+      "CREATE UNIQUE INDEX \"board_card_number_idx\" ON \"board_card\" USING btree (\"project_id\",\"number\");",
+      "CREATE INDEX \"board_card_project_idx\" ON \"board_card\" USING btree (\"project_id\",\"updated_at\");",
+      "CREATE INDEX \"board_card_activity_card_idx\" ON \"board_card_activity\" USING btree (\"card_id\",\"created_at\");",
+      "CREATE INDEX \"board_card_comment_card_idx\" ON \"board_card_comment\" USING btree (\"card_id\",\"created_at\");",
+      "CREATE INDEX \"board_card_output_card_idx\" ON \"board_card_output\" USING btree (\"card_id\",\"created_at\");",
+      "CREATE INDEX \"board_card_output_due_idx\" ON \"board_card_output\" USING btree (\"status\",\"connection_scope\",\"next_attempt_at\");",
+      "CREATE INDEX \"board_card_relation_other_idx\" ON \"board_card_relation\" USING btree (\"other_id\");",
+      "CREATE INDEX \"board_stage_board_idx\" ON \"board_stage\" USING btree (\"board_id\",\"position\");",
+      "CREATE UNIQUE INDEX \"board_stage_input_conn_idx\" ON \"board_stage_input\" USING btree (\"stage_id\",\"connection_scope\",\"connection_id\");",
+      "CREATE INDEX \"board_stage_input_due_idx\" ON \"board_stage_input\" USING btree (\"connection_scope\",\"connection_id\");",
+      "CREATE UNIQUE INDEX \"board_stage_output_conn_idx\" ON \"board_stage_output\" USING btree (\"stage_id\",\"connection_scope\",\"connection_id\");",
+      "CREATE INDEX \"project_scope_owner_idx\" ON \"project\" USING btree (\"scope\",\"owner_id\");",
+      "CREATE INDEX \"project_share_subject_idx\" ON \"project_share\" USING btree (\"subject\",\"subject_id\");",
+      "CREATE INDEX \"saved_view_owner_idx\" ON \"saved_view\" USING btree (\"owner_id\");"
+    ]
   }
 ];

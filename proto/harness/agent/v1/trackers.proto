@@ -1,0 +1,219 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+import "harness/library/v1/knowledge.proto";
+import "harness/library/v1/projects.proto";
+import "harness/library/v1/tracker_connections.proto";
+
+// Trackers on this device (packages/client/tracker). A personal connection keeps its credentials in the system keychain, and
+// its requests go from this client, as instances are often behind a VPN the server can't see. Nothing here is ever synced: each
+// device has its own list, and the server knows only the opaque connection ids used in a personal board's stages.
+//
+// Also the merged view of Knowledge: the server's sources plus this device's, which is what the tools and the screen use.
+service LocalTrackerService {
+  rpc ListLocalTrackerConnections(ListLocalTrackerConnectionsRequest) returns (ListLocalTrackerConnectionsResponse);
+  rpc SaveLocalTrackerConnection(SaveLocalTrackerConnectionRequest) returns (SaveLocalTrackerConnectionResponse);
+  // Removes the credentials from the keychain and tells the server the connection is gone.
+  rpc DeleteLocalTrackerConnection(DeleteLocalTrackerConnectionRequest) returns (DeleteLocalTrackerConnectionResponse);
+  // Failure is an answer, not an error.
+  rpc TestLocalTrackerConnection(TestLocalTrackerConnectionRequest) returns (TestLocalTrackerConnectionResponse);
+  rpc SearchLocalTrackerIssues(SearchLocalTrackerIssuesRequest) returns (SearchLocalTrackerIssuesResponse);
+  rpc GetLocalTrackerIssue(GetLocalTrackerIssueRequest) returns (GetLocalTrackerIssueResponse);
+  rpc ListLocalTrackerFields(ListLocalTrackerFieldsRequest) returns (ListLocalTrackerFieldsResponse);
+  // Authorization Code with PKCE through a loopback address on this machine. Open `authorize_url`, then poll the flow.
+  rpc StartLocalTrackerOAuth(StartLocalTrackerOAuthRequest) returns (StartLocalTrackerOAuthResponse);
+  rpc GetLocalTrackerOAuth(GetLocalTrackerOAuthRequest) returns (GetLocalTrackerOAuthResponse);
+  // Runs this device's board work now rather than on the next tick.
+  rpc SyncLocalTrackers(SyncLocalTrackersRequest) returns (SyncLocalTrackersResponse);
+  // The projects of a connection on this device, to map one.
+  rpc ListLocalProviderProjects(ListLocalProviderProjectsRequest) returns (ListLocalProviderProjectsResponse);
+
+  // Folders linked to projects, on this device: paths belong to a machine. The project itself follows its own scope.
+  rpc ListFolderProjects(ListFolderProjectsRequest) returns (ListFolderProjectsResponse);
+  // Links a folder to a project, or unlinks it with an empty project_id.
+  rpc SetFolderProject(SetFolderProjectRequest) returns (SetFolderProjectResponse);
+  // The folder, branch and first message of a session started from an issue.
+  rpc PrepareIssueSession(PrepareIssueSessionRequest) returns (PrepareIssueSessionResponse);
+
+  // The sources this user can read: the server's and this device's.
+  rpc ListAllKnowledgeSources(ListAllKnowledgeSourcesRequest) returns (ListAllKnowledgeSourcesResponse);
+  // Searches every source; each hit says its source. A source that fails is a warning beside the others' hits.
+  rpc SearchAllKnowledge(SearchAllKnowledgeRequest) returns (SearchAllKnowledgeResponse);
+  // Documents of one source. Top-level ones, or the children of parent_id.
+  rpc BrowseKnowledge(BrowseKnowledgeRequest) returns (BrowseKnowledgeResponse);
+  // Reads a document from the right source.
+  rpc ReadKnowledge(ReadKnowledgeRequest) returns (ReadKnowledgeResponse);
+}
+
+message ListLocalTrackerConnectionsRequest {}
+
+message ListLocalTrackerConnectionsResponse {
+  repeated harness.library.v1.TrackerConnection connections = 1;
+  repeated harness.library.v1.TrackerCapabilities providers = 2;
+}
+
+message SaveLocalTrackerConnectionRequest {
+  harness.library.v1.TrackerConnectionInput connection = 1;
+}
+
+message SaveLocalTrackerConnectionResponse {
+  harness.library.v1.TrackerConnection connection = 1;
+}
+
+message DeleteLocalTrackerConnectionRequest {
+  string id = 1;
+}
+
+message DeleteLocalTrackerConnectionResponse {}
+
+message TestLocalTrackerConnectionRequest {
+  // A saved connection, or
+  string id = 1;
+  // one not saved yet.
+  harness.library.v1.TrackerConnectionInput draft = 2;
+}
+
+message TestLocalTrackerConnectionResponse {
+  bool ok = 1;
+  string error = 2;
+  string login = 3;
+  string display_name = 4;
+}
+
+message SearchLocalTrackerIssuesRequest {
+  string connection_id = 1;
+  string query = 2;
+  // Default 20, at most 50.
+  int32 limit = 3;
+}
+
+message SearchLocalTrackerIssuesResponse {
+  repeated harness.library.v1.TrackerIssue issues = 1;
+  bool has_more = 2;
+}
+
+message GetLocalTrackerIssueRequest {
+  string connection_id = 1;
+  string id = 2;
+}
+
+message GetLocalTrackerIssueResponse {
+  harness.library.v1.TrackerIssue issue = 1;
+}
+
+message ListLocalTrackerFieldsRequest {
+  string connection_id = 1;
+  string project = 2;
+}
+
+message ListLocalTrackerFieldsResponse {
+  repeated harness.library.v1.TrackerField fields = 1;
+}
+
+message StartLocalTrackerOAuthRequest {
+  string connection_id = 1;
+}
+
+message StartLocalTrackerOAuthResponse {
+  string flow_id = 1;
+  string authorize_url = 2;
+}
+
+message GetLocalTrackerOAuthRequest {
+  string flow_id = 1;
+}
+
+message GetLocalTrackerOAuthResponse {
+  bool done = 1;
+  string error = 2;
+}
+
+message SyncLocalTrackersRequest {}
+
+message SyncLocalTrackersResponse {
+  int32 new_cards = 1;
+  // Connections that failed, as text. They also show on their stages.
+  repeated string errors = 2;
+}
+
+message ListLocalProviderProjectsRequest {
+  string connection_id = 1;
+}
+
+message ListLocalProviderProjectsResponse {
+  repeated harness.library.v1.ProviderProject projects = 1;
+}
+
+message FolderProject {
+  // Absolute path.
+  string folder = 1;
+  string project_id = 2;
+}
+
+message ListFolderProjectsRequest {}
+
+message ListFolderProjectsResponse {
+  repeated FolderProject links = 1;
+}
+
+message SetFolderProjectRequest {
+  string folder = 1;
+  // Empty: unlink.
+  string project_id = 2;
+}
+
+message SetFolderProjectResponse {}
+
+message PrepareIssueSessionRequest {
+  // An id or a key such as ABC-12.
+  string card_id = 1;
+}
+
+message PrepareIssueSessionResponse {
+  // The folder linked to the issue's project on this device; empty when none is, and the user picks one.
+  string folder = 1;
+  string branch = 2;
+  string prompt = 3;
+  string card_id = 4;
+}
+
+message ListAllKnowledgeSourcesRequest {}
+
+message ListAllKnowledgeSourcesResponse {
+  repeated harness.library.v1.KnowledgeSource sources = 1;
+}
+
+message SearchAllKnowledgeRequest {
+  string query = 1;
+  // Default 8, at most 30.
+  int32 limit = 2;
+  // Only these sources. Empty: every source.
+  repeated string source_ids = 3;
+}
+
+message SearchAllKnowledgeResponse {
+  repeated harness.library.v1.KnowledgeHit hits = 1;
+  repeated harness.library.v1.KnowledgeWarning warnings = 2;
+}
+
+message BrowseKnowledgeRequest {
+  string source_id = 1;
+  string parent_id = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message BrowseKnowledgeResponse {
+  repeated harness.library.v1.KnowledgeDocument documents = 1;
+  bool has_more = 2;
+}
+
+message ReadKnowledgeRequest {
+  string document_id = 1;
+}
+
+message ReadKnowledgeResponse {
+  harness.library.v1.KnowledgeDocument document = 1;
+  string content = 2;
+}

@@ -56,7 +56,7 @@ export function toolIcon(t: ToolItem): IconName {
     case 'ArtifactPublish': return 'copy'
     case 'KnowledgeSearch':
     case 'KnowledgeRead': return 'page'
-    case 'TaskTracker': return 'tasks'
+    case 'Issues': return 'tasks'
     case 'WebSearch':
     case 'WebFetch': return 'web-search'
     case 'Task':
@@ -131,7 +131,7 @@ export function toolTarget(t: ToolItem): string {
     case 'ArtifactPublish': return String(i.title ?? i.file_path ?? i.name ?? t.summary)
     case 'KnowledgeSearch': return `"${String(i.query ?? t.summary)}"`
     case 'KnowledgeRead': return String(i.document_id ?? 'documents')
-    case 'TaskTracker': return [i.action, i.title ?? i.id].filter(Boolean).join(' ') || t.summary
+    case 'Issues': return [i.operation, i.title ?? i.id].filter(Boolean).join(' ') || t.summary
     case 'Glob': return String(i.pattern ?? t.summary)
     case 'Grep': return `"${String(i.pattern ?? '')}"`
     case 'LSP': return lspTarget(i) || t.summary
