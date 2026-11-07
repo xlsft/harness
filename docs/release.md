@@ -6,6 +6,7 @@ A release is one tag, `vX.Y.Z`, and one version for everything. It produces:
 |---|---|---|
 | Server image | `ghcr.io/xlsft/harness:X.Y.Z`, `X.Y`, `latest`; signed, with an SBOM and provenance | `linux/amd64`, `linux/arm64` |
 | Desktop app | GitHub Release: `harness_X.Y.Z_darwin_<arch>.dmg`, and the `.app.tar.gz` the updater fetches | macOS, Apple Silicon and Intel |
+| Installer package | GitHub Release: `harness_X.Y.Z_darwin_<arch>.pkg`, the same app for device management ([enterprise.md](enterprise.md)) | macOS, Apple Silicon and Intel |
 | `harness-client` | GitHub Release: `harness-client_X.Y.Z_darwin_<arch>.tar.gz`, with an SBOM each | macOS, Apple Silicon and Intel |
 | Metadata | `checksums.txt`, signed twice (`.sigstore.json`, `.sig`); `latest.json`; a source SBOM; `harness.intoto.jsonl` | |
 
@@ -76,6 +77,7 @@ download it from its release page. Someone on an rc is offered the final `0.2.0`
    and signs it.
 4. `desktop` (`desktop.yml`) and `client-archives` (Goreleaser, `.goreleaser.yaml`) build for both architectures and keep the
    results as workflow artifacts.
+   `desktop` also makes the installer packages (`scripts/release/build-pkg.sh`).
 5. `publish` assembles (`scripts/release/assemble.sh`), signs, creates a **draft** release, attaches provenance, moves the
    image's `X.Y` and `latest` to the same digest, and only then publishes the draft.
 
@@ -109,6 +111,32 @@ to open what they got.
 Ad-hoc is a normal way to release, not a broken one: Apple Silicon requires every binary to carry a signature, and
 `signingIdentity: "-"` gives the app, the sidecar and the computer-use helper one that identifies nothing. The Tauri update
 signature is separate and works at every level: an update's origin is proven either way.
+
+### The installer package
+
+`scripts/release/build-pkg.sh` makes `harness_X.Y.Z_darwin_<arch>.pkg` from the very app the DMG holds, in the `desktop`
+job (`packages/desktop/scripts/build-release.sh`), so pull requests that touch it build one too. It installs the app into
+`/Applications`, not relocatable, for that architecture. Its signature is separate from the app's, with levels of its own:
+
+| Level | Secrets | |
+|---|---|---|
+| **Unsigned**, the default | none | Device management installs it; opened by hand, macOS asks for **Open Anyway** first |
+| **Developer ID Installer** | `APPLE_INSTALLER_CERTIFICATE`, `APPLE_INSTALLER_CERTIFICATE_PASSWORD`, `APPLE_INSTALLER_IDENTITY` | Signed; what consoles that insist on signed packages need |
+| **Notarized** | also the app notarized (its six secrets above) | Notarized and stapled. Apple refuses a package whose app isn't, so ad-hoc or signed-only apps never get this level |
+
+Each build writes `pkg-signing.txt`; `assemble.sh` checks the two architectures agree, and the release notes and the run's
+summary say which level it got. The certificate is a *Developer ID Installer* one, made like the application certificate
+([below](#getting-a-developer-id-optional), step 3, choosing **Developer ID Installer**), exported as a `.p12` the same way:
+
+```bash
+base64 -i ~/harness-developer-id-installer.p12 | gh secret set APPLE_INSTALLER_CERTIFICATE
+gh secret set APPLE_INSTALLER_CERTIFICATE_PASSWORD
+security find-identity -v                 # shows "Developer ID Installer: Your Name (TEAMID)"
+gh secret set APPLE_INSTALLER_IDENTITY    # that whole quoted name
+```
+
+`build-pkg.sh` imports it into a keychain of its own run and deletes that afterwards. An administrator uses the same script
+to make a package with their server's URL in it ([enterprise.md](enterprise.md#macos-the-installer-package)).
 
 ### The DMG's window
 
@@ -197,6 +225,9 @@ then stay. The certificate lasts years, and a release already out stays valid af
 | `APPLE_ID` | to notarize | Apple Account email |
 | `APPLE_PASSWORD` | to notarize | An app-specific password |
 | `APPLE_TEAM_ID` | to notarize | 10-character Team ID |
+| `APPLE_INSTALLER_CERTIFICATE` | no | Base64 of the Developer ID Installer `.p12`, for the `.pkg` |
+| `APPLE_INSTALLER_CERTIFICATE_PASSWORD` | with that certificate | Its `.p12`'s password |
+| `APPLE_INSTALLER_IDENTITY` | with that certificate | `Developer ID Installer: Your Name (TEAMID)` |
 
 ## How things update
 
@@ -212,6 +243,11 @@ verifies the archive against it, runs the new binary once, and renames it over i
 archive name carries the version, so an older signed `checksums.txt` lists nothing it would accept. The app's sidecar refuses
 this command and says so. A build not from a release has no key and refuses; a development build also asks for `--force`. A
 standalone client has no computer-use helper: that comes only with the app.
+
+**On managed machines** an administrator can turn both off (`disableUpdates`) or point both at an internal mirror
+(`updateMirrorUrl`, made by `scripts/release/offline-bundle.sh`): the app then reads the mirror's `latest.json` and the client
+its `<tag>/checksums.txt`, verified with the same key. [enterprise.md](enterprise.md#an-internal-mirror-and-offline-installs)
+has the details.
 
 **The server** doesn't update itself. Settings → About shows its version and whether a newer one exists (the client asks GitHub;
 the server isn't involved, so an air-gapped server stays quiet), and gives admins the commands.
@@ -247,7 +283,7 @@ docker buildx imagetools inspect ghcr.io/xlsft/harness:0.1.0 --format '{{json .S
 Nothing here publishes:
 
 ```bash
-scripts/release/test.sh                          # the scripts, in throwaway repositories
+scripts/release/test.sh                          # the scripts, in throwaway repositories (on macOS also build-pkg.sh)
 go -C packages/client test ./selfupdate          # the client's update against a fake GitHub
 cargo test --manifest-path packages/desktop/src-tauri/Cargo.toml   # the app's update against a fake server
 actionlint                                       # the workflows

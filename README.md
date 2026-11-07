@@ -35,6 +35,7 @@ The app updates itself from **Settings > About**, and `harness-client update` up
 - **LDAP**: sign-in with OpenLDAP or Active Directory, set up in **Settings > LDAP**, with test buttons for the connection and for a user lookup
 - **Keys in one place**: provider keys stay encrypted on the server. Clients never get them; personal keys can't be read or used by admins
 - **Limits and spend**: quotas per person, and tokens and cost per model and per user, with prices from a [public catalog](https://models.dev) or set by hand. No per-seat pricing
+- **Managed machines**: an installer package, profiles for Jamf, Kandji and Intune, a Windows ADMX template, and an offline update mirror ([`docs/enterprise.md`](docs/enterprise.md)). Dev containers: [`docs/devcontainers.md`](docs/devcontainers.md)
 - **Your data stays with you**: sessions, files and history live on your infrastructure. With local models your code doesn't leave it, and `HARNESS_MODEL_PRICES=off` stops the one outside fetch the server makes for prices
 
 ## What it does

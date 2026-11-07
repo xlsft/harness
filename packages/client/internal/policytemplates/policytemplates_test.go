@@ -20,7 +20,7 @@ import (
 var committed = filepath.Join("..", "..", "..", "..", "deploy", "mdm")
 
 // handWritten are the files of deploy/mdm that aren't generated.
-var handWritten = map[string]bool{"README.md": true, "macos/build-pkg.md": true}
+var handWritten = map[string]bool{"README.md": true}
 
 // The committed templates are what the schema generates now. When this fails, run scripts/policy-templates.sh.
 func TestTemplatesAreCurrent(t *testing.T) {
