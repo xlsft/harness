@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1
+#
+# A runner node of cloud sessions: harness-client runner in a container, next to the container engine it drives
+# (docs/design/cloud-sessions.md; deploy/README.md, "Cloud sessions"; deploy/compose.runner.yml).
+#
+# Build from the repo root:  docker build -f deploy/Dockerfile.runner -t harness-runner .
+#
+# It runs no agent: it needs the engine's socket, and nothing of git or toolchains.
+
+ARG GO_VERSION=1.26
+ARG DEBIAN_TAG=trixie-slim
+
+FROM golang:${GO_VERSION}-trixie AS build
+WORKDIR /src
+COPY packages/client/go.mod packages/client/go.sum ./
+RUN --mount=type=cache,id=gomod,target=/go/pkg/mod go mod download
+COPY packages/client/ ./
+RUN --mount=type=cache,id=gomod,target=/go/pkg/mod --mount=type=cache,id=gobuild,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/harness-client ./cmd/harness-client
+
+FROM debian:${DEBIAN_TAG}
+RUN apt-get -o Acquire::Retries=5 update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=build /out/harness-client /usr/local/bin/harness-client
+ENV HARNESS_HOME=/var/lib/harness-runner/home HARNESS_KEYRING=0
+ENTRYPOINT ["harness-client", "runner"]

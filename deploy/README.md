@@ -150,6 +150,50 @@ What agents can use on a host is what is in the image. The OS sandbox applies wh
 
 On the server, `HARNESS_HOST_AWAY_GRACE_S` (120) is how long a session's machine is away before its pending jobs go to a host.
 
+## Cloud sessions
+
+A cloud session runs in a one-off container on a **runner node**: a machine of yours with Docker or Podman, where `harness-client runner` starts a container per session, removes it when the session has been idle (an hour by default) and starts another when the next message comes. State lives in the session's branch, pushed at the end of every turn, and in the transcript on the server. "Cloud" appears next to This computer and the hosts in the new-session menu for anyone a runner is for. Design, lifecycle and security model: [docs/design/cloud-sessions.md](../docs/design/cloud-sessions.md).
+
+**1. Build the sessions' image** on the runner node (or push it to a registry it can pull from):
+
+```bash
+docker build -f deploy/Dockerfile.agent -t harness-agent .   # from the repo root: git, Node + pnpm, Go, Python + uv, user 10001
+```
+
+Extend it per organization with `FROM harness-agent` (see the head of the Dockerfile). No secret goes into it.
+
+**2. Add the runner** as an admin under Settings > Always-on hosts > Cloud runners: a name, the group whose members may use it (none: everyone), how many containers at once, the image, the runtime, limits and timeouts. Keep the token it shows once.
+
+**3. Start it** on the node:
+
+```bash
+cd deploy
+install -m 600 /dev/stdin runner-token <<<"hdt_..."
+sudo install -d /var/lib/harness-runner/cache
+HARNESS_SERVER_URL=https://harness.example.com docker compose -f compose.runner.yml up -d
+```
+
+Without compose: `HARNESS_SERVER_URL=... HARNESS_DEVICE_TOKEN_FILE=... harness-client runner --cache-dir /var/lib/harness-runner/cache`, as a user that may use the engine's socket.
+
+| Flag | Default | |
+|---|---|---|
+| `--engine` | `DOCKER_HOST`, then `/var/run/docker.sock`, then `/run/podman/podman.sock` | The engine's API. Podman: run `podman system service` (rootful) and point here |
+| `--cache-dir` | `/var/lib/harness-runner/cache` | Caches per user (pnpm store, Go modules and build cache, uv), mounted into containers. A path on the engine's machine |
+| `--network` | `harness-cloud` | The containers' internal network; made if missing |
+| `--self-container` | `HARNESS_RUNNER_CONTAINER` | The runner's own container: it joins the network as `harness-egress` and serves the proxy there |
+| `--proxy-listen`, `--proxy-url` | the network's gateway, port 3128 | For a runner outside a container: where the proxy listens, and what containers are told |
+| `--agent-server-url` | `--server` | The server's address as containers reach it, through the proxy |
+
+**gVisor** (recommended): install `runsc` on the node and register it with the engine (`runsc install` for Docker, `runtimes` in `containers.conf` for Podman), then set the runner's runtime to `runsc`. It puts a user-space kernel between the agent and the node's kernel; builds get slower. What it adds and doesn't: [the design](../docs/design/cloud-sessions.md#what-gvisor-adds-and-what-it-doesnt).
+
+**Network.** Containers are on an internal network with no route out; the runner's proxy is their only way out, and lets each reach the allowlist of its user: the policy's cloud egress list (Settings > Managed policy), or by default the package registries and your code hosts, plus your server's public address. No private, loopback or metadata address unless an entry names it.
+
+**Limits.** CPU, memory (no swap on top) and processes per container are the engine's. Disk: set "engine enforces disk size" only where the storage driver supports a size (overlay2 on xfs with `pquota`, btrfs, zfs); otherwise the runner measures each container every five minutes and removes one that is over. The managed policy caps containers per user and per group, and keeps `bypassPermissions` off in the cloud unless it says otherwise.
+
+**Credentials.** The runner's token can only talk to the host service. Each container gets a token for its session's own device, copied in before it starts and deleted by the daemon once read; it is rotated every time a container starts. Git credentials come from the code host connection, per git command, as on hosts.
+
+On the server, `HARNESS_CLOUD_START_TIMEOUT_MS` (10 minutes) is how long a container has to come up before it is tried again (three times).
+
 ## Users and LDAP
 
 Admins manage accounts in the app: **Settings → Users** (the section is shown by role; the server decides what each role may

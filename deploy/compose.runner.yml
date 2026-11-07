@@ -1,0 +1,40 @@
+# A runner node of cloud sessions (docs/design/cloud-sessions.md; deploy/README.md, "Cloud sessions").
+#
+#   docker build -f deploy/Dockerfile.agent -t harness-agent ..     # the sessions' image (or your own FROM it)
+#   docker compose -f deploy/compose.runner.yml up -d
+#
+# Set in .env next to this file: HARNESS_SERVER_URL, and put the runner's token (Settings → Hosts → Cloud runners) in a
+# file ./runner-token (0600), which compose gives the container as a secret.
+#
+# The runner talks to this machine's engine through its socket: whoever controls the runner controls the engine. Run it on a
+# machine that runs nothing else of value; the session containers it starts are the only other tenants.
+
+secrets:
+  runner_token:
+    file: ./runner-token
+
+services:
+  runner:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.runner
+    image: harness-runner
+    restart: unless-stopped
+    secrets: [runner_token]
+    environment:
+      HARNESS_SERVER_URL: ${HARNESS_SERVER_URL:?the address of your server}
+      HARNESS_DEVICE_TOKEN_FILE: /run/secrets/runner_token
+      # The runner joins the sessions' network under the name harness-egress and serves the proxy there.
+      HARNESS_RUNNER_CONTAINER: harness-runner
+      # Podman: unix:///run/podman/podman.sock, and mount that socket instead.
+      DOCKER_HOST: unix:///var/run/docker.sock
+    container_name: harness-runner
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Bind mounts are paths on this machine: the caches must be at the same path inside and out.
+      - /var/lib/harness-runner/cache:/var/lib/harness-runner/cache
+    command: ["--cache-dir", "/var/lib/harness-runner/cache"]
+    # Root in the container, with only what it needs to keep the caches of the sessions' user (uid 10001).
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER]
+    security_opt: ["no-new-privileges:true"]
