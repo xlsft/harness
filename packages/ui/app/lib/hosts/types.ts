@@ -2,6 +2,49 @@
 // only the words for it.
 
 import { tt } from '~/utils/i18n'
+import type { CloudEnvironmentName } from '~/lib/session/types'
+
+// The new-session menu's choice of "Cloud": the server picks a runner (docs/design/cloud-sessions.md).
+export const CLOUD_HOST = 'cloud'
+
+// A runner's configuration (CloudRunnerConfig); 0 and '' mean the server's defaults.
+export interface RunnerConfigView {
+  image: string
+  allowedImages: string[]
+  runtime: string
+  cpuMillis: number
+  memoryBytes: number
+  diskBytes: number
+  pids: number
+  idleTimeoutSeconds: number
+  maxLifetimeSeconds: number
+  cacheMaxBytes: number
+  cacheScope: 'user' | 'runner'
+  storageOptSize: boolean
+}
+
+export interface CloudStatsView {
+  starting: number
+  running: number
+  idle: number
+  removed: number
+  failed: number
+}
+
+export interface CloudSessionView {
+  id: string
+  hostName: string
+  userName: string
+  sessionId: string
+  state: CloudEnvironmentName
+  image: string
+  repositoryKey: string
+  error: string
+  diskBytes: number
+  starts: number
+  startedAt: string
+  lastActiveAt: string
+}
 
 export interface HostWorkerView {
   userId: string
@@ -13,7 +56,7 @@ export interface HostWorkerView {
 export interface HostView {
   id: string
   name: string
-  scope: 'user' | 'team'
+  scope: 'user' | 'team' | 'cloud'
   ownerName: string
   groupId: string
   groupName: string
@@ -25,7 +68,7 @@ export interface HostView {
   maxSessionsPerUser: number
   workingSessions: number
   queuedWork: number
-  isolation: 'none' | 'uid' | ''
+  isolation: 'none' | 'uid' | 'container' | ''
   sandboxDriver: string
   os: string
   arch: string
@@ -37,6 +80,9 @@ export interface HostView {
   awayHost: boolean
   lastSeenAt: string
   workers: HostWorkerView[]
+  // Runners: the configuration (admins only) and what they have.
+  cloud: RunnerConfigView | null
+  cloudStats: CloudStatsView | null
 }
 
 export type WorkState = 'queued' | 'preparing' | 'running' | 'done' | 'failed' | 'cancelled' | 'expired'
@@ -54,6 +100,8 @@ export interface HostWorkView {
   pullRequestUrl: string
   error: string
   createdAt: string
+  cloud: boolean
+  cloudState: CloudEnvironmentName
 }
 
 export interface NewHost {
@@ -63,6 +111,8 @@ export interface NewHost {
   maxSessions: number
   maxSessionsPerUser: number
   allowedRepositories: string[]
+  // A runner of cloud sessions, with this configuration.
+  runner?: RunnerConfigView
 }
 
 export interface HostChanges {
@@ -71,9 +121,12 @@ export interface HostChanges {
   maxSessions?: number
   maxSessionsPerUser?: number
   allowedRepositories?: string[]
+  groupId?: string
+  runner?: RunnerConfigView
 }
 
 export interface StartWork {
+  // CLOUD_HOST: a cloud session on a runner the server picks.
   hostId: string
   repositoryKey: string
   baseRef: string
@@ -97,6 +150,25 @@ export interface HostsApi {
   listWork(hostId?: string): Promise<HostWorkView[]>
   cancel(id: string): Promise<HostWorkView>
   setAway(hostId: string): Promise<void>
+  // Cloud sessions: the caller's, or with a runner and admin rights everyone's on it.
+  listCloudSessions(hostId?: string): Promise<CloudSessionView[]>
+  stopCloudSession(id: string, end: boolean): Promise<CloudSessionView>
+}
+
+export function cloudStateText(state: CloudEnvironmentName): string {
+  switch (state) {
+    case 'starting': return tt('Starting')
+    case 'running': return tt('Running')
+    case 'idle': return tt('Idle')
+    case 'removed': return tt('Removed')
+    case 'failed': return tt('Failed')
+    case 'ended': return tt('Ended')
+  }
+  return ''
+}
+
+export function emptyRunnerConfig(): RunnerConfigView {
+  return { image: '', allowedImages: [], runtime: '', cpuMillis: 0, memoryBytes: 0, diskBytes: 0, pids: 0, idleTimeoutSeconds: 0, maxLifetimeSeconds: 0, cacheMaxBytes: 0, cacheScope: 'user', storageOptSize: false }
 }
 
 export function formatBytes(n: number): string {
@@ -120,11 +192,13 @@ export function hostLoadText(h: HostView): string {
 
 export function isolationText(h: HostView): string {
   if (h.scope === 'user') return tt('One user')
+  if (h.scope === 'cloud') return tt('A container for each session')
   if (h.isolation === 'uid') return tt('A Unix user for each member')
   return h.isolation === 'none' ? tt('Cannot separate users: takes no work') : tt('Not started yet')
 }
 
 export function workStateText(w: HostWorkView): string {
+  if (w.cloud && (w.state === 'queued' || w.state === 'preparing')) return tt('Starting environment…')
   switch (w.state) {
     case 'queued': return tt('Waiting for the host')
     case 'preparing': return tt('Making the checkout')
@@ -139,4 +213,59 @@ export function workStateText(w: HostWorkView): string {
 // host/owner/name, with what people paste in front of it taken off. The server checks it again.
 export function repositoryKeyOf(input: string): string {
   return input.trim().replace(/^[a-z+]+:\/\//i, '').replace(/^git@([^:]+):/, '$1/').replace(/\.git$/, '').replace(/\/+$/, '').toLowerCase()
+}
+
+const GiB = 1024 ** 3
+
+// A runner's configuration as the settings form edits it: CPUs, GiB, minutes and hours; empty keeps the server's default.
+export interface RunnerConfigForm {
+  image: string
+  allowedImages: string
+  runtime: string
+  cpus: string
+  memoryGiB: string
+  diskGiB: string
+  pids: string
+  idleMinutes: string
+  lifetimeHours: string
+  cacheGiB: string
+  cacheScope: 'user' | 'runner'
+  storageOptSize: boolean
+}
+
+export function runnerForm(c: RunnerConfigView | null): RunnerConfigForm {
+  const v = c ?? emptyRunnerConfig()
+  const n = (x: number, unit = 1) => (x ? String(Math.round((x / unit) * 100) / 100) : '')
+  return {
+    image: v.image,
+    allowedImages: v.allowedImages.join('\n'),
+    runtime: v.runtime,
+    cpus: n(v.cpuMillis, 1000),
+    memoryGiB: n(v.memoryBytes, GiB),
+    diskGiB: n(v.diskBytes, GiB),
+    pids: n(v.pids),
+    idleMinutes: n(v.idleTimeoutSeconds, 60),
+    lifetimeHours: n(v.maxLifetimeSeconds, 3600),
+    cacheGiB: n(v.cacheMaxBytes, GiB),
+    cacheScope: v.cacheScope,
+    storageOptSize: v.storageOptSize
+  }
+}
+
+export function runnerConfigFromForm(f: RunnerConfigForm): RunnerConfigView {
+  const num = (s: string, unit = 1) => Math.max(0, Math.round((Number(s) || 0) * unit))
+  return {
+    image: f.image.trim(),
+    allowedImages: f.allowedImages.split('\n').map(s => s.trim()).filter(Boolean),
+    runtime: f.runtime,
+    cpuMillis: num(f.cpus, 1000),
+    memoryBytes: num(f.memoryGiB, GiB),
+    diskBytes: num(f.diskGiB, GiB),
+    pids: num(f.pids),
+    idleTimeoutSeconds: num(f.idleMinutes, 60),
+    maxLifetimeSeconds: num(f.lifetimeHours, 3600),
+    cacheMaxBytes: num(f.cacheGiB, GiB),
+    cacheScope: f.cacheScope,
+    storageOptSize: f.storageOptSize
+  }
 }

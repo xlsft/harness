@@ -8,7 +8,7 @@ import type { SessionState } from '~/lib/session/types'
 const props = defineProps<{ session: SessionState }>()
 const store = useSessionStore()
 
-const device = computed(() => props.session.meta.deviceName || 'another machine')
+const device = computed(() => props.session.meta.cloudEnvironment ? tt('the cloud') : props.session.meta.deviceName || 'another machine')
 const presence = computed(() => {
   const m = props.session.meta
   if (m.remoteControllable) return { text: 'online', cls: 'text-ok' }

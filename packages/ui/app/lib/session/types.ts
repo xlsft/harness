@@ -489,6 +489,8 @@ export interface SessionMeta {
   remote: boolean
   deviceOnline: boolean | null
   remoteControllable: boolean
+  // A cloud session (docs/design/cloud-sessions.md): the state of its container; '' for any other session.
+  cloudEnvironment: CloudEnvironmentName
   additions: number
   deletions: number
   filesChanged: number
@@ -647,3 +649,5 @@ export interface SessionState {
   // Grows when an MCP server's list changes, for what shows commands and mentions to read them again.
   mcpListVersion: number
 }
+
+export type CloudEnvironmentName = '' | 'starting' | 'running' | 'idle' | 'removed' | 'failed' | 'ended'

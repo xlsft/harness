@@ -8,7 +8,10 @@ const store = useSessionStore()
 const access = useAccess()
 const toast = useToast()
 
-const hosts = ref<HostView[]>([])
+const all = ref<HostView[]>([])
+// Runners of cloud sessions have their own section (SettingsRunners).
+const hosts = computed(() => all.value.filter(h => h.scope !== 'cloud'))
+const runners = computed(() => all.value.filter(h => h.scope === 'cloud'))
 const work = ref<HostWorkView[]>([])
 const groups = ref<GroupView[]>([])
 const error = ref('')
@@ -43,7 +46,7 @@ async function load() {
   await run(async () => {
     await access.load()
     const [h, w] = await Promise.all([api().list(canAll.value), api().listWork()])
-    hosts.value = h
+    all.value = h
     work.value = w
     if (canWrite.value && !groups.value.length) groups.value = await store.transport!.enterprise().listGroups()
   })
@@ -342,6 +345,13 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
         {{ tt('Add a host') }}
       </HBtn>
     </div>
+
+    <SettingsRunners
+      v-if="runners.length || canWrite"
+      :runners="runners"
+      :groups="groups"
+      @changed="load"
+    />
 
     <div
       v-if="work.length"

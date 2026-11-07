@@ -2,8 +2,9 @@
 // Environment picker of the new-session screen. A session runs on the client this window talks to: this computer, or a saved SSH
 // host, which moves the whole window there. Or on an always-on host from the server's list (docs/design/hosts.md), which makes
 // a checkout of its own: a host that can't take the work says why, and an offline one still takes it and the work waits.
+// Or in the cloud (docs/design/cloud-sessions.md), when a runner is there for this user: the server picks the runner.
 import type { SshHostVM } from '~/lib/ssh'
-import { hostLoadText, type HostView } from '~/lib/hosts/types'
+import { CLOUD_HOST, hostLoadText, type HostView } from '~/lib/hosts/types'
 
 const props = defineProps<{ agentHosts?: HostView[], current?: string }>()
 const emit = defineEmits<{ close: [], pick: [hostId: string] }>()
@@ -14,8 +15,12 @@ const connecting = ref<SshHostVM | null>(null)
 const shown = computed(() => hosts.value.filter(h => `${h.name} ${h.destination}`.toLowerCase().includes(query.value.trim().toLowerCase())))
 const shownAgentHosts = computed(() => {
   const q = query.value.trim().toLowerCase()
-  return (props.agentHosts ?? []).filter(h => !q || `${h.name} ${h.groupName}`.toLowerCase().includes(q))
+  return (props.agentHosts ?? []).filter(h => h.scope !== 'cloud' && (!q || `${h.name} ${h.groupName}`.toLowerCase().includes(q)))
 })
+// Cloud: offered when a runner is there for this user; unavailable, with the reason, when none of them can take it.
+const runners = computed(() => (props.agentHosts ?? []).filter(h => h.scope === 'cloud'))
+const cloudReason = computed(() => runners.value.some(h => !h.unavailableReason) ? '' : runners.value[0]?.unavailableReason ?? '')
+const showCloud = computed(() => runners.value.length > 0 && (!query.value.trim() || tt('Cloud').toLowerCase().includes(query.value.trim().toLowerCase())))
 const local = computed(() => !store.sshHost && !props.current)
 
 onMounted(async () => {
@@ -78,6 +83,32 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
         class="text-accent"
       />
     </div>
+    <template v-if="showCloud">
+      <div class="my-1 h-px bg-line" />
+      <div
+        role="menuitemradio"
+        :aria-checked="current === CLOUD_HOST"
+        :aria-disabled="!!cloudReason"
+        :title="cloudReason || undefined"
+        tabindex="0"
+        :class="[ROW, current === CLOUD_HOST ? 'border-accent bg-raised text-strong' : 'border-transparent', cloudReason ? 'cursor-not-allowed text-muted' : 'hover:bg-raised']"
+        @click="!cloudReason && pickAgentHost(CLOUD_HOST)"
+        @keydown.enter="!cloudReason && pickAgentHost(CLOUD_HOST)"
+      >
+        <HIcon
+          name="globe"
+          :size="13"
+        />
+        <span class="min-w-0 flex-1 truncate">{{ tt('Cloud') }}</span>
+        <span class="shrink-0 text-[11px] text-muted">{{ cloudReason ? tt('unavailable') : tt('a container per session') }}</span>
+        <HIcon
+          v-if="current === CLOUD_HOST"
+          name="check"
+          :size="13"
+          class="text-accent"
+        />
+      </div>
+    </template>
     <template v-if="shownAgentHosts.length">
       <div class="my-1 h-px bg-line" />
       <div class="px-2.5 pt-[5px] pb-0.5 text-[11px] text-muted">

@@ -182,6 +182,12 @@ export interface ManagedPolicy {
   allowedProviders: string[]
   personalProvidersDisabled: boolean
   personalHostsDisabled: boolean
+  // Cloud sessions (docs/design/cloud-sessions.md).
+  cloudDisabled: boolean
+  cloudBypassPermissionsAllowed: boolean
+  cloudEgressAllow: string[]
+  cloudMaxSessionsPerUser: number
+  cloudMaxSessionsPerGroup: number
   restrictMcpServers: boolean
   allowedMcpServers: string[]
   restrictPluginSources: boolean
@@ -209,7 +215,7 @@ export interface ManagedPolicyState {
 }
 
 export function emptyManagedPolicy(): ManagedPolicy {
-  return { allowRules: [], askRules: [], denyRules: [], managedRulesOnly: false, sandboxRequired: false, sandboxOutsideRefused: false, restrictProviders: false, allowedProviders: [], personalProvidersDisabled: false, personalHostsDisabled: false, restrictMcpServers: false, allowedMcpServers: [], restrictPluginSources: false, allowedPluginSources: [], blockedPluginSources: [], distributedMarketplaces: [], distributedPlugins: [], blockedPlugins: [], restrictSkills: false, allowedSkills: [], blockedSkills: [], externalSkillSearchDisabled: false }
+  return { allowRules: [], askRules: [], denyRules: [], managedRulesOnly: false, sandboxRequired: false, sandboxOutsideRefused: false, restrictProviders: false, allowedProviders: [], personalProvidersDisabled: false, personalHostsDisabled: false, cloudDisabled: false, cloudBypassPermissionsAllowed: false, cloudEgressAllow: [], cloudMaxSessionsPerUser: 0, cloudMaxSessionsPerGroup: 0, restrictMcpServers: false, allowedMcpServers: [], restrictPluginSources: false, allowedPluginSources: [], blockedPluginSources: [], distributedMarketplaces: [], distributedPlugins: [], blockedPlugins: [], restrictSkills: false, allowedSkills: [], blockedSkills: [], externalSkillSearchDisabled: false }
 }
 
 export interface EnterpriseApi {

@@ -21,6 +21,7 @@ import { WorkflowState, type WorkflowInfo } from '~/gen/harness/agent/v1/workflo
 import type { AssistantDelta, SessionEvent, SessionInfo, ShowRequested, UsageLimit, UserMessage } from '~/gen/harness/agent/v1/agent_pb'
 import {
   BackgroundReason,
+  CloudEnvironmentState,
   Compacted_Trigger,
   Notice_Level,
   PermissionMode,
@@ -36,6 +37,7 @@ import {
   UsageLimit_State
 } from '~/gen/harness/agent/v1/agent_pb'
 import type {
+  CloudEnvironmentName,
   HookItem,
   SubagentStateName,
   SubagentStep,
@@ -92,6 +94,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
       remote: false,
       deviceOnline: null,
       remoteControllable: false,
+      cloudEnvironment: '',
       additions: 0,
       deletions: 0,
       filesChanged: 0,
@@ -203,6 +206,19 @@ export function statusName(status: SessionStatus): Status {
   }
 }
 
+const CLOUD: Record<number, CloudEnvironmentName> = {
+  [CloudEnvironmentState.STARTING]: 'starting',
+  [CloudEnvironmentState.RUNNING]: 'running',
+  [CloudEnvironmentState.IDLE]: 'idle',
+  [CloudEnvironmentState.REMOVED]: 'removed',
+  [CloudEnvironmentState.FAILED]: 'failed',
+  [CloudEnvironmentState.ENDED]: 'ended'
+}
+
+export function cloudEnvironmentName(state: CloudEnvironmentState): CloudEnvironmentName {
+  return CLOUD[state] ?? ''
+}
+
 export function sessionMeta(info: SessionInfo): SessionMeta {
   const pr = info.pullRequest
   const prState = pr?.state === PullRequest_State.DRAFT
@@ -224,6 +240,7 @@ export function sessionMeta(info: SessionInfo): SessionMeta {
     remote: info.remote,
     deviceOnline: info.deviceOnline ?? null,
     remoteControllable: info.remoteControllable,
+    cloudEnvironment: cloudEnvironmentName(info.cloudEnvironment),
     additions: info.diffStats?.additions ?? 0,
     deletions: info.diffStats?.deletions ?? 0,
     filesChanged: info.diffStats?.filesChanged ?? 0,
