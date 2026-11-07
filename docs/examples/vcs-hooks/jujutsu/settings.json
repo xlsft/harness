@@ -1,0 +1,8 @@
+{
+  "hooks": {
+    "WorktreeCreate": [{ "hooks": [{ "type": "command", "command": "python3 \"$HOME\"/.harness/hooks/jj-hooks.py", "timeout": 120 }] }],
+    "WorktreeRemove": [{ "hooks": [{ "type": "command", "command": "python3 \"$HOME\"/.harness/hooks/jj-hooks.py", "timeout": 120 }] }],
+    "VcsStatus": [{ "hooks": [{ "type": "command", "command": "python3 \"$HOME\"/.harness/hooks/jj-hooks.py" }] }],
+    "VcsDiff": [{ "hooks": [{ "type": "command", "command": "python3 \"$HOME\"/.harness/hooks/jj-hooks.py" }] }]
+  }
+}
