@@ -467,6 +467,10 @@ export class ConnectTransport implements SessionTransport {
     await this.client.stopShellCommand({ sessionId, commandId })
   }
 
+  async answerWorktreeSetup(sessionId: string, setupId: string, accept: boolean) {
+    await this.client.answerWorktreeSetup({ sessionId, setupId, accept })
+  }
+
   async listModels(): Promise<ModelInfo[]> {
     const init = await this.initialize()
     // An older client sends ids only.

@@ -6,6 +6,7 @@ import { create } from '@bufbuild/protobuf'
 import { messageContent, type OutgoingAttachment } from '~/lib/session/attachments'
 import type { SubagentState, SubagentStepStatus } from '~/gen/harness/agent/v1/subagents_pb'
 import type { HookRun_Status } from '~/gen/harness/agent/v1/hooks_pb'
+import type { WorktreeSetup_State, WorktreeSetupStep_Status } from '~/gen/harness/agent/v1/worktree_setup_pb'
 import {
   Compacted_Trigger,
   Notice_Level,
@@ -294,6 +295,15 @@ export class EventBuilder {
   hookRun(runId: string, event: string, command: string, status: HookRun_Status, o: { output?: string, decision?: string, durationMs?: number, toolName?: string, toolUseId?: string, source?: string, exitCode?: number } = {}) {
     return this.emit({ case: 'hookRun', value: { runId, event, handlerType: 'command', command, matcher: '', source: o.source ?? 'project', status, exitCode: o.exitCode, output: o.output ?? '', decision: o.decision ?? '',
       durationMs: BigInt(o.durationMs ?? 0), toolName: o.toolName ?? '', toolUseId: o.toolUseId ?? '', agentId: '', async: false } as never })
+  }
+
+  worktreeSetup(id: string, state: WorktreeSetup_State, steps: { command: string, dir?: string, status: WorktreeSetupStep_Status, exitCode?: number, output?: string }[], o: { worktreePath?: string, suggestedConfig?: string, error?: string } = {}) {
+    return this.emit({ case: 'worktreeSetupUpdated', value: { setup: {
+      id, state, worktreePath: o.worktreePath ?? '/repo/.harness/worktrees/w', configPath: '/repo/.harness/worktree.json', agentId: '',
+      suggestedConfig: o.suggestedConfig ?? '', durationMs: 0n, error: o.error ?? '',
+      steps: steps.map(st => ({ command: st.command, dir: st.dir ?? '.', status: st.status, exitCode: st.exitCode ?? -1, output: st.output ?? '',
+        durationMs: 0n, error: '', manager: '', timeoutMs: 0n }))
+    } } as never })
   }
 
   subagent(id: string, toolUseId: string, name: string, type: string, model: string, state: SubagentState, o: { toolCalls?: number, steps?: { tool: string, target: string, status: SubagentStepStatus }[] } = {}) {

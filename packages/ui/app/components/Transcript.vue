@@ -439,6 +439,11 @@ function toBottom() {
               v-else-if="b.item.kind === 'hook'"
               :hook="b.item"
             />
+            <WorktreeSetupCard
+              v-else-if="b.item.kind === 'worktreeSetup'"
+              :item="b.item"
+              :session-id="session.meta.id"
+            />
             <EventCard
               v-else-if="b.item.kind === 'compact'"
               :compact="b.item"
