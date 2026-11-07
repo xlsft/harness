@@ -8,7 +8,7 @@
     },
     "operation": {
       "type": "string",
-      "enum": ["edit", "create", "merge", "split"],
+      "enum": ["edit", "create", "merge", "split", "convert"],
       "description": "What to do; edit when left out"
     },
     "edits": {
@@ -40,7 +40,10 @@
           "position": { "type": "integer", "minimum": 1 },
           "pages": { "type": "string" },
           "degrees": { "type": "integer" },
-          "fields": { "type": "object" }
+          "fields": { "type": "object" },
+          "image": { "type": "string", "description": "Absolute path of a PNG, JPEG or GIF picture" },
+          "alt": { "type": "string", "description": "Alternative text of a picture; empty for a decorative one" },
+          "size": { "type": "number", "description": "PDF text size in points" }
         },
         "required": ["op"],
         "additionalProperties": false
@@ -69,11 +72,15 @@
     },
     "source": {
       "type": "string",
-      "description": "For split: the PDF to take pages from"
+      "description": "For split: the PDF to take pages from; for convert: the file to convert"
     },
     "pages": {
       "type": "string",
       "description": "For split: the pages to write"
+    },
+    "run_outside_sandbox": {
+      "type": "boolean",
+      "description": "For convert: ask the user to run LibreOffice outside the OS sandbox. Only after a conversion said it needs that"
     },
     "description": {
       "type": "string",

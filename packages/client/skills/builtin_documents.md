@@ -18,7 +18,8 @@ paths: "**/*.docx, **/*.docm, **/*.dotx, **/*.dotm, **/*.xlsx, **/*.xlsm, **/*.x
 
 - When someone else will review the change, or the document already has tracked changes, keep your edits tracked and sign them. Say which edits you made untracked.
 - Make the smallest edit that does the job: replace the words that change, not the whole paragraph, so formatting and history stay intact. When a replacement crosses differently formatted text, check the report and decide whether the result reads right.
-- Comment rather than rewrite when the decision belongs to the author.
+- Comment rather than rewrite when the decision belongs to the author. Reply in the comment's thread instead of starting a new one, and resolve a thread only when its question is settled.
+- Every picture you add needs alternative text that says what it shows, or an empty one when it is only decoration. A replaced picture keeps the old text unless you give new text.
 - A table of contents, cross-references and page numbers are fields that Word regenerates. Change the source, then tell the user to update fields.
 
 ## Excel
@@ -40,7 +41,8 @@ paths: "**/*.docx, **/*.docm, **/*.dotx, **/*.dotm, **/*.xlsx, **/*.xlsm, **/*.x
 
 - A PDF is a final form: page order, rotation and form fields are the work here. For changes to the content, go back to its source if there is one.
 - A signed file stays as it is. Say that, and ask for an unsigned copy.
-- Scanned pages have no text layer, so searching them finds nothing. Read them visually and say that you did.
+- Text or a picture added to a page sits on top of what is there: render the page afterwards to see that it covers nothing.
+- Scanned pages have no text layer, so searching them finds nothing. Recognise them with `ocr` when an engine is there, otherwise read them visually, and say which you did.
 
 ## New documents
 
