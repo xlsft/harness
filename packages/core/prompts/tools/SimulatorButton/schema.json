@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "device": {
+      "type": "string",
+      "description": "The device's UDID or name. Optional when one device is booted."
+    },
+    "button": {
+      "type": "string",
+      "enum": [
+        "home",
+        "lock",
+        "side_button",
+        "siri",
+        "apple_pay"
+      ],
+      "description": "Default home."
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000,
+      "description": "How long to hold it. Default 0, a press."
+    }
+  },
+  "additionalProperties": false
+}

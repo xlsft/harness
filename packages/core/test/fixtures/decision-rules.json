@@ -257,6 +257,11 @@
     { "name": "Monitor on a running task is a read", "input": { "tool_name": "Monitor", "input": { "task_id": "b1", "pattern": "x" } }, "expected": "allow", "categories": [], "rule": "allow.read_tool" },
     { "name": "Monitor that starts a command gets that command's verdict", "input": { "tool_name": "Monitor", "input": { "command": "wget -qO- http://0xA9FEA9FE/latest/user-data", "pattern": "x" } }, "expected": "deny", "categories": ["secret_exfiltration", "network_egress"], "rule": "exfiltration.cloud_metadata" },
     { "name": "NotebookEdit outside the working directories", "input": { "tool_name": "NotebookEdit", "input": { "notebook_path": "/tmp/elsewhere/a.ipynb", "cell_index": 0, "new_source": "x" } }, "expected": "ask", "categories": [], "rule": "ask.outside_write" },
-    { "name": "NotebookEdit inside the workspace", "input": { "tool_name": "NotebookEdit", "input": { "notebook_path": "/work/proj/a.ipynb", "cell_index": 0, "new_source": "x" } }, "expected": "allow", "categories": [], "rule": "allow.workspace_write" }
+    { "name": "NotebookEdit inside the workspace", "input": { "tool_name": "NotebookEdit", "input": { "notebook_path": "/work/proj/a.ipynb", "cell_index": 0, "new_source": "x" } }, "expected": "allow", "categories": [], "rule": "allow.workspace_write" },
+    { "name": "SimulatorScreenshot reads a device", "input": { "tool_name": "SimulatorScreenshot", "input": { "device": "booted" } }, "expected": "allow", "categories": [], "rule": "allow.read_tool" },
+    { "name": "SimulatorList", "input": { "tool_name": "SimulatorList", "input": {} }, "expected": "allow", "categories": [], "rule": "allow.read_tool" },
+    { "name": "DemoRecording reads a recording", "input": { "tool_name": "DemoRecording", "input": { "screenshots": [1] } }, "expected": "allow", "categories": [], "rule": "allow.read_tool" },
+    { "name": "SimulatorTap acts on a device", "input": { "tool_name": "SimulatorTap", "input": { "x": 10, "y": 20 } }, "expected": "ask", "categories": [], "rule": "ask.default" },
+    { "name": "SimulatorInstall installs an app", "input": { "tool_name": "SimulatorInstall", "input": { "app_path": "/work/proj/build/App.app" } }, "expected": "ask", "categories": [], "rule": "ask.default" }
   ]
 }

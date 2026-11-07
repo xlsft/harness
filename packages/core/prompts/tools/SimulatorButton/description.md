@@ -1,0 +1,1 @@
+Presses a hardware button of a booted simulator: `home` (the default) goes to the home screen, `lock` locks or wakes the screen, `side_button`, `siri` and `apple_pay` act as on a device. Hold it with `duration_ms`, for instance a long `lock` press.

@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "device": {
+      "type": "string",
+      "description": "The device's UDID or name. Optional when one device is booted."
+    },
+    "from_x": {
+      "type": "number"
+    },
+    "from_y": {
+      "type": "number"
+    },
+    "to_x": {
+      "type": "number"
+    },
+    "to_y": {
+      "type": "number"
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5000,
+      "description": "How long the move takes. Default 300."
+    }
+  },
+  "required": [
+    "from_x",
+    "from_y",
+    "to_x",
+    "to_y"
+  ],
+  "additionalProperties": false
+}
