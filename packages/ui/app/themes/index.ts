@@ -12,6 +12,8 @@ import colorblindRedGreenDark from './colorblind-red-green-dark.json'
 import colorblindRedGreenLight from './colorblind-red-green-light.json'
 import cloudyMorningDark from './cloudy-morning-dark.json'
 import cloudyMorningLight from './cloudy-morning-light.json'
+import macosDark from './macos-dark.json'
+import macosLight from './macos-light.json'
 import xlsftDark from './xlsft-dark.json'
 import xlsftLight from './xlsft-light.json'
 
@@ -73,7 +75,7 @@ export interface Theme {
 
 // The colour-blind themes keep status colours told apart under simulated colour vision (test/a11y.test.ts): one for red-green
 // vision (protanopia, deuteranopia: blue and orange instead of green and red), one for blue-yellow (tritanopia).
-export const THEMES = [xlsftDark, xlsftLight, cloudyMorningDark, cloudyMorningLight, colorblindRedGreenDark, colorblindRedGreenLight, colorblindBlueYellowDark, colorblindBlueYellowLight] as Theme[]
+export const THEMES = [xlsftDark, xlsftLight, macosDark, macosLight, cloudyMorningDark, cloudyMorningLight, colorblindRedGreenDark, colorblindRedGreenLight, colorblindBlueYellowDark, colorblindBlueYellowLight] as Theme[]
 
 export const DEFAULT_THEME: Record<ThemeKind, string> = { dark: 'xlsft-dark', light: 'xlsft-light' }
 

@@ -492,11 +492,7 @@ async function copy(text: string) {
           </div>
         </template>
       </UPopover>
-      <HIconBtn
-        icon="full"
-        :label="tt('Maximize')"
-        :size="30"
-      />
+      <PaneFullBtn />
       <HIconBtn
         icon="close"
         :label="tt('Close')"

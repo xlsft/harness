@@ -199,6 +199,7 @@ async function copy(text: string) {
           data-menu-anchor
           @click="menuOpen = !menuOpen"
         />
+        <PaneFullBtn />
         <PaneBtn
           icon="close"
           :label="tt('Close terminal pane')"

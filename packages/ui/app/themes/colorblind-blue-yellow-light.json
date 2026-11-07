@@ -1,6 +1,6 @@
 {
   "id": "colorblind-blue-yellow-light",
-  "name": "Color-blind light (blue-yellow)",
+  "name": "Tritanopia Light",
   "kind": "light",
   "fonts": {
     "terminal": "'CaskaydiaCove Nerd Font', 'Cascadia Mono', 'JetBrains Mono', ui-monospace, monospace"

@@ -48,6 +48,7 @@ watch(() => props.session.meta.id, () => {
   >
     <div class="flex h-[44px] shrink-0 items-center gap-[2px] border-b border-line pr-1.5 pl-3.5">
       <span class="min-w-0 flex-1 truncate font-display text-[13px] text-strong">{{ tt('Artifacts') }}</span>
+      <PaneFullBtn />
       <PaneBtn
         icon="close"
         :label="tt('Close')"
