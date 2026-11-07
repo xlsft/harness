@@ -22,12 +22,17 @@ type ManagedPolicy struct {
 	RestrictSkills                  bool
 	AllowedSkills, BlockedSkills    []string
 	ExternalSkillSearchDisabled     bool
+	// ChatAppsDisabled and RemoteStartsDisabled: chat apps start no sessions, and no session starts here through the relay
+	// (docs/design/chat.md). The server enforces both; the client stops offering remote starts.
+	ChatAppsDisabled     bool
+	RemoteStartsDisabled bool
 }
 
 // Active reports whether it imposes anything.
 func (m ManagedPolicy) Active() bool {
 	return len(m.AllowRules)+len(m.AskRules)+len(m.DenyRules)+len(m.DisabledModes) > 0 || m.ManagedRulesOnly || m.SandboxRequired ||
-		m.SandboxOutsideRefused || m.RestrictProviders || m.PersonalProvidersDisabled || m.RestrictMcpServers || m.LocalModelsDisabled || m.RestrictSkills || len(m.BlockedSkills) > 0 || m.ExternalSkillSearchDisabled
+		m.SandboxOutsideRefused || m.RestrictProviders || m.PersonalProvidersDisabled || m.RestrictMcpServers || m.LocalModelsDisabled || m.RestrictSkills || len(m.BlockedSkills) > 0 || m.ExternalSkillSearchDisabled ||
+		m.ChatAppsDisabled || m.RemoteStartsDisabled
 }
 
 // SkillAllowed reports whether a skill or command of this name may run. "kit:*" in a list names all of a plugin.
@@ -67,8 +72,32 @@ func (m ManagedPolicy) ProviderAllowed(names ...string) bool {
 // SetManaged records what the policy documents impose beyond modes and the sandbox.
 func (p *ModePolicy) SetManaged(m ManagedPolicy) {
 	p.mu.Lock()
-	defer p.mu.Unlock()
 	p.managed = m
+	subs := make([]func(), 0, len(p.managedSubs))
+	for _, f := range p.managedSubs {
+		subs = append(subs, f)
+	}
+	p.mu.Unlock()
+	for _, f := range subs {
+		f()
+	}
+}
+
+// OnManagedChange registers f, called after every SetManaged. The returned func unregisters it.
+func (p *ModePolicy) OnManagedChange(f func()) func() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.managedSubs == nil {
+		p.managedSubs = map[int]func(){}
+	}
+	p.subID++
+	id := p.subID
+	p.managedSubs[id] = f
+	return func() {
+		p.mu.Lock()
+		delete(p.managedSubs, id)
+		p.mu.Unlock()
+	}
 }
 
 // Managed returns what SetManaged recorded. Nil-safe.

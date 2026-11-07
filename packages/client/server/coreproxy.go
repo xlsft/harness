@@ -10,9 +10,11 @@ import (
 
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/gen/harness/auth/v1/authv1connect"
+	"github.com/xlsft/harness/packages/client/gen/harness/chat/v1/chatv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/library/v1/libraryv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/llm/v1/llmv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/mcp/v1/mcpv1connect"
+	"github.com/xlsft/harness/packages/client/gen/harness/relay/v1/relayv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/speech/v1/speechv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/vcs/v1/vcsv1connect"
 	"github.com/xlsft/harness/packages/client/rpc"
@@ -49,6 +51,8 @@ var coreProxyServices = []string{
 	authv1connect.AuditServiceName, authv1connect.BillingServiceName, authv1connect.DirectoryServiceName, authv1connect.MfaServiceName,
 	authv1connect.PolicyServiceName, authv1connect.SsoServiceName,
 	libraryv1connect.ArtifactServiceName, libraryv1connect.KnowledgeServiceName, libraryv1connect.TrackerServiceName,
+	// Settings > Chat apps: the app (admin-only on the server, secrets write-only) and the user's own linked identities.
+	chatv1connect.ChatServiceName,
 }
 
 // coreProxyProcedures are single methods of other server services frontends may
@@ -80,12 +84,17 @@ var coreProxyProcedures = []string{
 	vcsv1connect.VcsServiceGetUserAuthStatusProcedure,
 	vcsv1connect.VcsServiceRevokeUserAuthProcedure,
 	vcsv1connect.VcsServiceListUserConnectionsProcedure,
+	// Start on a machine (phone dispatch, docs/design/chat.md): the user's machines, a machine's recent folders and the
+	// remote start itself. The server and the target machine decide; the rest of RelayService is the relay host's.
+	relayv1connect.RelayServiceListHostsProcedure,
+	relayv1connect.RelayServiceListHostFoldersProcedure,
+	relayv1connect.RelayServiceSpawnSessionProcedure,
 }
 
 const coreProxyMaxBody = 1 << 20
 
 // forwardedRequestHeaders are copied from the frontend's request.
-var forwardedRequestHeaders = []string{"Content-Type", "Connect-Protocol-Version", "Connect-Timeout-Ms"}
+var forwardedRequestHeaders = []string{"Content-Type", "Connect-Protocol-Version", "Connect-Timeout-Ms", "X-Harness-Frontend"}
 
 func (p *CoreProxy) register(mux *http.ServeMux) {
 	for _, s := range coreProxyServices {

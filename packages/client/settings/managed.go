@@ -37,6 +37,8 @@ func PolicyManaged(docs []*syncv1.Document) permissions.ManagedPolicy {
 			AllowedSkills    *[]string       `json:"allowedSkills"`
 			BlockedSkills    []string        `json:"blockedSkills"`
 			NoSkillSearch    bool            `json:"disableExternalSkillSearch"`
+			NoChatApps       bool            `json:"disableChatApps"`
+			NoRemoteStarts   bool            `json:"disableRemoteStarts"`
 		}
 		if json.Unmarshal([]byte(d.GetContent()), &raw) != nil {
 			continue
@@ -63,6 +65,8 @@ func PolicyManaged(docs []*syncv1.Document) permissions.ManagedPolicy {
 		}
 		m.BlockedSkills = appendNew(m.BlockedSkills, raw.BlockedSkills)
 		m.ExternalSkillSearchDisabled = m.ExternalSkillSearchDisabled || raw.NoSkillSearch
+		m.ChatAppsDisabled = m.ChatAppsDisabled || raw.NoChatApps
+		m.RemoteStartsDisabled = m.RemoteStartsDisabled || raw.NoRemoteStarts
 	}
 	m.DisabledModes = PolicyDisabledModes(docs)
 	return m

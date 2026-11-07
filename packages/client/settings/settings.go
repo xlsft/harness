@@ -368,6 +368,10 @@ const (
 // for good (Settings.RemoteControlPolicyOff).
 const KeyRemoteControl = "remoteControl"
 
+// KeyChatDefaults is the settings key of where sessions started from a chat app run ({deviceId, folder,
+// permissionMode}); the server reads it (docs/design/chat.md).
+const KeyChatDefaults = "chatDefaults"
+
 // UserSettingsKey is the key of the user-scope SETTINGS sync document (the one `import claude` writes).
 const UserSettingsKey = "settings"
 

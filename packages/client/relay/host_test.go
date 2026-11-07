@@ -28,6 +28,7 @@ type fakeRelay struct {
 	mu         sync.Mutex
 	cond       *sync.Cond
 	hostRegs   int
+	lastReg    *relayv1.RegisterHostRequest
 	streams    int
 	epochs     map[string]int64
 	stored     map[string]map[int64]*relayv1.EventEnvelope // durable events by seq
@@ -58,9 +59,11 @@ func newFakeRelay() *fakeRelay {
 	return f
 }
 
-func (f *fakeRelay) RegisterHost(_ context.Context, _ *connect.Request[relayv1.RegisterHostRequest]) (*connect.Response[relayv1.RegisterHostResponse], error) {
+func (f *fakeRelay) RegisterHost(_ context.Context, req *connect.Request[relayv1.RegisterHostRequest]) (*connect.Response[relayv1.RegisterHostResponse], error) {
 	f.mu.Lock()
 	f.hostRegs++
+	f.lastReg = req.Msg
+	f.cond.Broadcast()
 	f.mu.Unlock()
 	return connect.NewResponse(&relayv1.RegisterHostResponse{HostId: "hst_test", HeartbeatIntervalSeconds: 20}), nil
 }
