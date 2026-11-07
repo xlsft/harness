@@ -138,6 +138,13 @@ type Edit struct {
 	Pages   string         `json:"pages,omitempty"`
 	Degrees int            `json:"degrees,omitempty"`
 	Fields  map[string]any `json:"fields,omitempty"`
+	// Image is the path of a PNG, JPEG or GIF file; the tool reads it from the working folders into ImageData, so
+	// this package never opens paths. Alt is the picture's alternative text ("" marks it decorative).
+	Image     string  `json:"image,omitempty"`
+	ImageData []byte  `json:"-"`
+	Alt       *string `json:"alt,omitempty"`
+	// Size is a font size in points, for text added to a PDF page.
+	Size float64 `json:"size,omitempty"`
 }
 
 // EditResult is what applying a batch produced.
