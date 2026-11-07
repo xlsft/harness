@@ -560,10 +560,7 @@ func TestGuard(t *testing.T) {
 }
 
 func TestDiagnoseLinuxWordings(t *testing.T) {
-	root, err := filepath.EvalSymlinks(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
+	root := renamedTempRoot(t)
 	home := filepath.Join(root, "home")
 	work := filepath.Join(root, "work")
 	base := BuildPolicy(PolicyInput{Home: home, HarnessHome: filepath.Join(home, ".harness"), WorkDirs: []string{work}, Getenv: func(string) string { return "" }})

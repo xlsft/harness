@@ -10,6 +10,23 @@ import (
 	"github.com/xlsft/harness/packages/client/decision"
 )
 
+// renamedTempRoot is a scratch folder that is nobody's writable root. On Linux CI it lands in /tmp, which every policy
+// writes to (the temp of programs), so a BuildPolicy over it makes the whole folder writable and no refusal below /tmp
+// has a reason. macOS keeps it under /private/var/folders, which is why the tests passed locally.
+func renamedTempRoot(t *testing.T) string {
+	t.Helper()
+	dir := filepath.Join(filepath.Dir(t.TempDir()), filepath.Base(t.TempDir())+"-away", "work")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	root, err := filepath.EvalSymlinks(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(filepath.Dir(root)) })
+	return root
+}
+
 func TestSeatbeltProfileIsAPureRendering(t *testing.T) {
 	p := Policy{
 		Write: []string{"/work", `/odd "quoted\" dir`}, Mkdir: []string{"/home/go"},
@@ -274,10 +291,7 @@ func TestStub(t *testing.T) {
 }
 
 func TestDiagnose(t *testing.T) {
-	root, err := filepath.EvalSymlinks(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
+	root := renamedTempRoot(t)
 	home := filepath.Join(root, "home")
 	work := filepath.Join(root, "work")
 	w := &Wrapped{Policy: BuildPolicy(PolicyInput{Home: home, HarnessHome: filepath.Join(home, ".harness"), WorkDirs: []string{work}, Getenv: func(string) string { return "" }})}
