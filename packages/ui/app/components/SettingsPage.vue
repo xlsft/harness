@@ -24,6 +24,7 @@ const SECTIONS = [
   { key: 'hooks', label: tt('Hooks'), icon: 'hook', group: 'app' },
   { key: 'memory', label: tt('Memory'), icon: 'doc', group: 'app' },
   { key: 'codehosts', label: tt('Code hosts'), icon: 'pull-request', group: 'app' },
+  { key: 'remote', label: tt('Remote'), icon: 'relay', group: 'app' },
   { key: 'import', label: tt('Import'), icon: 'download', group: 'app' },
   { key: 'models', label: tt('Models'), icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: tt('Classifiers'), icon: 'filter', group: 'ai' },
@@ -37,12 +38,13 @@ const SECTIONS = [
   { key: 'provisioning', label: tt('Provisioning'), icon: 'refresh', group: 'server' },
   { key: 'audit', label: tt('Audit log'), icon: 'history', group: 'server' },
   { key: 'policy', label: tt('Managed policy'), icon: 'flag', group: 'server' },
+  { key: 'chat', label: tt('Chat apps'), icon: 'chat', group: 'server' },
   { key: 'about', label: tt('About'), icon: 'info', group: 'product' }
 ] as const
 type Section = typeof SECTIONS[number]['key']
 
 // Server sections follow what the user's role allows (the server enforces it too).
-const CAPABILITY: Partial<Record<Section, string>> = { users: 'users.read', ldap: 'sign_in.read', sso: 'sign_in.read', provisioning: 'sign_in.read', audit: 'audit.read', policy: 'policy.read' }
+const CAPABILITY: Partial<Record<Section, string>> = { users: 'users.read', ldap: 'sign_in.read', sso: 'sign_in.read', provisioning: 'sign_in.read', audit: 'audit.read', policy: 'policy.read', chat: 'policy.write' }
 // Without the right to read it, the managed policy still shows when it imposes something on this user.
 const policyApplies = ref(false)
 const managed = ref<ManagedPolicyView | null>(null)
@@ -65,6 +67,8 @@ const KEYWORDS: Record<Section, string> = {
   sessions: 'permission modes ask auto plan bypass new sessions worktree defaults compact idle compaction context',
   sandbox: 'sandbox seatbelt restrict commands bash write paths network hosts proxy allowlist localhost',
   codehosts: 'github gitlab vcs code host pull request merge request pr connect app oauth gh glab webhook',
+  remote: 'remote start phone mobile dispatch machine slack chat link account defaults relay',
+  chat: 'slack chat app bot token signing secret teams mention thread',
   hooks: 'hooks pretooluse posttooluse stop sessionstart scripts automation disable trust',
   memory: 'memory auto notes remember forget index project MEMORY.md',
   import: 'import bring claude code migrate memory skills agents commands output styles mcp sessions history',
@@ -167,6 +171,10 @@ const notifications = computed({
       <SettingsHooks v-else-if="section === 'hooks'" />
 
       <SettingsCodeHosts v-else-if="section === 'codehosts'" />
+
+      <SettingsRemote v-else-if="section === 'remote'" />
+
+      <SettingsChatApps v-else-if="section === 'chat'" />
 
       <template v-else-if="section === 'sessions'">
         <template v-if="managed?.active">

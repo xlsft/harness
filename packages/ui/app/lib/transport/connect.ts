@@ -48,6 +48,7 @@ import { ConnectPluginsApi } from '~/lib/plugins/connect'
 import { ConnectExtensionsApi } from '~/lib/extensions/connect'
 import { ConnectLibraryApi } from '~/lib/library/connect'
 import { ConnectVcsApi } from '~/lib/vcs/connect'
+import { ConnectRemoteApi } from '~/lib/remote/connect'
 import { ConnectBrowserApi } from '~/lib/browser/connect'
 
 const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
@@ -61,10 +62,11 @@ const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
 function preferencesVM(p: UserPreferences_pb | undefined): UserPreferences {
   const b = p?.sandbox
   const m = p?.managedPolicy
-  return { autoMemoryEnabled: p?.autoMemoryEnabled ?? true, managedPolicy: { active: m?.active ?? false, allowRules: m?.allowRules ?? [], askRules: m?.askRules ?? [], denyRules: m?.denyRules ?? [], managedRulesOnly: m?.managedRulesOnly ?? false, sandboxRequired: m?.sandboxRequired ?? false, sandboxOutsideRefused: m?.sandboxOutsideRefused ?? false, disabledModes: m?.disabledModes ?? [], restrictProviders: m?.restrictProviders ?? false, allowedProviders: m?.allowedProviders ?? [], personalProvidersDisabled: m?.personalProvidersDisabled ?? false, restrictMcpServers: m?.restrictMcpServers ?? false, allowedMcpServers: m?.allowedMcpServers ?? [], localModelsDisabled: m?.localModelsDisabled ?? false, restrictSkills: m?.restrictSkills ?? false, allowedSkills: m?.allowedSkills ?? [], blockedSkills: m?.blockedSkills ?? [], externalSkillSearchDisabled: m?.externalSkillSearchDisabled ?? false }, compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
+  return { autoMemoryEnabled: p?.autoMemoryEnabled ?? true, managedPolicy: { active: m?.active ?? false, allowRules: m?.allowRules ?? [], askRules: m?.askRules ?? [], denyRules: m?.denyRules ?? [], managedRulesOnly: m?.managedRulesOnly ?? false, sandboxRequired: m?.sandboxRequired ?? false, sandboxOutsideRefused: m?.sandboxOutsideRefused ?? false, disabledModes: m?.disabledModes ?? [], restrictProviders: m?.restrictProviders ?? false, allowedProviders: m?.allowedProviders ?? [], personalProvidersDisabled: m?.personalProvidersDisabled ?? false, restrictMcpServers: m?.restrictMcpServers ?? false, allowedMcpServers: m?.allowedMcpServers ?? [], localModelsDisabled: m?.localModelsDisabled ?? false, restrictSkills: m?.restrictSkills ?? false, allowedSkills: m?.allowedSkills ?? [], blockedSkills: m?.blockedSkills ?? [], externalSkillSearchDisabled: m?.externalSkillSearchDisabled ?? false, chatAppsDisabled: m?.chatAppsDisabled ?? false, remoteStartsDisabled: m?.remoteStartsDisabled ?? false }, compactIdleSessions: p?.compactIdleSessions ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
     sandbox: { enabled: b?.enabled ?? true, allowedWritePaths: b?.allowedWritePaths ?? [], allowedHosts: b?.allowedHosts ?? [], allowLocalhost: b?.allowLocalhost ?? true, autoAllowBash: b?.autoAllowBash ?? false, outsideWithoutPrompt: b?.outsideWithoutPrompt ?? false },
     hooksEnabled: p?.hooksEnabled ?? true, schedulesEnabled: p?.schedulesEnabled ?? true, goalMaxTurns: p?.goalMaxTurns || 20,
-    modelTuning: { speedTier: p?.modelTuning?.speedTier ?? '', cacheTtl: p?.modelTuning?.cacheTtl ?? '', advisorModel: p?.modelTuning?.advisorModel ?? '' } }
+    modelTuning: { speedTier: p?.modelTuning?.speedTier ?? '', cacheTtl: p?.modelTuning?.cacheTtl ?? '', advisorModel: p?.modelTuning?.advisorModel ?? '' },
+    chatDefaults: { deviceId: p?.chatDefaults?.deviceId ?? '', folder: p?.chatDefaults?.folder ?? '', mode: p?.chatDefaults?.permissionMode ?? '' } }
 }
 
 const CONFIGURED_HOOK_STATUS: Partial<Record<ConfiguredHook_Status, ConfiguredHookVM['status']>> = {
@@ -116,6 +118,7 @@ export class ConnectTransport implements SessionTransport {
     this.extensionsApi = new ConnectExtensionsApi(transport)
     this.libraryApi = new ConnectLibraryApi(transport, baseUrl)
     this.vcsApi = new ConnectVcsApi(transport)
+    this.remoteApi = new ConnectRemoteApi(transport)
     this.browserApi = new ConnectBrowserApi(transport, baseUrl)
     this.sshApi = new ConnectSshApi(transport)
   }
@@ -360,12 +363,12 @@ export class ConnectTransport implements SessionTransport {
 
   async getDeviceSettings(): Promise<DeviceSettings> {
     const res = await this.client.getDeviceSettings({})
-    return { theme: res.settings?.theme ?? '', notifications: res.settings?.notifications ?? true }
+    return { theme: res.settings?.theme ?? '', notifications: res.settings?.notifications ?? true, allowRemoteStarts: res.settings?.allowRemoteStarts ?? false }
   }
 
   async updateDeviceSettings(patch: Partial<DeviceSettings>): Promise<DeviceSettings> {
-    const res = await this.client.updateDeviceSettings({ theme: patch.theme, notifications: patch.notifications })
-    return { theme: res.settings?.theme ?? '', notifications: res.settings?.notifications ?? true }
+    const res = await this.client.updateDeviceSettings({ theme: patch.theme, notifications: patch.notifications, allowRemoteStarts: patch.allowRemoteStarts })
+    return { theme: res.settings?.theme ?? '', notifications: res.settings?.notifications ?? true, allowRemoteStarts: res.settings?.allowRemoteStarts ?? false }
   }
 
   async setSessionRelay(sessionId: string, enabled: boolean) {
@@ -409,7 +412,7 @@ export class ConnectTransport implements SessionTransport {
   }
 
   async updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences> {
-    const res = await this.client.updateUserPreferences({ autoMemoryEnabled: patch.autoMemoryEnabled, compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled, schedulesEnabled: patch.schedulesEnabled, goalMaxTurns: patch.goalMaxTurns, modelTuning: patch.modelTuning && { speedTier: patch.modelTuning.speedTier, cacheTtl: patch.modelTuning.cacheTtl, advisorModel: patch.modelTuning.advisorModel } })
+    const res = await this.client.updateUserPreferences({ autoMemoryEnabled: patch.autoMemoryEnabled, compactIdleSessions: patch.compactIdleSessions, prMonitorWakesPerHour: patch.prMonitorWakesPerHour, subagentMaxDepth: patch.subagentMaxDepth, subagentMaxRunning: patch.subagentMaxRunning, workflowMaxAgents: patch.workflowMaxAgents, lspEnabled: patch.lspEnabled, lspDiagnostics: patch.lspDiagnostics, lspDiagnosticsStartServer: patch.lspDiagnosticsStartServer, sandbox: patch.sandbox, hooksEnabled: patch.hooksEnabled, schedulesEnabled: patch.schedulesEnabled, goalMaxTurns: patch.goalMaxTurns, modelTuning: patch.modelTuning && { speedTier: patch.modelTuning.speedTier, cacheTtl: patch.modelTuning.cacheTtl, advisorModel: patch.modelTuning.advisorModel }, chatDefaults: patch.chatDefaults && { deviceId: patch.chatDefaults.deviceId, folder: patch.chatDefaults.folder, permissionMode: patch.chatDefaults.mode } })
     return preferencesVM(res.preferences)
   }
 
@@ -546,6 +549,11 @@ export class ConnectTransport implements SessionTransport {
   private vcsApi!: ConnectVcsApi
   vcs() {
     return this.vcsApi
+  }
+
+  private remoteApi!: ConnectRemoteApi
+  remote() {
+    return this.remoteApi
   }
 
   private mcpApi!: ConnectMcpApi

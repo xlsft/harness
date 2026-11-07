@@ -376,6 +376,28 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
           :label="tt('Turn off external skill search')"
         />
       </div>
+      <div class="flex items-center justify-between gap-4">
+        <div class="set-label">
+          <span>{{ tt('Turn off remote starts') }}</span>
+          <span class="set-desc">{{ tt('No session starts on a machine from the phone, a chat app or another device, even where its owner allows it. Sessions already running stay.') }}</span>
+        </div>
+        <HToggle
+          v-model="policy.remoteStartsDisabled"
+          :disabled="!writable"
+          :label="tt('Turn off remote starts')"
+        />
+      </div>
+      <div class="flex items-center justify-between gap-4">
+        <div class="set-label">
+          <span>{{ tt('Turn off chat apps') }}</span>
+          <span class="set-desc">{{ tt('Mentions and messages to the Slack app start and steer nothing; people get a short notice.') }}</span>
+        </div>
+        <HToggle
+          v-model="policy.chatAppsDisabled"
+          :disabled="!writable"
+          :label="tt('Turn off chat apps')"
+        />
+      </div>
 
       <div
         v-if="writable"

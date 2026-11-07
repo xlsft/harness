@@ -232,6 +232,15 @@ function fitStartEffort() {
 }
 watch([model, efforts, recommended], fitStartEffort)
 
+// Start on a machine: the session runs on another of the user's machines (phone dispatch).
+const remoteOpen = ref(false)
+async function startedRemote(id: string) {
+  remoteOpen.value = false
+  await store.refreshList().catch(() => {})
+  const { new: _new, cwd: _cwd, fork: _fork, ...rest } = route.query
+  await router.replace({ query: { ...rest, session: id } })
+}
+
 async function start() {
   const msg = text.value.trim()
   if ((!msg && !files.value.length) || busy.value) return
@@ -536,6 +545,22 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           </template>
         </ComposerBox>
       </div>
+      <NewRemoteStart
+        v-if="remoteOpen"
+        @close="remoteOpen = false"
+        @started="startedRemote"
+      />
+      <button
+        v-else-if="!forkOf"
+        type="button"
+        class="flex items-center gap-1.5 text-[12px] text-muted hover:text-strong"
+        @click="remoteOpen = true"
+      >
+        <HIcon
+          name="phone"
+          :size="12"
+        />{{ tt('Start on another machine') }}
+      </button>
     </div>
 
     <UModal
