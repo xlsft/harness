@@ -438,7 +438,7 @@ func TestDependencyStepsClone(t *testing.T) {
 		"b: clone b/node_modules from " + repo,
 		"b: pnpm install --frozen-lockfile --offline --ignore-workspace || pnpm install --frozen-lockfile --prefer-offline --ignore-workspace",
 		"c: npm ci --prefer-offline --no-audit --no-fund", // nothing installed in the main checkout to clone
-		"py: uv sync --frozen", // a virtualenv is never cloned
+		"py: uv sync --frozen",                            // a virtualenv is never cloned
 	}
 	if strings.Join(got, "\n") != strings.Join(want, "\n") {
 		t.Fatalf("got\n%s\nwant\n%s", strings.Join(got, "\n"), strings.Join(want, "\n"))
