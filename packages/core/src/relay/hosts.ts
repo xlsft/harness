@@ -12,6 +12,7 @@ import { PermissionMode } from "../gen/harness/agent/v1/agent_pb.ts";
 import {
   AgentHostIsolation,
   AgentHostScope,
+  AttemptState,
   HostWorkKind,
   HostWorkLanding,
   HostWorkState,
@@ -34,6 +35,7 @@ import { getStoredPr, prOf, type EventRow } from "../vcs/events.ts";
 import { jobToProto, onUnclaimedMention } from "../vcs/pipeline.ts";
 import { hostIdentity, moveSessionLink, openPullRequestAs } from "../vcs/service.ts";
 import { parseRepoKey } from "../vcs/util.ts";
+import { attemptHasPlace, setAttemptFromWork } from "./attempts.ts";
 import { AUTOFIX_JOB_TTL_S, queueServerCommand, sessionMachineOnline, withdrawServerCommand } from "./service.ts";
 
 type Init<T extends Parameters<typeof create>[0]> = MessageInitShape<T>;
@@ -70,7 +72,7 @@ const decodeJob = (s: string) => fromBinary(AutoFixJobSchema, new Uint8Array(Buf
 const waiters = new Map<string, Set<() => void>>();
 const hostLocks = new Map<string, Mutex>();
 
-function wake(hostId: string): void {
+export function wake(hostId: string): void {
   for (const fn of waiters.get(hostId) ?? []) fn();
 }
 
@@ -119,7 +121,7 @@ async function mayUse(userId: string, host: HostRow): Promise<boolean> {
 }
 
 /** A host the caller may use; NOT_FOUND for anyone else's, so ids do not leak. */
-async function usableHost(p: Principal, hostId: string): Promise<HostRow> {
+export async function usableHost(p: Principal, hostId: string): Promise<HostRow> {
   if (!hostId) throw new ApiError("invalid_request", "host_id is required");
   const host = await hostOf(hostId);
   if (!host || !(await mayUse(p.user.id, host))) throw new ApiError("not_found", `Host ${hostId} not found`);
@@ -140,7 +142,7 @@ function isFresh(at: Date | null | undefined, now = Date.now()): boolean {
 }
 
 /** Why work can't start on this host (docs/design/hosts.md, decisions 7 and 20); "" when it can. */
-async function unavailableReason(host: HostRow, user: Pick<Principal["user"], "role">): Promise<string> {
+export async function unavailableReason(host: HostRow, user: Pick<Principal["user"], "role">): Promise<string> {
   if (host.draining) return "This host is draining and takes no new work";
   if (host.scope === "team" && host.isolation !== "uid") {
     return host.isolation ? "This team host can't separate its users (it needs a daemon with --shared, as root on Linux), so it takes no work" : "This team host has not started yet";
@@ -212,7 +214,7 @@ async function hostViews(rows: HostRow[], p: Principal, withWorkers: boolean): P
   return out;
 }
 
-async function hostName(hostId: string): Promise<string> {
+export async function hostName(hostId: string): Promise<string> {
   return (await hostOf(hostId))?.name ?? "";
 }
 
@@ -242,6 +244,10 @@ function workView(w: WorkRow, name: string, redact = false): Init<typeof HostWor
     attempts: w.attempts,
     createdAt: w.createdAt.toISOString(),
     updatedAt: w.updatedAt.toISOString(),
+    attemptGroupId: w.attemptGroupId,
+    attemptIndex: w.attemptIndex,
+    testCommand: redact ? "" : w.testCommand,
+    budgetUsd: w.budgetUsd,
   };
 }
 
@@ -377,8 +383,12 @@ export async function startHostWork(p: Principal, req: StartHostWorkRequest): Pr
   const reason = await unavailableReason(host, p.user);
   if (reason) throw new ApiError("failed_precondition", reason);
   if (req.permissionMode === PermissionMode.BYPASS_PERMISSIONS) throw new ApiError("permission", "bypassPermissions cannot be enabled remotely");
-  if (!req.prompt.trim()) throw new ApiError("invalid_request", "prompt is required");
+  const move = req.kind === HostWorkKind.MOVE;
+  if (!move && req.kind !== HostWorkKind.UNSPECIFIED && req.kind !== HostWorkKind.NEW_SESSION) throw new ApiError("invalid_request", "Only a new session or a move is started this way");
+  if (!move && !req.prompt.trim()) throw new ApiError("invalid_request", "prompt is required");
   const repo = parseRepoKey(req.repositoryKey);
+  const baseRef = req.baseRef.trim();
+  if (move) await checkMove(p, req.branch, baseRef, req.forkSessionId);
   const db = getDb();
   if (req.idempotencyKey) {
     const [same] = await db.select().from(schema.hostWork).where(and(eq(schema.hostWork.userId, p.user.id), eq(schema.hostWork.idempotencyKey, req.idempotencyKey)));
@@ -389,33 +399,92 @@ export async function startHostWork(p: Principal, req: StartHostWorkRequest): Pr
     .from(schema.hostWork)
     .where(and(eq(schema.hostWork.userId, p.user.id), eq(schema.hostWork.state, HostWorkState.QUEUED)));
   if (n >= MAX_QUEUED_PER_USER) throw new ApiError("failed_precondition", `You have ${n} sessions waiting for a host already`);
-  const row = await insertWork({
-    hostId: host.id,
-    userId: p.user.id,
-    kind: HostWorkKind.NEW_SESSION,
-    repositoryKey: repo.key,
-    baseRef: req.baseRef.trim(),
-    landing: req.landing,
-    freshClone: req.freshClone,
-    prompt: req.prompt,
-    title: req.title.trim().slice(0, 200),
-    model: req.model,
-    effort: req.effort,
-    permissionMode: req.permissionMode,
-    idempotencyKey: req.idempotencyKey || null,
-  });
+  const row = await insertWork(
+    {
+      hostId: host.id,
+      userId: p.user.id,
+      kind: move ? HostWorkKind.MOVE : HostWorkKind.NEW_SESSION,
+      repositoryKey: repo.key,
+      baseRef,
+      branch: move ? req.branch : "",
+      // A move lands as its branch unless the user asked for a pull request (decision 23).
+      landing: move && req.landing === HostWorkLanding.UNSPECIFIED ? HostWorkLanding.BRANCH : req.landing,
+      freshClone: req.freshClone,
+      prompt: req.prompt,
+      title: req.title.trim().slice(0, 200),
+      model: req.model,
+      effort: req.effort,
+      permissionMode: req.permissionMode,
+      forkSessionId: move ? req.forkSessionId : "",
+      idempotencyKey: req.idempotencyKey || null,
+    },
+    move ? { state: HostWorkState.AWAITING_PUSH, ttlMs: MOVE_PUSH_TTL_MS } : undefined,
+  );
   return workView(row, host.name);
+}
+
+/** How long a move waits for its push. */
+const MOVE_PUSH_TTL_MS = 30 * 60_000;
+
+/** A branch the daemon may check out and push to: harness/..., a plain ref name, not the base. */
+export function checkWorkBranch(branch: string, base: string): void {
+  if (!/^harness\/[A-Za-z0-9._\/-]{1,200}$/.test(branch) || branch.includes("..") || branch.endsWith("/") || branch.endsWith(".lock") || branch.includes("//")) {
+    throw new ApiError("invalid_request", "A moved session's branch is harness/<name>");
+  }
+  if (base && branch === base) throw new ApiError("invalid_request", "The branch can't be the base branch");
+}
+
+/** Decision 23: the branch, and a session of the caller's that the server has. */
+async function checkMove(p: Principal, branch: string, base: string, forkSessionId: string): Promise<void> {
+  checkWorkBranch(branch, base);
+  if (!forkSessionId) throw new ApiError("invalid_request", "fork_session_id is required to move a session");
+  const s = await getDb().query.syncSession.findFirst({ where: and(eq(schema.syncSession.id, forkSessionId), eq(schema.syncSession.userId, p.user.id)) });
+  if (!s) throw new ApiError("failed_precondition", "The server has no transcript of this session: turn sync on and try again");
+}
+
+/** The caller's own move, while it waits for its push. */
+async function pendingMove(p: Principal, workId: string): Promise<WorkRow> {
+  if (p.deviceKind === "host_supervisor") throw new ApiError("permission", "A supervisor holds no repository credentials");
+  const [row] = await getDb().select().from(schema.hostWork).where(eq(schema.hostWork.id, workId));
+  if (!row || row.userId !== p.user.id || row.kind !== HostWorkKind.MOVE) throw new ApiError("not_found", `Work ${workId} not found`);
+  if (row.state !== HostWorkState.AWAITING_PUSH) throw new ApiError("failed_precondition", "This move is not waiting for its push any more");
+  if (row.expiresAt.getTime() < Date.now()) throw new ApiError("failed_precondition", "This move waited too long for its push; start it again");
+  return row;
+}
+
+/** Decision 22: the credentials the target host would get, for the laptop's push of the move's branch. */
+export async function issueMoveCredentials(p: Principal, workId: string): Promise<{ cloneUrl: string; username: string; password: string; expiresAt: string; asUser: boolean }> {
+  const row = await pendingMove(p, workId);
+  const host = await hostOf(row.hostId);
+  if (!host || !(await mayUse(p.user.id, host))) throw new ApiError("not_found", `Work ${workId} not found`);
+  const reason = await unavailableReason(host, p.user);
+  if (reason) throw new ApiError("failed_precondition", reason);
+  const allowed = Array.isArray(host.allowedRepositories) ? (host.allowedRepositories as string[]) : [];
+  return gitCredentials(p.user.id, row.repositoryKey, matchesRepository(allowed, row.repositoryKey));
+}
+
+export async function queueMovedWork(p: Principal, workId: string): Promise<Init<typeof HostWorkSchema>> {
+  const row = await pendingMove(p, workId);
+  const now = new Date();
+  const [next] = await getDb()
+    .update(schema.hostWork)
+    .set({ state: HostWorkState.QUEUED, updatedAt: now, expiresAt: new Date(now.getTime() + WORK_TTL_MS) })
+    .where(and(eq(schema.hostWork.id, row.id), eq(schema.hostWork.state, HostWorkState.AWAITING_PUSH)))
+    .returning();
+  if (!next) throw new ApiError("failed_precondition", "This move is not waiting for its push any more");
+  wake(row.hostId);
+  return workView(next, await hostName(row.hostId));
 }
 
 type WorkInsert = Omit<typeof schema.hostWork.$inferInsert, "id" | "state" | "createdAt" | "updatedAt" | "expiresAt">;
 
-async function insertWork(v: WorkInsert): Promise<WorkRow> {
+export async function insertWork(v: WorkInsert, opts?: { state?: HostWorkState; ttlMs?: number }): Promise<WorkRow> {
   const db = getDb();
   const w = schema.hostWork;
   const now = new Date();
   const [row] = await db
     .insert(w)
-    .values({ ...v, id: newId("hwk"), state: HostWorkState.QUEUED, createdAt: now, updatedAt: now, expiresAt: new Date(now.getTime() + WORK_TTL_MS) })
+    .values({ ...v, id: newId("hwk"), state: opts?.state ?? HostWorkState.QUEUED, createdAt: now, updatedAt: now, expiresAt: new Date(now.getTime() + (opts?.ttlMs ?? WORK_TTL_MS)) })
     .onConflictDoNothing()
     .returning();
   wake(v.hostId);
@@ -541,7 +610,7 @@ export async function registerAgentHost(p: Principal, req: RegisterAgentHostRequ
   return { host: (await hostViews([row], p, false))[0]!, supervisor: device.role === "supervisor" };
 }
 
-export async function reportAgentHost(p: Principal, req: ReportAgentHostRequest): Promise<{ draining: boolean; maxSessions: number }> {
+export async function reportAgentHost(p: Principal, req: ReportAgentHostRequest): Promise<{ draining: boolean; maxSessions: number; discardWorkIds: string[] }> {
   const { device, host } = await callingDevice(p);
   const now = new Date();
   const db = getDb();
@@ -554,7 +623,9 @@ export async function reportAgentHost(p: Principal, req: ReportAgentHostRequest)
   await db.update(schema.agentHost).set(set).where(eq(schema.agentHost.id, host.id));
   await handOverAwayJobs(host).catch((err) => console.error("[harness] handing over away jobs failed", err));
   wake(host.id);
-  return { draining: host.draining, maxSessions: host.maxSessions };
+  const w = schema.hostWork;
+  const discard = await db.select({ id: w.id }).from(w).where(and(eq(w.deviceId, device.deviceId), eq(w.discardRequested, true))).limit(100);
+  return { draining: host.draining, maxSessions: host.maxSessions, discardWorkIds: discard.map((d) => d.id) };
 }
 
 /** Puts back work whose daemon went quiet, and ends what waited too long. */
@@ -562,7 +633,10 @@ async function sweepWork(hostId: string): Promise<void> {
   const db = getDb();
   const w = schema.hostWork;
   const now = new Date();
-  await db.update(w).set({ state: HostWorkState.EXPIRED, updatedAt: now }).where(and(eq(w.hostId, hostId), eq(w.state, HostWorkState.QUEUED), lt(w.expiresAt, now)));
+  await db
+    .update(w)
+    .set({ state: HostWorkState.EXPIRED, updatedAt: now })
+    .where(and(eq(w.hostId, hostId), inArray(w.state, [HostWorkState.QUEUED, HostWorkState.AWAITING_PUSH]), lt(w.expiresAt, now)));
   // What was asked stays no longer than the screens show it.
   await db.delete(w).where(and(eq(w.hostId, hostId), inArray(w.state, [...TERMINAL]), lt(w.updatedAt, new Date(now.getTime() - WORK_RETENTION_MS))));
   const lost = await db.select().from(w).where(and(eq(w.hostId, hostId), eq(w.state, HostWorkState.CLAIMED), lt(w.leaseUntil, now)));
@@ -591,13 +665,21 @@ async function tryClaim(device: DeviceRow, host: HostRow): Promise<WorkRow | und
       const mine = devices.filter((d) => d.userId === device.userId).reduce((n, d) => n + (isFresh(d.reportedAt, now) ? d.workingSessions : 0), 0) + claimed.filter((c) => c.userId === device.userId).length;
       if (mine >= fresh.maxSessionsPerUser) return undefined;
     }
-    const [next] = await db.select().from(w).where(and(eq(w.hostId, host.id), eq(w.userId, device.userId), eq(w.state, HostWorkState.QUEUED))).orderBy(asc(w.createdAt)).limit(1);
+    const queued = await db.select().from(w).where(and(eq(w.hostId, host.id), eq(w.userId, device.userId), eq(w.state, HostWorkState.QUEUED))).orderBy(asc(w.createdAt), asc(w.attemptIndex)).limit(50);
+    let next: WorkRow | undefined;
+    for (const q of queued) {
+      // Decision 29: an attempt waits while as many of its group as may run at once are at work.
+      if (q.attemptGroupId && !(await attemptHasPlace(q.attemptGroupId))) continue;
+      next = q;
+      break;
+    }
     if (!next) return undefined;
     const [row] = await db
       .update(w)
       .set({ state: HostWorkState.CLAIMED, deviceId: device.deviceId, attempts: next.attempts + 1, leaseUntil: new Date(now + leaseMs()), updatedAt: new Date(now) })
       .where(and(eq(w.id, next.id), eq(w.state, HostWorkState.QUEUED)))
       .returning();
+    if (row?.attemptGroupId) await setAttemptFromWork(row, { state: AttemptState.RUNNING });
     return row;
   });
 }
@@ -632,7 +714,18 @@ export async function updateHostWork(p: Principal, req: UpdateHostWorkRequest): 
   if (req.branch) set.branch = req.branch;
   if (req.pullRequestUrl) set.pullRequestUrl = req.pullRequestUrl;
   if (req.error) set.error = req.error.slice(0, 2000);
+  if (req.discarded) {
+    // Decision 32: its session, checkout and branch are gone.
+    set.discardRequested = false;
+    set.state = HostWorkState.DONE;
+  }
   await db.update(schema.hostWork).set(set).where(eq(schema.hostWork.id, row.id));
+  if (row.attemptGroupId) {
+    const next = { ...row, ...set };
+    if (req.discarded) await setAttemptFromWork(next, { state: AttemptState.DISCARDED });
+    else if (set.state === HostWorkState.FAILED) await setAttemptFromWork(next, { state: AttemptState.FAILED, error: next.error });
+    else await setAttemptFromWork(next, {});
+  }
   if (set.state === HostWorkState.RUNNING && row.state !== HostWorkState.RUNNING) {
     // Counted from now, not from the daemon's next report.
     await db.update(schema.agentHostDevice).set({ workingSessions: sql`${schema.agentHostDevice.workingSessions} + 1` }).where(eq(schema.agentHostDevice.deviceId, device.deviceId));
@@ -655,7 +748,11 @@ const GIT_TOKEN_TTL_MS = 30 * 60_000;
 export async function issueGitCredentials(p: Principal, repositoryKey: string): Promise<{ cloneUrl: string; username: string; password: string; expiresAt: string; asUser: boolean }> {
   const { allowed } = await workingDevice(p);
   const key = parseRepoKey(repositoryKey).key;
-  const id = await hostIdentity(p.user.id, key, matchesRepository(allowed, key));
+  return gitCredentials(p.user.id, key, matchesRepository(allowed, key));
+}
+
+async function gitCredentials(userId: string, repositoryKey: string, connectionIdentityAllowed: boolean): Promise<{ cloneUrl: string; username: string; password: string; expiresAt: string; asUser: boolean }> {
+  const id = await hostIdentity(userId, parseRepoKey(repositoryKey).key, connectionIdentityAllowed);
   const base = id.conn.baseUrl.replace(/\/+$/, "");
   const github = id.conn.type === 1;
   return {
