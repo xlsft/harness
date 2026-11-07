@@ -38,6 +38,11 @@ const (
 	PreCompact         Event = "PreCompact"
 	PostCompact        Event = "PostCompact"
 	CwdChanged         Event = "CwdChanged"
+	// The VCS events (docs/design/vcs-hooks.md): isolation and changes for folders outside git.
+	WorktreeCreate Event = "WorktreeCreate"
+	WorktreeRemove Event = "WorktreeRemove"
+	VcsStatus      Event = "VcsStatus"
+	VcsDiff        Event = "VcsDiff"
 )
 
 // matcherOn says what an event's matcher is compared with; events without an entry ignore their matcher.
@@ -48,7 +53,8 @@ var matcherOn = map[Event]string{
 }
 
 // noMatcher lists the events that fire and take no matcher.
-var noMatcher = map[Event]bool{UserPromptSubmit: true, Stop: true, PostToolBatch: true, CwdChanged: true}
+var noMatcher = map[Event]bool{UserPromptSubmit: true, Stop: true, PostToolBatch: true, CwdChanged: true,
+	WorktreeCreate: true, WorktreeRemove: true, VcsStatus: true, VcsDiff: true}
 
 // Supported reports whether this client fires ev.
 func Supported(ev Event) bool {

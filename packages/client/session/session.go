@@ -362,6 +362,11 @@ type Worktree struct {
 	// OriginalCwd is the folder the session entered the worktree from, where leaving it goes back to ("" for a
 	// session created in the worktree: the same subdirectory of the main checkout).
 	OriginalCwd string `json:"originalCwd,omitempty"`
+	// Hook: a WorktreeCreate hook made it (docs/design/vcs-hooks.md), not git. Then Branch is empty, BaseRef is the
+	// hook's label of what it started from, RepositoryPath the folder it is a copy of, and a WorktreeRemove hook takes it
+	// away. Name is what the hook was asked to call it.
+	Hook bool   `json:"hook,omitempty"`
+	Name string `json:"name,omitempty"`
 }
 
 // UserShell is a finished user shell command (composer shell mode). Stdout and stderr are bounded (head and

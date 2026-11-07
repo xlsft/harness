@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/xlsft/harness/packages/client/session"
+	"github.com/xlsft/harness/packages/client/vcshooks"
 	"github.com/xlsft/harness/packages/client/worktree"
 )
 
@@ -45,6 +46,35 @@ type Mover interface {
 	SetBranch(ctx context.Context, branch, baseRef, notice string)
 	// OthersIn returns the ids of other open sessions working inside path.
 	OthersIn(path string) []string
+}
+
+// VcsHooker is a Mover whose session has VCS hooks. When they isolate (WorktreeCreate runs), they replace git worktrees
+// in EnterWorktree and ExitWorktree; docs/design/vcs-hooks.md.
+type VcsHooker interface {
+	VcsHooks() vcshooks.Hooks
+}
+
+func vcsHooksOf(m Mover) vcshooks.Hooks {
+	if h, ok := m.(VcsHooker); ok {
+		return h.VcsHooks()
+	}
+	return vcshooks.Hooks{}
+}
+
+// hookDirty lists the changes of a working copy a hook made, through VcsStatus. known is false when no VcsStatus hook
+// claims it: then nothing here can tell, and the WorktreeRemove hook decides what force allows.
+func hookDirty(ctx context.Context, h vcshooks.Hooks, path string) (files []string, known bool, err error) {
+	if !h.Reports() {
+		return nil, false, nil
+	}
+	st, err := h.Status(ctx, path)
+	if err != nil || st == nil {
+		return nil, false, err
+	}
+	for _, f := range st.Files {
+		files = append(files, f.Path)
+	}
+	return files, true, nil
 }
 
 func moverOf(env *Env) (Mover, Result, bool) {
@@ -87,9 +117,15 @@ func (*EnterWorktree) Run(ctx context.Context, env *Env, call Call) Result {
 		return bad
 	}
 	if w := m.Worktree(); w != nil {
+		if w.Hook {
+			return ErrorResult("the session already runs in the working copy %s. Leave it with ExitWorktree first.", w.Path)
+		}
 		return ErrorResult("the session already runs in the worktree %s (branch %s). Leave it with ExitWorktree first.", w.Path, w.Branch)
 	}
 	cwd := env.CurrentDir()
+	if h := vcsHooksOf(m); h.Isolates() {
+		return enterHookWorktree(ctx, m, h, cwd, in.Name, in.BaseRef, in.PullRequest)
+	}
 	created, err := worktree.Create(ctx, cwd, worktree.Options{Name: in.Name, BaseRef: in.BaseRef, PullRequest: in.PullRequest})
 	if errors.Is(err, worktree.ErrNotRepository) {
 		return ErrorResult("%s is not inside a git repository, so there is nothing to make a worktree of.", cwd)
@@ -118,6 +154,32 @@ func (*EnterWorktree) Run(ctx context.Context, env *Env, call Call) Result {
 	return moveResult(text, "Entered "+created.Branch, map[string]any{"cwd": created.Cwd, "worktreePath": created.Path, "branch": created.Branch, "baseRef": created.BaseRef})
 }
 
+// enterHookWorktree is EnterWorktree when WorktreeCreate hooks replace git worktrees.
+func enterHookWorktree(ctx context.Context, m Mover, h vcshooks.Hooks, cwd, name, base, pr string) Result {
+	if strings.TrimSpace(pr) != "" {
+		return ErrorResult("pull_request needs a git worktree, and this session makes its working copies through WorktreeCreate hooks. Leave it out.")
+	}
+	created, err := h.Create(ctx, vcshooks.CreateRequest{Source: cwd, Name: name, Kind: vcshooks.KindSession, BaseRevision: strings.TrimSpace(base)})
+	if err != nil {
+		return ErrorResult("could not create the working copy: %v. The session still works in %s; ask the user before working there instead.", err, cwd)
+	}
+	wt := &session.Worktree{Path: created.Path, BaseRef: created.Base, RepositoryPath: cwd, OriginalCwd: cwd, Hook: true, Name: created.Name}
+	from := ""
+	if created.Base != "" {
+		from = " from " + created.Base
+	}
+	notice := fmt.Sprintf("Moved to the working copy %s%s, made by a WorktreeCreate hook.", created.Path, from)
+	if err := m.Move(ctx, Move{Cwd: created.Cwd, Worktree: wt, Notice: notice}); err != nil {
+		rerr := h.Remove(context.WithoutCancel(ctx), vcshooks.RemoveRequest{Path: created.Path, Source: cwd, Name: created.Name, Kind: vcshooks.KindSession, Force: true})
+		if rerr != nil && !errors.Is(rerr, vcshooks.ErrNoRemoveHook) {
+			return ErrorResult("could not move the session into the working copy (%v), and %s could not be removed: %v", err, created.Path, rerr)
+		}
+		return ErrorResult("could not move the session into the working copy: %v", err)
+	}
+	text := fmt.Sprintf("The session now works in %s, a working copy a WorktreeCreate hook made%s. Your shell is there. Use paths under the new folder, and read files again before editing them there.", created.Cwd, from)
+	return moveResult(text, "Entered "+created.Name, map[string]any{"cwd": created.Cwd, "worktreePath": created.Path, "baseRef": created.Base, "hook": true})
+}
+
 // ---- ExitWorktree ----
 
 // ExitWorktree moves the session back to where it came from, keeping or removing the worktree.
@@ -138,7 +200,15 @@ func (*ExitWorktree) PermissionHints(ctx context.Context, env *Env, call Call) P
 	if m == nil || decode(call.Input, &in) != nil || in.Action != "remove" || !in.DiscardChanges {
 		return PermissionHints{}
 	}
-	if w := m.Worktree(); w != nil {
+	if w := m.Worktree(); w != nil && w.Hook {
+		dirty, known, err := hookDirty(ctx, vcsHooksOf(m), w.Path)
+		switch {
+		case err != nil || !known:
+			return PermissionHints{Sensitive: fmt.Sprintf("Removes the working copy %s through a WorktreeRemove hook, allowed to discard what it holds.", w.Path)}
+		case len(dirty) > 0:
+			return PermissionHints{Sensitive: fmt.Sprintf("Removes the working copy %s and discards its changes (%d files).", w.Path, len(dirty))}
+		}
+	} else if w != nil {
 		if dirty, err := worktree.Dirty(ctx, w.Path); err != nil || len(dirty) > 0 {
 			return PermissionHints{Sensitive: fmt.Sprintf("Removes the worktree %s and discards its uncommitted changes (%d files).", w.Path, len(dirty))}
 		}
@@ -161,6 +231,9 @@ func (*ExitWorktree) Run(ctx context.Context, env *Env, call Call) Result {
 	w := m.Worktree()
 	if w == nil {
 		return ErrorResult("the session does not run in a worktree.")
+	}
+	if w.Hook {
+		return exitHookWorktree(ctx, env, m, w, in)
 	}
 	remove := in.Action == "remove"
 	ahead, aheadErr := 0, error(nil)
@@ -215,6 +288,48 @@ func (*ExitWorktree) Run(ctx context.Context, env *Env, call Call) Result {
 	}
 	structured["branchKept"] = keptBranch
 	return moveResult(text, "Removed the worktree", structured)
+}
+
+// exitHookWorktree is ExitWorktree from a working copy a WorktreeCreate hook made.
+func exitHookWorktree(ctx context.Context, env *Env, m Mover, w *session.Worktree, in exitWorktreeInput) Result {
+	h := vcsHooksOf(m)
+	remove := in.Action == "remove"
+	force := false
+	if remove {
+		dirty, known, err := hookDirty(ctx, h, w.Path)
+		if err != nil {
+			return ErrorResult("could not read the state of %s: %v", w.Path, err)
+		}
+		if len(dirty) > 0 && !in.DiscardChanges {
+			return ErrorResult("%s has %d changed file(s): %s. Leave with action keep, or, only if they are meant to be thrown away, pass discard_changes: true.", w.Path, len(dirty), firstFiles(dirty))
+		}
+		// Without VcsStatus nothing here knows; the hook gets force only on the model's explicit word.
+		force = in.DiscardChanges || (known && len(dirty) == 0)
+		if env.Tasks != nil && env.Tasks.Running() > 0 {
+			return ErrorResult("%d background task(s) of this session are running and may be using the working copy. Stop them with TaskStop first, or leave with action keep.", env.Tasks.Running())
+		}
+		if others := m.OthersIn(w.Path); len(others) > 0 {
+			return ErrorResult("another open session works in %s (%s), so it cannot be removed. Leave with action keep.", w.Path, strings.Join(others, ", "))
+		}
+	}
+	target := exitTarget(ctx, env.CurrentDir(), w)
+	notice := fmt.Sprintf("Moved back to %s; the working copy %s stays.", target, w.Path)
+	if remove {
+		notice = fmt.Sprintf("Moved back to %s and removed the working copy %s.", target, w.Path)
+	}
+	if err := m.Move(ctx, Move{Cwd: target, Notice: notice}); err != nil {
+		return ErrorResult("could not move the session back to %s: %v", target, err)
+	}
+	structured := map[string]any{"cwd": target, "worktreePath": w.Path, "action": in.Action, "hook": true}
+	if !remove {
+		return moveResult(fmt.Sprintf("The session now works in %s. The working copy %s stays as it is.", target, w.Path), "Left the working copy", structured)
+	}
+	err := h.Remove(context.WithoutCancel(ctx), vcshooks.RemoveRequest{Path: w.Path, Source: w.RepositoryPath, Name: w.Name, Kind: vcshooks.KindSession, Force: force})
+	if err != nil {
+		structured["removeError"] = err.Error()
+		return moveResult(fmt.Sprintf("The session now works in %s, but removing the working copy %s failed: %v", target, w.Path, err), "Left the working copy", structured)
+	}
+	return moveResult(fmt.Sprintf("The session now works in %s. The WorktreeRemove hook removed %s.", target, w.Path), "Removed the working copy", structured)
 }
 
 // exitTarget is where leaving a worktree goes: the folder the session came from, else the same subdirectory of the
@@ -514,6 +629,9 @@ func (*SyncWithBase) Run(ctx context.Context, env *Env, call Call) Result {
 	w := m.Worktree()
 	if w == nil {
 		return ErrorResult("the session does not run in a worktree, so it has no base to sync with.")
+	}
+	if w.Hook {
+		return ErrorResult("the session runs in a working copy a WorktreeCreate hook made, not a git worktree: bring it up to date with its own version control, through Bash.")
 	}
 	base := strings.TrimSpace(in.BaseRef)
 	if base == "" {

@@ -29,6 +29,10 @@ const (
 	defaultHTTPTimeout    = 30 * time.Second
 	// defaultEndTimeout replaces them for SessionEnd: something is closing and waits.
 	defaultEndTimeout = 10 * time.Second
+	// defaultVcsTimeout replaces them for VcsStatus and VcsDiff, which the Changes pane waits for.
+	defaultVcsTimeout = 30 * time.Second
+	// maxDiffOutputBytes is how much of a VcsDiff handler's output is read.
+	maxDiffOutputBytes = 64 << 20
 	// maxOutputBytes is how much of a handler's output is read; the rest is dropped.
 	maxOutputBytes = 1 << 20
 	// maxContextRunes is how much context one handler can add for the model.
@@ -86,6 +90,15 @@ type Input struct {
 	AgentTranscriptPath   string          `json:"agent_transcript_path,omitempty"`
 	OldCwd                string          `json:"old_cwd,omitempty"`
 	NewCwd                string          `json:"new_cwd,omitempty"`
+
+	// The VCS events (docs/design/vcs-hooks.md).
+	Name         string   `json:"name,omitempty"`
+	SourceDir    string   `json:"source_dir,omitempty"`
+	WorktreePath string   `json:"worktree_path,omitempty"`
+	WorktreeKind string   `json:"worktree_kind,omitempty"`
+	BaseRevision string   `json:"base_revision,omitempty"`
+	Force        *bool    `json:"force,omitempty"`
+	Paths        []string `json:"paths,omitempty"`
 }
 
 // ToolCall is one call of a PostToolBatch.
@@ -131,6 +144,14 @@ type Outcome struct {
 	HaltReason string
 	// UpdatedToolOutput replaces what an MCP tool returned (PostToolUse).
 	UpdatedToolOutput json.RawMessage
+	// Replies are the standard outputs of the handlers that answered (exit 0, or a 2xx body), in configuration order:
+	// what the events with an output contract of their own read (WorktreeCreate, VcsStatus, VcsDiff).
+	Replies []string
+	// Failures say why handlers did not answer (exit code, timeout, invalid output), each with what the handler wrote
+	// to stderr: for the events whose caller reports a failure.
+	Failures []string
+	// Ran counts the handlers that ran and were waited for.
+	Ran int
 }
 
 // Options configure an Engine. The functions read the session's state as it is now.
@@ -310,6 +331,32 @@ func (e *Engine) End(reason string) {
 	e.Dispatch(ctx, SessionEnd, reason, Input{Reason: reason})
 }
 
+// Runs reports whether the settings' hooks of an event run now: configured and active, and not switched off. Unlike Has it
+// looks at the switches, and at the settings' set alone: what replaces a built-in (git worktrees, the git diff) is the
+// user's or an administrator's choice, never a skill's.
+func (e *Engine) Runs(ev Event) bool {
+	if e == nil || os.Getenv("HARNESS_NO_HOOKS") == "1" {
+		return false
+	}
+	set := e.Set()
+	if !set.Has(ev) {
+		return false
+	}
+	off, policyOff := set.Off, set.PolicyOff
+	if e.o.Switches != nil {
+		off, policyOff = e.o.Switches()
+	}
+	if policyOff {
+		return false
+	}
+	for _, h := range set.All {
+		if h.Event == ev && h.Status == StatusActive && (!off || h.Source.Level == settings.LevelPolicy) {
+			return true
+		}
+	}
+	return false
+}
+
 // active returns the hooks that run now for an event.
 func (e *Engine) active(ev Event, value, agentID string) []*Hook {
 	if os.Getenv("HARNESS_NO_HOOKS") == "1" {
@@ -391,6 +438,8 @@ type result struct {
 	web     bool
 	stdout  string
 	stderr  string
+	// truncated: stdout was longer than the event reads.
+	truncated bool
 	// failure says the handler did not run to an answer (a timeout, an unreachable URL, invalid output).
 	failure string
 	status  string
@@ -425,13 +474,17 @@ type output struct {
 func (e *Engine) runOne(ctx context.Context, h *Hook, ev Event, in Input, body []byte) *result {
 	run := Run{ID: "hook_" + session.NewID(), Event: string(ev), Type: h.Type, Command: valid(h.Command), Matcher: h.Matcher, Source: h.SourceLabel(),
 		Status: RunRunning, ToolName: in.ToolName, ToolUseID: in.ToolUseID, AgentID: in.AgentID, Async: h.Async}
-	e.report(run)
+	if !quiet[ev] {
+		e.report(run)
+	}
 	start := time.Now()
 	timeout := h.Timeout
 	if timeout <= 0 {
 		switch {
 		case ev == SessionEnd:
 			timeout = defaultEndTimeout
+		case quiet[ev]:
+			timeout = defaultVcsTimeout
 		case h.Type == TypeHTTP:
 			timeout = defaultHTTPTimeout
 		default:
@@ -442,9 +495,9 @@ func (e *Engine) runOne(ctx context.Context, h *Hook, ev Event, in Input, body [
 	defer cancel()
 	var r *result
 	if h.Type == TypeHTTP {
-		r = e.runHTTP(runCtx, h, body)
+		r = e.runHTTP(runCtx, h, body, outputLimit(ev))
 	} else {
-		r = e.runCommand(runCtx, h, in, body)
+		r = e.runCommand(runCtx, h, in, body, outputLimit(ev))
 	}
 	if errors.Is(runCtx.Err(), context.DeadlineExceeded) && ctx.Err() == nil {
 		r.status, r.failure = RunTimedOut, fmt.Sprintf("Timed out after %s.", timeout)
@@ -458,7 +511,9 @@ func (e *Engine) runOne(ctx context.Context, h *Hook, ev Event, in Input, body [
 		run.ExitCode = &exit
 	}
 	run.Decision, run.Output = shown(ev, r)
-	e.report(run)
+	if !quiet[ev] || r.status != RunOK {
+		e.report(run)
+	}
 	return r
 }
 
@@ -468,25 +523,45 @@ func (e *Engine) report(r Run) {
 	}
 }
 
+// quiet are the events the Changes pane fires while it polls: a handler shows in the transcript only when it fails.
+var quiet = map[Event]bool{VcsStatus: true, VcsDiff: true}
+
+// outputLimit is how much of a handler's standard output an event reads: a diff can be large.
+func outputLimit(ev Event) int {
+	if ev == VcsDiff {
+		return maxDiffOutputBytes
+	}
+	return maxOutputBytes
+}
+
 // limitedBuffer keeps the start of what is written and drops the rest. It never fails, so a chatty program is not killed
-// by a closed pipe.
+// by a closed pipe. over says something was dropped.
 type limitedBuffer struct {
-	b bytes.Buffer
+	b    bytes.Buffer
+	max  int
+	over bool
 }
 
 func (l *limitedBuffer) Write(p []byte) (int, error) {
-	if room := maxOutputBytes - l.b.Len(); room > 0 {
+	if l.max == 0 {
+		l.max = maxOutputBytes
+	}
+	room := l.max - l.b.Len()
+	if len(p) > room {
+		l.over = true
+	}
+	if room > 0 {
 		l.b.Write(p[:min(room, len(p))])
 	}
 	return len(p), nil
 }
 
-func (e *Engine) runCommand(ctx context.Context, h *Hook, in Input, body []byte) *result {
+func (e *Engine) runCommand(ctx context.Context, h *Hook, in Input, body []byte, limit int) *result {
 	cmd, kill := shellCommand(h.Command)
 	cmd.Dir = in.Cwd
 	cmd.Env = append(e.environ(), h.Env...)
 	cmd.Stdin = bytes.NewReader(body)
-	var stdout, stderr limitedBuffer
+	stdout, stderr := limitedBuffer{max: limit}, limitedBuffer{}
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 	cmd.WaitDelay = killWait
 	r := &result{}
@@ -498,6 +573,7 @@ func (e *Engine) runCommand(ctx context.Context, h *Hook, in Input, body []byte)
 	err := cmd.Wait()
 	stop()
 	r.stdout, r.stderr = valid(stdout.b.String()), valid(stderr.b.String())
+	r.truncated = stdout.over
 	var exitErr *exec.ExitError
 	switch {
 	case err == nil, errors.Is(err, exec.ErrWaitDelay):
@@ -539,7 +615,7 @@ func (e *Engine) lookupEnv(name string) string {
 
 var headerVar = regexp.MustCompile(`\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?`)
 
-func (e *Engine) runHTTP(ctx context.Context, h *Hook, body []byte) *result {
+func (e *Engine) runHTTP(ctx context.Context, h *Hook, body []byte, limit int) *result {
 	r := &result{web: true}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.Command, bytes.NewReader(body))
 	if err != nil {
@@ -567,12 +643,15 @@ func (e *Engine) runHTTP(ctx context.Context, h *Hook, body []byte) *result {
 		return r
 	}
 	defer func() { _ = resp.Body.Close() }()
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxOutputBytes))
+	data, err := io.ReadAll(io.LimitReader(resp.Body, int64(limit)+1))
 	if err != nil {
 		r.failure = "Reading the response failed: " + err.Error()
 		return r
 	}
 	r.exit, r.hasExit = resp.StatusCode, true
+	if len(data) > limit {
+		data, r.truncated = data[:limit], true
+	}
 	r.stdout = valid(string(data))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		r.failure = "The server answered " + resp.Status + "."
@@ -596,6 +675,10 @@ func interpret(ev Event, r *result) {
 	}
 	switch {
 	case r.exit == 0 || r.web: // an http handler that failed has a failure by now
+		if r.truncated && contract[ev] {
+			r.status, r.failure = RunError, fmt.Sprintf("Its output is longer than the %d bytes this event reads.", outputLimit(ev))
+			return
+		}
 		r.status = RunOK
 		text := strings.TrimSpace(r.stdout)
 		if !strings.HasPrefix(text, "{") {
@@ -713,6 +796,9 @@ func limitContext(s string) string {
 	return s
 }
 
+// contract are the events whose standard output the caller reads whole (Outcome.Replies).
+var contract = map[Event]bool{WorktreeCreate: true, VcsStatus: true, VcsDiff: true}
+
 // plainContext are the events whose plain standard output is context for the model; elsewhere it only shows in the
 // transcript.
 var plainContext = map[Event]bool{UserPromptSubmit: true, SessionStart: true, PreCompact: true}
@@ -729,8 +815,16 @@ func combine(ev Event, results []*result) Outcome {
 		}
 	}
 	for _, r := range results {
-		if r == nil || r.failure != "" || r.status == RunError {
+		if r == nil {
 			continue
+		}
+		o.Ran++
+		if r.failure != "" || r.status == RunError {
+			o.Failures = append(o.Failures, failureText(r))
+			continue
+		}
+		if (r.web || r.exit == 0) && contract[ev] {
+			o.Replies = append(o.Replies, r.stdout)
 		}
 		if !r.web && r.exit == 2 {
 			reason := strings.TrimSpace(r.stderr)
@@ -807,6 +901,21 @@ func combine(ev Event, results []*result) Outcome {
 		}
 	}
 	return o
+}
+
+// failureText says why a handler gave no answer, with its stderr.
+func failureText(r *result) string {
+	text := r.failure
+	if text == "" && r.hasExit {
+		text = fmt.Sprintf("Exited with %d.", r.exit)
+	}
+	if s := strings.TrimSpace(r.stderr); s != "" {
+		text = strings.TrimSpace(text + " " + clip(s))
+	}
+	if text == "" {
+		text = "It failed without saying why."
+	}
+	return text
 }
 
 func joinReason(a, b string) string {

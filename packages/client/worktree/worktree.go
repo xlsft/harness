@@ -69,6 +69,9 @@ type Result struct {
 	// worktree is fine either way.
 	Included       int
 	IncludeProblem string
+	// Hook: a WorktreeCreate hook made it (package vcshooks), not git. Branch is empty, BaseRef is the hook's label and
+	// RepositoryPath the folder it copies; Rollback and RemoveIfUntouched do not apply.
+	Hook bool `json:",omitempty"`
 }
 
 var nameRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)
