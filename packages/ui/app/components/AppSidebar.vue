@@ -70,7 +70,7 @@ const onSettings = settings.isOpen
 // A page other than the session view is open (or the new-session screen): no session row is current.
 const onExtensions = computed(() => route.path.startsWith('/extensions'))
 const onScheduled = computed(() => route.path.startsWith('/scheduled'))
-const onPage = computed(() => onArtifacts.value || onExtensions.value || onScheduled.value || route.path.startsWith('/knowledge') || route.path.startsWith('/tracker') || !!route.query.new)
+const onPage = computed(() => onArtifacts.value || onExtensions.value || onScheduled.value || route.path.startsWith('/knowledge') || route.path.startsWith('/issues') || !!route.query.new)
 
 function mark(s: SessionState) {
   if (s.meta.status === 'error') return { text: 'fail', cls: 'text-bad' }
@@ -129,8 +129,8 @@ const nav = [
   { label: tt('Artifacts'), icon: 'copy' as const, to: '/artifacts' },
   { label: tt('Scheduled'), icon: 'clock' as const, to: '/scheduled' },
   { label: tt('Extensions'), icon: 'sliders' as const, to: '/extensions' },
-  { label: tt('Knowledge base'), icon: 'page' as const, to: '/knowledge' },
-  { label: tt('Task tracker'), icon: 'tasks' as const, to: '/tracker' }
+  { label: tt('Knowledge'), icon: 'page' as const, to: '/knowledge' },
+  { label: tt('Issues'), icon: 'tasks' as const, to: '/issues' }
 ]
 const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
 </script>

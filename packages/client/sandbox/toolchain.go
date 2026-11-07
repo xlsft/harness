@@ -33,6 +33,7 @@ func toolchainPaths(home string, getenv func(string) string) []toolPath {
 		{filepath.Join(gopath, "pkg", "sumdb"), "Go's checksum database cache"},
 		{or("npm_config_cache", in(".npm")), "npm's cache and logs"},
 		{in("Library", "pnpm", "store"), "pnpm's content-addressed store"},
+		{in(".local", "share", "pnpm", "store"), "pnpm's content-addressed store on Linux"},
 		{in("Library", "Caches", "pnpm"), "pnpm's metadata cache"},
 		{in("Library", "Caches", "Yarn"), "Yarn's cache"},
 		{in("Library", "Caches", "pip"), "pip's cache on macOS"},

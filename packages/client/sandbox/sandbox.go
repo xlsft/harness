@@ -1,8 +1,9 @@
 // Package sandbox runs the commands the model chooses restricted by the operating system, without a VM: the process runs
 // directly on the machine, under a policy it cannot leave and its children inherit. The Driver is the only part that
 // touches the platform; the policy (policy.go), the network proxy (proxy.go) and the explanation of failures (diagnose.go)
-// hold for every driver. Today that is macOS with sandbox-exec; Linux and Windows have a stub that says so, and the
-// frontends show it as unavailable rather than off.
+// hold for every driver. Those are sandbox-exec on macOS and bubblewrap or Landlock with seccomp on Linux, chosen by what the
+// machine allows; platforms without one, Windows included, have a stub that says so, and the frontends show it as unavailable
+// rather than off. docs/design/platforms.md has the differences.
 //
 // What it is: the boundary permission prompts are not. A shell command can write any file the user can and hide its target
 // from any parser, so the permission engine only sees what the command line shows (see permissions/computer.go). Here the
@@ -41,9 +42,11 @@ const (
 type Info struct {
 	// Platform is "macos", "linux", "windows"...
 	Platform string
-	// Supported is false for the stubs of platforms without a driver yet; Reason says so.
+	// Supported is false for the stubs of platforms without a driver yet, and on a machine that does not allow the driver;
+	// Reason says so.
 	Supported bool
-	Reason    string
+	// Reason, when Supported, is what the sandbox cannot hold on this machine, for the settings screen.
+	Reason string
 }
 
 // Driver confines a process on one platform.
@@ -58,6 +61,12 @@ type Driver interface {
 // target", for the refusals tagged Policy.Tag since a time.
 type Reporter interface {
 	Refusals(tag string, since time.Time) []string
+}
+
+// Preparer is implemented by drivers that need more than the policy says: Wrap calls it after building the policy, before
+// Command. proxySocket returns the path of a unix socket that serves the session's proxy, starting it on first use.
+type Preparer interface {
+	Prepare(p *Policy, proxySocket func() (string, error)) error
 }
 
 // ErrUnsupported is what the stubs return.
@@ -175,6 +184,7 @@ type Wrapped struct {
 	since   uint64
 	driver  Driver
 	started time.Time
+	guard   *guard
 }
 
 // Wrap returns argv under the sandbox. It returns nil without an error when no sandbox applies: the command runs as is.
@@ -211,11 +221,20 @@ func (s *Session) Wrap(req Request, argv []string) (*Wrapped, error) {
 		Localhost: st.AllowLocalhost, Server: req.Kind == KindServer,
 	})
 	p.Tag = newTag()
+	if pr, ok := s.getDriver().(Preparer); ok {
+		if err := pr.Prepare(&p, px.unixSocket); err != nil {
+			return nil, fmt.Errorf("the command sandbox could not be prepared: %w", err)
+		}
+	}
 	full, err := s.getDriver().Command(p, argv)
 	if err != nil {
 		return nil, err
 	}
-	return &Wrapped{Argv: full, Env: commandEnv(px.port(), tmp, template), Policy: p, proxy: px, since: px.mark(), driver: s.getDriver(), started: time.Now()}, nil
+	w := &Wrapped{Argv: full, Env: commandEnv(px.port(), tmp, template), Policy: p, proxy: px, since: px.mark(), driver: s.getDriver(), started: time.Now()}
+	if p.GuardNames {
+		w.guard = newGuard(p, req.ScratchDir)
+	}
+	return w, nil
 }
 
 func newTag() string {

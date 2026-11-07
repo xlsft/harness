@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -118,6 +120,8 @@ type proxy struct {
 	mu      sync.Mutex
 	seq     uint64
 	blocked []blockedHost
+	// sockDir holds the unix socket, once a driver asked for one.
+	sockDir string
 }
 
 func startProxy(hosts func() Hosts) (*proxy, error) {
@@ -133,7 +137,37 @@ func startProxy(hosts func() Hosts) (*proxy, error) {
 
 func (p *proxy) port() int { return p.ln.Addr().(*net.TCPAddr).Port }
 
-func (p *proxy) close() { _ = p.srv.Close() }
+func (p *proxy) close() {
+	_ = p.srv.Close()
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.sockDir != "" {
+		_ = os.RemoveAll(p.sockDir)
+	}
+}
+
+// unixSocket serves the proxy on a unix socket as well and returns its path: the way in for a command whose network namespace
+// has nothing else. The folder is the user's alone. It is in the system's temp folder, since a socket path has a short limit.
+func (p *proxy) unixSocket() (string, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.sockDir != "" {
+		return filepath.Join(p.sockDir, "proxy.sock"), nil
+	}
+	dir, err := os.MkdirTemp("", "hsb")
+	if err != nil {
+		return "", err
+	}
+	path := filepath.Join(dir, "proxy.sock")
+	ln, err := net.Listen("unix", path)
+	if err != nil {
+		_ = os.RemoveAll(dir)
+		return "", err
+	}
+	p.sockDir = dir
+	go func() { _ = p.srv.Serve(ln) }()
+	return path, nil
+}
 
 // mark returns the position to read refusals from.
 func (p *proxy) mark() uint64 {

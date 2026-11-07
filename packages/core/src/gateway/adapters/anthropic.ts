@@ -106,7 +106,11 @@ export function toAnthropicBody(req: CanonicalRequest, target: AdapterTarget): R
   if (system !== undefined) body.system = system;
   if (tools && tools.length) body.tools = tools;
   if (req.tool_choice && tools && tools.length) body.tool_choice = req.tool_choice;
-  if (f.thinking && req.thinking && req.thinking.type !== "disabled") body.thinking = req.thinking;
+  // Current models default adaptive thinking to display "omitted": the blocks arrive empty. Ask for the summary so the
+  // transcript shows what the model reasoned about; display changes visibility only, not what is billed.
+  if (f.thinking && req.thinking && req.thinking.type !== "disabled") {
+    body.thinking = req.thinking.type === "adaptive" ? { ...req.thinking, display: "summarized" } : req.thinking;
+  }
   if (f.effort) body.output_config = { effort: f.effort };
   if (f.speed === "fast") body.speed = "fast";
   if (req.temperature !== undefined) body.temperature = req.temperature;

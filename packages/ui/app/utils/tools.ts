@@ -28,6 +28,7 @@ export function toolIcon(t: ToolItem): IconName {
   if (t.name.startsWith('Terminal')) return 'term'
   switch (t.name) {
     case 'Bash':
+    case 'PowerShell':
     case 'TaskOutput': return 'term'
     case 'Wait':
     case 'Monitor': return 'clock'
@@ -57,7 +58,7 @@ export function toolIcon(t: ToolItem): IconName {
     case 'ArtifactPublish': return 'copy'
     case 'KnowledgeSearch':
     case 'KnowledgeRead': return 'page'
-    case 'TaskTracker': return 'tasks'
+    case 'Issues': return 'tasks'
     case 'WebSearch':
     case 'WebFetch': return 'web-search'
     case 'Task':
@@ -119,7 +120,8 @@ const TOOL_MODE_NAMES: Record<string, PermissionModeName> = { acceptEdits: 'acce
 export function toolTarget(t: ToolItem): string {
   const i = t.input
   switch (t.name) {
-    case 'Bash': return String(i.command ?? t.summary)
+    case 'Bash':
+    case 'PowerShell': return String(i.command ?? t.summary)
     case 'Read':
     case 'DocumentRead':
     case 'DocumentEdit':
@@ -133,7 +135,7 @@ export function toolTarget(t: ToolItem): string {
     case 'ArtifactPublish': return String(i.title ?? i.file_path ?? i.name ?? t.summary)
     case 'KnowledgeSearch': return `"${String(i.query ?? t.summary)}"`
     case 'KnowledgeRead': return String(i.document_id ?? 'documents')
-    case 'TaskTracker': return [i.action, i.title ?? i.id].filter(Boolean).join(' ') || t.summary
+    case 'Issues': return [i.operation, i.title ?? i.id].filter(Boolean).join(' ') || t.summary
     case 'Glob': return String(i.pattern ?? t.summary)
     case 'Grep': return `"${String(i.pattern ?? '')}"`
     case 'LSP': return lspTarget(i) || t.summary
@@ -357,7 +359,8 @@ export function toolMeta(t: ToolItem, now: number, compact = false): ToolMeta {
   if (t.status === 'interrupted') return { text: 'interrupted', cls: 'text-muted' }
   const r = t.result ?? {}
   switch (t.name) {
-    case 'Bash': {
+    case 'Bash':
+    case 'PowerShell': {
       if (t.input.run_in_background) return { text: 'background', cls: 'text-muted' }
       const code = typeof r.exitCode === 'number' ? r.exitCode : t.status === 'error' ? 1 : 0
       if (compact && code === 0) return { text: `ok · ${formatSeconds(t.durationMs)}`, cls: 'text-ok' }

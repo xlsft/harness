@@ -17,7 +17,7 @@ import (
 	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
 )
 
-// The library: the agent's way to the server's artifacts, knowledge base and task tracker (harness.library.v1).
+// The library: the agent's way to the server's artifacts, Knowledge and issues (harness.library.v1).
 
 // UploadArtifact puts bytes in the object store, kind artifact, and waits for it: the tool that publishes them answers
 // only when they are there.
@@ -77,24 +77,92 @@ func (c *Client) SearchKnowledge(ctx context.Context, req *libraryv1.SearchKnowl
 	return unary(ctx, c, req, c.knowledge.SearchKnowledge)
 }
 
-func (c *Client) ListTrackerTasks(ctx context.Context, req *libraryv1.ListTrackerTasksRequest) (*libraryv1.ListTrackerTasksResponse, error) {
-	return unary(ctx, c, req, c.tracker.ListTrackerTasks)
+func (c *Client) ListProjects(ctx context.Context, req *libraryv1.ListProjectsRequest) (*libraryv1.ListProjectsResponse, error) {
+	return unary(ctx, c, req, c.projects.ListProjects)
 }
 
-func (c *Client) GetTrackerTask(ctx context.Context, req *libraryv1.GetTrackerTaskRequest) (*libraryv1.GetTrackerTaskResponse, error) {
-	return unary(ctx, c, req, c.tracker.GetTrackerTask)
+func (c *Client) EnsureDefaultProject(ctx context.Context, req *libraryv1.EnsureDefaultProjectRequest) (*libraryv1.EnsureDefaultProjectResponse, error) {
+	return unary(ctx, c, req, c.projects.EnsureDefaultProject)
 }
 
-func (c *Client) CreateTrackerTask(ctx context.Context, req *libraryv1.CreateTrackerTaskRequest) (*libraryv1.CreateTrackerTaskResponse, error) {
-	return unary(ctx, c, req, c.tracker.CreateTrackerTask)
+func (c *Client) ListBoards(ctx context.Context, req *libraryv1.ListBoardsRequest) (*libraryv1.ListBoardsResponse, error) {
+	return unary(ctx, c, req, c.boards.ListBoards)
 }
 
-func (c *Client) UpdateTrackerTask(ctx context.Context, req *libraryv1.UpdateTrackerTaskRequest) (*libraryv1.UpdateTrackerTaskResponse, error) {
-	return unary(ctx, c, req, c.tracker.UpdateTrackerTask)
+func (c *Client) GetBoard(ctx context.Context, req *libraryv1.GetBoardRequest) (*libraryv1.GetBoardResponse, error) {
+	return unary(ctx, c, req, c.boards.GetBoard)
 }
 
-func (c *Client) DeleteTrackerTask(ctx context.Context, req *libraryv1.DeleteTrackerTaskRequest) (*libraryv1.DeleteTrackerTaskResponse, error) {
-	return unary(ctx, c, req, c.tracker.DeleteTrackerTask)
+func (c *Client) CreateBoard(ctx context.Context, req *libraryv1.CreateBoardRequest) (*libraryv1.CreateBoardResponse, error) {
+	return unary(ctx, c, req, c.boards.CreateBoard)
+}
+
+func (c *Client) ListCards(ctx context.Context, req *libraryv1.ListCardsRequest) (*libraryv1.ListCardsResponse, error) {
+	return unary(ctx, c, req, c.boards.ListCards)
+}
+
+func (c *Client) GetCard(ctx context.Context, req *libraryv1.GetCardRequest) (*libraryv1.GetCardResponse, error) {
+	return unary(ctx, c, req, c.boards.GetCard)
+}
+
+func (c *Client) CreateCard(ctx context.Context, req *libraryv1.CreateCardRequest) (*libraryv1.CreateCardResponse, error) {
+	return unary(ctx, c, req, c.boards.CreateCard)
+}
+
+func (c *Client) UpdateCard(ctx context.Context, req *libraryv1.UpdateCardRequest) (*libraryv1.UpdateCardResponse, error) {
+	return unary(ctx, c, req, c.boards.UpdateCard)
+}
+
+func (c *Client) MoveCard(ctx context.Context, req *libraryv1.MoveCardRequest) (*libraryv1.MoveCardResponse, error) {
+	return unary(ctx, c, req, c.boards.MoveCard)
+}
+
+func (c *Client) DeleteCard(ctx context.Context, req *libraryv1.DeleteCardRequest) (*libraryv1.DeleteCardResponse, error) {
+	return unary(ctx, c, req, c.boards.DeleteCard)
+}
+
+func (c *Client) RetryCardOutput(ctx context.Context, req *libraryv1.RetryCardOutputRequest) (*libraryv1.RetryCardOutputResponse, error) {
+	return unary(ctx, c, req, c.boards.RetryCardOutput)
+}
+
+func (c *Client) LinkCard(ctx context.Context, req *libraryv1.LinkCardRequest) (*libraryv1.LinkCardResponse, error) {
+	return unary(ctx, c, req, c.boards.LinkCard)
+}
+
+func (c *Client) RelateCard(ctx context.Context, req *libraryv1.RelateCardRequest) (*libraryv1.RelateCardResponse, error) {
+	return unary(ctx, c, req, c.boards.RelateCard)
+}
+
+func (c *Client) CommentCard(ctx context.Context, req *libraryv1.CommentCardRequest) (*libraryv1.CommentCardResponse, error) {
+	return unary(ctx, c, req, c.boards.CommentCard)
+}
+
+func (c *Client) PrepareCardSession(ctx context.Context, req *libraryv1.PrepareCardSessionRequest) (*libraryv1.PrepareCardSessionResponse, error) {
+	return unary(ctx, c, req, c.boards.PrepareCardSession)
+}
+
+func (c *Client) LinkSessionPullRequest(ctx context.Context, req *libraryv1.LinkSessionPullRequestRequest) (*libraryv1.LinkSessionPullRequestResponse, error) {
+	return unary(ctx, c, req, c.boards.LinkSessionPullRequest)
+}
+
+func (c *Client) ClaimDeviceWork(ctx context.Context, req *libraryv1.ClaimDeviceWorkRequest) (*libraryv1.ClaimDeviceWorkResponse, error) {
+	return unary(ctx, c, req, c.boards.ClaimDeviceWork)
+}
+
+func (c *Client) ReportDeviceWork(ctx context.Context, req *libraryv1.ReportDeviceWorkRequest) (*libraryv1.ReportDeviceWorkResponse, error) {
+	return unary(ctx, c, req, c.boards.ReportDeviceWork)
+}
+
+func (c *Client) ForgetDeviceConnection(ctx context.Context, req *libraryv1.ForgetDeviceConnectionRequest) (*libraryv1.ForgetDeviceConnectionResponse, error) {
+	return unary(ctx, c, req, c.boards.ForgetDeviceConnection)
+}
+
+func (c *Client) ListKnowledgeSources(ctx context.Context, req *libraryv1.ListKnowledgeSourcesRequest) (*libraryv1.ListKnowledgeSourcesResponse, error) {
+	return unary(ctx, c, req, c.knowledge.ListKnowledgeSources)
+}
+
+func (c *Client) BrowseKnowledgeSource(ctx context.Context, req *libraryv1.BrowseKnowledgeSourceRequest) (*libraryv1.BrowseKnowledgeSourceResponse, error) {
+	return unary(ctx, c, req, c.knowledge.BrowseKnowledgeSource)
 }
 
 func (c *Client) SearchTranscripts(ctx context.Context, req *libraryv1.SearchTranscriptsRequest) (*libraryv1.SearchTranscriptsResponse, error) {

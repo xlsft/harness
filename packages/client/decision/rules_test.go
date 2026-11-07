@@ -459,6 +459,7 @@ func TestRulesNonBashTools(t *testing.T) {
 		{"webfetch-metadata-v6", toolReq("WebFetch", map[string]any{"url": "http://[fd00:ec2::254]/latest/meta-data/"}), deny, CatSecretExfiltration},
 		{"webfetch-docs", toolReq("WebFetch", map[string]any{"url": "https://go.dev/doc"}), askB, ""},
 		{"mcp-tool", toolReq("mcp__github__create_issue", map[string]any{"title": "x"}), askB, ""},
+		{"powershell", toolReq("PowerShell", map[string]any{"command": "git status", "description": "d"}), askB, ""},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
