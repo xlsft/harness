@@ -36,7 +36,7 @@ func (f *pdfFont) decode(s []byte, undecodable *bool) string {
 		if t, ok := f.cmap[uint32(c)]; ok {
 			b.WriteString(t)
 		} else {
-			b.WriteRune(rune(c))
+			b.WriteRune(singleByteRune(c))
 		}
 	}
 	return b.String()
@@ -45,9 +45,18 @@ func (f *pdfFont) decode(s []byte, undecodable *bool) string {
 func latin1(s []byte) string {
 	r := make([]rune, len(s))
 	for i, c := range s {
-		r[i] = rune(c)
+		r[i] = singleByteRune(c)
 	}
 	return string(r)
+}
+
+// singleByteRune reads a code of a simple font without a ToUnicode map: Latin-1, with WinAnsi's marks in 0x80-0x9F,
+// where Latin-1 has only control characters.
+func singleByteRune(c byte) rune {
+	if r, ok := winAnsiRunes[c]; ok {
+		return r
+	}
+	return rune(c)
 }
 
 type pdfTok struct {

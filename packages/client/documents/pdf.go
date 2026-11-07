@@ -493,12 +493,16 @@ func (d *pdfDoc) Apply(edits []Edit) (*EditResult, error) {
 			cur, line, err = pdfRotate(cur, ed, total)
 		case "delete_pages":
 			cur, total, line, err = pdfDeletePages(cur, ed, total)
+		case "add_text", "add_image":
+			var notes []string
+			cur, line, notes, err = pdfAddContent(cur, ed, total)
+			res.Notes = append(res.Notes, notes...)
 		case "fill_form":
 			var notes []string
 			cur, line, notes, err = d.fill(cur, ed)
 			res.Notes = append(res.Notes, notes...)
 		default:
-			err = refuse("unknown operation %q for a PDF; use one of: rotate, delete_pages, fill_form (merge and split are operations of the tool)", ed.Op)
+			err = refuse("unknown operation %q for a PDF; use one of: rotate, delete_pages, fill_form, add_text, add_image (merge and split are operations of the tool)", ed.Op)
 		}
 		if err != nil {
 			return nil, fmt.Errorf("edit %d (%s): %w", i+1, ed.Op, err)
