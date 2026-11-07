@@ -1,0 +1,10 @@
+id: doc-pdf-split
+title: Split pages out of a PDF and read one
+language: documents
+tags: [documents, pdf]
+timeout: 6m
+max_turns: 30
+prompt: |
+  report.pdf has five parts, one per page. Write pages 2 and 3 to a new file, excerpt.pdf, next
+  to it, and leave report.pdf as it is. Page 3 mentions an access code: tell me what it is.
+  End your reply with a final line of exactly the form `ANSWER: <code>`.

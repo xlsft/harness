@@ -5,8 +5,8 @@ import { createClient, type Client, type Transport } from '@connectrpc/connect'
 import { LibraryService } from '~/gen/harness/agent/v1/library_pb'
 import { ArtifactService, ArtifactVisibility } from '~/gen/harness/library/v1/artifacts_pb'
 import { KnowledgeService } from '~/gen/harness/library/v1/knowledge_pb'
-import { TrackerService } from '~/gen/harness/library/v1/tracker_pb'
-import { Scope, type ArtifactFilter, type ExportFormat, type LibraryApi, type TaskDraft, type TaskPatch } from './types'
+import { LocalTrackerService } from '~/gen/harness/agent/v1/trackers_pb'
+import { Scope, type ArtifactFilter, type ExportFormat, type LibraryApi } from './types'
 
 function need<T>(v: T | undefined, what: string): T {
   if (v === undefined) throw new Error(`the server returned no ${what}`)
@@ -16,13 +16,13 @@ function need<T>(v: T | undefined, what: string): T {
 export class ConnectLibraryApi implements LibraryApi {
   private artifacts: Client<typeof ArtifactService>
   private knowledge: Client<typeof KnowledgeService>
-  private tracker: Client<typeof TrackerService>
+  private device: Client<typeof LocalTrackerService>
   private local: Client<typeof LibraryService>
 
   constructor(transport: Transport, private readonly baseUrl: string) {
     this.artifacts = createClient(ArtifactService, transport)
     this.knowledge = createClient(KnowledgeService, transport)
-    this.tracker = createClient(TrackerService, transport)
+    this.device = createClient(LocalTrackerService, transport)
     this.local = createClient(LibraryService, transport)
   }
 
@@ -75,24 +75,22 @@ export class ConnectLibraryApi implements LibraryApi {
     await this.knowledge.deleteKnowledgeDocument({ id })
   }
 
+  async listSources() {
+    return (await this.device.listAllKnowledgeSources({})).sources
+  }
+
   async searchKnowledge(query: string, limit = 12) {
-    return (await this.knowledge.searchKnowledge({ query, limit })).hits
+    const r = await this.device.searchAllKnowledge({ query, limit })
+    return { hits: r.hits, warnings: r.warnings }
   }
 
-  async listTasks(q: { query?: string } = {}) {
-    return (await this.tracker.listTrackerTasks({ query: q.query ?? '', limit: 500 })).tasks
+  async browseSource(sourceId: string, parentId = '') {
+    const r = await this.device.browseKnowledge({ sourceId, parentId })
+    return { documents: r.documents, hasMore: r.hasMore }
   }
 
-  async createTask(d: TaskDraft) {
-    return need((await this.tracker.createTrackerTask({ title: d.title, description: d.description ?? '', status: d.status, priority: d.priority, project: d.project ?? '', blockedBy: d.blockedBy ?? [] })).task, 'task')
-  }
-
-  async updateTask(id: string, patch: TaskPatch) {
-    return need((await this.tracker.updateTrackerTask({ id, title: patch.title, description: patch.description, status: patch.status, priority: patch.priority, project: patch.project })).task, 'task')
-  }
-
-  async deleteTask(id: string) {
-    await this.tracker.deleteTrackerTask({ id })
+  readDocument(documentId: string) {
+    return this.device.readKnowledge({ documentId }) as Promise<never>
   }
 
   async listMemory(folder = '') {

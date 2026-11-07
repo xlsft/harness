@@ -51,6 +51,12 @@ const (
 	// KnowledgeServiceSearchKnowledgeProcedure is the fully-qualified name of the KnowledgeService's
 	// SearchKnowledge RPC.
 	KnowledgeServiceSearchKnowledgeProcedure = "/harness.library.v1.KnowledgeService/SearchKnowledge"
+	// KnowledgeServiceListKnowledgeSourcesProcedure is the fully-qualified name of the
+	// KnowledgeService's ListKnowledgeSources RPC.
+	KnowledgeServiceListKnowledgeSourcesProcedure = "/harness.library.v1.KnowledgeService/ListKnowledgeSources"
+	// KnowledgeServiceBrowseKnowledgeSourceProcedure is the fully-qualified name of the
+	// KnowledgeService's BrowseKnowledgeSource RPC.
+	KnowledgeServiceBrowseKnowledgeSourceProcedure = "/harness.library.v1.KnowledgeService/BrowseKnowledgeSource"
 )
 
 // KnowledgeServiceClient is a client for the harness.library.v1.KnowledgeService service.
@@ -61,8 +67,12 @@ type KnowledgeServiceClient interface {
 	CreateKnowledgeDocument(context.Context, *connect.Request[v1.CreateKnowledgeDocumentRequest]) (*connect.Response[v1.CreateKnowledgeDocumentResponse], error)
 	UpdateKnowledgeDocument(context.Context, *connect.Request[v1.UpdateKnowledgeDocumentRequest]) (*connect.Response[v1.UpdateKnowledgeDocumentResponse], error)
 	DeleteKnowledgeDocument(context.Context, *connect.Request[v1.DeleteKnowledgeDocumentRequest]) (*connect.Response[v1.DeleteKnowledgeDocumentResponse], error)
-	// Passages of the documents the caller may read, best first.
+	// Passages of the documents the caller may read, best first. A provider source that fails is a warning, not an error.
 	SearchKnowledge(context.Context, *connect.Request[v1.SearchKnowledgeRequest]) (*connect.Response[v1.SearchKnowledgeResponse], error)
+	// The internal sources and the global provider sources the caller can read.
+	ListKnowledgeSources(context.Context, *connect.Request[v1.ListKnowledgeSourcesRequest]) (*connect.Response[v1.ListKnowledgeSourcesResponse], error)
+	// Documents of one source, provider ones read live: top-level ones, or the children of `parent_id`.
+	BrowseKnowledgeSource(context.Context, *connect.Request[v1.BrowseKnowledgeSourceRequest]) (*connect.Response[v1.BrowseKnowledgeSourceResponse], error)
 }
 
 // NewKnowledgeServiceClient constructs a client for the harness.library.v1.KnowledgeService
@@ -112,6 +122,18 @@ func NewKnowledgeServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(knowledgeServiceMethods.ByName("SearchKnowledge")),
 			connect.WithClientOptions(opts...),
 		),
+		listKnowledgeSources: connect.NewClient[v1.ListKnowledgeSourcesRequest, v1.ListKnowledgeSourcesResponse](
+			httpClient,
+			baseURL+KnowledgeServiceListKnowledgeSourcesProcedure,
+			connect.WithSchema(knowledgeServiceMethods.ByName("ListKnowledgeSources")),
+			connect.WithClientOptions(opts...),
+		),
+		browseKnowledgeSource: connect.NewClient[v1.BrowseKnowledgeSourceRequest, v1.BrowseKnowledgeSourceResponse](
+			httpClient,
+			baseURL+KnowledgeServiceBrowseKnowledgeSourceProcedure,
+			connect.WithSchema(knowledgeServiceMethods.ByName("BrowseKnowledgeSource")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -123,6 +145,8 @@ type knowledgeServiceClient struct {
 	updateKnowledgeDocument *connect.Client[v1.UpdateKnowledgeDocumentRequest, v1.UpdateKnowledgeDocumentResponse]
 	deleteKnowledgeDocument *connect.Client[v1.DeleteKnowledgeDocumentRequest, v1.DeleteKnowledgeDocumentResponse]
 	searchKnowledge         *connect.Client[v1.SearchKnowledgeRequest, v1.SearchKnowledgeResponse]
+	listKnowledgeSources    *connect.Client[v1.ListKnowledgeSourcesRequest, v1.ListKnowledgeSourcesResponse]
+	browseKnowledgeSource   *connect.Client[v1.BrowseKnowledgeSourceRequest, v1.BrowseKnowledgeSourceResponse]
 }
 
 // ListKnowledgeDocuments calls harness.library.v1.KnowledgeService.ListKnowledgeDocuments.
@@ -155,6 +179,16 @@ func (c *knowledgeServiceClient) SearchKnowledge(ctx context.Context, req *conne
 	return c.searchKnowledge.CallUnary(ctx, req)
 }
 
+// ListKnowledgeSources calls harness.library.v1.KnowledgeService.ListKnowledgeSources.
+func (c *knowledgeServiceClient) ListKnowledgeSources(ctx context.Context, req *connect.Request[v1.ListKnowledgeSourcesRequest]) (*connect.Response[v1.ListKnowledgeSourcesResponse], error) {
+	return c.listKnowledgeSources.CallUnary(ctx, req)
+}
+
+// BrowseKnowledgeSource calls harness.library.v1.KnowledgeService.BrowseKnowledgeSource.
+func (c *knowledgeServiceClient) BrowseKnowledgeSource(ctx context.Context, req *connect.Request[v1.BrowseKnowledgeSourceRequest]) (*connect.Response[v1.BrowseKnowledgeSourceResponse], error) {
+	return c.browseKnowledgeSource.CallUnary(ctx, req)
+}
+
 // KnowledgeServiceHandler is an implementation of the harness.library.v1.KnowledgeService service.
 type KnowledgeServiceHandler interface {
 	ListKnowledgeDocuments(context.Context, *connect.Request[v1.ListKnowledgeDocumentsRequest]) (*connect.Response[v1.ListKnowledgeDocumentsResponse], error)
@@ -163,8 +197,12 @@ type KnowledgeServiceHandler interface {
 	CreateKnowledgeDocument(context.Context, *connect.Request[v1.CreateKnowledgeDocumentRequest]) (*connect.Response[v1.CreateKnowledgeDocumentResponse], error)
 	UpdateKnowledgeDocument(context.Context, *connect.Request[v1.UpdateKnowledgeDocumentRequest]) (*connect.Response[v1.UpdateKnowledgeDocumentResponse], error)
 	DeleteKnowledgeDocument(context.Context, *connect.Request[v1.DeleteKnowledgeDocumentRequest]) (*connect.Response[v1.DeleteKnowledgeDocumentResponse], error)
-	// Passages of the documents the caller may read, best first.
+	// Passages of the documents the caller may read, best first. A provider source that fails is a warning, not an error.
 	SearchKnowledge(context.Context, *connect.Request[v1.SearchKnowledgeRequest]) (*connect.Response[v1.SearchKnowledgeResponse], error)
+	// The internal sources and the global provider sources the caller can read.
+	ListKnowledgeSources(context.Context, *connect.Request[v1.ListKnowledgeSourcesRequest]) (*connect.Response[v1.ListKnowledgeSourcesResponse], error)
+	// Documents of one source, provider ones read live: top-level ones, or the children of `parent_id`.
+	BrowseKnowledgeSource(context.Context, *connect.Request[v1.BrowseKnowledgeSourceRequest]) (*connect.Response[v1.BrowseKnowledgeSourceResponse], error)
 }
 
 // NewKnowledgeServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -210,6 +248,18 @@ func NewKnowledgeServiceHandler(svc KnowledgeServiceHandler, opts ...connect.Han
 		connect.WithSchema(knowledgeServiceMethods.ByName("SearchKnowledge")),
 		connect.WithHandlerOptions(opts...),
 	)
+	knowledgeServiceListKnowledgeSourcesHandler := connect.NewUnaryHandler(
+		KnowledgeServiceListKnowledgeSourcesProcedure,
+		svc.ListKnowledgeSources,
+		connect.WithSchema(knowledgeServiceMethods.ByName("ListKnowledgeSources")),
+		connect.WithHandlerOptions(opts...),
+	)
+	knowledgeServiceBrowseKnowledgeSourceHandler := connect.NewUnaryHandler(
+		KnowledgeServiceBrowseKnowledgeSourceProcedure,
+		svc.BrowseKnowledgeSource,
+		connect.WithSchema(knowledgeServiceMethods.ByName("BrowseKnowledgeSource")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.library.v1.KnowledgeService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case KnowledgeServiceListKnowledgeDocumentsProcedure:
@@ -224,6 +274,10 @@ func NewKnowledgeServiceHandler(svc KnowledgeServiceHandler, opts ...connect.Han
 			knowledgeServiceDeleteKnowledgeDocumentHandler.ServeHTTP(w, r)
 		case KnowledgeServiceSearchKnowledgeProcedure:
 			knowledgeServiceSearchKnowledgeHandler.ServeHTTP(w, r)
+		case KnowledgeServiceListKnowledgeSourcesProcedure:
+			knowledgeServiceListKnowledgeSourcesHandler.ServeHTTP(w, r)
+		case KnowledgeServiceBrowseKnowledgeSourceProcedure:
+			knowledgeServiceBrowseKnowledgeSourceHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -255,4 +309,12 @@ func (UnimplementedKnowledgeServiceHandler) DeleteKnowledgeDocument(context.Cont
 
 func (UnimplementedKnowledgeServiceHandler) SearchKnowledge(context.Context, *connect.Request[v1.SearchKnowledgeRequest]) (*connect.Response[v1.SearchKnowledgeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.library.v1.KnowledgeService.SearchKnowledge is not implemented"))
+}
+
+func (UnimplementedKnowledgeServiceHandler) ListKnowledgeSources(context.Context, *connect.Request[v1.ListKnowledgeSourcesRequest]) (*connect.Response[v1.ListKnowledgeSourcesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.library.v1.KnowledgeService.ListKnowledgeSources is not implemented"))
+}
+
+func (UnimplementedKnowledgeServiceHandler) BrowseKnowledgeSource(context.Context, *connect.Request[v1.BrowseKnowledgeSourceRequest]) (*connect.Response[v1.BrowseKnowledgeSourceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.library.v1.KnowledgeService.BrowseKnowledgeSource is not implemented"))
 }

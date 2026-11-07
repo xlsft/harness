@@ -1,0 +1,10 @@
+id: doc-pptx-fix-deck
+title: Rename, delete and reorder slides
+language: documents
+tags: [documents, pptx]
+timeout: 6m
+max_turns: 30
+prompt: |
+  Fix deck.pptx: rename the slide titled "Plan" to "Roadmap", delete the slide titled
+  "Old appendix", and move the slide titled "Results" so that it comes directly after the
+  opening slide. Keep the speaker notes of the slides that stay.

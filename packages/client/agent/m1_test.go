@@ -399,6 +399,8 @@ func TestTrimToolOutputsBeforeSummarizing(t *testing.T) {
 	// The sizes below are tuned to these tools.
 	delete(e.srv.Bundle.Tools, "Skill")
 	delete(e.srv.Bundle.Tools, "ReportFindings")
+	delete(e.srv.Bundle.Tools, "DocumentRead")
+	delete(e.srv.Bundle.Tools, "DocumentEdit")
 	// Window 200k * 0.03 = 6000 tokens: the big outputs (~1000 tokens each)
 	// cross it, trimming old ones brings it back under.
 	s := e.open(t, func(o *bootstrap.Options) {

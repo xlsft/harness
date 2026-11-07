@@ -1,0 +1,214 @@
+syntax = "proto3";
+
+package harness.library.v1;
+
+// External trackers as providers, like model providers: connect, test, disable, remove. docs/design/tracker.md.
+//
+// TrackerConnectionService is served by core and holds admin connections: a company account whose secret is encrypted on the
+// server and whose requests go from the server. Secrets are write-only and never reach a client. Personal connections live
+// on the device instead (harness.agent.v1.LocalTrackerService) and use the same messages.
+service TrackerConnectionService {
+  // What every signed-in user may know about admin connections. Only admins get `login`, `base_url`, `oauth_client_id` and `last_error`.
+  rpc ListTrackerConnections(ListTrackerConnectionsRequest) returns (ListTrackerConnectionsResponse);
+  // Adds or changes a connection. PERMISSION_DENIED unless the caller is an admin.
+  rpc PutTrackerConnection(PutTrackerConnectionRequest) returns (PutTrackerConnectionResponse);
+  // Admins only. Removes the stages' inputs and outputs on it; linked cards keep their text and show the link as disconnected.
+  rpc DeleteTrackerConnection(DeleteTrackerConnectionRequest) returns (DeleteTrackerConnectionResponse);
+  // Signs in with the stored credentials, or with `draft` before anything is saved. Admins only. Failure is an answer, not an error.
+  rpc TestTrackerConnection(TestTrackerConnectionRequest) returns (TestTrackerConnectionResponse);
+  // Runs a query in the provider's own syntax: the Test button of a stage's input. Any signed-in user.
+  rpc SearchConnectionIssues(SearchConnectionIssuesRequest) returns (SearchConnectionIssuesResponse);
+  // The fields an output can set. Any signed-in user.
+  rpc ListConnectionFields(ListConnectionFieldsRequest) returns (ListConnectionFieldsResponse);
+  // Starts Authorization Code with PKCE for a saved OAuth connection. Admins only. Open `authorize_url` in a browser.
+  rpc StartTrackerOAuth(StartTrackerOAuthRequest) returns (StartTrackerOAuthResponse);
+}
+
+// What a provider can do, so that forms and tools need no knowledge of the provider.
+message TrackerCapabilities {
+  // "youtrack".
+  string provider = 1;
+  string display_name = 2;
+  repeated TrackerAuthMethod auth_methods = 3;
+  // What the provider calls its query language, and an example for the form.
+  string query_language = 4;
+  string query_example = 5;
+  bool custom_fields = 6;
+  bool comments = 7;
+  // Has documents Knowledge can read.
+  bool knowledge = 8;
+}
+
+enum TrackerAuthMethod {
+  TRACKER_AUTH_METHOD_UNSPECIFIED = 0;
+  // A token the user made on the instance. On YouTrack, a permanent token.
+  TRACKER_AUTH_METHOD_TOKEN = 1;
+  // Login and password. On YouTrack through the Hub login form, without two-factor authentication.
+  TRACKER_AUTH_METHOD_PASSWORD = 2;
+  // Authorization Code with PKCE and a client an admin of the instance registered.
+  TRACKER_AUTH_METHOD_OAUTH = 3;
+}
+
+enum TrackerConnectionScope {
+  TRACKER_CONNECTION_SCOPE_UNSPECIFIED = 0;
+  // On the server: requests go from the server.
+  TRACKER_CONNECTION_SCOPE_ADMIN = 1;
+  // On a device: requests go from that client. The server knows only the opaque id.
+  TRACKER_CONNECTION_SCOPE_DEVICE = 2;
+}
+
+// Which connection something uses.
+message TrackerConnectionRef {
+  TrackerConnectionScope scope = 1;
+  string id = 2;
+}
+
+message TrackerConnection {
+  string id = 1;
+  TrackerConnectionScope scope = 2;
+  // "youtrack".
+  string provider = 3;
+  string name = 4;
+  string base_url = 5;
+  TrackerAuthMethod auth = 6;
+  // Login for the password method; the account's login after a successful test.
+  string login = 7;
+  // OAuth client id. Public.
+  string oauth_client_id = 8;
+  // Whether a secret is stored. The secret itself never comes back.
+  bool has_secret = 9;
+  bool enabled = 10;
+  bool allow_private_network = 11;
+  // Serves documents to Knowledge: for everyone on an admin connection, for its user on a device one.
+  bool knowledge_enabled = 12;
+  // Narrows the documents, in the provider's syntax.
+  string knowledge_query = 13;
+  bool healthy = 14;
+  string last_error = 15;
+  // RFC 3339; empty before the first test.
+  string last_checked_at = 16;
+  TrackerCapabilities capabilities = 17;
+}
+
+// A connection as the form sends it. An unset secret keeps the stored one.
+message TrackerConnectionInput {
+  // Empty when adding.
+  string id = 1;
+  string provider = 2;
+  string name = 3;
+  string base_url = 4;
+  TrackerAuthMethod auth = 5;
+  string login = 6;
+  // The token or the password. Write-only.
+  optional string secret = 7;
+  string oauth_client_id = 8;
+  // For a confidential OAuth client. Write-only.
+  optional string oauth_client_secret = 9;
+  bool enabled = 10;
+  bool allow_private_network = 11;
+  bool knowledge_enabled = 12;
+  string knowledge_query = 13;
+}
+
+message TrackerIssue {
+  // The id people read: DEMO-12.
+  string id = 1;
+  string title = 2;
+  string url = 3;
+  // Only when read one at a time: search leaves it empty.
+  string description = 4;
+  string project = 5;
+  // Name and value as text.
+  repeated TrackerIssueField fields = 6;
+  // RFC 3339.
+  string updated_at = 7;
+  repeated TrackerIssueComment comments = 8;
+}
+
+message TrackerIssueField {
+  string name = 1;
+  string value = 2;
+}
+
+message TrackerIssueComment {
+  string author = 1;
+  string text = 2;
+  string created_at = 3;
+}
+
+// A field an output can set.
+message TrackerField {
+  string name = 1;
+  // "bundle", "user", "string", "text", "integer", "float", "date", "period".
+  string kind = 2;
+  bool multi = 3;
+  // The values it takes, when the provider lists them.
+  repeated string values = 4;
+}
+
+message ListTrackerConnectionsRequest {}
+
+message ListTrackerConnectionsResponse {
+  repeated TrackerConnection connections = 1;
+  // Providers that can be connected.
+  repeated TrackerCapabilities providers = 2;
+}
+
+message PutTrackerConnectionRequest {
+  TrackerConnectionInput connection = 1;
+}
+
+message PutTrackerConnectionResponse {
+  TrackerConnection connection = 1;
+}
+
+message DeleteTrackerConnectionRequest {
+  string id = 1;
+}
+
+message DeleteTrackerConnectionResponse {}
+
+message TestTrackerConnectionRequest {
+  // A saved connection, or
+  string id = 1;
+  // one not saved yet.
+  TrackerConnectionInput draft = 2;
+}
+
+message TestTrackerConnectionResponse {
+  bool ok = 1;
+  string error = 2;
+  // Who the credentials sign in as.
+  string login = 3;
+  string display_name = 4;
+}
+
+message SearchConnectionIssuesRequest {
+  string connection_id = 1;
+  string query = 2;
+  // Default 20, at most 50.
+  int32 limit = 3;
+}
+
+message SearchConnectionIssuesResponse {
+  repeated TrackerIssue issues = 1;
+  bool has_more = 2;
+}
+
+message ListConnectionFieldsRequest {
+  string connection_id = 1;
+  // The project whose fields, such as DEMO. Empty: what the provider knows without one.
+  string project = 2;
+}
+
+message ListConnectionFieldsResponse {
+  repeated TrackerField fields = 1;
+}
+
+message StartTrackerOAuthRequest {
+  string connection_id = 1;
+}
+
+message StartTrackerOAuthResponse {
+  string authorize_url = 1;
+}

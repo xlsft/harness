@@ -22,6 +22,7 @@ import (
 
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/documents"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/tools"
@@ -751,7 +752,7 @@ func (b *diffBuilder) diffOnDisk(path, real, baseline string, source agentv1.Fil
 	if baseInfo != nil {
 		baseSize = baseInfo.Size()
 	}
-	if max(size, baseSize) > maxDiffFileBytes || size+baseSize > b.budget {
+	if max(size, baseSize) > diffFileLimit(real) || size+baseSize > b.budget {
 		// Not read. Same size and not written since the snapshot: taken as unchanged.
 		if exists && baseInfo != nil && size == baseSize && !st.ModTime().After(baseInfo.ModTime()) {
 			return nil
@@ -799,6 +800,16 @@ func compareFiles(real string, symlink, exists bool, baseline string) *diffResul
 	}
 	if baseline != "" && exists && bytes.Equal(old, cur) {
 		return &diffResult{unchanged: true}
+	}
+	if !symlink && documents.IsDocumentPath(real) {
+		var oldSide, curSide []byte
+		if baseline != "" {
+			oldSide = old
+		}
+		if exists {
+			curSide = cur
+		}
+		return documentDiff(real, oldSide, curSide)
 	}
 	if isBinary(cur, false) || isBinary(old, false) {
 		return &diffResult{binary: true}
@@ -904,12 +915,18 @@ func (b *diffBuilder) measureRepo(ctx context.Context, r *diffRepo) error {
 			continue
 		}
 		old, size := r.entrySize(e, blobs)
-		if max(old, size) > maxDiffFileBytes || old+size > b.budget {
+		if max(old, size) > diffFileLimit(e.path) || old+size > b.budget {
 			skip = append(skip, e.specs()...)
 			b.add(r.tooLargeFile(e))
 			continue
 		}
 		b.budget -= old + size
+		if documents.IsDocumentPath(e.path) {
+			// Compared by content here; git would only say binary.
+			skip = append(skip, e.specs()...)
+			b.add(b.repoDocument(ctx, r, e, size))
+			continue
+		}
 		r.keep = append(r.keep, e.specs()...)
 	}
 	if len(r.keep) > 0 {
@@ -995,8 +1012,11 @@ func (b *diffBuilder) addHunks(ctx context.Context) error {
 // reports it.
 func (b *diffBuilder) repoFile(ctx context.Context, r *diffRepo, e rawDiffEntry) (*agentv1.FileDiff, error) {
 	old, size := r.entrySize(e, blobSizes(ctx, r.top, []rawDiffEntry{e}))
-	if max(old, size) > maxDiffFileBytes {
+	if max(old, size) > diffFileLimit(e.path) {
 		return r.tooLargeFile(e), nil
+	}
+	if documents.IsDocumentPath(e.path) {
+		return b.repoDocument(ctx, r, e, size), nil
 	}
 	files, err := r.repoPatch(ctx, e.specs())
 	if err != nil {

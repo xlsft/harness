@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "file_path": {
+      "type": "string",
+      "description": "Absolute path of the document to change or write"
+    },
+    "operation": {
+      "type": "string",
+      "enum": ["edit", "create", "merge", "split"],
+      "description": "What to do; edit when left out"
+    },
+    "edits": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The batch, applied together or not at all",
+      "items": {
+        "type": "object",
+        "properties": {
+          "op": { "type": "string" },
+          "target": { "type": "string", "description": "Address from DocumentRead" },
+          "fingerprint": { "type": "string", "description": "The address's #fingerprint, without the #" },
+          "find": { "type": "string" },
+          "all": { "type": "boolean" },
+          "text": { "type": "string" },
+          "value": { "description": "A number, string or boolean" },
+          "formula": { "type": "string" },
+          "type": { "type": "string", "enum": ["date", "string", "number"] },
+          "style": { "type": "string" },
+          "author": { "type": "string" },
+          "track": { "type": "boolean" },
+          "x": { "type": "integer" },
+          "y": { "type": "integer" },
+          "cx": { "type": "integer" },
+          "cy": { "type": "integer" },
+          "layout": { "type": "string" },
+          "title": { "type": "string" },
+          "clone_of": { "type": "string" },
+          "position": { "type": "integer", "minimum": 1 },
+          "pages": { "type": "string" },
+          "degrees": { "type": "integer" },
+          "fields": { "type": "object" }
+        },
+        "required": ["op"],
+        "additionalProperties": false
+      }
+    },
+    "spec": {
+      "type": "object",
+      "description": "For create: the content, as the description says"
+    },
+    "template": {
+      "type": "string",
+      "description": "For create: absolute path of a file to start from"
+    },
+    "sources": {
+      "type": "array",
+      "description": "For merge: PDFs in order, each with optional pages",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string" },
+          "pages": { "type": "string" }
+        },
+        "required": ["path"],
+        "additionalProperties": false
+      }
+    },
+    "source": {
+      "type": "string",
+      "description": "For split: the PDF to take pages from"
+    },
+    "pages": {
+      "type": "string",
+      "description": "For split: the pages to write"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
+    }
+  },
+  "required": ["file_path", "description"],
+  "additionalProperties": false
+}

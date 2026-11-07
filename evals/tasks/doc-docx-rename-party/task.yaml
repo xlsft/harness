@@ -1,0 +1,10 @@
+id: doc-docx-rename-party
+title: Rename a party across every story of a Word contract
+language: documents
+tags: [documents, docx]
+timeout: 6m
+max_turns: 30
+prompt: |
+  contract.docx names the supplier as "ACME Corp". The company was renamed: change it to
+  "Globex Ltd" everywhere it appears in the document, including tables and page headers.
+  Change nothing else, and keep the formatting of the surrounding text.
