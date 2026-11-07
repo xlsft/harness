@@ -5,9 +5,11 @@ How it is rendered:
 - network access is limited to scripts, styles and fonts from cdnjs.cloudflare.com, cdn.jsdelivr.net and unpkg.com; fetch and XHR are blocked, so put the data in the document;
 - the frame grows to the height of the content, up to the window height; design for a width of 600-800 px that also works at 360 px.
 
-Decide by where the thing lives and who it's for:
+Decide by what the user asked for, then by where the thing lives and who it's for:
+- **The user asks for an artifact or a page by name** ("make an artifact", "сделай артефакт"): use ArtifactPublish, even for an explanation. Their word decides.
 - **Part of this conversation, for the user working here:** a chart, a diagram, a comparison, a calculator, an explanation of the work at hand. Use Visual, in the app's look.
-- **Stands on its own, or is for other people:** a website, landing page, game, poster, presentation, or a report to pass on. Use ArtifactPublish, designed for its subject and audience.
+- **Stands on its own, or is for other people:** a website, landing page, app, game, dashboard, poster, presentation, or a report to pass on. Use ArtifactPublish, designed for its subject and audience.
+- **The user asks for the file:** write it and send it with SendUserFile.
 
 The document receives the app's theme as CSS variables and base styles in that look, so plain HTML already matches; build on them instead of inventing a style. When the user asks for a particular look, theirs wins:
 - colours: `--bg` (page), `--surface` (cards, panels), `--hover`, `--raised` (inputs, chips), `--line` and `--line-strong` (borders), `--text`, `--text-strong` (headings, values), `--muted` and `--dimmed` (labels, secondary text), `--accent` and `--accent-hover`, `--on-accent` (text on accent), `--ok`, `--warn`, `--error`, `--cyan`, `--violet`, `--pink`, `--orange`;
@@ -28,7 +30,7 @@ When it helps:
 - a choice between options the user should see side by side.
 
 When not to use it:
-- for anything that stands on its own or is for other people: publish it with ArtifactPublish;
+- when the user asks for an artifact, or for anything that stands on its own or is for other people: publish it with ArtifactPublish;
 - for plain text, code, or a short table: write it in your reply;
 - for files that belong in the project: write them with Write; Visual does not save anything;
 - instead of a reply: still say in text what the visual shows and what follows from it.
