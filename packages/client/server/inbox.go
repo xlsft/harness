@@ -116,9 +116,11 @@ func (s *Server) inboxObserve(ls *liveSession, ev *agentv1.SessionEvent) {
 	}
 	in.mirrored[id] = mirrored
 	changed := f.fold(ev, in.now())
-	var item *agentv1.InboxItem
+	var item, observed *agentv1.InboxItem
+	group := f.group()
 	removed := false
 	if changed {
+		observed = proto.Clone(f.item).(*agentv1.InboxItem)
 		if in.visibleLocked(f) {
 			item = in.presentLocked(f, s.DeviceID)
 		} else {
@@ -134,6 +136,9 @@ func (s *Server) inboxObserve(ls *liveSession, ev *agentv1.SessionEvent) {
 		s.inboxEmit(&agentv1.InboxChange{Item: item})
 	} else if removed {
 		s.inboxEmit(&agentv1.InboxChange{RemovedSessionId: id})
+	}
+	if observed != nil {
+		s.projectObserve(id, observed, group, ev)
 	}
 }
 

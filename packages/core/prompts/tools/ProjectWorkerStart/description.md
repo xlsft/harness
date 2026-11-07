@@ -1,0 +1,3 @@
+Starts a worker session for one task of your task graph. The task must be pending and not waiting for others; it becomes the worker's. The worker gets your permission mode and rules, never more, and works on its own: give it everything it needs in `prompt`, as it sees nothing of this conversation.
+
+`target` is where it runs: `worktree` (default, a new git worktree and branch of this repository), `here` (your folder; only for work that can't clash with other workers) or a host id from ProjectStatus, with `cwd` the folder on that host. The run's limits are checked for you: when a start is refused, wait for a worker to report or tell the user.

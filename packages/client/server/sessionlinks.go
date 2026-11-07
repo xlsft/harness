@@ -22,6 +22,7 @@ import (
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/pbconv"
+	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/tools"
@@ -191,8 +192,17 @@ func (s *Server) liveSession(id string) *liveSession {
 
 // StartSession implements tools.SessionCoordinator.
 func (ls *liveSession) StartSession(ctx context.Context, r tools.SessionRequest) (tools.LinkedSession, error) {
+	return ls.StartSessionMode(ctx, r, "")
+}
+
+// StartSessionMode is StartSession in the given mode (empty: this session's); a project run's workers never get more
+// than the coordinator (projectruns.go).
+func (ls *liveSession) StartSessionMode(ctx context.Context, r tools.SessionRequest, mode permissions.Mode) (tools.LinkedSession, error) {
 	s := ls.srv
-	m := &agentv1.CreateSessionRequest{Cwd: r.Cwd, Model: r.Model, PermissionMode: modeToProto(ls.sess.Permissions.Mode())}
+	if mode == "" {
+		mode = ls.sess.Permissions.Mode()
+	}
+	m := &agentv1.CreateSessionRequest{Cwd: r.Cwd, Model: r.Model, PermissionMode: modeToProto(mode)}
 	if m.Cwd == "" && !isNoFolder(ls.sess.ID, ls.sess.Dir()) {
 		m.Cwd = ls.sess.Dir()
 	}

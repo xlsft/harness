@@ -327,6 +327,15 @@ func (h *Host) exec(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck
 			a.Result = &relayv1.CommandAck_StopWorkflow{StopWorkflow: res.Msg}
 		}
 		return a
+	case *relayv1.Command_ProjectRunControl:
+		m := proto.Clone(p.ProjectRunControl).(*agentv1.ControlProjectRunRequest)
+		m.SessionId = sid
+		res, err := b.ControlProjectRun(ctx, connect.NewRequest(m))
+		a := errAck(id, err, false)
+		if err == nil {
+			a.Result = &relayv1.CommandAck_ProjectRunControl{ProjectRunControl: res.Msg}
+		}
+		return a
 	case *relayv1.Command_GetSubagentTranscript:
 		res, err := b.GetSubagentTranscript(ctx, connect.NewRequest(&agentv1.GetSubagentTranscriptRequest{SessionId: sid, AgentId: p.GetSubagentTranscript.GetAgentId()}))
 		a := errAck(id, err, false)
@@ -367,10 +376,11 @@ func (h *Host) execHost(ctx context.Context, c *relayv1.Command) *relayv1.Comman
 	if !UnderRoots(cwd, h.o.AllowedRoots) {
 		return outcome(id, relayv1.CommandAck_OUTCOME_REJECTED, cwd+" is not under an allowed root")
 	}
-	if sp.GetWorktree() {
-		return outcome(id, relayv1.CommandAck_OUTCOME_REJECTED, "spawning into a new worktree is not supported yet")
-	}
 	create := proto.Clone(sp.GetCreate()).(*agentv1.CreateSessionRequest)
+	if sp.GetWorktree() && create.GetWorktree() == nil {
+		// A new worktree of the repository at cwd, which stays under the allowed root.
+		create.Worktree = &agentv1.WorktreeOptions{}
+	}
 	res, err := h.o.Backend.CreateSession(ctx, connect.NewRequest(create))
 	if err != nil {
 		return errAck(id, err, false)

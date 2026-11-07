@@ -168,6 +168,8 @@ type Server struct {
 
 	// inbox is the inbox of this client's sessions (inbox.go).
 	inbox inboxState
+	// runs are the project runs of this machine (projectruns.go).
+	runs projectRuns
 
 	// sides tracks the running side chat answers (sidechats.go).
 	sides sideChatRuns
@@ -564,6 +566,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	ls.publishInfo()
 	ls.links.origin = m
 	ls.publishProposals()
+	s.attachProjectRun(ls)
 	if remote != nil {
 		ls.links.forkOf = remote.Id
 	}

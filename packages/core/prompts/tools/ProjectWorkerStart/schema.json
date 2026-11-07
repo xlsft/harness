@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "The task of the graph to work on"
+    },
+    "prompt": {
+      "type": "string",
+      "description": "What the worker should do, complete: it sees nothing else"
+    },
+    "target": {
+      "type": "string",
+      "description": "worktree (default), here, or a host id from ProjectStatus"
+    },
+    "cwd": {
+      "type": "string",
+      "description": "With a host target: the folder on that host; default the same path as yours"
+    },
+    "model": {
+      "type": "string",
+      "description": "The worker's model; default yours"
+    }
+  },
+  "required": ["task_id", "prompt"],
+  "additionalProperties": false
+}

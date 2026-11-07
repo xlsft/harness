@@ -81,6 +81,7 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 		s.problem(src, KeyGoalMaxTurns, "must be between 1 and %d", MaxGoalMaxTurns)
 		l.goalTurns = nil
 	}
+	s.parseProject(src, raw, l)
 	if l.workflowAgents = s.integer(src, raw, KeyWorkflowMaxAgents); l.workflowAgents != nil && !ValidWorkflowMaxAgents(*l.workflowAgents) {
 		s.problem(src, KeyWorkflowMaxAgents, "must be between 1 and %d", MaxWorkflowMaxAgents)
 		l.workflowAgents = nil
@@ -248,6 +249,7 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		if l.src.Level == LevelPolicy && l.remoteControlOff {
 			s.RemoteControlPolicyOff = true
 		}
+		s.mergeProject(l)
 	}
 	gated := func(l *layer) bool { return l.src.Level == LevelProject && !s.Trusted }
 	// Language server settings gate the local project files too: a repository can commit those as well.

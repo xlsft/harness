@@ -18,6 +18,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/xlsft/harness/packages/client/agent"
@@ -183,6 +184,8 @@ type Options struct {
 // Session is a ready-to-run session.
 type Session struct {
 	ID          string
+	// Coordinator: the session coordinates a project run (server/projectruns.go); its tools are offered only then.
+	Coordinator atomic.Bool
 	Cwd         string
 	Model       string
 	Catalog     *llm.Catalog
@@ -645,6 +648,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.syncAutoMemory()
 	tools.RegisterWakeupTools(s.Tools)
 	tools.RegisterGraphTools(s.Tools)
+	tools.RegisterProjectTools(s.Tools, s.Coordinator.Load)
 	s.ToolEnv.TaskGraph = tools.NewTaskGraph(graphPath(path, o.NoPersistence))
 	s.openSkills(o)
 	s.Warnings = append(s.Warnings, pluginWarnings(cwd, s.Trusted)...)

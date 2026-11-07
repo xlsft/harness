@@ -1,0 +1,1 @@
+Merges the branch of a finished worker that ran in a worktree of this machine into your branch (`git merge --no-ff`). A conflict is aborted and reported, leaving both branches as they were: resolve it yourself or start a worker for it. Workers on other machines push their branches; merge those from the remote.
