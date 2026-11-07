@@ -29,4 +29,8 @@ message ManagedPolicyView {
   repeated string allowed_skills = 16;
   repeated string blocked_skills = 17;
   bool external_skill_search_disabled = 18;
+  // Plugins' panes and status-bar items are not shown (docs/design/plugin-ui.md).
+  bool plugin_ui_disabled = 400;
+  // Plugin panes reach no network.
+  bool plugin_ui_network_disabled = 401;
 }

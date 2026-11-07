@@ -22,6 +22,17 @@ service PluginService {
   rpc AddPluginMarketplace(AddPluginMarketplaceRequest) returns (AddPluginMarketplaceResponse);
   rpc UpdatePluginMarketplace(UpdatePluginMarketplaceRequest) returns (UpdatePluginMarketplaceResponse);
   rpc RemovePluginMarketplace(RemovePluginMarketplaceRequest) returns (RemovePluginMarketplaceResponse);
+
+  // Plugin UI (docs/design/plugin-ui.md): panes and status-bar items of the plugins that may run in a session's folder.
+  rpc ListPluginUi(ListPluginUiRequest) returns (ListPluginUiResponse);
+  // The document of one pane, ready for a sandboxed frame: its own scripts and styles inlined, the CSP in its head.
+  rpc GetPluginPane(GetPluginPaneRequest) returns (GetPluginPaneResponse);
+  // One call of the message API, made by a pane through the frontend that hosts it. The client checks that the plugin
+  // declared the capability and this device approved it.
+  rpc CallPluginUi(CallPluginUiRequest) returns (CallPluginUiResponse);
+  // Approves a capability of a plugin's UI on this device, or takes that back. Only the frontend's own controls call this,
+  // never a pane.
+  rpc SetPluginUiGrant(SetPluginUiGrantRequest) returns (SetPluginUiGrantResponse);
 }
 
 enum PluginStatus {
@@ -73,6 +84,45 @@ message PluginContents {
   repeated string allowed_tools = 7;
   // What it holds and this client does not act on.
   repeated string skipped = 8;
+  // Its UI: panes, status-bar items, the capabilities of the message API they may ask for, and the origins they may reach.
+  repeated PluginPane panes = 9;
+  repeated PluginStatusItem status_items = 10;
+  repeated string ui_capabilities = 11;
+  repeated string ui_network = 12;
+}
+
+// A pane a plugin declares: an HTML page of its folder, shown in the right pane in a sandboxed frame.
+message PluginPane {
+  string plugin_id = 1;
+  // Unique in the plugin.
+  string id = 2;
+  string title = 3;
+  // A name of the app's icon set; empty for the default.
+  string icon = 4;
+  // The page, as the manifest names it (./ui/meter.html).
+  string page = 5;
+}
+
+// A status-bar item a plugin declares. A click opens one of its panes, or sends a fixed prompt to the session.
+message PluginStatusItem {
+  string plugin_id = 1;
+  string id = 2;
+  string text = 3;
+  string icon = 4;
+  string tooltip = 5;
+  // The id of a pane of the same plugin; or
+  string pane = 6;
+  // the text sent to the session, with the session.prompt capability.
+  string prompt = 7;
+}
+
+// A capability of a plugin's UI as this device stands on it.
+message PluginUiGrant {
+  // session.read, session.prompt, files.open, theme.read, or network.
+  string capability = 1;
+  bool granted = 2;
+  // RFC 3339, UTC.
+  string granted_at = 3;
 }
 
 message Plugin {
@@ -103,6 +153,10 @@ message Plugin {
   PluginContents contents = 18;
   // What could not be read; the rest of it still loads.
   repeated string problems = 19;
+  // Each capability its UI declares, and whether this device approved it for this content.
+  repeated PluginUiGrant ui_grants = 20;
+  // Why its panes and status-bar items are not shown, when policy says so.
+  string ui_blocked = 21;
 }
 
 // An entry of a marketplace's catalog.
@@ -222,3 +276,70 @@ message RemovePluginMarketplaceRequest {
 }
 
 message RemovePluginMarketplaceResponse {}
+
+message ListPluginUiRequest {
+  // The session the panes would serve; its folder decides which plugins may run.
+  string session_id = 1;
+}
+
+message ListPluginUiResponse {
+  repeated PluginPane panes = 1;
+  repeated PluginStatusItem status_items = 2;
+  // Display names by plugin id.
+  map<string, string> plugin_names = 3;
+  // Set when policy hides all plugin UI; the lists are then empty.
+  string blocked = 4;
+}
+
+message GetPluginPaneRequest {
+  string plugin_id = 1;
+  string pane_id = 2;
+  string session_id = 3;
+}
+
+message GetPluginPaneResponse {
+  PluginPane pane = 1;
+  // The page with the CSP as the first element of its head, followed by the comment <!--harness-host--> where the frontend
+  // puts the theme and the bridge of the message API.
+  string html = 2;
+  // The CSP in the document, for showing.
+  string csp = 3;
+  // Origins the manifest declares that this device has not approved: the pane runs without them until it does.
+  repeated string network_pending = 4;
+  // The display name of the plugin.
+  string plugin_name = 5;
+  // Plugin.content_hash: what a grant made from this pane applies to.
+  string content_hash = 6;
+}
+
+message CallPluginUiRequest {
+  string plugin_id = 1;
+  string session_id = 2;
+  // Version of the message API the pane speaks; 1.
+  int32 version = 3;
+  // session.read, session.prompt, files.open or theme.read.
+  string method = 4;
+  // JSON object.
+  string params_json = 5;
+}
+
+message CallPluginUiResponse {
+  // JSON for the pane, when the call is done here.
+  string result_json = 1;
+  // The capability the call needs and this device has not decided on: the frontend asks the user, then calls again.
+  string needs_approval = 2;
+  // files.open: the file to show in the Files pane, absolute.
+  string open_file = 3;
+  // theme.read: the frontend answers with the theme's tokens.
+  bool theme = 4;
+}
+
+message SetPluginUiGrantRequest {
+  string plugin_id = 1;
+  string capability = 2;
+  bool granted = 3;
+  // Plugin.content_hash of what was shown. Required to grant: other content is refused.
+  string content_hash = 4;
+}
+
+message SetPluginUiGrantResponse {}

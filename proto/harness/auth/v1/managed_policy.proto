@@ -55,6 +55,10 @@ message ManagedPolicy {
   bool external_skill_search_disabled = 21;
   // Only always-on hosts registered by an admin may be used: nobody registers or runs a host of their own.
   bool personal_hosts_disabled = 230;
+  // disablePluginUi: plugins' panes and status-bar items are not shown on any device (docs/design/plugin-ui.md).
+  bool plugin_ui_disabled = 400;
+  // disablePluginUiNetwork: plugin panes reach no network, whatever their manifest declares and devices approved.
+  bool plugin_ui_network_disabled = 401;
 }
 
 message GetManagedPolicyRequest {}

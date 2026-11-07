@@ -55,9 +55,11 @@ type Record struct {
 	ApprovedHash string `json:"approvedHash,omitempty"`
 	ApprovedAt   string `json:"approvedAt,omitempty"`
 	// Pinned keeps Update from moving it.
-	Pinned      bool   `json:"pinned,omitempty"`
-	InstalledAt string `json:"installedAt"`
-	UpdatedAt   string `json:"updatedAt"`
+	Pinned bool `json:"pinned,omitempty"`
+	// UIGrants are the capabilities of its UI this device approved, by capability (ui.go).
+	UIGrants    map[string]UIGrant `json:"uiGrants,omitempty"`
+	InstalledAt string             `json:"installedAt"`
+	UpdatedAt   string             `json:"updatedAt"`
 }
 
 // MarketplaceRecord is a registered marketplace.
@@ -961,6 +963,9 @@ type Info struct {
 	Plugin *Plugin
 	// Meta is what the manifest and the marketplace entry say about it.
 	Meta Meta
+	// UIGrants are what its UI asks for and how this device stands on each; UIBlocked why policy hides its UI.
+	UIGrants  []UIGrantInfo
+	UIBlocked string
 }
 
 func (m *Manager) read(rec *Record) (*Plugin, string, error) {
@@ -996,6 +1001,10 @@ func (m *Manager) info(rec *Record, pol Policy, proj projectConfig, place Place,
 	if err == nil && p != nil {
 		in.Plugin, in.Contents, in.Problems, in.DisplayName, in.Description = p, p.Contents, p.Problems, p.Manifest.DisplayName, p.Manifest.Description
 		in.Meta = metaOf(p.Manifest)
+		in.UIGrants = uiGrants(rec, p.UI)
+		if !p.UI.Empty() {
+			in.UIBlocked = pol.UIBlocked()
+		}
 		if rec.Overlay != nil {
 			in.Meta = in.Meta.over(metaOf(rec.Overlay.Manifest))
 			if rec.Overlay.DisplayName != "" {

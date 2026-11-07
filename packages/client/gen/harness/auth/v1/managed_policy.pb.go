@@ -64,8 +64,12 @@ type ManagedPolicy struct {
 	ExternalSkillSearchDisabled bool `protobuf:"varint,21,opt,name=external_skill_search_disabled,json=externalSkillSearchDisabled,proto3" json:"external_skill_search_disabled,omitempty"`
 	// Only always-on hosts registered by an admin may be used: nobody registers or runs a host of their own.
 	PersonalHostsDisabled bool `protobuf:"varint,230,opt,name=personal_hosts_disabled,json=personalHostsDisabled,proto3" json:"personal_hosts_disabled,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// disablePluginUi: plugins' panes and status-bar items are not shown on any device (docs/design/plugin-ui.md).
+	PluginUiDisabled bool `protobuf:"varint,400,opt,name=plugin_ui_disabled,json=pluginUiDisabled,proto3" json:"plugin_ui_disabled,omitempty"`
+	// disablePluginUiNetwork: plugin panes reach no network, whatever their manifest declares and devices approved.
+	PluginUiNetworkDisabled bool `protobuf:"varint,401,opt,name=plugin_ui_network_disabled,json=pluginUiNetworkDisabled,proto3" json:"plugin_ui_network_disabled,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -248,6 +252,20 @@ func (x *ManagedPolicy) GetExternalSkillSearchDisabled() bool {
 func (x *ManagedPolicy) GetPersonalHostsDisabled() bool {
 	if x != nil {
 		return x.PersonalHostsDisabled
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetPluginUiDisabled() bool {
+	if x != nil {
+		return x.PluginUiDisabled
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetPluginUiNetworkDisabled() bool {
+	if x != nil {
+		return x.PluginUiNetworkDisabled
 	}
 	return false
 }
@@ -510,7 +528,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xa9\b\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\x96\t\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -536,7 +554,9 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\x0eallowed_skills\x18\x13 \x03(\tR\rallowedSkills\x12%\n" +
 	"\x0eblocked_skills\x18\x14 \x03(\tR\rblockedSkills\x12C\n" +
 	"\x1eexternal_skill_search_disabled\x18\x15 \x01(\bR\x1bexternalSkillSearchDisabled\x127\n" +
-	"\x17personal_hosts_disabled\x18\xe6\x01 \x01(\bR\x15personalHostsDisabled\"\x19\n" +
+	"\x17personal_hosts_disabled\x18\xe6\x01 \x01(\bR\x15personalHostsDisabled\x12-\n" +
+	"\x12plugin_ui_disabled\x18\x90\x03 \x01(\bR\x10pluginUiDisabled\x12<\n" +
+	"\x1aplugin_ui_network_disabled\x18\x91\x03 \x01(\bR\x17pluginUiNetworkDisabled\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +
 	"\x06policy\x18\x01 \x01(\v2\x1e.harness.auth.v1.ManagedPolicyR\x06policy\x12\x1d\n" +

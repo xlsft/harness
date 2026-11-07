@@ -49,8 +49,12 @@ type ManagedPolicyView struct {
 	AllowedSkills               []string `protobuf:"bytes,16,rep,name=allowed_skills,json=allowedSkills,proto3" json:"allowed_skills,omitempty"`
 	BlockedSkills               []string `protobuf:"bytes,17,rep,name=blocked_skills,json=blockedSkills,proto3" json:"blocked_skills,omitempty"`
 	ExternalSkillSearchDisabled bool     `protobuf:"varint,18,opt,name=external_skill_search_disabled,json=externalSkillSearchDisabled,proto3" json:"external_skill_search_disabled,omitempty"`
-	unknownFields               protoimpl.UnknownFields
-	sizeCache                   protoimpl.SizeCache
+	// Plugins' panes and status-bar items are not shown (docs/design/plugin-ui.md).
+	PluginUiDisabled bool `protobuf:"varint,400,opt,name=plugin_ui_disabled,json=pluginUiDisabled,proto3" json:"plugin_ui_disabled,omitempty"`
+	// Plugin panes reach no network.
+	PluginUiNetworkDisabled bool `protobuf:"varint,401,opt,name=plugin_ui_network_disabled,json=pluginUiNetworkDisabled,proto3" json:"plugin_ui_network_disabled,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ManagedPolicyView) Reset() {
@@ -209,11 +213,25 @@ func (x *ManagedPolicyView) GetExternalSkillSearchDisabled() bool {
 	return false
 }
 
+func (x *ManagedPolicyView) GetPluginUiDisabled() bool {
+	if x != nil {
+		return x.PluginUiDisabled
+	}
+	return false
+}
+
+func (x *ManagedPolicyView) GetPluginUiNetworkDisabled() bool {
+	if x != nil {
+		return x.PluginUiNetworkDisabled
+	}
+	return false
+}
+
 var File_harness_agent_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"%harness/agent/v1/managed_policy.proto\x12\x10harness.agent.v1\"\xae\x06\n" +
+	"%harness/agent/v1/managed_policy.proto\x12\x10harness.agent.v1\"\x9b\a\n" +
 	"\x11ManagedPolicyView\x12\x16\n" +
 	"\x06active\x18\x01 \x01(\bR\x06active\x12\x1f\n" +
 	"\vallow_rules\x18\x02 \x03(\tR\n" +
@@ -235,7 +253,9 @@ const file_harness_agent_v1_managed_policy_proto_rawDesc = "" +
 	"\x0frestrict_skills\x18\x0f \x01(\bR\x0erestrictSkills\x12%\n" +
 	"\x0eallowed_skills\x18\x10 \x03(\tR\rallowedSkills\x12%\n" +
 	"\x0eblocked_skills\x18\x11 \x03(\tR\rblockedSkills\x12C\n" +
-	"\x1eexternal_skill_search_disabled\x18\x12 \x01(\bR\x1bexternalSkillSearchDisabledB\xd3\x01\n" +
+	"\x1eexternal_skill_search_disabled\x18\x12 \x01(\bR\x1bexternalSkillSearchDisabled\x12-\n" +
+	"\x12plugin_ui_disabled\x18\x90\x03 \x01(\bR\x10pluginUiDisabled\x12<\n" +
+	"\x1aplugin_ui_network_disabled\x18\x91\x03 \x01(\bR\x17pluginUiNetworkDisabledB\xd3\x01\n" +
 	"\x14com.harness.agent.v1B\x12ManagedPolicyProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
 var (
