@@ -231,6 +231,16 @@ func (d *pdfDoc) loadFont(ref types.Object) *pdfFont {
 
 func (d *pdfDoc) Format() Format { return FormatPDF }
 
+// ScannedPages lists the pages of a PDF that have pictures and next to no text: scans, most likely.
+func ScannedPages(doc Document) []int {
+	d, ok := doc.(*pdfDoc)
+	if !ok {
+		return nil
+	}
+	d.measure()
+	return d.scanned()
+}
+
 func (d *pdfDoc) scanned() []int {
 	var out []int
 	for _, p := range d.pages {
@@ -290,7 +300,11 @@ func (d *pdfDoc) Structure() string {
 		b.WriteString("\n")
 	}
 	if s := d.scanned(); len(s) > 0 {
-		fmt.Fprintf(&b, "%d of %d pages look scanned. OCR is not available here.\n", len(s), len(d.pages))
+		if OCR == nil {
+			fmt.Fprintf(&b, "%d of %d pages look scanned. No OCR engine is available: render them to read them visually.\n", len(s), len(d.pages))
+		} else {
+			fmt.Fprintf(&b, "%d of %d pages look scanned: operation ocr recognises their text (%s).\n", len(s), len(d.pages), OCR.Name())
+		}
 	}
 	if len(d.fields) > 0 {
 		fmt.Fprintf(&b, "%d form fields; read them with operation fields.\n", len(d.fields))

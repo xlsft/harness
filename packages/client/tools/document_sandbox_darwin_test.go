@@ -55,6 +55,45 @@ func TestEngineIsNotStartedUnderSeatbelt(t *testing.T) {
 	}
 }
 
+// A conversion follows the same path: not started under the sandbox, asked for as a command outside it, and then
+// written only inside the session's folders.
+func TestConvertUnderSeatbelt(t *testing.T) {
+	_, mark := fakeSofficeMarking(t)
+	env, _, _ := sandboxedEnv(t)
+	env.SessionID = t.Name()
+	src := filepath.Join(env.CurrentDir(), "a.docx")
+	data, err := documents.Create(src, documents.CreateSpec{Title: "T"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(src, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	call(t, env, &DocumentRead{}, map[string]any{"file_path": src})
+	out := filepath.Join(env.CurrentDir(), "a.pdf")
+	r := call(t, env, &DocumentEdit{}, map[string]any{"file_path": out, "operation": "convert", "source": src})
+	if !r.IsError || !strings.Contains(resultText(r), "run_outside_sandbox") {
+		t.Fatalf("%s", resultText(r))
+	}
+	if _, err := os.Stat(mark); err == nil {
+		t.Fatal("the engine was started under the sandbox")
+	}
+	raw, _ := json.Marshal(map[string]any{"file_path": out, "operation": "convert", "source": src, "run_outside_sandbox": true})
+	h := (&DocumentEdit{}).PermissionHints(context.Background(), env, Call{Input: raw})
+	if h.CheckAs != "Bash" || !h.OutsideSandbox || !strings.Contains(h.Command, "soffice") || !strings.Contains(h.Command, env.CurrentDir()) {
+		t.Fatalf("%+v", h)
+	}
+	raw, _ = json.Marshal(map[string]any{"file_path": out, "operation": "convert", "source": src})
+	if h := (&DocumentEdit{}).PermissionHints(context.Background(), env, Call{Input: raw}); h.OutsideSandbox || h.CheckAs != "" {
+		t.Errorf("a plain conversion is an edit: %+v", h)
+	}
+	elsewhere := filepath.Join(t.TempDir(), "a.pdf")
+	r = call(t, env, &DocumentEdit{}, map[string]any{"file_path": elsewhere, "operation": "convert", "source": src, "run_outside_sandbox": true})
+	if !r.IsError || !strings.Contains(resultText(r), "outside the session's working folders") {
+		t.Fatalf("%s", resultText(r))
+	}
+}
+
 // Leaving the sandbox goes through the permission check as a command, and only then starts the engine, unconfined.
 func TestEngineOutsideSandboxAsksAndRuns(t *testing.T) {
 	_, mark := fakeSofficeMarking(t)

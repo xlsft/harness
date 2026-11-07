@@ -236,7 +236,7 @@ func (e *docxEdit) insertImage(ed Edit) error {
 	if ed.X != nil {
 		kind = "floating"
 	}
-	e.res.Changes = append(e.res.Changes, fmt.Sprintf("Inserted a %s picture (%s, %d×%d px, %s) %s, stored as %s%s.", kind, strings.ToUpper(pic.format), pic.w, pic.h, emuText(cx, cy), where, part, trackedWord(track)))
+	e.res.Changes = append(e.res.Changes, fmt.Sprintf("Inserted a picture (%s, %s, %d×%d px, %s) %s, stored as %s%s.", kind, strings.ToUpper(pic.format), pic.w, pic.h, emuText(cx, cy), where, part, trackedWord(track)))
 	return nil
 }
 
