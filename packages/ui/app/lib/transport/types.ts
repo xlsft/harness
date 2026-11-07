@@ -367,6 +367,8 @@ export interface SessionTransport {
   updateUserPreferences(patch: Partial<UserPreferences>): Promise<UserPreferences>
   // Everything runnable from the composer, with its details, as the client resolves it (ListSlashCommands).
   listSlashCommands(target: SlashTarget): Promise<SlashCatalog>
+  // A plain-text report of the client for a bug report, and the folder of its logs (GetDiagnostics).
+  getDiagnostics(): Promise<{ text: string, logsDir: string }>
   // One switch of the Extensions screen (a preference, synced).
   setSkillEnabled(name: string, enabled: boolean): Promise<void>
   getSandboxStatus(): Promise<SandboxStatus>

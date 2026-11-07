@@ -308,8 +308,10 @@ func (s *Session) Close() error {
 	}
 	if s.Uploader != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		_ = s.Uploader.UpdateMeta(s.ID, func(m *syncclient.SessionMeta) { m.Status = agentv1.SessionStatus_SESSION_STATUS_IDLE })
-		_ = s.Uploader.Flush(ctx, s.ID)
+		if !s.open.NoPersistence {
+			_ = s.Uploader.UpdateMeta(s.ID, func(m *syncclient.SessionMeta) { m.Status = agentv1.SessionStatus_SESSION_STATUS_IDLE })
+			_ = s.Uploader.Flush(ctx, s.ID)
+		}
 		s.Uploader.Objects().CloseScratch(s.ID)
 		s.Uploader.Objects().Flush(ctx)
 		cancel()
@@ -441,9 +443,6 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 			hc = rpc.HTTPClient(url)
 		}
 		s.Sync, s.Uploader, s.stopSync, s.SyncOff = startSync(ctx, o, url, hc, tokens, user, log)
-		if o.NoPersistence {
-			s.Uploader = nil // a session that keeps no transcript uploads none, nor changes the synced state of its id
-		}
 		if s.SyncOff != "" {
 			// Not only a log line: the user sees which tools the model lacks (the desktop discards nothing it can show).
 			s.Warnings = append(s.Warnings, syncWarning(s.SyncOff))
@@ -761,7 +760,11 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		// The cwd lets readers map the session to its folder before any message is written.
 		_, _ = s.Transcript.Append(session.Entry{Type: session.TypeMeta, Cwd: cwd, Worktree: s.Worktree})
 	}
-	trackUpload(ctx, s.Uploader, s, path, branch)
+	if !o.NoPersistence {
+		// A session that keeps no transcript uploads none, nor changes the synced state of its id (debug tools opens
+		// sessions of the running app that way).
+		trackUpload(ctx, s.Uploader, s, path, branch)
+	}
 	if s.Uploader != nil {
 		// A nil queue must not become a non-nil interface.
 		if q := s.Uploader.Objects(); q != nil {
@@ -770,7 +773,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		}
 	}
 	onEvent := o.OnEvent
-	if s.Uploader != nil {
+	if s.Uploader != nil && !o.NoPersistence {
 		up, id := s.Uploader, s.ID
 		onEvent = func(e agent.Event) {
 			if o.OnEvent != nil {

@@ -45,7 +45,6 @@ func signedInHarness(t *testing.T, respond fg.Responder, mod func(*bootstrap.Opt
 	return h, fs
 }
 
-
 func toolDefNames(r *llm.Request) []string {
 	var out []string
 	for _, d := range r.Tools {
