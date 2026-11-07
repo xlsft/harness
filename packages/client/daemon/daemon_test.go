@@ -160,6 +160,8 @@ type fakeSession struct {
 	status agentv1.SessionStatus
 	subs   []chan *agentv1.SessionEvent
 	seq    int64
+	// log is what a subscriber that comes later replays, as server.Feed does.
+	log []*agentv1.SessionEvent
 }
 
 type fakeSessions struct {
@@ -205,6 +207,7 @@ func (f *fakeSessions) runTurn(id string) {
 		f.mu.Lock()
 		s.seq++
 		ev.Seq = s.seq
+		s.log = append(s.log, ev)
 		subs := append([]chan *agentv1.SessionEvent(nil), s.subs...)
 		f.mu.Unlock()
 		for _, c := range subs {
@@ -273,7 +276,12 @@ func (f *fakeSessions) Events(id string, after int64) (<-chan *agentv1.SessionEv
 	if s == nil {
 		return nil, 0, nil, false
 	}
-	c := make(chan *agentv1.SessionEvent, 8)
+	c := make(chan *agentv1.SessionEvent, 64)
+	for _, ev := range s.log {
+		if ev.GetSeq() > after {
+			c <- ev
+		}
+	}
 	s.subs = append(s.subs, c)
 	return c, max(after, 0), func() {}, true
 }
