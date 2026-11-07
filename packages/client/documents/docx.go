@@ -84,6 +84,11 @@ type docxComment struct {
 	node             *Node
 	anchored         bool
 	resolved         bool
+	// The thread, from commentsExtended: the last paragraph's paraId, its entry, the comment it answers.
+	lastPara, ex *Node
+	paraID       string
+	parent       *docxComment
+	replies      []*docxComment
 }
 
 type docxField struct {
@@ -106,9 +111,12 @@ type docxDoc struct {
 	fields   []*docxField
 	cmtPart  string
 	cmtXML   *XMLDoc
-	sections int
-	tables   int
-	images   int
+	// Word's extended comment parts, when the file has them.
+	cmtExPart, cmtIDsPart, cmtExtPart string
+	cmtExXML, cmtIDsXML, cmtExtXML    *XMLDoc
+	sections                          int
+	tables                            int
+	images                            int
 }
 
 type docxStyle struct {
@@ -145,6 +153,12 @@ func openDOCX(data []byte) (Document, error) {
 			d.loadSettings(t)
 		case strings.HasSuffix(r.Type, "/comments"):
 			d.cmtPart = t
+		case r.Type == exRel:
+			d.cmtExPart = t
+		case r.Type == idsRel:
+			d.cmtIDsPart = t
+		case r.Type == extRel:
+			d.cmtExtPart = t
 		}
 	}
 	sort.Slice(rels, func(i, j int) bool { return rels[i].Target < rels[j].Target })
@@ -168,6 +182,7 @@ func openDOCX(data []byte) (Document, error) {
 	if err := d.loadComments(); err != nil {
 		return nil, err
 	}
+	d.loadThreads()
 	d.scanChanges()
 	d.sections = len(d.stories[0].xml.Root.Find("sectPr"))
 	d.tables = len(d.stories[0].xml.Root.Find("tbl"))
@@ -582,7 +597,7 @@ func (d *docxDoc) Structure() string {
 				fmt.Fprintf(&b, "  … %d more; read range \"comments\"\n", len(d.comments)-50)
 				break
 			}
-			fmt.Fprintf(&b, "  comment:%s by %s: %s\n", c.id, c.author, oneLine(c.text, 120))
+			fmt.Fprintf(&b, "  %s: %s\n", c.label(), oneLine(c.text, 120))
 		}
 	}
 	if tl := d.tableLines(); len(tl) > 0 {
@@ -647,7 +662,7 @@ func (d *docxDoc) Read(sel Selector) (string, error) {
 	switch {
 	case rng == "comments":
 		for _, c := range d.comments {
-			lines = append(lines, fmt.Sprintf("comment:%s by %s%s: %s", c.id, c.author, map[bool]string{true: "", false: " (no anchor)"}[c.anchored], c.text))
+			lines = append(lines, c.label()+": "+c.text)
 		}
 	case rng == "changes":
 		for _, c := range d.changes {
@@ -922,7 +937,14 @@ func (d *docxDoc) Project() []string {
 		}
 	}
 	for _, c := range d.comments {
-		lines = append(lines, fmt.Sprintf("[comment by %s] %s", c.author, oneLine(c.text, 2000)))
+		state := ""
+		if c.parent != nil {
+			state = " reply"
+		}
+		if c.resolved {
+			state += " resolved"
+		}
+		lines = append(lines, fmt.Sprintf("[comment by %s%s] %s", c.author, state, oneLine(c.text, 2000)))
 	}
 	for _, s := range d.stories {
 		for _, p := range s.paras {

@@ -45,13 +45,20 @@ type docxEdit struct {
 	docPrID   int
 	// removedRows are rows this batch deletes or moves.
 	removedRows map[*docxRow]bool
+	// Comment threads: ids in use, the extended parts' new entries and removals.
+	usedIDs                     map[string]bool
+	w14Done                     bool
+	newParaIDs                  map[*docxComment]string
+	exFor, deletedComments      map[*docxComment]bool
+	exSpans, idsSpans, extSpans []Span
+	exAdd, idsAdd, extAdd       []string
 }
 
-var docxEditOps = "replace_text, set_text, insert_after, insert_before, delete_paragraph, delete_row, move_row, insert_image, replace_image, add_comment, delete_comment, accept_change, reject_change"
+var docxEditOps = "replace_text, set_text, insert_after, insert_before, delete_paragraph, delete_row, move_row, insert_image, replace_image, add_comment, reply_comment, resolve_comment, reopen_comment, delete_comment, accept_change, reject_change"
 
 // Apply implements Document. Every target is resolved against the document as it is, then all changes apply together.
 func (d *docxDoc) Apply(edits []Edit) (*EditResult, error) {
-	e := &docxEdit{d: d, res: &EditResult{}, reps: map[*docxPara][]*rep{}, spans: map[*docxStory][]Span{}, removed: map[*docxPara]bool{}, touched: map[*docxPara]bool{}, c: NewChanges(), removedRows: map[*docxRow]bool{}, nextID: d.maxAnnotationID() + 1}
+	e := &docxEdit{d: d, res: &EditResult{}, reps: map[*docxPara][]*rep{}, spans: map[*docxStory][]Span{}, removed: map[*docxPara]bool{}, touched: map[*docxPara]bool{}, c: NewChanges(), removedRows: map[*docxRow]bool{}, newParaIDs: map[*docxComment]string{}, exFor: map[*docxComment]bool{}, deletedComments: map[*docxComment]bool{}, nextID: d.maxAnnotationID() + 1}
 	for i, ed := range edits {
 		var err error
 		switch ed.Op {
@@ -79,6 +86,10 @@ func (d *docxDoc) Apply(edits []Edit) (*EditResult, error) {
 			err = e.addComment(ed)
 		case "delete_comment":
 			err = e.deleteComment(ed)
+		case "reply_comment":
+			err = e.replyComment(ed)
+		case "resolve_comment", "reopen_comment":
+			err = e.resolveComment(ed)
 		case "accept_change", "reject_change":
 			err = e.resolveChange(ed)
 		default:
@@ -705,19 +716,28 @@ func (e *docxEdit) addComment(ed Edit) error {
 var commentTargetRe = regexp.MustCompile(`^comment:(\S+)$`)
 
 func (e *docxEdit) deleteComment(ed Edit) error {
-	m := commentTargetRe.FindStringSubmatch(ed.Target)
-	if m == nil {
-		return refuse("target %q is not a comment address such as comment:3", ed.Target)
+	first, err := e.commentAt(ed.Target)
+	if err != nil {
+		return err
 	}
-	var c *docxComment
-	for _, x := range e.d.comments {
-		if x.id == m[1] {
-			c = x
+	// Replies go with the comment they answer.
+	for _, c := range append([]*docxComment{first}, first.replies...) {
+		if e.deletedComments[c] {
+			continue
 		}
+		e.deletedComments[c] = true
+		e.deleteOneComment(c)
 	}
-	if c == nil {
-		return refuse("no comment %s", m[1])
+	if n := len(first.replies); n > 0 {
+		e.res.Changes = append(e.res.Changes, fmt.Sprintf("Deleted comment:%s by %s and its %d replies.", first.id, first.author, n))
+	} else {
+		e.res.Changes = append(e.res.Changes, fmt.Sprintf("Deleted comment:%s by %s.", first.id, first.author))
 	}
+	return nil
+}
+
+func (e *docxEdit) deleteOneComment(c *docxComment) {
+	e.dropThreadEntries(c)
 	e.cmtSpans = append(e.cmtSpans, Span{c.node.Start, c.node.End, ""})
 	for _, s := range e.d.stories {
 		data := s.xml.Data
@@ -748,8 +768,6 @@ func (e *docxEdit) deleteComment(ed Edit) error {
 		})
 		_ = data
 	}
-	e.res.Changes = append(e.res.Changes, fmt.Sprintf("Deleted comment:%s by %s.", c.id, c.author))
-	return nil
 }
 
 // resolveChange accepts or rejects one tracked change, or all of them. What cannot be done safely (merging paragraphs
@@ -939,6 +957,9 @@ func (e *docxEdit) finish() (*EditResult, error) {
 		if err := e.writeComments(c); err != nil {
 			return nil, err
 		}
+	}
+	if err := e.writeThreads(c); err != nil {
+		return nil, err
 	}
 	data, err := e.d.pkg.Write(c)
 	if err != nil {
