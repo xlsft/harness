@@ -2012,7 +2012,9 @@ type ListPluginUiResponse struct {
 	// Display names by plugin id.
 	PluginNames map[string]string `protobuf:"bytes,3,rep,name=plugin_names,json=pluginNames,proto3" json:"plugin_names,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// Set when policy hides all plugin UI; the lists are then empty.
-	Blocked       string `protobuf:"bytes,4,opt,name=blocked,proto3" json:"blocked,omitempty"`
+	Blocked string `protobuf:"bytes,4,opt,name=blocked,proto3" json:"blocked,omitempty"`
+	// Plugin.content_hash by plugin id: what a grant made from a status-bar item applies to.
+	ContentHashes map[string]string `protobuf:"bytes,5,rep,name=content_hashes,json=contentHashes,proto3" json:"content_hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2073,6 +2075,13 @@ func (x *ListPluginUiResponse) GetBlocked() string {
 		return x.Blocked
 	}
 	return ""
+}
+
+func (x *ListPluginUiResponse) GetContentHashes() map[string]string {
+	if x != nil {
+		return x.ContentHashes
+	}
+	return nil
 }
 
 type GetPluginPaneRequest struct {
@@ -2629,13 +2638,17 @@ const file_harness_agent_v1_plugins_proto_rawDesc = "" +
 	"\x1fRemovePluginMarketplaceResponse\"4\n" +
 	"\x13ListPluginUiRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\"\xc7\x02\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"\xeb\x03\n" +
 	"\x14ListPluginUiResponse\x122\n" +
 	"\x05panes\x18\x01 \x03(\v2\x1c.harness.agent.v1.PluginPaneR\x05panes\x12E\n" +
 	"\fstatus_items\x18\x02 \x03(\v2\".harness.agent.v1.PluginStatusItemR\vstatusItems\x12Z\n" +
 	"\fplugin_names\x18\x03 \x03(\v27.harness.agent.v1.ListPluginUiResponse.PluginNamesEntryR\vpluginNames\x12\x18\n" +
-	"\ablocked\x18\x04 \x01(\tR\ablocked\x1a>\n" +
+	"\ablocked\x18\x04 \x01(\tR\ablocked\x12`\n" +
+	"\x0econtent_hashes\x18\x05 \x03(\v29.harness.agent.v1.ListPluginUiResponse.ContentHashesEntryR\rcontentHashes\x1a>\n" +
 	"\x10PluginNamesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a@\n" +
+	"\x12ContentHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"k\n" +
 	"\x14GetPluginPaneRequest\x12\x1b\n" +
@@ -2713,7 +2726,7 @@ func file_harness_agent_v1_plugins_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_agent_v1_plugins_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_harness_agent_v1_plugins_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
+var file_harness_agent_v1_plugins_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_harness_agent_v1_plugins_proto_goTypes = []any{
 	(PluginStatus)(0),                       // 0: harness.agent.v1.PluginStatus
 	(*PluginHook)(nil),                      // 1: harness.agent.v1.PluginHook
@@ -2755,6 +2768,7 @@ var file_harness_agent_v1_plugins_proto_goTypes = []any{
 	(*SetPluginUiGrantResponse)(nil),        // 37: harness.agent.v1.SetPluginUiGrantResponse
 	nil,                                     // 38: harness.agent.v1.ListPluginsResponse.SuggestedMarketplacesEntry
 	nil,                                     // 39: harness.agent.v1.ListPluginUiResponse.PluginNamesEntry
+	nil,                                     // 40: harness.agent.v1.ListPluginUiResponse.ContentHashesEntry
 }
 var file_harness_agent_v1_plugins_proto_depIdxs = []int32{
 	1,  // 0: harness.agent.v1.PluginContents.hooks:type_name -> harness.agent.v1.PluginHook
@@ -2773,40 +2787,41 @@ var file_harness_agent_v1_plugins_proto_depIdxs = []int32{
 	4,  // 13: harness.agent.v1.ListPluginUiResponse.panes:type_name -> harness.agent.v1.PluginPane
 	5,  // 14: harness.agent.v1.ListPluginUiResponse.status_items:type_name -> harness.agent.v1.PluginStatusItem
 	39, // 15: harness.agent.v1.ListPluginUiResponse.plugin_names:type_name -> harness.agent.v1.ListPluginUiResponse.PluginNamesEntry
-	4,  // 16: harness.agent.v1.GetPluginPaneResponse.pane:type_name -> harness.agent.v1.PluginPane
-	10, // 17: harness.agent.v1.PluginService.ListPlugins:input_type -> harness.agent.v1.ListPluginsRequest
-	12, // 18: harness.agent.v1.PluginService.InstallPlugin:input_type -> harness.agent.v1.InstallPluginRequest
-	14, // 19: harness.agent.v1.PluginService.UpdatePlugin:input_type -> harness.agent.v1.UpdatePluginRequest
-	16, // 20: harness.agent.v1.PluginService.RemovePlugin:input_type -> harness.agent.v1.RemovePluginRequest
-	18, // 21: harness.agent.v1.PluginService.SetPluginEnabled:input_type -> harness.agent.v1.SetPluginEnabledRequest
-	20, // 22: harness.agent.v1.PluginService.SetPluginApproval:input_type -> harness.agent.v1.SetPluginApprovalRequest
-	22, // 23: harness.agent.v1.PluginService.SetPluginPinned:input_type -> harness.agent.v1.SetPluginPinnedRequest
-	24, // 24: harness.agent.v1.PluginService.AddPluginMarketplace:input_type -> harness.agent.v1.AddPluginMarketplaceRequest
-	26, // 25: harness.agent.v1.PluginService.UpdatePluginMarketplace:input_type -> harness.agent.v1.UpdatePluginMarketplaceRequest
-	28, // 26: harness.agent.v1.PluginService.RemovePluginMarketplace:input_type -> harness.agent.v1.RemovePluginMarketplaceRequest
-	30, // 27: harness.agent.v1.PluginService.ListPluginUi:input_type -> harness.agent.v1.ListPluginUiRequest
-	32, // 28: harness.agent.v1.PluginService.GetPluginPane:input_type -> harness.agent.v1.GetPluginPaneRequest
-	34, // 29: harness.agent.v1.PluginService.CallPluginUi:input_type -> harness.agent.v1.CallPluginUiRequest
-	36, // 30: harness.agent.v1.PluginService.SetPluginUiGrant:input_type -> harness.agent.v1.SetPluginUiGrantRequest
-	11, // 31: harness.agent.v1.PluginService.ListPlugins:output_type -> harness.agent.v1.ListPluginsResponse
-	13, // 32: harness.agent.v1.PluginService.InstallPlugin:output_type -> harness.agent.v1.InstallPluginResponse
-	15, // 33: harness.agent.v1.PluginService.UpdatePlugin:output_type -> harness.agent.v1.UpdatePluginResponse
-	17, // 34: harness.agent.v1.PluginService.RemovePlugin:output_type -> harness.agent.v1.RemovePluginResponse
-	19, // 35: harness.agent.v1.PluginService.SetPluginEnabled:output_type -> harness.agent.v1.SetPluginEnabledResponse
-	21, // 36: harness.agent.v1.PluginService.SetPluginApproval:output_type -> harness.agent.v1.SetPluginApprovalResponse
-	23, // 37: harness.agent.v1.PluginService.SetPluginPinned:output_type -> harness.agent.v1.SetPluginPinnedResponse
-	25, // 38: harness.agent.v1.PluginService.AddPluginMarketplace:output_type -> harness.agent.v1.AddPluginMarketplaceResponse
-	27, // 39: harness.agent.v1.PluginService.UpdatePluginMarketplace:output_type -> harness.agent.v1.UpdatePluginMarketplaceResponse
-	29, // 40: harness.agent.v1.PluginService.RemovePluginMarketplace:output_type -> harness.agent.v1.RemovePluginMarketplaceResponse
-	31, // 41: harness.agent.v1.PluginService.ListPluginUi:output_type -> harness.agent.v1.ListPluginUiResponse
-	33, // 42: harness.agent.v1.PluginService.GetPluginPane:output_type -> harness.agent.v1.GetPluginPaneResponse
-	35, // 43: harness.agent.v1.PluginService.CallPluginUi:output_type -> harness.agent.v1.CallPluginUiResponse
-	37, // 44: harness.agent.v1.PluginService.SetPluginUiGrant:output_type -> harness.agent.v1.SetPluginUiGrantResponse
-	31, // [31:45] is the sub-list for method output_type
-	17, // [17:31] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	40, // 16: harness.agent.v1.ListPluginUiResponse.content_hashes:type_name -> harness.agent.v1.ListPluginUiResponse.ContentHashesEntry
+	4,  // 17: harness.agent.v1.GetPluginPaneResponse.pane:type_name -> harness.agent.v1.PluginPane
+	10, // 18: harness.agent.v1.PluginService.ListPlugins:input_type -> harness.agent.v1.ListPluginsRequest
+	12, // 19: harness.agent.v1.PluginService.InstallPlugin:input_type -> harness.agent.v1.InstallPluginRequest
+	14, // 20: harness.agent.v1.PluginService.UpdatePlugin:input_type -> harness.agent.v1.UpdatePluginRequest
+	16, // 21: harness.agent.v1.PluginService.RemovePlugin:input_type -> harness.agent.v1.RemovePluginRequest
+	18, // 22: harness.agent.v1.PluginService.SetPluginEnabled:input_type -> harness.agent.v1.SetPluginEnabledRequest
+	20, // 23: harness.agent.v1.PluginService.SetPluginApproval:input_type -> harness.agent.v1.SetPluginApprovalRequest
+	22, // 24: harness.agent.v1.PluginService.SetPluginPinned:input_type -> harness.agent.v1.SetPluginPinnedRequest
+	24, // 25: harness.agent.v1.PluginService.AddPluginMarketplace:input_type -> harness.agent.v1.AddPluginMarketplaceRequest
+	26, // 26: harness.agent.v1.PluginService.UpdatePluginMarketplace:input_type -> harness.agent.v1.UpdatePluginMarketplaceRequest
+	28, // 27: harness.agent.v1.PluginService.RemovePluginMarketplace:input_type -> harness.agent.v1.RemovePluginMarketplaceRequest
+	30, // 28: harness.agent.v1.PluginService.ListPluginUi:input_type -> harness.agent.v1.ListPluginUiRequest
+	32, // 29: harness.agent.v1.PluginService.GetPluginPane:input_type -> harness.agent.v1.GetPluginPaneRequest
+	34, // 30: harness.agent.v1.PluginService.CallPluginUi:input_type -> harness.agent.v1.CallPluginUiRequest
+	36, // 31: harness.agent.v1.PluginService.SetPluginUiGrant:input_type -> harness.agent.v1.SetPluginUiGrantRequest
+	11, // 32: harness.agent.v1.PluginService.ListPlugins:output_type -> harness.agent.v1.ListPluginsResponse
+	13, // 33: harness.agent.v1.PluginService.InstallPlugin:output_type -> harness.agent.v1.InstallPluginResponse
+	15, // 34: harness.agent.v1.PluginService.UpdatePlugin:output_type -> harness.agent.v1.UpdatePluginResponse
+	17, // 35: harness.agent.v1.PluginService.RemovePlugin:output_type -> harness.agent.v1.RemovePluginResponse
+	19, // 36: harness.agent.v1.PluginService.SetPluginEnabled:output_type -> harness.agent.v1.SetPluginEnabledResponse
+	21, // 37: harness.agent.v1.PluginService.SetPluginApproval:output_type -> harness.agent.v1.SetPluginApprovalResponse
+	23, // 38: harness.agent.v1.PluginService.SetPluginPinned:output_type -> harness.agent.v1.SetPluginPinnedResponse
+	25, // 39: harness.agent.v1.PluginService.AddPluginMarketplace:output_type -> harness.agent.v1.AddPluginMarketplaceResponse
+	27, // 40: harness.agent.v1.PluginService.UpdatePluginMarketplace:output_type -> harness.agent.v1.UpdatePluginMarketplaceResponse
+	29, // 41: harness.agent.v1.PluginService.RemovePluginMarketplace:output_type -> harness.agent.v1.RemovePluginMarketplaceResponse
+	31, // 42: harness.agent.v1.PluginService.ListPluginUi:output_type -> harness.agent.v1.ListPluginUiResponse
+	33, // 43: harness.agent.v1.PluginService.GetPluginPane:output_type -> harness.agent.v1.GetPluginPaneResponse
+	35, // 44: harness.agent.v1.PluginService.CallPluginUi:output_type -> harness.agent.v1.CallPluginUiResponse
+	37, // 45: harness.agent.v1.PluginService.SetPluginUiGrant:output_type -> harness.agent.v1.SetPluginUiGrantResponse
+	32, // [32:46] is the sub-list for method output_type
+	18, // [18:32] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_plugins_proto_init() }
@@ -2820,7 +2835,7 @@ func file_harness_agent_v1_plugins_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_plugins_proto_rawDesc), len(file_harness_agent_v1_plugins_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   39,
+			NumMessages:   40,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

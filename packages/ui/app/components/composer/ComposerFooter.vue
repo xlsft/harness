@@ -77,6 +77,8 @@ const BTN = 'flex shrink-0 items-center gap-[5px] px-2 py-1 text-[11.5px] whites
       </span>
     </span>
 
+    <PluginStatusItems :session="session" />
+
     <SessionControls
       :model="selected"
       :model-engine="onAgent ? session.meta.engine : ''"

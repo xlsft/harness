@@ -1,8 +1,8 @@
 // PluginsApi over the client's PluginService, on the same connect transport (and agent token) as AgentService.
 
 import { createClient, type Client, type Transport } from '@connectrpc/connect'
-import { PluginService, PluginStatus, type Plugin } from '~/gen/harness/agent/v1/plugins_pb'
-import type { PluginsApi, PluginsState, PluginStatusVM, PluginVM } from './types'
+import { PluginService, PluginStatus, type Plugin, type PluginContents, type PluginPane, type PluginStatusItem } from '~/gen/harness/agent/v1/plugins_pb'
+import type { PluginContentsVM, PluginPaneVM, PluginsApi, PluginsState, PluginStatusItemVM, PluginStatusVM, PluginVM } from './types'
 
 const STATUS: Partial<Record<PluginStatus, PluginStatusVM>> = {
   [PluginStatus.ACTIVE]: 'active',
@@ -15,18 +15,28 @@ const STATUS: Partial<Record<PluginStatus, PluginStatusVM>> = {
   [PluginStatus.NOT_INSTALLED]: 'not_installed'
 }
 
+export const paneFromProto = (p: PluginPane): PluginPaneVM => ({ pluginId: p.pluginId, id: p.id, title: p.title, icon: p.icon, page: p.page })
+export const statusItemFromProto = (i: PluginStatusItem): PluginStatusItemVM => ({ pluginId: i.pluginId, id: i.id, text: i.text, icon: i.icon, tooltip: i.tooltip, pane: i.pane, prompt: i.prompt })
+
+export function contentsFromProto(c: PluginContents | undefined): PluginContentsVM {
+  return {
+    skills: c?.skills ?? [], commands: c?.commands ?? [], agents: c?.agents ?? [], outputStyles: c?.outputStyles ?? [],
+    hooks: (c?.hooks ?? []).map(h => ({ event: h.event, matcher: h.matcher, type: h.type, command: h.command, fromSkill: h.fromSkill })),
+    mcpServers: (c?.mcpServers ?? []).map(m => ({ name: m.name, transport: m.transport, command: m.command })),
+    allowedTools: c?.allowedTools ?? [], skipped: c?.skipped ?? [],
+    panes: (c?.panes ?? []).map(paneFromProto), statusItems: (c?.statusItems ?? []).map(statusItemFromProto),
+    uiCapabilities: c?.uiCapabilities ?? [], uiNetwork: c?.uiNetwork ?? []
+  }
+}
+
 export function pluginFromProto(p: Plugin): PluginVM {
-  const c = p.contents
   return {
     id: p.id, name: p.name, marketplace: p.marketplace, displayName: p.displayName, description: p.description, version: p.version, commit: p.commit,
     contentHash: p.contentHash, status: STATUS[p.status] ?? 'broken', reason: p.reason, enabled: p.enabled, approved: p.approved, pinned: p.pinned, managed: p.managed,
     suggestedBy: p.suggestedBy, source: p.source, installedAt: p.installedAt, problems: p.problems,
-    contents: {
-      skills: c?.skills ?? [], commands: c?.commands ?? [], agents: c?.agents ?? [], outputStyles: c?.outputStyles ?? [],
-      hooks: (c?.hooks ?? []).map(h => ({ event: h.event, matcher: h.matcher, type: h.type, command: h.command, fromSkill: h.fromSkill })),
-      mcpServers: (c?.mcpServers ?? []).map(m => ({ name: m.name, transport: m.transport, command: m.command })),
-      allowedTools: c?.allowedTools ?? [], skipped: c?.skipped ?? []
-    }
+    contents: contentsFromProto(p.contents),
+    uiGrants: p.uiGrants.map(g => ({ capability: g.capability, granted: g.granted, grantedAt: g.grantedAt })),
+    uiBlocked: p.uiBlocked
   }
 }
 
@@ -86,5 +96,25 @@ export class ConnectPluginsApi implements PluginsApi {
 
   async removeMarketplace(name: string) {
     await this.client.removePluginMarketplace({ name })
+  }
+
+  async listUi(sessionId: string) {
+    const res = await this.client.listPluginUi({ sessionId })
+    return { panes: res.panes.map(paneFromProto), statusItems: res.statusItems.map(statusItemFromProto), pluginNames: res.pluginNames, blocked: res.blocked, contentHashes: res.contentHashes }
+  }
+
+  async getPane(pluginId: string, paneId: string, sessionId: string) {
+    const res = await this.client.getPluginPane({ pluginId, paneId, sessionId })
+    if (!res.pane) throw new Error('the client returned no pane')
+    return { pane: paneFromProto(res.pane), html: res.html, csp: res.csp, networkPending: res.networkPending, pluginName: res.pluginName, contentHash: res.contentHash }
+  }
+
+  async callUi(pluginId: string, sessionId: string, method: string, paramsJson: string) {
+    const res = await this.client.callPluginUi({ pluginId, sessionId, version: 1, method, paramsJson })
+    return { resultJson: res.resultJson, needsApproval: res.needsApproval, openFile: res.openFile, theme: res.theme }
+  }
+
+  async setUiGrant(pluginId: string, capability: string, granted: boolean, contentHash: string) {
+    await this.client.setPluginUiGrant({ pluginId, capability, granted, contentHash })
   }
 }

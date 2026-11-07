@@ -52,7 +52,7 @@ func TestPluginPaneCallsNeedTheDeclarationAndThisDevicesApproval(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(list.Msg.GetPanes()) != 1 || len(list.Msg.GetStatusItems()) != 2 || list.Msg.GetPluginNames()["meter@local"] != "Cost meter" {
+	if len(list.Msg.GetPanes()) != 1 || len(list.Msg.GetStatusItems()) != 2 || list.Msg.GetPluginNames()["meter@local"] != "Cost meter" || list.Msg.GetContentHashes()["meter@local"] != r.Hash {
 		t.Fatalf("%+v", list.Msg)
 	}
 

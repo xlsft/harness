@@ -91,16 +91,23 @@ func (s *Server) ListPluginUi(ctx context.Context, req *connect.Request[agentv1.
 		return nil, err
 	}
 	store := bootstrap.PluginStore()
-	res := &agentv1.ListPluginUiResponse{PluginNames: map[string]string{}}
+	res := &agentv1.ListPluginUiResponse{PluginNames: map[string]string{}, ContentHashes: map[string]string{}}
 	if why := store.Policy().UIBlocked(); why != "" {
 		res.Blocked = why
 		return connect.NewResponse(res), nil
 	}
-	for _, p := range store.Active(s.pluginPlace(ls.sess.Dir())) {
-		if p.UI.Empty() {
+	place := s.pluginPlace(ls.sess.Dir())
+	list, err := store.List(place)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	for _, in := range list {
+		p := in.Plugin
+		if in.Status != plugins.StatusActive || p == nil || p.UI.Empty() {
 			continue
 		}
 		res.PluginNames[p.ID] = pluginDisplayName(p)
+		res.ContentHashes[p.ID] = in.Hash
 		for _, pane := range p.UI.Panes {
 			res.Panes = append(res.Panes, paneToProto(p.ID, pane))
 		}

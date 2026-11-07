@@ -99,7 +99,9 @@ export function policyView(p: ManagedPolicyPb | undefined): ManagedPolicy {
     restrictSkills: p?.restrictSkills ?? false,
     allowedSkills: p?.allowedSkills ?? [],
     blockedSkills: p?.blockedSkills ?? [],
-    externalSkillSearchDisabled: p?.externalSkillSearchDisabled ?? false
+    externalSkillSearchDisabled: p?.externalSkillSearchDisabled ?? false,
+    pluginUiDisabled: p?.pluginUiDisabled ?? false,
+    pluginUiNetworkDisabled: p?.pluginUiNetworkDisabled ?? false
   }
 }
 

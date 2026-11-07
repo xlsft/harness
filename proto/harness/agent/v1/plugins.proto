@@ -289,6 +289,8 @@ message ListPluginUiResponse {
   map<string, string> plugin_names = 3;
   // Set when policy hides all plugin UI; the lists are then empty.
   string blocked = 4;
+  // Plugin.content_hash by plugin id: what a grant made from a status-bar item applies to.
+  map<string, string> content_hashes = 5;
 }
 
 message GetPluginPaneRequest {

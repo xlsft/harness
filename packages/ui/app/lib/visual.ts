@@ -16,7 +16,7 @@ const CSP = [
 
 // Variable in the visual → app token it reads, with the dark theme's value when the token is missing. The
 // Visual tool description (core prompts/tools/Visual) lists the same names; keep them in step.
-const VARS: [string, string, string][] = [
+export const VARS: [string, string, string][] = [
   ['--bg', '--color-ground', '#000000'],
   ['--surface', '--color-surface', '#0a0a0a'],
   ['--hover', '--color-hover', '#131313'],
@@ -53,7 +53,7 @@ const FIXED = '--border:1px;--text-xs:11px;--text-sm:12px;--text-md:13px;--text-
   + '--leading:1.6;--space:4px;--control-h:28px;'
 
 // Base styles in the app's look, at zero specificity (:where) so any rule of the visual wins.
-const BASE = `:where(html,body){margin:0;background:transparent;color:var(--text);font:var(--text-md)/var(--leading) var(--font)}
+export const BASE = `:where(html,body){margin:0;background:transparent;color:var(--text);font:var(--text-md)/var(--leading) var(--font)}
 :where(body){padding:calc(var(--space)*3)}
 :where(*,*::before,*::after){box-sizing:border-box;border-radius:var(--radius)}
 :where(h1,h2,h3,h4){margin:0 0 calc(var(--space)*2);color:var(--text-strong);font-weight:600;line-height:1.3}
@@ -78,9 +78,15 @@ const BASE = `:where(html,body){margin:0;background:transparent;color:var(--text
 ::selection{background:color-mix(in srgb,var(--accent) 35%,transparent)}
 ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--line-strong)}::-webkit-scrollbar-track{background:transparent}`
 
-const scheme = () => import.meta.client && document.documentElement.classList.contains('light') ? 'light' : 'dark'
+export const scheme = () => import.meta.client && document.documentElement.classList.contains('light') ? 'light' : 'dark'
 
-function themeVars(): string {
+// The theme as variable → value, for plugin panes that read it (theme.read).
+export function themeTokens(): Record<string, string> {
+  const style = import.meta.client ? getComputedStyle(document.documentElement) : null
+  return Object.fromEntries(VARS.map(([name, token, fallback]) => [name, style?.getPropertyValue(token).trim() || fallback]))
+}
+
+export function themeVars(): string {
   const style = import.meta.client ? getComputedStyle(document.documentElement) : null
   return VARS.map(([name, token, fallback]) => `${name}:${style?.getPropertyValue(token).trim() || fallback}`).join(';') + ';' + FIXED
 }

@@ -1,0 +1,16 @@
+{
+  "name": "session-cost",
+  "displayName": "Session cost",
+  "version": "0.1.0",
+  "description": "A pane that shows what the session has cost so far, and a status-bar item that opens it. An example of plugin UI.",
+  "license": "MIT",
+  "ui": {
+    "panes": [
+      { "id": "meter", "title": "Session cost", "icon": "chart", "page": "./ui/meter.html" }
+    ],
+    "statusItems": [
+      { "id": "cost", "text": "Cost", "icon": "chart", "tooltip": "What this session has cost so far", "pane": "meter" }
+    ],
+    "capabilities": ["session.read", "theme.read"]
+  }
+}

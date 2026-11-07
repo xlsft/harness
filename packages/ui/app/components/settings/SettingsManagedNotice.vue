@@ -82,6 +82,13 @@ defineProps<{ policy: ManagedPolicyView }>()
         </template>
       </dd>
     </template>
+    <template v-if="policy.pluginUiDisabled || policy.pluginUiNetworkDisabled">
+      <dt class="text-muted">
+        {{ tt('Plugin panes') }}
+      </dt><dd class="m-0 text-toned">
+        {{ policy.pluginUiDisabled ? tt('Off.') : tt('No network.') }}
+      </dd>
+    </template>
     <template v-if="policy.localModelsDisabled">
       <dt class="text-muted">
         {{ tt('Local models') }}

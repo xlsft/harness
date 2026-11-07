@@ -486,6 +486,13 @@
       "catalog": {
         "upstream": "anthropics/knowledge-work-plugins"
       }
+    },
+    {
+      "name": "session-cost",
+      "description": "A pane that shows what the session has cost so far, with a status-bar item that opens it. An example of plugin UI: a sandboxed page that reads the session through the message API once you allow it.",
+      "license": "MIT",
+      "licenseFile": "plugins/session-cost/LICENSE",
+      "source": "./plugins/session-cost"
     }
   ]
 }

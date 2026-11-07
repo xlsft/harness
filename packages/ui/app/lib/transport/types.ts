@@ -136,6 +136,9 @@ export interface ManagedPolicyView {
   allowedSkills: string[]
   blockedSkills: string[]
   externalSkillSearchDisabled: boolean
+  // Plugins' panes and status-bar items are off; plugin panes reach no network.
+  pluginUiDisabled: boolean
+  pluginUiNetworkDisabled: boolean
 }
 
 export interface UserPreferences {

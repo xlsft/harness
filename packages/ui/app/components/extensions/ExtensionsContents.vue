@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // What a plugin holds, in the names it would go by. This is what the user approves, so what runs programs says exactly what it runs.
-import type { PluginContentsVM } from '~/lib/plugins/types'
+import { capabilityLabel, type PluginContentsVM } from '~/lib/plugins/types'
 
 defineProps<{ contents: PluginContentsVM }>()
 </script>
@@ -65,6 +65,38 @@ defineProps<{ contents: PluginContentsVM }>()
           :key="m.name"
           class="break-all text-warn"
         >{{ m.name }} ({{ m.transport }}): <code>{{ m.command }}</code></span>
+      </dd>
+    </template>
+    <template v-if="contents.panes.length">
+      <dt class="text-muted">
+        {{ tt('Panes') }}
+      </dt><dd class="m-0 text-toned">
+        {{ contents.panes.map(p => `${p.title} (${p.page})`).join(', ') }}
+      </dd>
+    </template>
+    <template v-if="contents.statusItems.length">
+      <dt class="text-muted">
+        {{ tt('Status bar') }}
+      </dt><dd class="m-0 flex flex-col gap-1 text-toned">
+        <span
+          v-for="it in contents.statusItems"
+          :key="it.id"
+          class="break-words"
+        >{{ it.text }}: <template v-if="it.pane">{{ tt('opens {0}', [contents.panes.find(p => p.id === it.pane)?.title ?? it.pane]) }}</template><template v-else>{{ tt('sends “{0}”', [it.prompt]) }}</template></span>
+      </dd>
+    </template>
+    <template v-if="contents.uiCapabilities.length || contents.uiNetwork.length">
+      <dt class="text-muted">
+        {{ tt('Its panes may ask to') }}
+      </dt><dd class="m-0 flex flex-col gap-1 text-toned">
+        <span
+          v-for="c in contents.uiCapabilities"
+          :key="c"
+        >{{ capabilityLabel(c) }}</span>
+        <span
+          v-if="contents.uiNetwork.length"
+          class="break-all text-warn"
+        >{{ capabilityLabel('network', contents.uiNetwork) }}</span>
       </dd>
     </template>
     <template v-if="contents.skipped.length">

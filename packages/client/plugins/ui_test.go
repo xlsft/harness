@@ -231,3 +231,25 @@ func TestPolicyCanTurnPluginUIOff(t *testing.T) {
 		t.Fatal("granted network while policy keeps panes off it")
 	}
 }
+
+// The catalog's example loads without a problem, and its pane builds: what authors copy has to work.
+func TestCatalogExampleOfPluginUI(t *testing.T) {
+	dir, err := filepath.Abs(filepath.Join("..", "..", "..", "catalog", "plugins", "session-cost"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := plugins.Load(dir, "session-cost", "harness-catalog", t.TempDir(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p.Problems) > 0 || len(p.UI.Panes) != 1 || len(p.UI.StatusItems) != 1 || !slices.Equal(p.UI.Asks(), []string{"session.read", "theme.read"}) {
+		t.Fatalf("%+v %v", p.UI, p.Problems)
+	}
+	doc, _, err := plugins.PaneDocument(p, p.UI.Panes[0], nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(doc, "harness.call('session.read')") || strings.Contains(doc, `src="./meter.js"`) || strings.Contains(doc, "meter.css") {
+		t.Fatalf("the example's files were not inlined:\n%s", doc)
+	}
+}

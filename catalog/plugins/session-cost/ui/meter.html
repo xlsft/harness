@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Session cost</title>
+<link rel="stylesheet" href="./meter.css">
+</head>
+<body>
+<main>
+  <p class="label">Spent in this session</p>
+  <p class="total" id="total">-</p>
+  <svg id="spark" class="spark" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true"></svg>
+  <dl>
+    <dt>Input tokens</dt><dd id="input">-</dd>
+    <dt>Output tokens</dt><dd id="output">-</dd>
+    <dt>Cache read</dt><dd id="cache-read">-</dd>
+    <dt>Cache write</dt><dd id="cache-write">-</dd>
+    <dt>Last turn</dt><dd id="last">-</dd>
+    <dt>Model</dt><dd id="model">-</dd>
+  </dl>
+  <p class="note" id="note">Counted since this client opened the session, as the gateway reported it.</p>
+</main>
+<script src="./meter.js"></script>
+</body>
+</html>
