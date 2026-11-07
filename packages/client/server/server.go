@@ -28,6 +28,7 @@ import (
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	"github.com/xlsft/harness/packages/client/computeruse"
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/doctor"
 	"github.com/xlsft/harness/packages/client/environment"
 	"github.com/xlsft/harness/packages/client/extensions"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
@@ -136,6 +137,8 @@ type Server struct {
 	WebURL string
 	// ServerVersion reads the version of the signed-in server (InitializeResponse.server_version); nil: unknown.
 	ServerVersion func(context.Context) string
+	// DoctorOptions are the machine's side of RunDoctor (doctor.go): sign-in, server, keychain. Nil: those are skipped.
+	DoctorOptions func(context.Context) doctor.Options
 
 	// states is the last known user state of sessions, by id (stateMu; never held while taking ls.mu).
 	stateMu sync.Mutex

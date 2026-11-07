@@ -29,4 +29,8 @@ message ManagedPolicyView {
   repeated string allowed_skills = 16;
   repeated string blocked_skills = 17;
   bool external_skill_search_disabled = 18;
+  // The client versions the organization allows (X.Y.Z), empty for no bound. A client outside them warns, and its updates
+  // go no further than the maximum.
+  string min_client_version = 270;
+  string max_client_version = 271;
 }

@@ -6,6 +6,7 @@ import "harness/agent/v1/acp.proto";
 import "harness/agent/v1/browser.proto";
 import "harness/agent/v1/computer_use.proto";
 import "harness/agent/v1/device_settings.proto";
+import "harness/agent/v1/doctor.proto";
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/hooks.proto";
 import "harness/agent/v1/import.proto";
@@ -350,6 +351,8 @@ service AgentService {
   rpc ListComputerUseApps(ListComputerUseAppsRequest) returns (ListComputerUseAppsResponse);
   // --- This device (device_settings.proto) ---
 
+  // Runs the checks of `harness-client doctor` (doctor.proto). MCP servers that may run are started to see that they do.
+  rpc RunDoctor(RunDoctorRequest) returns (RunDoctorResponse);
   rpc GetDeviceSettings(GetDeviceSettingsRequest) returns (GetDeviceSettingsResponse);
   rpc UpdateDeviceSettings(UpdateDeviceSettingsRequest) returns (UpdateDeviceSettingsResponse);
   // Holds off sleep on the machine running the session while it works, until it is turned off or the session closes.

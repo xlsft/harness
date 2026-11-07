@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// What `harness-client doctor` checks, for Settings > About: sign-in and the server, version skew and the version policy,
+// the keychain, the sandbox, MCP servers, disk space, git and proxy settings. The client runs the checks; frontends only
+// show them.
+enum DoctorStatus {
+  DOCTOR_STATUS_UNSPECIFIED = 0;
+  DOCTOR_STATUS_PASS = 1;
+  // Works, with something worth knowing or fixing.
+  DOCTOR_STATUS_WARN = 2;
+  // Broken: something the client needs doesn't work.
+  DOCTOR_STATUS_FAIL = 3;
+  // Not checked, and why (detail): not signed in, nothing configured.
+  DOCTOR_STATUS_SKIP = 4;
+}
+
+message DoctorCheck {
+  // Stable: signin, server, version, version_policy, keychain, sandbox, mcp, disk, git, proxy.
+  string id = 1;
+  // For showing, in English (the CLI's words).
+  string title = 2;
+  DoctorStatus status = 3;
+  string detail = 4;
+  // What to do about a warning or a failure; empty when there's nothing to do.
+  string hint = 5;
+}
+
+message RunDoctorRequest {
+  // A folder whose project MCP servers (.mcp.json) are checked too; empty checks the user's and the device's only.
+  string folder = 1;
+  // Don't start MCP servers: the mcp check is skipped.
+  bool skip_mcp = 2;
+}
+
+message RunDoctorResponse {
+  repeated DoctorCheck checks = 1;
+  // The worst status of the checks.
+  DoctorStatus status = 2;
+  string client_version = 3;
+}

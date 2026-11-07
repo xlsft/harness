@@ -57,6 +57,7 @@ func (s *Server) withManagedPolicy(p *agentv1.UserPreferences) *agentv1.UserPref
 		RestrictProviders: m.RestrictProviders, AllowedProviders: m.AllowedProviders, PersonalProvidersDisabled: m.PersonalProvidersDisabled,
 		RestrictMcpServers: m.RestrictMcpServers, AllowedMcpServers: m.AllowedMcpServers, LocalModelsDisabled: m.LocalModelsDisabled,
 		RestrictSkills: m.RestrictSkills, AllowedSkills: m.AllowedSkills, BlockedSkills: m.BlockedSkills, ExternalSkillSearchDisabled: m.ExternalSkillSearchDisabled,
+		MinClientVersion: m.MinClientVersion, MaxClientVersion: m.MaxClientVersion,
 	}
 	return p
 }

@@ -3,10 +3,12 @@ package settings
 import (
 	"encoding/json"
 	"slices"
+	"strings"
 
 	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
 	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
 	"github.com/xlsft/harness/packages/client/permissions"
+	"github.com/xlsft/harness/packages/client/selfupdate"
 )
 
 // PolicyManaged merges the org POLICY documents into what the organization imposes: the view frontends show as "set by your
@@ -37,6 +39,8 @@ func PolicyManaged(docs []*syncv1.Document) permissions.ManagedPolicy {
 			AllowedSkills    *[]string       `json:"allowedSkills"`
 			BlockedSkills    []string        `json:"blockedSkills"`
 			NoSkillSearch    bool            `json:"disableExternalSkillSearch"`
+			MinClient        string          `json:"minimumClientVersion"`
+			MaxClient        string          `json:"maximumClientVersion"`
 		}
 		if json.Unmarshal([]byte(d.GetContent()), &raw) != nil {
 			continue
@@ -63,9 +67,28 @@ func PolicyManaged(docs []*syncv1.Document) permissions.ManagedPolicy {
 		}
 		m.BlockedSkills = appendNew(m.BlockedSkills, raw.BlockedSkills)
 		m.ExternalSkillSearchDisabled = m.ExternalSkillSearchDisabled || raw.NoSkillSearch
+		// The strictest bounds win: the highest minimum, the lowest maximum. A bound that isn't a version is ignored.
+		if v := normVersion(raw.MinClient); v != "" {
+			if c, _ := selfupdate.Compare(v, m.MinClientVersion); m.MinClientVersion == "" || c > 0 {
+				m.MinClientVersion = v
+			}
+		}
+		if v := normVersion(raw.MaxClient); v != "" {
+			if c, _ := selfupdate.Compare(v, m.MaxClientVersion); m.MaxClientVersion == "" || c < 0 {
+				m.MaxClientVersion = v
+			}
+		}
 	}
 	m.DisabledModes = PolicyDisabledModes(docs)
 	return m
+}
+
+func normVersion(v string) string {
+	v = strings.TrimPrefix(strings.TrimSpace(v), "v")
+	if !selfupdate.Valid(v) {
+		return ""
+	}
+	return v
 }
 
 func intersect(restricted bool, have, other []string) []string {

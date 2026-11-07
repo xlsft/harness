@@ -347,6 +347,8 @@ const (
 	// AgentServiceListComputerUseAppsProcedure is the fully-qualified name of the AgentService's
 	// ListComputerUseApps RPC.
 	AgentServiceListComputerUseAppsProcedure = "/harness.agent.v1.AgentService/ListComputerUseApps"
+	// AgentServiceRunDoctorProcedure is the fully-qualified name of the AgentService's RunDoctor RPC.
+	AgentServiceRunDoctorProcedure = "/harness.agent.v1.AgentService/RunDoctor"
 	// AgentServiceGetDeviceSettingsProcedure is the fully-qualified name of the AgentService's
 	// GetDeviceSettings RPC.
 	AgentServiceGetDeviceSettingsProcedure = "/harness.agent.v1.AgentService/GetDeviceSettings"
@@ -716,6 +718,8 @@ type AgentServiceClient interface {
 	// Picks the security profile and edits the custom one. Device-local; only from this machine.
 	SetComputerUseProfile(context.Context, *connect.Request[v1.SetComputerUseProfileRequest]) (*connect.Response[v1.SetComputerUseProfileResponse], error)
 	ListComputerUseApps(context.Context, *connect.Request[v1.ListComputerUseAppsRequest]) (*connect.Response[v1.ListComputerUseAppsResponse], error)
+	// Runs the checks of `harness-client doctor` (doctor.proto). MCP servers that may run are started to see that they do.
+	RunDoctor(context.Context, *connect.Request[v1.RunDoctorRequest]) (*connect.Response[v1.RunDoctorResponse], error)
 	GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error)
 	UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error)
 	// Holds off sleep on the machine running the session while it works, until it is turned off or the session closes.
@@ -1446,6 +1450,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("ListComputerUseApps")),
 			connect.WithClientOptions(opts...),
 		),
+		runDoctor: connect.NewClient[v1.RunDoctorRequest, v1.RunDoctorResponse](
+			httpClient,
+			baseURL+AgentServiceRunDoctorProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("RunDoctor")),
+			connect.WithClientOptions(opts...),
+		),
 		getDeviceSettings: connect.NewClient[v1.GetDeviceSettingsRequest, v1.GetDeviceSettingsResponse](
 			httpClient,
 			baseURL+AgentServiceGetDeviceSettingsProcedure,
@@ -1746,6 +1756,7 @@ type agentServiceClient struct {
 	stopComputerUse         *connect.Client[v1.StopComputerUseRequest, v1.StopComputerUseResponse]
 	setComputerUseProfile   *connect.Client[v1.SetComputerUseProfileRequest, v1.SetComputerUseProfileResponse]
 	listComputerUseApps     *connect.Client[v1.ListComputerUseAppsRequest, v1.ListComputerUseAppsResponse]
+	runDoctor               *connect.Client[v1.RunDoctorRequest, v1.RunDoctorResponse]
 	getDeviceSettings       *connect.Client[v1.GetDeviceSettingsRequest, v1.GetDeviceSettingsResponse]
 	updateDeviceSettings    *connect.Client[v1.UpdateDeviceSettingsRequest, v1.UpdateDeviceSettingsResponse]
 	setKeepAwake            *connect.Client[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse]
@@ -2324,6 +2335,11 @@ func (c *agentServiceClient) ListComputerUseApps(ctx context.Context, req *conne
 	return c.listComputerUseApps.CallUnary(ctx, req)
 }
 
+// RunDoctor calls harness.agent.v1.AgentService.RunDoctor.
+func (c *agentServiceClient) RunDoctor(ctx context.Context, req *connect.Request[v1.RunDoctorRequest]) (*connect.Response[v1.RunDoctorResponse], error) {
+	return c.runDoctor.CallUnary(ctx, req)
+}
+
 // GetDeviceSettings calls harness.agent.v1.AgentService.GetDeviceSettings.
 func (c *agentServiceClient) GetDeviceSettings(ctx context.Context, req *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error) {
 	return c.getDeviceSettings.CallUnary(ctx, req)
@@ -2753,6 +2769,8 @@ type AgentServiceHandler interface {
 	// Picks the security profile and edits the custom one. Device-local; only from this machine.
 	SetComputerUseProfile(context.Context, *connect.Request[v1.SetComputerUseProfileRequest]) (*connect.Response[v1.SetComputerUseProfileResponse], error)
 	ListComputerUseApps(context.Context, *connect.Request[v1.ListComputerUseAppsRequest]) (*connect.Response[v1.ListComputerUseAppsResponse], error)
+	// Runs the checks of `harness-client doctor` (doctor.proto). MCP servers that may run are started to see that they do.
+	RunDoctor(context.Context, *connect.Request[v1.RunDoctorRequest]) (*connect.Response[v1.RunDoctorResponse], error)
 	GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error)
 	UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error)
 	// Holds off sleep on the machine running the session while it works, until it is turned off or the session closes.
@@ -3479,6 +3497,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("ListComputerUseApps")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceRunDoctorHandler := connect.NewUnaryHandler(
+		AgentServiceRunDoctorProcedure,
+		svc.RunDoctor,
+		connect.WithSchema(agentServiceMethods.ByName("RunDoctor")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentServiceGetDeviceSettingsHandler := connect.NewUnaryHandler(
 		AgentServiceGetDeviceSettingsProcedure,
 		svc.GetDeviceSettings,
@@ -3885,6 +3909,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceSetComputerUseProfileHandler.ServeHTTP(w, r)
 		case AgentServiceListComputerUseAppsProcedure:
 			agentServiceListComputerUseAppsHandler.ServeHTTP(w, r)
+		case AgentServiceRunDoctorProcedure:
+			agentServiceRunDoctorHandler.ServeHTTP(w, r)
 		case AgentServiceGetDeviceSettingsProcedure:
 			agentServiceGetDeviceSettingsHandler.ServeHTTP(w, r)
 		case AgentServiceUpdateDeviceSettingsProcedure:
@@ -4390,6 +4416,10 @@ func (UnimplementedAgentServiceHandler) SetComputerUseProfile(context.Context, *
 
 func (UnimplementedAgentServiceHandler) ListComputerUseApps(context.Context, *connect.Request[v1.ListComputerUseAppsRequest]) (*connect.Response[v1.ListComputerUseAppsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.ListComputerUseApps is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) RunDoctor(context.Context, *connect.Request[v1.RunDoctorRequest]) (*connect.Response[v1.RunDoctorResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RunDoctor is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error) {

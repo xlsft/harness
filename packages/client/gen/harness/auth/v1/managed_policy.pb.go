@@ -62,8 +62,13 @@ type ManagedPolicy struct {
 	BlockedSkills []string `protobuf:"bytes,20,rep,name=blocked_skills,json=blockedSkills,proto3" json:"blocked_skills,omitempty"`
 	// disableExternalSkillSearch: no search of public skill directories, on the server and on clients.
 	ExternalSkillSearchDisabled bool `protobuf:"varint,21,opt,name=external_skill_search_disabled,json=externalSkillSearchDisabled,proto3" json:"external_skill_search_disabled,omitempty"`
-	unknownFields               protoimpl.UnknownFields
-	sizeCache                   protoimpl.SizeCache
+	// minimumClientVersion, maximumClientVersion: the harness-client and app versions allowed (X.Y.Z), empty for no bound.
+	// Clients warn outside them, and their updates go no further than the maximum. Not the server's
+	// HARNESS_MIN_CLIENT_VERSION, which refuses older clients outright and which a release never sets.
+	MinClientVersion string `protobuf:"bytes,270,opt,name=min_client_version,json=minClientVersion,proto3" json:"min_client_version,omitempty"`
+	MaxClientVersion string `protobuf:"bytes,271,opt,name=max_client_version,json=maxClientVersion,proto3" json:"max_client_version,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -241,6 +246,20 @@ func (x *ManagedPolicy) GetExternalSkillSearchDisabled() bool {
 		return x.ExternalSkillSearchDisabled
 	}
 	return false
+}
+
+func (x *ManagedPolicy) GetMinClientVersion() string {
+	if x != nil {
+		return x.MinClientVersion
+	}
+	return ""
+}
+
+func (x *ManagedPolicy) GetMaxClientVersion() string {
+	if x != nil {
+		return x.MaxClientVersion
+	}
+	return ""
 }
 
 type GetManagedPolicyRequest struct {
@@ -501,7 +520,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xf0\a\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xce\b\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -526,7 +545,9 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\x0frestrict_skills\x18\x12 \x01(\bR\x0erestrictSkills\x12%\n" +
 	"\x0eallowed_skills\x18\x13 \x03(\tR\rallowedSkills\x12%\n" +
 	"\x0eblocked_skills\x18\x14 \x03(\tR\rblockedSkills\x12C\n" +
-	"\x1eexternal_skill_search_disabled\x18\x15 \x01(\bR\x1bexternalSkillSearchDisabled\"\x19\n" +
+	"\x1eexternal_skill_search_disabled\x18\x15 \x01(\bR\x1bexternalSkillSearchDisabled\x12-\n" +
+	"\x12min_client_version\x18\x8e\x02 \x01(\tR\x10minClientVersion\x12-\n" +
+	"\x12max_client_version\x18\x8f\x02 \x01(\tR\x10maxClientVersion\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +
 	"\x06policy\x18\x01 \x01(\v2\x1e.harness.auth.v1.ManagedPolicyR\x06policy\x12\x1d\n" +

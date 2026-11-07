@@ -22,12 +22,15 @@ type ManagedPolicy struct {
 	RestrictSkills                  bool
 	AllowedSkills, BlockedSkills    []string
 	ExternalSkillSearchDisabled     bool
+	// MinClientVersion and MaxClientVersion bound the client versions allowed (X.Y.Z); "" is no bound (selfupdate.Bounds).
+	MinClientVersion, MaxClientVersion string
 }
 
 // Active reports whether it imposes anything.
 func (m ManagedPolicy) Active() bool {
 	return len(m.AllowRules)+len(m.AskRules)+len(m.DenyRules)+len(m.DisabledModes) > 0 || m.ManagedRulesOnly || m.SandboxRequired ||
-		m.SandboxOutsideRefused || m.RestrictProviders || m.PersonalProvidersDisabled || m.RestrictMcpServers || m.LocalModelsDisabled || m.RestrictSkills || len(m.BlockedSkills) > 0 || m.ExternalSkillSearchDisabled
+		m.SandboxOutsideRefused || m.RestrictProviders || m.PersonalProvidersDisabled || m.RestrictMcpServers || m.LocalModelsDisabled || m.RestrictSkills || len(m.BlockedSkills) > 0 || m.ExternalSkillSearchDisabled ||
+		m.MinClientVersion != "" || m.MaxClientVersion != ""
 }
 
 // SkillAllowed reports whether a skill or command of this name may run. "kit:*" in a list names all of a plugin.

@@ -136,6 +136,31 @@ func (k KeyringStore) Delete() error {
 	return nil
 }
 
+// Where the credentials of DefaultStore(path) are, for `harness-client doctor`.
+const (
+	InKeychain = "keychain"
+	InFile     = "file"
+	Nowhere    = "none"
+)
+
+// CredentialsWhere says where DefaultStore(path) keeps the credentials, and when the keychain was asked and failed with
+// something other than "not found", that error (the fallback file is then in use, if any). It only reads.
+func CredentialsWhere(path string) (where string, keychainErr error) {
+	if os.Getenv("HARNESS_KEYRING") != "0" {
+		_, err := keyring.Get(keyringService, keyringUser)
+		if err == nil {
+			return InKeychain, nil
+		}
+		if !errors.Is(err, keyring.ErrNotFound) {
+			keychainErr = err
+		}
+	}
+	if _, err := os.Stat(path); err == nil {
+		return InFile, keychainErr
+	}
+	return Nowhere, keychainErr
+}
+
 // DefaultStore returns the keychain store with file fallback at path, or
 // only the file store when HARNESS_KEYRING=0.
 func DefaultStore(path string) Store {
