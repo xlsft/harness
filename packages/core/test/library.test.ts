@@ -1,5 +1,5 @@
 /**
- * Artifacts, the knowledge base, the task tracker and transcript search, over the real routes and object store: what
+ * Artifacts, knowledge and transcript search, over the real routes and object store: what
  * each user can see of the others' data is the point of most of these.
  */
 import { createHash } from "node:crypto";
@@ -9,7 +9,6 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SessionInfoSchema } from "../src/gen/harness/agent/v1/agent_pb.ts";
 import { Scope } from "../src/gen/harness/common/v1/scope_pb.ts";
 import { ArtifactKind, ArtifactVisibility, ListArtifactsRequest_Filter as Filter } from "../src/gen/harness/library/v1/artifacts_pb.ts";
-import { TrackerPriority, TrackerStatus } from "../src/gen/harness/library/v1/tracker_pb.ts";
 import { ObjectKind } from "../src/gen/harness/objects/v1/objects_pb.ts";
 import { chunkText, orQuery } from "../src/services/knowledge.ts";
 import { allWordsQuery, transcriptSnippet } from "../src/services/sessions.ts";
@@ -176,7 +175,7 @@ describe("library", () => {
     });
   });
 
-  describe("knowledge base", () => {
+  describe("knowledge", () => {
     it("lets only admins write for everyone, and keeps personal documents personal, from admins too", async () => {
       await expectCode(alice.knowledge.createKnowledgeDocument({ scope: Scope.ORG, title: "T", content: "c" }), Code.PermissionDenied);
       await expectCode(alice.knowledge.createKnowledgeDocument({ scope: Scope.PROJECT, title: "T", content: "c" }), Code.InvalidArgument);
@@ -241,53 +240,6 @@ describe("library", () => {
       expect(orQuery("the deploy & it's | !x")).toBe("'deploy' | 's' | 'x'");
       expect(orQuery("the")).toBe("'the'");
       expect(orQuery("  ")).toBe("");
-    });
-  });
-
-  describe("task tracker", () => {
-    it("keeps tasks to their owner", async () => {
-      const t = (await alice.tracker.createTrackerTask({ title: "Ship it", description: "Before Friday", project: "core", sessionId: "s-1" })).task!;
-      expect(t.status).toBe(TrackerStatus.TODO);
-      expect(t.priority).toBe(TrackerPriority.NORMAL);
-      expect(t.sessionIds).toEqual(["s-1"]);
-      expect((await bob.tracker.listTrackerTasks({})).tasks).toEqual([]);
-      expect((await admin.tracker.listTrackerTasks({})).tasks).toEqual([]);
-      await expectCode(bob.tracker.getTrackerTask({ id: t.id }), Code.NotFound);
-      await expectCode(admin.tracker.updateTrackerTask({ id: t.id, title: "x", blockedBy: [] }), Code.NotFound);
-      await expectCode(bob.tracker.deleteTrackerTask({ id: t.id }), Code.NotFound);
-      await alice.tracker.deleteTrackerTask({ id: t.id });
-    });
-
-    it("tracks status, sessions and blockers across updates", async () => {
-      await expectCode(alice.tracker.createTrackerTask({ title: "  " }), Code.InvalidArgument);
-      const first = (await alice.tracker.createTrackerTask({ title: "First", priority: TrackerPriority.LOW })).task!;
-      const second = (await alice.tracker.createTrackerTask({ title: "Second", priority: TrackerPriority.HIGH, blockedBy: [first.id] })).task!;
-      expect(second.blockedBy).toEqual([first.id]);
-      await expectCode(alice.tracker.createTrackerTask({ title: "X", blockedBy: ["task_nope"] }), Code.InvalidArgument);
-      await expectCode(alice.tracker.updateTrackerTask({ id: second.id, setBlockedBy: true, blockedBy: [second.id] }), Code.InvalidArgument);
-
-      // Bob can't point at Alice's task.
-      await expectCode(bob.tracker.createTrackerTask({ title: "Y", blockedBy: [first.id] }), Code.InvalidArgument);
-
-      const started = (await alice.tracker.updateTrackerTask({ id: first.id, status: TrackerStatus.IN_PROGRESS, sessionId: "s-2", blockedBy: [] })).task!;
-      expect(started.sessionIds).toEqual(["s-2"]);
-      expect(started.closedAt).toBe("");
-      const done = (await alice.tracker.updateTrackerTask({ id: first.id, status: TrackerStatus.DONE, sessionId: "s-2", blockedBy: [] })).task!;
-      expect(done.sessionIds).toEqual(["s-2"]);
-      expect(done.closedAt).not.toBe("");
-      const reopened = (await alice.tracker.updateTrackerTask({ id: first.id, status: TrackerStatus.TODO, blockedBy: [] })).task!;
-      expect(reopened.closedAt).toBe("");
-      await alice.tracker.updateTrackerTask({ id: first.id, status: TrackerStatus.DONE, blockedBy: [] });
-
-      const tasks = (await alice.tracker.listTrackerTasks({})).tasks;
-      expect(tasks.map((x) => x.title)).toEqual(["Second", "First"]);
-      expect((await alice.tracker.listTrackerTasks({ statuses: [TrackerStatus.DONE] })).tasks.map((x) => x.id)).toEqual([first.id]);
-      expect((await alice.tracker.listTrackerTasks({ query: "seco" })).tasks.map((x) => x.id)).toEqual([second.id]);
-
-      // Clearing and deleting blockers.
-      await alice.tracker.deleteTrackerTask({ id: first.id });
-      expect((await alice.tracker.getTrackerTask({ id: second.id })).task!.blockedBy).toEqual([]);
-      await alice.tracker.deleteTrackerTask({ id: second.id });
     });
   });
 

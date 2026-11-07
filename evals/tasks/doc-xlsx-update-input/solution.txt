@@ -1,0 +1,2 @@
+The unit price is now 125, so the total is 1250.
+ANSWER: 1250

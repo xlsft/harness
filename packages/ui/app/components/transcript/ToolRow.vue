@@ -63,7 +63,7 @@ async function toBackground() {
   <div
     v-if="open"
     class="border-t border-default empty:hidden"
-    :class="['Edit', 'MultiEdit', 'Write', 'NotebookEdit', 'Task', 'Agent'].includes(tool.name) && 'p-2'"
+    :class="['Edit', 'MultiEdit', 'Write', 'NotebookEdit', 'DocumentEdit', 'Task', 'Agent'].includes(tool.name) && 'p-2'"
   >
     <ToolCall
       :tool="tool"

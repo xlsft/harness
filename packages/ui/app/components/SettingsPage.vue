@@ -24,6 +24,7 @@ const SECTIONS = [
   { key: 'hooks', label: tt('Hooks'), icon: 'hook', group: 'app' },
   { key: 'memory', label: tt('Memory'), icon: 'doc', group: 'app' },
   { key: 'codehosts', label: tt('Code hosts'), icon: 'pull-request', group: 'app' },
+  { key: 'trackers', label: tt('Trackers'), icon: 'tasks', group: 'app' },
   { key: 'remote', label: tt('Remote'), icon: 'relay', group: 'app' },
   { key: 'import', label: tt('Import'), icon: 'download', group: 'app' },
   { key: 'models', label: tt('Models'), icon: 'ai', group: 'ai' },
@@ -67,6 +68,7 @@ const KEYWORDS: Record<Section, string> = {
   sessions: 'permission modes ask auto plan bypass new sessions worktree defaults compact idle compaction context',
   sandbox: 'sandbox seatbelt restrict commands bash write paths network hosts proxy allowlist localhost',
   codehosts: 'github gitlab vcs code host pull request merge request pr connect app oauth gh glab webhook',
+  trackers: 'youtrack jira linear issues issue tracker provider connection token oauth board knowledge',
   remote: 'remote start phone mobile dispatch machine slack chat link account defaults relay',
   chat: 'slack chat app bot token signing secret teams mention thread',
   hooks: 'hooks pretooluse posttooluse stop sessionstart scripts automation disable trust',
@@ -172,6 +174,7 @@ const notifications = computed({
 
       <SettingsCodeHosts v-else-if="section === 'codehosts'" />
 
+      <SettingsTrackers v-else-if="section === 'trackers'" />
       <SettingsRemote v-else-if="section === 'remote'" />
 
       <SettingsChatApps v-else-if="section === 'chat'" />

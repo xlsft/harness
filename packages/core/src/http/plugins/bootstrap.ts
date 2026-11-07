@@ -3,6 +3,7 @@ import { bootstrap } from "../../bootstrap.ts";
 import { closeDb } from "../../db/index.ts";
 import { startH2cServer } from "../../rpc/h2c.ts";
 import { migrateAvatars } from "../../services/account.ts";
+import { startBoardSync } from "../../services/board-sync.ts";
 import { startModelPriceRefresh } from "../../services/model-prices.ts";
 import { startObjectSweep } from "../../services/objects.ts";
 import { flushForwarders, kickForwarders } from "../../audit/forward.ts";
@@ -26,6 +27,7 @@ export default definePlugin(async (nitroApp) => {
   // Moving avatars into the store and the sweep run in the background: a store that is still starting delays neither.
   startObjectSweep(migrateAvatars);
   startModelPriceRefresh();
+  startBoardSync();
   // Chat threads whose sessions were being followed when the server stopped.
   void resumeChatWatchers().catch((err) => console.error("[harness] could not resume chat threads", err));
   // Events written while a SIEM was unreachable or the server was down go out now; old ones past the retention go.

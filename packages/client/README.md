@@ -22,7 +22,7 @@ It ships in two forms:
 | `vcs` | Device providers `gh` and `glab`: CLI detection (version, logged-in hosts), PR/MR and CI polling for the session branch, `ReportDeviceProviders` / `ReportDeviceSnapshot` uploads; `vcstest` is a fake `VcsService` |
 | `importer` | The only reader of Claude Code's files. `import claude` uploads `~/.claude` (memory, rules, settings, skills, agents, commands, output styles), copies workflows, hook scripts and sessions; `import --project` brings a folder's `CLAUDE.md` and `.claude/` into `AGENTS.md` and `.harness/` |
 | `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop, TaskOutput, Wait, Agent, SendMessage, ListAgents |
-| `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop, TaskOutput, Wait, Monitor, NotebookEdit |
+| `tools` | Read, Write, Edit, Bash (incl. background tasks), Glob, Grep, AskUserQuestion, EnterPlanMode/ExitPlanMode, TodoWrite, TaskStop, TaskOutput, Wait, Monitor, DocumentRead, DocumentEdit, NotebookEdit |
 | `web` | WebSearch (`harness.search.v1.SearchService` on the server) and WebFetch (local fetch, http → https except private hosts, same-host redirects only, 10 MB / 60 s limits, HTML → Markdown, binary refused, 15-minute in-memory cache per URL, answer from the small-slot model through the gateway with the bundle's `webfetch_summary` prompt) |
 | `netguard` | Private-network classification (loopback, RFC 1918, link-local, ULA, CGNAT, metadata names, names resolving there) shared by the permission engine and WebFetch's dial guard |
 | `outputstyle` | Output style discovery: bundle built-ins, user styles (`~/.harness/output-styles`, then sync), project styles (`.harness/output-styles`), frontmatter parsing |
@@ -200,3 +200,7 @@ HARNESS_HOME=/tmp/demo-home harness-client -p "fix the test" --allowedTools "Edi
 ## Code generation
 
 Go code in `gen/` is generated from `/proto` with `buf generate` (see the root `buf.gen.yaml`). If the remote buf plugins are not reachable, install `protoc-gen-go` and `protoc-gen-connect-go` locally and use the same template with `local:` plugins.
+
+## Trackers and Issues
+
+`tracker/` is this device's side of external trackers (`docs/design/tracker.md`): the provider interface (`provider.go`), YouTrack (`tracker/youtrack`, adapted from `xlsft/ymcp`, MIT), personal connections (`HARNESS_HOME/tracker-connections.json`, credentials in the system keychain under `tracker-connection:<id>`, never synced), folder links (`HARNESS_HOME/tracker-folder-projects.json`), the worker that does a personal board's work from here (`ClaimDeviceWork`, `ReportDeviceWork`, every 30 seconds) and Knowledge's merged view of sources. `server/trackers.go` serves it as `LocalTrackerService`. The `Issues` tool (`tools/issues_tool.go`) goes to the server for issues and to this package for what lives on a device connection.

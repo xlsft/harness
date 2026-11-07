@@ -35,6 +35,7 @@ import (
 	"github.com/xlsft/harness/packages/client/speech"
 	"github.com/xlsft/harness/packages/client/subagent"
 	"github.com/xlsft/harness/packages/client/syncclient"
+	"github.com/xlsft/harness/packages/client/tracker"
 	"github.com/xlsft/harness/packages/client/vcs"
 	"github.com/xlsft/harness/packages/client/web"
 )
@@ -271,6 +272,7 @@ func cmdServe(ctx context.Context, args []string) int {
 		srv.ServerVersion = func(ctx context.Context) string { return server.ReadServerVersion(ctx, rpc.HTTPClient(url), url) }
 		// Settings screens (providers, classifier) reach the server through this client.
 		srv.Core = &server.CoreProxy{URL: url, HTTP: rpc.HTTPClient(url), Tokens: tokens}
+		srv.Trackers = tracker.New(config.Home(), syncclient.NewClient(url, rpc.HTTPClient(url), tokens))
 		srv.MCPClient = mcp.NewClient(url, rpc.HTTPClient(url), tokens)
 		srv.SkillSearch = extensions.NewSkillSearch(url, rpc.HTTPClient(url), tokens)
 		// Frontends read the object store through this client, with a ticket instead of the agent token (<img>, <video>).

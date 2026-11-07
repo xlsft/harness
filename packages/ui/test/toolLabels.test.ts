@@ -21,6 +21,18 @@ describe('Bash cwd note', () => {
   })
 })
 
+describe('Document tools', () => {
+  it('show the file they work on, and an edit its semantic diff', () => {
+    const read = tool({ name: 'DocumentRead', input: { file_path: '/p/a.docx', operation: 'structure' } })
+    expect(toolTarget(read)).toBe('/p/a.docx')
+    expect(toolIcon(read)).toBe('file')
+    const edit = tool({ name: 'DocumentEdit', input: { file_path: '/p/a.docx' }, result: { filePath: '/p/a.docx', structuredPatch: [{ oldStart: 1, oldLines: 1, newStart: 1, newLines: 1, lines: ['-[document] Old', '+[document] New'] }] } })
+    expect(editedPath(edit)).toBe('/p/a.docx')
+    expect(toolIcon(edit)).toBe('edit')
+    expect(toolMeta(edit).text).toBe('+1 −1')
+  })
+})
+
 describe('NotebookEdit row', () => {
   const edit = tool({
     name: 'NotebookEdit',

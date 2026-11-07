@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "file_path": {
+      "type": "string",
+      "description": "Absolute path of the document"
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "structure",
+        "read",
+        "search",
+        "fields",
+        "check",
+        "render"
+      ],
+      "description": "What to do; structure when left out"
+    },
+    "range": {
+      "type": "string",
+      "description": "For read: what to return, in the format's addresses"
+    },
+    "pages": {
+      "type": "string",
+      "description": "PDF pages to read, or pages to render, such as \"3\", \"1-5\" or \"1,3,7-9\""
+    },
+    "query": {
+      "type": "string",
+      "description": "For search: the text to find"
+    },
+    "offset": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "For read: items to skip"
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "For read and search: items to return"
+    },
+    "use_engine": {
+      "type": "boolean",
+      "description": "For check: also use LibreOffice if available"
+    },
+    "text_only": {
+      "type": "boolean",
+      "description": "For render: no images, just the rendered pages' text"
+    },
+    "run_outside_sandbox": {
+      "type": "boolean",
+      "description": "Ask the user to run LibreOffice outside the OS sandbox. Only after a render or engine check said it needs that"
+    },
+    "description": {
+      "type": "string",
+      "description": "A short label of what this call works on or looks for, shown to the user as its row: a noun phrase of 2 to 6 words, no leading verb"
+    }
+  },
+  "required": [
+    "file_path",
+    "description"
+  ],
+  "additionalProperties": false
+}

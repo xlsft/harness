@@ -136,6 +136,9 @@ type Env struct {
 	RipgrepPath string
 	// BeforeEdit is called before a file tool modifies path (checkpoints).
 	BeforeEdit func(path string)
+	// BeforeEditChecked does the same and reports whether the snapshot exists: the document tools refuse to write
+	// without one. Nil falls back to BeforeEdit.
+	BeforeEditChecked func(path string) error
 	// Edits hears about files after the file tools wrote them (nil: nobody does).
 	Edits EditWatcher
 	// Skills runs the skills of the Skill tool (nil: none).
@@ -152,8 +155,12 @@ type Env struct {
 	ReadDenied func(path string) bool
 	// Objects is the object store (nil without a server).
 	Objects ObjectStore
-	// Library is the server's artifacts, knowledge base and task tracker (nil without a server).
+	// Library is the server's artifacts, Knowledge and issues (nil without a server).
 	Library LibraryAPI
+	// Trackers is this device's side of trackers: Knowledge's merged view and issues on its connections (nil: the server only).
+	Trackers DeviceTrackers
+	// ProjectOfFolder is the project a folder is linked to on this device (nil: none).
+	ProjectOfFolder func(folder string) string
 	// Sandbox confines the commands the model runs (nil: nothing does).
 	Sandbox *sandbox.Session
 
@@ -282,6 +289,14 @@ func (e *Env) beforeEdit(path string) {
 	}
 }
 
+func (e *Env) beforeEditChecked(path string) error {
+	if e.BeforeEditChecked != nil {
+		return e.BeforeEditChecked(path)
+	}
+	e.beforeEdit(path)
+	return nil
+}
+
 func (e *Env) afterEdit(ctx context.Context, path string) {
 	if e.Edits != nil {
 		e.Edits.FileEdited(ctx, e, path)
@@ -352,7 +367,7 @@ func NewRegistry(ts ...Tool) *Registry {
 // defines are exposed to the model.
 func Default() *Registry {
 	return NewRegistry(&Bash{}, &Glob{}, &Grep{}, &Read{}, &Edit{}, &Write{},
-		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Workflow{}, &Monitor{}, &NotebookEdit{}, &NotebookRun{}, &PushNotification{}, &ReadNotifications{}, &SendUserFile{}, &ReportFindings{}, &Skill{}, &SettingsGet{}, &SettingsSet{}, &OpenInEditor{}, &RevealPath{}, &KeepAwake{}, &SessionSetModel{}, &SessionSetEffort{}, &SessionSetMode{}, &SessionSetTitle{}, &MultiEdit{}, &LS{}, &TaskInput{})
+		&AskUserQuestion{}, &EnterPlanMode{}, &ExitPlanMode{}, &TodoWrite{}, &WrapUp{}, &TaskStop{}, &TaskOutput{}, &Wait{}, &Show{}, &Visual{}, &EnterWorktree{}, &ExitWorktree{}, &ChangeDirectory{}, &RequestDirectory{}, &ProposeBranch{}, &SyncWithBase{}, &Agent{}, &SendMessage{}, &ListAgents{}, &Workflow{}, &Monitor{}, &NotebookEdit{}, &NotebookRun{}, &DocumentRead{}, &DocumentEdit{}, &PushNotification{}, &ReadNotifications{}, &SendUserFile{}, &ReportFindings{}, &Skill{}, &SettingsGet{}, &SettingsSet{}, &OpenInEditor{}, &RevealPath{}, &KeepAwake{}, &SessionSetModel{}, &SessionSetEffort{}, &SessionSetMode{}, &SessionSetTitle{}, &MultiEdit{}, &LS{}, &TaskInput{})
 }
 
 // Register adds or replaces a tool.

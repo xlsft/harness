@@ -303,7 +303,7 @@ func (s *Styles) ToolBlock(c *ToolCall, width int, verbose bool, frame int) stri
 			lines[i] = s.Error.Render(lines[i])
 		}
 		body = lines
-	case c.Name == "Edit" || c.Name == "MultiEdit" || c.Name == "Write" || c.Name == "NotebookEdit":
+	case c.Name == "Edit" || c.Name == "MultiEdit" || c.Name == "Write" || c.Name == "NotebookEdit" || c.Name == "DocumentEdit":
 		body = append([]string{s.editSummary(c)}, s.diffLines(c, width)...)
 	default:
 		body = s.outputLines(c, width, verbose)

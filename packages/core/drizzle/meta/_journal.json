@@ -110,8 +110,22 @@
     {
       "idx": 15,
       "version": "7",
-      "when": 1794043878851,
-      "tag": "0015_far_stryfe",
+      "when": 1794000492518,
+      "tag": "0015_third_nova",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794001312517,
+      "tag": "0016_lethal_sage",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794046177057,
+      "tag": "0017_glamorous_slayback",
       "breakpoints": true
     }
   ]

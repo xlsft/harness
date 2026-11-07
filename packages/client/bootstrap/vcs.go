@@ -2,11 +2,13 @@ package bootstrap
 
 import (
 	"context"
+	libraryv1 "github.com/xlsft/harness/packages/client/gen/harness/library/v1"
 	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/xlsft/harness/packages/client/agent"
 	"github.com/xlsft/harness/packages/client/auth"
@@ -145,6 +147,19 @@ func realDir(p string) string {
 	return p
 }
 
+// linkPullRequest records the session's PR on the issues the session is linked to. It runs beside the session's own work, and a
+// failure only means the issue shows the PR later, when the agent or the user links it.
+func (s *Session) linkPullRequest(url string) {
+	if s.Sync == nil || url == "" {
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		_, _ = s.Sync.Client().LinkSessionPullRequest(ctx, &libraryv1.LinkSessionPullRequestRequest{SessionId: s.ID, PrUrl: url})
+	}()
+}
+
 // ConnectPR sends what the tracker sees to the session: notes as reminders, a state change to onChange.
 func (s *Session) ConnectPR(onChange func()) {
 	s.PR.SetHooks(vcs.TrackerHooks{
@@ -154,6 +169,7 @@ func (s *Session) ConnectPR(onChange func()) {
 		},
 		OnDetected: func(number int64, url string) {
 			s.Agent.NotePRDetected(number, url, s.PR.Marker())
+			s.linkPullRequest(url)
 			if s.VCS != nil {
 				s.VCS.Poke()
 			}

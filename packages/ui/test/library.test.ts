@@ -1,8 +1,6 @@
-import { create } from '@bufbuild/protobuf'
 import { describe, expect, it } from 'vitest'
-import { TrackerTaskSchema } from '~/gen/harness/library/v1/tracker_pb'
 import { MockLibraryApi } from '~/lib/library/mock'
-import { ArtifactFilter, ArtifactKind, ArtifactVisibility, errorText, ExportFormat, formatSize, groupTasks, Scope, scopeLabel, statusLabel, timeAgo, TrackerPriority, TrackerStatus } from '~/lib/library/types'
+import { ArtifactFilter, ArtifactKind, ArtifactVisibility, errorText, ExportFormat, formatSize, Scope, scopeLabel, timeAgo } from '~/lib/library/types'
 import { MockTransport } from '~/lib/transport/mock'
 import type { ToolItem } from '~/lib/session/types'
 import { toolIcon, toolTarget } from '~/utils/tools'
@@ -42,11 +40,12 @@ describe('artifacts', () => {
   })
 })
 
-describe('knowledge base', () => {
+describe('Knowledge', () => {
   it('searches and edits documents', async () => {
     const api = new MockLibraryApi()
-    const hits = await api.searchKnowledge('gateway')
+    const { hits } = await api.searchKnowledge('gateway')
     expect(hits[0]?.title).toBe('Deployment runbook')
+    expect(hits[0]?.source?.id).toBe('internal:org')
     expect(scopeLabel(hits[0]!.scope)).toBe('Everyone')
     const d = await api.createDocument({ scope: Scope.USER, title: ' Mine ', content: 'hello there', sourceName: 'a.txt' })
     expect(d.title).toBe('Mine')
@@ -59,28 +58,16 @@ describe('knowledge base', () => {
   })
 })
 
-describe('task tracker', () => {
-  it('moves tasks through their statuses', async () => {
+describe('Knowledge sources', () => {
+  it('lists every source, browses a provider tree and reads it live', async () => {
     const api = new MockLibraryApi()
-    const t = await api.createTask({ title: 'Do it', project: 'core' })
-    expect(t.status).toBe(TrackerStatus.TODO)
-    expect(t.priority).toBe(TrackerPriority.NORMAL)
-    const done = await api.updateTask(t.id, { status: TrackerStatus.DONE })
-    expect(done.closedAt).not.toBe('')
-    expect(done.title).toBe('Do it')
-    expect((await api.updateTask(t.id, { status: TrackerStatus.TODO })).closedAt).toBe('')
-    await api.deleteTask(t.id)
-    expect((await api.listTasks({ query: 'do it' })).length).toBe(0)
-    await expect(api.createTask({ title: ' ' })).rejects.toThrow(/title/)
-  })
-
-  it('groups by status, keeping the order it was given', () => {
-    const task = (id: string, status: TrackerStatus) => create(TrackerTaskSchema, { id, status })
-    const groups = groupTasks([task('a', TrackerStatus.TODO), task('b', TrackerStatus.DONE), task('c', TrackerStatus.TODO)])
-    expect(groups.map(g => g.label)).toEqual(['To do', 'In progress', 'Blocked', 'Done', 'Cancelled'])
-    expect(groups[0]!.tasks.map(t => t.id)).toEqual(['a', 'c'])
-    expect(groups[1]!.tasks).toEqual([])
-    expect(statusLabel(TrackerStatus.BLOCKED)).toBe('Blocked')
+    const sources = await api.listSources()
+    expect(sources.map(s => s.ref?.id)).toEqual(['internal:org', 'internal:user', 'tc_company'])
+    const top = await api.browseSource('tc_company')
+    expect(top.documents[0]?.hasChildren).toBe(true)
+    expect((await api.browseSource('tc_company', 'HELP-A-1')).documents[0]?.title).toBe('On call')
+    expect((await api.readDocument(top.documents[0]!.id)).content).toContain('live')
+    expect((await api.browseSource('internal:user')).documents.every(d => d.scope === Scope.USER)).toBe(true)
   })
 })
 
@@ -138,8 +125,8 @@ describe('formatting', () => {
     expect(toolTarget(tool({ name: 'Memory', input: { command: 'write', name: 'style' } }))).toBe('write style')
     expect(toolTarget(tool({ name: 'KnowledgeSearch', input: { query: 'deploy' } }))).toBe('"deploy"')
     expect(toolTarget(tool({ name: 'ArtifactPublish', input: { title: 'Report' } }))).toBe('Report')
-    expect(toolTarget(tool({ name: 'TaskTracker', input: { action: 'create', title: 'Do it' } }))).toBe('create Do it')
+    expect(toolTarget(tool({ name: 'Issues', input: { operation: 'create', title: 'Do it' } }))).toBe('create Do it')
     expect(toolTarget(tool({ name: 'NotebookRun', input: { notebook_path: '/a.ipynb' } }))).toBe('/a.ipynb')
-    expect(toolIcon(tool({ name: 'TaskTracker' }))).toBe('tasks')
+    expect(toolIcon(tool({ name: 'Issues' }))).toBe('tasks')
   })
 })

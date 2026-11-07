@@ -50,7 +50,7 @@ var coreProxyServices = []string{
 	llmv1connect.ProviderServiceName, llmv1connect.UsageServiceName, authv1connect.AdminServiceName, llmv1connect.ProviderLimitsServiceName,
 	authv1connect.AuditServiceName, authv1connect.BillingServiceName, authv1connect.DirectoryServiceName, authv1connect.MfaServiceName,
 	authv1connect.PolicyServiceName, authv1connect.SsoServiceName,
-	libraryv1connect.ArtifactServiceName, libraryv1connect.KnowledgeServiceName, libraryv1connect.TrackerServiceName,
+	libraryv1connect.ArtifactServiceName, libraryv1connect.KnowledgeServiceName, libraryv1connect.BoardServiceName, libraryv1connect.ProjectServiceName, libraryv1connect.TrackerConnectionServiceName,
 	// Settings > Chat apps: the app (admin-only on the server, secrets write-only) and the user's own linked identities.
 	chatv1connect.ChatServiceName,
 }
