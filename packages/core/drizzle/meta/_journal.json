@@ -106,6 +106,13 @@
       "when": 1793979559565,
       "tag": "0014_cold_pyro",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794044718837,
+      "tag": "0015_graceful_maggott",
+      "breakpoints": true
     }
   ]
 }

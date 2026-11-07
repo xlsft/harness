@@ -971,6 +971,32 @@ export const relayCommand = pgTable(
   ],
 );
 
+/**
+ * The inbox (src/relay/inbox.ts, docs/design/coordinator.md): one row per relay session, folded from its events. `state`
+ * is the protobuf JSON of harness.agent.v1.InboxItem without the per-read fields; `grp` is its InboxGroup, 0 when the
+ * session needs nothing (not listed). `read_at` is the user's read marker, set from any device. Rows are the user's own.
+ */
+export const relayInbox = pgTable(
+  "relay_inbox",
+  {
+    sessionId: text("session_id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    hostId: text("host_id").notNull().default(""),
+    grp: integer("grp").notNull().default(0),
+    state: jsonb("state").notNull(),
+    /** The fold's own bookkeeping (last assistant text): not part of the item. */
+    scratch: jsonb("scratch").notNull().default({}),
+    projectRun: boolean("project_run").notNull().default(false),
+    active: boolean("active").notNull().default(true),
+    attentionAt: ts("attention_at"),
+    readAt: ts("read_at"),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [index("relay_inbox_user_idx").on(t.userId, t.grp, t.attentionAt)],
+);
+
 // ---------------------------------------------------------------------------
 // Object store (src/services/objects.ts). The bytes live in S3 under u/<owner>/<sha256>.
 // ---------------------------------------------------------------------------

@@ -246,5 +246,13 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE INDEX \"tracker_task_owner_idx\" ON \"tracker_task\" USING btree (\"owner_id\",\"status\",\"updated_at\");",
       "CREATE INDEX \"sync_session_entry_search_idx\" ON \"sync_session_entry\" USING gin (to_tsvector('simple', \"search_text\"));"
     ]
+  },
+  {
+    "id": "0015_graceful_maggott",
+    "statements": [
+      "CREATE TABLE \"relay_inbox\" (\n\t\"session_id\" text PRIMARY KEY NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"host_id\" text DEFAULT '' NOT NULL,\n\t\"grp\" integer DEFAULT 0 NOT NULL,\n\t\"state\" jsonb NOT NULL,\n\t\"scratch\" jsonb DEFAULT '{}'::jsonb NOT NULL,\n\t\"project_run\" boolean DEFAULT false NOT NULL,\n\t\"active\" boolean DEFAULT true NOT NULL,\n\t\"attention_at\" timestamp with time zone,\n\t\"read_at\" timestamp with time zone,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "ALTER TABLE \"relay_inbox\" ADD CONSTRAINT \"relay_inbox_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "CREATE INDEX \"relay_inbox_user_idx\" ON \"relay_inbox\" USING btree (\"user_id\",\"grp\",\"attention_at\");"
+    ]
   }
 ];
