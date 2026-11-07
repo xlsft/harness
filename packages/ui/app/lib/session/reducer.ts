@@ -726,9 +726,10 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
         agentIds: t.agentIds,
         taskIds: t.taskIds
       }))
-      const existing = find(s, 'todos', 'todos')
-      if (existing) existing.todos = s.todos
-      else push(s, { kind: 'todos', id: 'todos', todos: s.todos })
+      // The plan moves to where it was last updated: Transcript shows it under the latest messages while it runs,
+      // and a finished plan stays at its last update rather than at its first one.
+      removeItem(s, 'todos', 'todos')
+      push(s, { kind: 'todos', id: 'todos', todos: s.todos })
       break
     }
 

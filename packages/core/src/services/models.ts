@@ -37,6 +37,9 @@ export interface ModelCapabilities {
 const LISTED_CAPS = ["thinking", "effort", "images", "pdf", "default_effort"] as const;
 export type ListedCapabilities = Partial<Pick<ModelCapabilities, (typeof LISTED_CAPS)[number]>>;
 
+/** The capabilities whose value by hand wins over a default: what a list says, and the prompt cache (see toEntry). */
+const HAND_SET_CAPS = [...LISTED_CAPS, "prompt_cache"] as const;
+
 /** As stored: `set_by_hand` names the capabilities someone set (and "pricing": the price), which a model list leaves alone even when empty. */
 type StoredCapabilities = Partial<ModelCapabilities> & { set_by_hand?: string[] };
 
@@ -124,11 +127,17 @@ function withTiers(m: ModelEntry, provider: typeof schema.provider.$inferSelect)
   return { ...m, speedTiers: tiers.speed_tiers, cacheTtls: tiers.cache_ttls };
 }
 
-function toEntry(r: Row, ownerUserId: string | null): ModelEntry {
+/** Provider types that speak Anthropic's Messages API, where every model takes `cache_control`. */
+const ANTHROPIC_TYPES = new Set(["anthropic", "bedrock-invoke", "vertex-anthropic"]);
+
+function toEntry(r: Row, provider: { ownerUserId: string | null; type: string }): ModelEntry {
   const { set_by_hand, ...capabilities } = (r.capabilities ?? {}) as StoredCapabilities;
   if (!capabilities.default_effort) delete capabilities.default_effort;
+  // No model list says so, and a model added without it would send no cache breakpoints: on unless set by hand. An
+  // endpoint that refuses it gets it switched off by capability negotiation.
+  if (ANTHROPIC_TYPES.has(provider.type) && !set_by_hand?.includes("prompt_cache")) capabilities.prompt_cache = true;
   return {
-    ownerUserId,
+    ownerUserId: provider.ownerUserId,
     id: r.id,
     displayName: r.displayName,
     providerId: r.providerId,
@@ -197,7 +206,7 @@ export async function listModelsForUser(user: PublicUser) {
   const policy = await serverPolicyFor(user);
   const entries = rows
     .filter((r) => providerAllowed(policy, r.provider))
-    .map((r) => ({ ...withTiers(toEntry(r.model, r.provider.ownerUserId), r.provider), ...shownAs(r.model, r.provider) }))
+    .map((r) => ({ ...withTiers(toEntry(r.model, r.provider), r.provider), ...shownAs(r.model, r.provider) }))
     .filter((m) => canSee(m, user));
   const visible = [...entries.filter((m) => !m.ownerUserId), ...entries.filter((m) => m.ownerUserId)];
   const ids = new Set(visible.map((m) => m.id));
@@ -233,7 +242,7 @@ export async function findModel(id: string): Promise<ModelEntry | undefined> {
     .innerJoin(schema.provider, eq(schema.provider.id, schema.model.providerId))
     .where(eq(schema.model.id, id))
     .limit(1);
-  return r ? withTiers(toEntry(r.model, r.provider.ownerUserId), r.provider) : undefined;
+  return r ? withTiers(toEntry(r.model, r.provider), r.provider) : undefined;
 }
 
 /** A global model; personal models are invisible to server-wide settings (slots, classifier). */
@@ -299,7 +308,7 @@ function settledDefaultEffort(caps: Partial<ModelCapabilities>, given: Partial<M
 
 /** `caps` with the capabilities given by hand on top of the ones already recorded as such. */
 function markSetByHand(caps: Partial<ModelCapabilities>, given: Partial<ModelCapabilities>, before: string[] = []): StoredCapabilities {
-  const set = [...new Set([...before, ...LISTED_CAPS.filter((k) => given[k] !== undefined)])];
+  const set = [...new Set([...before, ...HAND_SET_CAPS.filter((k) => given[k] !== undefined)])];
   return set.length ? { ...caps, set_by_hand: set } : caps;
 }
 
@@ -383,7 +392,7 @@ export async function listModelsAdmin() {
     .innerJoin(schema.provider, eq(schema.provider.id, schema.model.providerId))
     .where(isNull(schema.provider.ownerUserId))
     .orderBy(asc(schema.model.sortOrder), asc(schema.model.createdAt));
-  return rows.map((r) => adminEntry(toEntry(r.model, null)));
+  return rows.map((r) => adminEntry(toEntry(r.model, r.provider)));
 }
 
 export async function getModelAdmin(id: string) {
@@ -515,7 +524,7 @@ export async function listProviderModels(providerId: string, user: PublicUser): 
     .from(schema.model)
     .where(eq(schema.model.providerId, providerId))
     .orderBy(asc(schema.model.sortOrder), asc(schema.model.createdAt));
-  const all = rows.map((r) => toEntry(r, row.ownerUserId));
+  const all = rows.map((r) => toEntry(r, row));
   return writable ? all : all.filter((m) => canSee(m, user));
 }
 
