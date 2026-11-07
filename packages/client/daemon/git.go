@@ -7,67 +7,24 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/xlsft/harness/packages/client/hostgit"
 )
 
-// Everything git does on a host with credentials goes through here (docs/design/hosts.md, decision 10). The token reaches
-// one git process through its environment and an inline credential helper: never argv, a URL or a config file. The agent
-// can write to the repository's configuration and hooks, so these commands take nothing from them that could run code or
-// see the token.
+// Everything git does on a host with credentials goes through package hostgit (docs/design/hosts.md, decision 10).
 
 // Credentials are what the server issued for one repository.
-type Credentials struct {
-	CloneURL, Username, Password string
-}
+type Credentials = hostgit.Credentials
 
 const (
-	gitQueryTimeout = 30 * time.Second
-	gitNetTimeout   = 20 * time.Minute
+	gitQueryTimeout = hostgit.QueryTimeout
+	gitNetTimeout   = hostgit.NetTimeout
 )
-
-// credentialHelper answers `get` from the environment and ignores `store` and `erase`. Nothing here is secret.
-const credentialHelper = `!f() { test "$1" = get && printf 'username=%s\npassword=%s\n' "$HARNESS_GIT_USERNAME" "$HARNESS_GIT_PASSWORD"; }; f`
-
-// safeConfig overrides what a repository's own configuration could use to run a program or to hand the token over.
-// Command-line values go last, and the empty helper clears the list of helpers a repository may have set.
-var safeConfig = []string{
-	"-c", "core.hooksPath=" + os.DevNull,
-	"-c", "core.fsmonitor=false",
-	"-c", "core.sshCommand=",
-	"-c", "core.gitProxy=",
-	"-c", "core.askPass=",
-	"-c", "http.extraHeader=",
-	"-c", "http.proxy=",
-	"-c", "credential.helper=",
-	"-c", "credential.helper=" + credentialHelper,
-	"-c", "credential.useHttpPath=false",
-	"-c", "commit.gpgSign=false",
-	"-c", "tag.gpgSign=false",
-	"-c", "submodule.recurse=false",
-}
-
-// gitEnv is the environment of a git command of the daemon: no global or system configuration, no prompts, and only the
-// protocols a code host is reached by (file only when a test allowed it). The credentials are added by run.
-func gitEnv(allowFile bool) []string {
-	allowed := "https:http"
-	if allowFile {
-		allowed += ":file"
-	}
-	env := []string{"GIT_TERMINAL_PROMPT=0", "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL=" + os.DevNull, "GIT_ALLOW_PROTOCOL=" + allowed, "LC_ALL=C", "GIT_ASKPASS=true"}
-	for _, kv := range os.Environ() {
-		name, _, _ := strings.Cut(kv, "=")
-		switch name {
-		case "PATH", "HOME", "TMPDIR", "SSL_CERT_FILE", "SSL_CERT_DIR", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy":
-			env = append(env, kv)
-		}
-	}
-	return env
-}
 
 // Git runs the daemon's git commands.
 type Git struct {
@@ -75,33 +32,25 @@ type Git struct {
 	AllowFile bool
 }
 
+func (g Git) hardened() hostgit.Git { return hostgit.Git{AllowFile: g.AllowFile} }
+
 func (g Git) run(ctx context.Context, dir string, timeout time.Duration, cred *Credentials, env []string, args ...string) (string, error) {
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-	full := append(append([]string(nil), safeConfig...), args...)
-	cmd := exec.CommandContext(ctx, "git", full...)
-	cmd.Dir = dir
-	cmd.Env = append(gitEnv(g.AllowFile), env...)
-	if cred != nil {
-		cmd.Env = append(cmd.Env, "HARNESS_GIT_USERNAME="+cred.Username, "HARNESS_GIT_PASSWORD="+cred.Password)
+	return g.hardened().Run(ctx, dir, timeout, cred, env, args...)
+}
+
+func checkRefName(name string) error { return hostgit.CheckRefName(name) }
+
+// DeleteBranch deletes a harness/ branch that this daemon made, from a working tree or the repository's cache.
+func (g Git) DeleteBranch(ctx context.Context, root, repositoryKey, dir, branch string, cred Credentials) error {
+	at := dir
+	if _, err := os.Stat(at); err != nil {
+		at = cacheDir(root, repositoryKey)
 	}
-	var stderr strings.Builder
-	cmd.Stderr = &stderr
-	out, err := cmd.Output()
-	if err != nil {
-		msg := strings.TrimSpace(stderr.String())
-		if cred != nil && cred.Password != "" {
-			msg = strings.ReplaceAll(msg, cred.Password, "***")
-		}
-		if i := strings.IndexByte(msg, '\n'); i > 0 {
-			msg = msg[:i]
-		}
-		if msg == "" {
-			msg = err.Error()
-		}
-		return string(out), fmt.Errorf("git %s: %s", args[0], msg)
+	if _, err := os.Stat(at); err != nil {
+		// No checkout and no cache: a bare directory is enough to talk to the remote.
+		at = root
 	}
-	return string(out), nil
+	return g.hardened().DeleteBranch(ctx, at, branch, cred)
 }
 
 var safeKey = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
@@ -241,14 +190,6 @@ func (g Git) resolveBase(ctx context.Context, dir string, c Checkout, cred *Cred
 		}
 	}
 	return base, nil
-}
-
-// checkRefName refuses what would read as an option or a revision expression.
-func checkRefName(name string) error {
-	if name == "" || strings.HasPrefix(name, "-") || strings.ContainsAny(name, " \t\n~^:?*[\\") || strings.Contains(name, "..") {
-		return fmt.Errorf("%q is not a branch name", name)
-	}
-	return nil
 }
 
 // LandResult says what became of a session's work.
