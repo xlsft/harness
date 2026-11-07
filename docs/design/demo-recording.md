@@ -92,3 +92,60 @@ machine, and nothing is read from `.claude/` or `CLAUDE.md`.
   tests create a throwaway device, boot it, and delete it; they skip without Xcode or without an iOS runtime.
 - **Device-local.** Frames and screenshots stay on the machine (the screenshot results carry the `computer_use`
   marker); the pane is not offered for a session of another machine.
+
+## Frontend
+
+- **Where it starts.** "Record a demo" is in the session's tools menu, only for a session of this machine. It opens a
+  picker above the composer (not a modal) with the apps from `ListDemoRecordingApps`, their tiers and notes; blocked
+  apps are shown but cannot be ticked, and the client's reason (computer use off, a permission missing, not a Mac)
+  replaces the list. While recording, the same place is the red bar: steps so far, the last step, the hotkey, Discard
+  (deleted, the agent is not told) and Stop (kept, handed to the agent).
+- **The review card replaces the tool row** of `DemoSkillSave`, as the access card replaces `ComputerAccess`. It has the
+  SKILL.md in a plain monospace textarea, the scope (only the scopes the session has a folder for) with the target
+  path, and a note for the agent. A frontend that is not on the machine sees the card but cannot answer it.
+- **The iOS Simulator pane** is a right pane (`simulator`) offered in the tools menu for a session of this machine. The
+  frame stream is blob URLs, the previous one revoked as the next arrives; points are fractions of the image box, a
+  press shorter than 6 px of movement is a tap (a long press past 500 ms holds), anything else a swipe with the drag's
+  duration. Characters typed into the focused frame are batched for 150 ms into one text input; named keys and
+  combinations go as keys. The agent's last action on the shown device is a small note over the frame for 4 seconds.
+- **Reminder fallback.** The client has a fallback text for `demo_recorded`, as for other reminders, so a session whose
+  prompt bundle predates it still gets a real message when the recording wakes it.
+
+## What was tested, and how
+
+- Recording: unit tests with a scripted feed in `computeruse/recording_test.go` (steps, secure keys dropped, secure
+  fields blanked in the stored JPEG, other apps dropped, tiers), and `server/demo_test.go`, which goes from the start
+  RPC through the reminder, `DemoRecording`, `DemoSkillSave` and the review card to the user's edited file on disk.
+  The helper's `--record` mode, the event tap, the on-screen panel and the hotkey have not been run against real apps.
+- Simulator: `simulator/simulator_test.go` with a fake `simctl` and fake input; `simulator/live_darwin_test.go` creates
+  its own throwaway device, boots it, drives it and deletes it, and skips without Xcode or without an iOS runtime (on
+  the development machine it skipped: no iOS runtime installed). The helper's `sim_*` operations type-check
+  (`swiftc -typecheck`) but have not run against a booted device.
+- UI: reducer and label tests (`packages/ui/test/demoRecording.test.ts`) and a look through the mock transport.
+
+## Manual checklist (needs the owner, on a Mac)
+
+Recording a demo uses the owner's own screen and apps, so it is left for the owner to try. Use apps with nothing private
+in them (a new note in Notes, TextEdit) and a throwaway test account where a sign-in is involved.
+
+1. Settings > Computer use: turn it on; grant Accessibility and Screen Recording to the app; pick the Strict profile.
+2. In a local session, tools menu > Record a demo. Check: Harness is not listed; 1Password and System Settings are
+   listed as Blocked and cannot be ticked; Safari shows Read only and Terminal Click only.
+3. Tick Notes and TextEdit, Start recording. Check the red panel at the top of the screen and the red bar above the
+   composer, with the step count going up.
+4. In Notes: New Note, type a title, ⌘S or Return. Switch to Finder and click something (should become "Used another
+   app (not recorded)"). Switch back to TextEdit and type a line.
+5. Password check: open a page or app with a password field inside a recorded app (or TextEdit's nothing: use a test
+   sign-in sheet in a recorded app), click into it and type a fake password. The step must read "Typed into a
+   password field (not recorded)", and its screenshot must show the field black.
+6. Stop with ⌃⌥⌘. (hotkey); start another and stop it with the panel's Stop; start a third and stop it with Discard in
+   the bar. The first two wake the agent with the `demo_recorded` reminder; the discarded one does not, and its folder
+   under `HARNESS_HOME/computer-use/demo-recordings/` is gone.
+7. Let the agent read the recording and propose a skill. In the review card, edit a line, choose "My skills" or "This
+   project", save. Check the file has your edit, and that saving the same name again is refused.
+8. Check nothing left the machine: the session on another device (or the server's transcript) shows no recording
+   screenshots, and no Demo* or Simulator events appear through the relay.
+9. iOS Simulator (needs Xcode with an iOS runtime): open the pane, boot a device, tap an icon, swipe between home
+   screens, type into Safari's address bar on the device, press Home. Ask the agent to build a small app for the
+   simulator and run it with SimulatorInstall, SimulatorLaunch, SimulatorScreenshot and SimulatorTap; each action asks
+   unless a `Simulator*` rule allows it, and the pane shows what the agent did.
