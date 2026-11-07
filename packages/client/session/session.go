@@ -213,6 +213,9 @@ type Entry struct {
 	// MovedTo records that the session moved to an always-on host and is read-only here (docs/design/hosts.md,
 	// decision 24).
 	MovedTo *MovedTo `json:"movedTo,omitempty"`
+	// Attempt makes the session one attempt of a best-of-N group; AttemptCheck is a run of its test command (decision 30).
+	Attempt      *Attempt      `json:"attempt,omitempty"`
+	AttemptCheck *AttemptCheck `json:"attemptCheck,omitempty"`
 	// HeldMessages are the user messages the usage limit holds, in order (the whole list; empty when it was
 	// emptied). The last one on record is held again on resume.
 	HeldMessages *[]HeldMessage `json:"heldMessages,omitempty"`
@@ -315,6 +318,49 @@ type MovedTo struct {
 	WorkID   string `json:"workId"`
 	Branch   string `json:"branch,omitempty"`
 	At       string `json:"at,omitempty"`
+}
+
+// Attempt is what makes a session an attempt of a best-of-N group (docs/design/hosts.md, decisions 28 to 30). Session
+// names the session it belongs to: a fork is not an attempt.
+type Attempt struct {
+	Session     string  `json:"session"`
+	GroupID     string  `json:"groupId"`
+	Index       int32   `json:"index"`
+	Count       int32   `json:"count"`
+	TestCommand string  `json:"testCommand,omitempty"`
+	BudgetUSD   float64 `json:"budgetUsd,omitempty"`
+}
+
+// AttemptCheck is one run of an attempt's test command.
+type AttemptCheck struct {
+	Command   string `json:"command"`
+	ExitCode  int32  `json:"exitCode"`
+	Output    string `json:"output,omitempty"`
+	Refused   bool   `json:"refused,omitempty"`
+	TimedOut  bool   `json:"timedOut,omitempty"`
+	Head      string `json:"head,omitempty"`
+	CheckedAt string `json:"checkedAt,omitempty"`
+}
+
+// ReadAttempt returns the attempt session id is, and its last check, nil when it is none.
+func ReadAttempt(entries []Entry, id string) (*Attempt, *AttemptCheck) {
+	var a *Attempt
+	var c *AttemptCheck
+	for i := range entries {
+		e := &entries[i]
+		if e.Type != TypeMeta {
+			continue
+		}
+		if e.Attempt != nil && e.Attempt.Session == id {
+			v := *e.Attempt
+			a = &v
+		}
+		if e.AttemptCheck != nil && a != nil && e.SessionID == id {
+			v := *e.AttemptCheck
+			c = &v
+		}
+	}
+	return a, c
 }
 
 // ReadMovedTo returns the record of the move of session id, nil when it did not move.

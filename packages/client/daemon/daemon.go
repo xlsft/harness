@@ -250,6 +250,7 @@ func (r *Runner) Run(ctx context.Context) error {
 func (r *Runner) claimLoop(ctx context.Context) {
 	failures := 0
 	for ctx.Err() == nil {
+		asked := time.Now()
 		res, err := callAPI(ctx, r.o.Tokens, r.api.ClaimHostWork, &relayv1.ClaimHostWorkRequest{WaitSeconds: r.o.PollSeconds})
 		if err != nil {
 			if ctx.Err() != nil {
@@ -261,6 +262,11 @@ func (r *Runner) claimLoop(ctx context.Context) {
 			continue
 		}
 		failures = 0
+		if res.GetWork() == nil && time.Since(asked) < time.Duration(r.o.PollSeconds)*time.Second/2 {
+			// An early empty answer: there is something to discard, which the report brings.
+			r.kickReport()
+			sleep(ctx, 2*time.Second)
+		}
 		if w := res.GetWork(); w != nil {
 			r.addPreparing(1)
 			go func() {
@@ -361,7 +367,12 @@ func (r *Runner) runWork(ctx context.Context, w *relayv1.HostWork, gitName, gitE
 		return
 	}
 	create := &agentv1.CreateSessionRequest{Cwd: p.Dir, Model: w.GetModel(), Effort: w.GetEffort(), PermissionMode: mode}
-	id, err := r.createForWork(renew, w, create)
+	createCtx := renew
+	if w.GetKind() == relayv1.HostWorkKind_HOST_WORK_KIND_ATTEMPT {
+		// Decision 30: the session runs the group's test command when a turn ends, and stops at the group's budget.
+		createCtx = server.WithAttempt(renew, server.AttemptSpec{GroupID: w.GetAttemptGroupId(), Index: w.GetAttemptIndex(), TestCommand: w.GetTestCommand(), BudgetUSD: w.GetBudgetUsd()})
+	}
+	id, err := r.createForWork(createCtx, w, create)
 	if err != nil {
 		drop()
 		fail(err)
@@ -391,6 +402,9 @@ func (r *Runner) runWork(ctx context.Context, w *relayv1.HostWork, gitName, gitE
 		}
 		return
 	}
+	if w.GetKind() == relayv1.HostWorkKind_HOST_WORK_KIND_MOVE && strings.TrimSpace(w.GetPrompt()) == "" {
+		return // a moved session waits for the user (decision 23)
+	}
 	if err := r.o.Sessions.Send(ctx, id, w.GetPrompt()); err != nil {
 		r.log.Warn("the session did not take its first message", "session", id, "err", err)
 		r.update(ctx, &relayv1.UpdateHostWorkRequest{WorkId: w.GetId(), Error: connectMessage(err)})
@@ -405,6 +419,10 @@ func (r *Runner) createForWork(ctx context.Context, w *relayv1.HostWork, create 
 		id, err := r.o.Sessions.Create(ctx, fork)
 		if err == nil {
 			return id, nil
+		}
+		if w.GetKind() == relayv1.HostWorkKind_HOST_WORK_KIND_MOVE {
+			// A move is its conversation: a session without it would not be the one the user moved.
+			return "", fmt.Errorf("the moved session's transcript could not be forked: %w", err)
 		}
 		r.log.Debug("forking the session's transcript failed; starting afresh", "session", from, "err", err)
 	}
@@ -771,8 +789,12 @@ func (r *Runner) reportLoop(ctx context.Context) {
 	defer t.Stop()
 	for {
 		req := &relayv1.ReportAgentHostRequest{WorkingSessions: int32(r.working()), LoadAverage: loadAverage(), DiskFreeBytes: diskFree(r.o.Root)}
-		if _, err := callAPI(ctx, r.o.Tokens, r.api.ReportAgentHost, req); err != nil && ctx.Err() == nil {
+		if res, err := callAPI(ctx, r.o.Tokens, r.api.ReportAgentHost, req); err != nil && ctx.Err() == nil {
 			r.log.Debug("reporting failed", "err", err)
+		} else if err == nil {
+			for _, id := range res.GetDiscardWorkIds() {
+				r.discard(ctx, id)
+			}
 		}
 		select {
 		case <-ctx.Done():
@@ -781,4 +803,42 @@ func (r *Runner) reportLoop(ctx context.Context) {
 		case <-r.reportKick:
 		}
 	}
+}
+
+// discard removes what a piece of work left on this host, as its user asked (docs/design/hosts.md, decision 32): the
+// session, the checkout and the branch, which goes only when it is the harness/ branch this daemon made for that work.
+func (r *Runner) discard(ctx context.Context, workID string) {
+	r.mu.Lock()
+	var t *tracked
+	for id, tr := range r.tracked {
+		if tr.WorkID == workID {
+			t = tr
+			delete(r.tracked, id)
+		}
+	}
+	r.mu.Unlock()
+	if t != nil {
+		if _, live := r.statusOf(t.SessionID); live {
+			if err := r.o.Sessions.Close(ctx, t.SessionID); err != nil {
+				r.log.Debug("closing a discarded session failed", "session", t.SessionID, "err", err)
+			}
+		}
+		if t.Branch == "harness/"+workID {
+			cred, err := r.credentials(ctx, t.RepositoryKey)
+			if err == nil {
+				err = r.o.Git.DeleteBranch(ctx, r.o.Root, t.RepositoryKey, t.Dir, t.Branch, cred)
+			}
+			if err != nil {
+				// The checkout stays too, so that a later report tries again.
+				r.log.Warn("deleting a discarded branch failed", "work", workID, "branch", t.Branch, "err", err)
+				r.track(t)
+				return
+			}
+		}
+		if err := r.o.Git.Remove(ctx, r.o.Root, t.RepositoryKey, t.Dir); err != nil {
+			r.log.Warn("removing a discarded checkout failed", "dir", t.Dir, "err", err)
+		}
+		_ = os.Remove(r.trackedPath(t.SessionID))
+	}
+	r.update(ctx, &relayv1.UpdateHostWorkRequest{WorkId: workID, Discarded: true})
 }

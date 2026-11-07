@@ -796,7 +796,9 @@ func (r routed) GetSessionFileDiff(ctx context.Context, req *connect.Request[age
 		func(m *agentv1.GetSessionFileDiffRequest) *relayv1.GetSessionFileDiffRequest {
 			return &relayv1.GetSessionFileDiffRequest{Request: m}
 		},
-		func(res *relayv1.GetSessionFileDiffResponse) *agentv1.GetSessionFileDiffResponse { return res.GetResponse() })
+		func(res *relayv1.GetSessionFileDiffResponse) *agentv1.GetSessionFileDiffResponse {
+			return res.GetResponse()
+		})
 }
 
 func (r routed) ListOutputStyles(ctx context.Context, req *connect.Request[agentv1.ListOutputStylesRequest]) (*connect.Response[agentv1.ListOutputStylesResponse], error) {

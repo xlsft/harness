@@ -92,6 +92,20 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 		}
 		set[settings.KeyGoalMaxTurns] = n
 	}
+	if req.Msg.BestOfNParallel != nil {
+		n := int(req.Msg.GetBestOfNParallel())
+		if n < 1 || n > settings.MaxAttempts {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("attempts working at once must be between 1 and %d", settings.MaxAttempts))
+		}
+		set[settings.KeyBestOfNParallel] = n
+	}
+	if req.Msg.BestOfNBudgetUsd != nil {
+		v := req.Msg.GetBestOfNBudgetUsd()
+		if !(v >= 0 && v <= settings.MaxAttemptBudgetUSD) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("the budget of an attempt must be between 0 and %d USD", settings.MaxAttemptBudgetUSD))
+		}
+		set[settings.KeyBestOfNBudgetUSD] = v
+	}
 	if req.Msg.PrMonitorWakesPerHour != nil {
 		n := int(req.Msg.GetPrMonitorWakesPerHour())
 		if !settings.ValidPRMonitorWakesPerHour(n) {
@@ -231,6 +245,14 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	var b bool
 	if v, ok := raw[settings.KeySchedulesEnabled]; ok && json.Unmarshal(v, &b) == nil {
 		p.SchedulesEnabled = b
+	}
+	var parallel int
+	if v, ok := raw[settings.KeyBestOfNParallel]; ok && json.Unmarshal(v, &parallel) == nil && parallel >= 1 && parallel <= settings.MaxAttempts {
+		p.BestOfNParallel = int32(parallel)
+	}
+	var budget float64
+	if v, ok := raw[settings.KeyBestOfNBudgetUSD]; ok && json.Unmarshal(v, &budget) == nil && budget >= 0 && budget <= settings.MaxAttemptBudgetUSD {
+		p.BestOfNBudgetUsd = budget
 	}
 	var turns int
 	if v, ok := raw[settings.KeyGoalMaxTurns]; ok && json.Unmarshal(v, &turns) == nil && settings.ValidGoalMaxTurns(turns) {

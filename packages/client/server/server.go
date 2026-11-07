@@ -33,6 +33,7 @@ import (
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/gen/harness/agent/v1/agentv1connect"
 	llmv1 "github.com/xlsft/harness/packages/client/gen/harness/llm/v1"
+	"github.com/xlsft/harness/packages/client/gen/harness/relay/v1/relayv1connect"
 	"github.com/xlsft/harness/packages/client/hostgit"
 	"github.com/xlsft/harness/packages/client/keepawake"
 	"github.com/xlsft/harness/packages/client/llm"
@@ -287,6 +288,7 @@ func (s *Server) mux() *http.ServeMux {
 	s.sshOnce.Do(func() { s.ssh = &sshHostService{s: s} })
 	mux.Handle(agentv1connect.NewSshHostServiceHandler(s.ssh))
 	mux.Handle(agentv1connect.NewLocalTrackerServiceHandler(&localTrackerService{s: s}))
+	mux.Handle(relayv1connect.NewLocalAttemptsServiceHandler(&localAttemptsService{s: s}))
 	pluginsPath, pluginsHandler := agentv1connect.NewPluginServiceHandler(s)
 	mux.Handle(pluginsPath, pluginsHandler)
 	extensionsPath, extensionsHandler := agentv1connect.NewExtensionsServiceHandler(s)
@@ -437,6 +439,10 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if e := pbconv.FromEffort(m.GetEffort()); e != "" {
 		opts.Effort = e
 	}
+	attempt := attemptFrom(ctx)
+	if attempt != nil && attempt.BudgetUSD > 0 && (opts.MaxBudgetUSD <= 0 || attempt.BudgetUSD < opts.MaxBudgetUSD) {
+		opts.MaxBudgetUSD = attempt.BudgetUSD
+	}
 	// A new session nobody chose an effort for; a session that exists keeps its own.
 	opts.StartingEffort = m.GetResumeSessionId() == ""
 	if n := m.GetMaxTurns(); n > 0 {
@@ -537,6 +543,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	}
 	if sess.Resumed && !m.GetFork() {
 		ls.restoreMoved(entries)
+		ls.restoreAttempt(entries)
 		ls.loadGoal()
 		if list := sess.ToolEnv.TaskGraph.List(); len(list) > 0 {
 			ls.hub.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_TaskGraphUpdated{TaskGraphUpdated: taskGraphProto(list)}})
@@ -555,6 +562,9 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	}
 	if m.GetFork() {
 		ls.titleFork()
+	}
+	if attempt != nil && !sess.Resumed {
+		ls.setAttempt(attempt)
 	}
 	ls.syncDiffStats(ls.diff)
 	sess.Permissions.SetAsker(ls)

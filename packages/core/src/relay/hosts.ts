@@ -684,6 +684,12 @@ async function tryClaim(device: DeviceRow, host: HostRow): Promise<WorkRow | und
   });
 }
 
+async function discardPending(deviceId: string): Promise<boolean> {
+  const w = schema.hostWork;
+  const [row] = await getDb().select({ id: w.id }).from(w).where(and(eq(w.deviceId, deviceId), eq(w.discardRequested, true))).limit(1);
+  return !!row;
+}
+
 export async function claimHostWork(p: Principal, waitSeconds: number, signal?: AbortSignal): Promise<{ work?: Init<typeof HostWorkSchema>; gitName: string; gitEmail: string }> {
   const { device, host } = await callingDevice(p);
   if (device.role === "supervisor") throw new ApiError("failed_precondition", "A supervisor runs workers; its workers claim the work");
@@ -691,6 +697,8 @@ export async function claimHostWork(p: Principal, waitSeconds: number, signal?: 
   for (;;) {
     const row = await tryClaim(device, host);
     if (row) return { work: workView(row, host.name), gitName: p.user.name, gitEmail: p.user.email };
+    // Something to discard (decision 32): the daemon learns it from its report, which an early answer brings forward.
+    if (await discardPending(device.deviceId)) return { gitName: "", gitEmail: "" };
     const left = deadline - Date.now();
     if (left <= 0 || signal?.aborted) return { gitName: "", gitEmail: "" };
     await waitForChange(host.id, left, signal);
