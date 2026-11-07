@@ -109,9 +109,18 @@ export function highlightCode(code: string, lang = 'ts'): Token[][] {
 
 const OUTPUT_RE = /(^\s*✓|^\s*✔)|(^\s*↓|^\s*⚠)|(\d+ passed)|(\d+ skipped|\[skipped\])|(\(\d+\))|(\bFAIL\b|\bfailed\b|\bError\b)|(^\s*(?:Test Files|Tests|Duration))/g
 
+// Terminal control sequences: CSI (colours, cursor moves), OSC (titles, links) and two-byte ESC ones. The client strips
+// them from new output; this also cleans transcripts written before it did.
+// eslint-disable-next-line no-control-regex
+const TERMINAL_CODE_RE = /\x1B\[[0-9;:?<=>!]*[ -/]*[@-~]|\x1B\][^\x07\x1B]*(?:\x07|\x1B\\)|\x1B[()*+][0-9A-Za-z]|\x1B[=>78DEHMNOZc]/g
+
+export function stripTerminalCodes(text: string): string {
+  return text.includes('\x1B') ? text.replace(TERMINAL_CODE_RE, '') : text
+}
+
 // Command output (test runners, builds): ✓ / passed in emerald, ↓ / skipped in amber, FAIL in rose, labels grey.
 export function highlightOutput(text: string): Token[][] {
-  return text.replace(/\n$/, '').split('\n').map((line) => {
+  return stripTerminalCodes(text).replace(/\n$/, '').split('\n').map((line) => {
     const out: Token[] = []
     let last = 0
     OUTPUT_RE.lastIndex = 0

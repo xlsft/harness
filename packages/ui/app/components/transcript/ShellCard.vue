@@ -13,7 +13,7 @@ const stopping = ref(false)
 const running = computed(() => props.item.state === 'running')
 const failed = computed(() => props.item.state === 'error' || props.item.state === 'failed' || props.item.state === 'timeout')
 const stdoutLines = computed(() => props.item.output ? highlightOutput(props.item.output) : [])
-const stderrLines = computed(() => props.item.stderr.replace(/\n$/, '').split('\n').filter((l, i, all) => l || i < all.length - 1))
+const stderrLines = computed(() => stripTerminalCodes(props.item.stderr).replace(/\n$/, '').split('\n').filter((l, i, all) => l || i < all.length - 1))
 const hasBody = computed(() => !!props.item.output || !!props.item.stderr || !!props.item.error || props.item.truncated)
 
 const status = computed(() => {

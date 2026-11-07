@@ -761,6 +761,7 @@ func runShellTool(ctx context.Context, env *Env, call Call, in shellRun) Result 
 		r.Summary = "Moved to background task " + bg.ID
 		return r
 	}
+	res.Stdout, res.Stderr = StripTerminalCodes(res.Stdout), StripTerminalCodes(res.Stderr)
 	structured := map[string]any{
 		"stdout": res.Stdout, "stderr": res.Stderr, "interrupted": res.Interrupted,
 		"exitCode": res.ExitCode,
