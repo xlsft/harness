@@ -180,14 +180,17 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
       >
         <div class="flex flex-wrap items-center gap-2 text-[12px] text-toned">
           <span class="w-[46px]">{{ tt('Input') }}</span>
-          <HSelect
+          <div
             v-if="known(inp.connection)"
-            :model-value="keyOf(inp.connection)"
-            class="w-[170px]"
-            :options="options"
-            :aria-label="tt('Connection')"
-            @update:model-value="inp.connection = parseRef(String($event))"
-          />
+            class="w-[170px] shrink-0"
+          >
+            <HSelect
+              :model-value="keyOf(inp.connection)"
+              :options="options"
+              :aria-label="tt('Connection')"
+              @update:model-value="inp.connection = parseRef(String($event))"
+            />
+          </div>
           <span
             v-else
             class="text-muted"
@@ -247,14 +250,17 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
       >
         <div class="flex flex-wrap items-center gap-2 text-[12px] text-toned">
           <span class="w-[46px]">{{ tt('Output') }}</span>
-          <HSelect
+          <div
             v-if="known(out.connection)"
-            :model-value="keyOf(out.connection)"
-            class="w-[170px]"
-            :options="options"
-            :aria-label="tt('Connection')"
-            @update:model-value="out.connection = parseRef(String($event))"
-          />
+            class="w-[170px] shrink-0"
+          >
+            <HSelect
+              :model-value="keyOf(out.connection)"
+              :options="options"
+              :aria-label="tt('Connection')"
+              @update:model-value="out.connection = parseRef(String($event))"
+            />
+          </div>
           <span
             v-else
             class="text-muted"

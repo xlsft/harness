@@ -242,12 +242,13 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
       @submit.prevent="save"
     >
       <div class="flex flex-wrap items-center gap-2">
-        <HSelect
-          v-model="form.provider"
-          class="w-[130px]"
-          :options="providerOptions"
-          :aria-label="tt('Provider')"
-        />
+        <div class="w-[130px] shrink-0">
+          <HSelect
+            v-model="form.provider"
+            :options="providerOptions"
+            :aria-label="tt('Provider')"
+          />
+        </div>
         <input
           v-model="form.name"
           :placeholder="tt('Name')"
@@ -263,13 +264,14 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
       </div>
       <div class="flex flex-wrap items-center gap-2 text-[12.5px] text-toned">
         <span>{{ tt('Sign in with') }}</span>
-        <HSelect
-          :model-value="String(form.auth)"
-          class="w-[170px]"
-          :options="authOptions"
-          :aria-label="tt('Sign in with')"
-          @update:model-value="form.auth = Number($event)"
-        />
+        <div class="w-[170px] shrink-0">
+          <HSelect
+            :model-value="String(form.auth)"
+            :options="authOptions"
+            :aria-label="tt('Sign in with')"
+            @update:model-value="form.auth = Number($event)"
+          />
+        </div>
         <input
           v-if="form.auth === TrackerAuthMethod.PASSWORD"
           v-model="form.login"

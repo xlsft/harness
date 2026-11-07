@@ -242,13 +242,16 @@ const stageName = (id: string) => board.value?.stages.find(s => s.id === id)?.na
           :style="{ background: project.metadata.color }"
           aria-hidden="true"
         />
-        <HSelect
+        <div
           v-if="projectOptions.length"
-          v-model="projectId"
-          class="w-[220px]"
-          :options="projectOptions"
-          :aria-label="tt('Project')"
-        />
+          class="w-[220px] shrink-0"
+        >
+          <HSelect
+            v-model="projectId"
+            :options="projectOptions"
+            :aria-label="tt('Project')"
+          />
+        </div>
         <HBtn
           size="sm"
           variant="ghost"
@@ -309,13 +312,16 @@ const stageName = (id: string) => board.value?.stages.find(s => s.id === id)?.na
         v-if="mode === 'board'"
         class="flex flex-wrap items-center gap-2"
       >
-        <HSelect
+        <div
           v-if="boardOptions.length"
-          v-model="boardId"
-          class="w-[220px]"
-          :options="boardOptions"
-          :aria-label="tt('Board')"
-        />
+          class="w-[220px] shrink-0"
+        >
+          <HSelect
+            v-model="boardId"
+            :options="boardOptions"
+            :aria-label="tt('Board')"
+          />
+        </div>
         <HBtn
           v-if="board?.canConfigure"
           size="sm"
@@ -379,12 +385,13 @@ const stageName = (id: string) => board.value?.stages.find(s => s.id === id)?.na
             class="w-[180px] bg-transparent text-[12.5px] text-strong outline-none placeholder:text-muted"
           >
         </label>
-        <HSelect
-          v-model="priority"
-          class="w-[130px]"
-          :options="priorityOptions"
-          :aria-label="tt('Priority')"
-        />
+        <div class="w-[130px] shrink-0">
+          <HSelect
+            v-model="priority"
+            :options="priorityOptions"
+            :aria-label="tt('Priority')"
+          />
+        </div>
         <input
           v-model="label"
           :placeholder="tt('Label')"
@@ -398,12 +405,13 @@ const stageName = (id: string) => board.value?.stages.find(s => s.id === id)?.na
           />
           {{ tt('Mine') }}
         </label>
-        <HSelect
-          v-model="sort"
-          class="w-[150px]"
-          :options="sortOptions"
-          :aria-label="tt('Sort')"
-        />
+        <div class="w-[150px] shrink-0">
+          <HSelect
+            v-model="sort"
+            :options="sortOptions"
+            :aria-label="tt('Sort')"
+          />
+        </div>
         <span class="flex-1" />
         <form
           class="flex items-center gap-2"

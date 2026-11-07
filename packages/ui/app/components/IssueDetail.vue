@@ -168,22 +168,24 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
         </HBtn>
       </p>
       <div class="flex flex-wrap items-center gap-2 text-[12px] text-toned">
-        <HSelect
-          :model-value="card.stageId"
-          class="w-[150px]"
-          :options="stageOptions"
-          :aria-label="tt('Stage')"
-          :disabled="!canEdit"
-          @update:model-value="act(() => api()!.moveCard(card!.id, { stageId: String($event), expectedVersion: card!.version }))"
-        />
-        <HSelect
-          :model-value="String(card.priority)"
-          class="w-[110px]"
-          :options="priorityOptions"
-          :aria-label="tt('Priority')"
-          :disabled="!canEdit"
-          @update:model-value="save({ priority: Number($event) })"
-        />
+        <div class="w-[150px] shrink-0">
+          <HSelect
+            :model-value="card.stageId"
+            :options="stageOptions"
+            :aria-label="tt('Stage')"
+            :disabled="!canEdit"
+            @update:model-value="act(() => api()!.moveCard(card!.id, { stageId: String($event), expectedVersion: card!.version }))"
+          />
+        </div>
+        <div class="w-[110px] shrink-0">
+          <HSelect
+            :model-value="String(card.priority)"
+            :options="priorityOptions"
+            :aria-label="tt('Priority')"
+            :disabled="!canEdit"
+            @update:model-value="save({ priority: Number($event) })"
+          />
+        </div>
         <label class="flex items-center gap-1.5">
           {{ tt('Due') }}
           <input
@@ -319,12 +321,13 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
           class="flex items-center gap-2"
           @submit.prevent="addRelation"
         >
-          <HSelect
-            v-model="relKind"
-            class="w-[120px]"
-            :options="relationOptions"
-            :aria-label="tt('Relation')"
-          />
+          <div class="w-[120px] shrink-0">
+            <HSelect
+              v-model="relKind"
+              :options="relationOptions"
+              :aria-label="tt('Relation')"
+            />
+          </div>
           <input
             v-model="relOther"
             :placeholder="tt('Another issue, such as ABC-12')"

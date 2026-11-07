@@ -14,7 +14,7 @@ import {
   type Artifact,
   type AutoMemoryProject,
   type KnowledgeDocument,
-  type LibraryApi,
+  type LibraryApi
 } from './types'
 
 const iso = (minutesAgo: number) => new Date(Date.now() - minutesAgo * 60_000).toISOString()
@@ -41,7 +41,6 @@ export class MockLibraryApi implements LibraryApi {
     { d: create(KnowledgeDocumentSchema, { id: 'kb_runbook', scope: Scope.ORG, title: 'Deployment runbook', sourceName: 'runbook.md', size: 61n, editable: false, createdAt: iso(4000), updatedAt: iso(4000) }), content: 'To deploy the gateway, run the pipeline and watch the canary.' },
     { d: create(KnowledgeDocumentSchema, { id: 'kb_notes', scope: Scope.USER, title: 'My notes on billing', size: 34n, editable: true, createdAt: iso(90), updatedAt: iso(90) }), content: 'Invoices close on the last Friday.' }
   ]
-
 
   private memory = new Map<string, Map<string, string>>([
     ['github.com/xlsft/harness', new Map([['release_process.md', '---\nname: Release process\ndescription: Staging first, since the January outage\ntype: project\n---\n\nEvery release goes through staging.\n']])]

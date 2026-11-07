@@ -149,19 +149,23 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
       class="flex flex-wrap items-center gap-2 text-[12.5px] text-toned"
     >
       <span>{{ tt('Issues from') }}</span>
-      <HSelect
-        v-model="form.connection"
-        class="w-[200px]"
-        :options="connectionOptions"
-        :aria-label="tt('Issues from')"
-      />
-      <HSelect
+      <div class="w-[200px] shrink-0">
+        <HSelect
+          v-model="form.connection"
+          :options="connectionOptions"
+          :aria-label="tt('Issues from')"
+        />
+      </div>
+      <div
         v-if="form.connection"
-        v-model="form.key"
-        class="w-[220px]"
-        :options="keyOptions"
-        :aria-label="tt('The provider\'s project')"
-      />
+        class="w-[220px] shrink-0"
+      >
+        <HSelect
+          v-model="form.key"
+          :options="keyOptions"
+          :aria-label="tt('The provider\'s project')"
+        />
+      </div>
       <label
         v-if="isAdmin"
         class="flex items-center gap-1.5"
@@ -248,13 +252,14 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
         >
           <span class="w-[80px] text-muted">{{ subjectLabel(s) }}</span>
           <span class="min-w-0 flex-1 truncate">{{ shareName(s) }}</span>
-          <HSelect
-            :model-value="String(s.level)"
-            class="w-[120px]"
-            :options="levelOptions"
-            :aria-label="tt('Level')"
-            @update:model-value="s.level = Number($event)"
-          />
+          <div class="w-[120px] shrink-0">
+            <HSelect
+              :model-value="String(s.level)"
+              :options="levelOptions"
+              :aria-label="tt('Level')"
+              @update:model-value="s.level = Number($event)"
+            />
+          </div>
           <button
             type="button"
             class="text-muted hover:text-strong"
@@ -265,12 +270,13 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
           </button>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <HSelect
-            v-model="newShare.subject"
-            class="w-[110px]"
-            :options="SUBJECTS"
-            :aria-label="tt('Share with')"
-          />
+          <div class="w-[110px] shrink-0">
+            <HSelect
+              v-model="newShare.subject"
+              :options="SUBJECTS"
+              :aria-label="tt('Share with')"
+            />
+          </div>
           <input
             v-if="Number(newShare.subject) !== ProjectShareSubject.EVERYONE"
             v-model="newShare.subjectId"
@@ -278,12 +284,13 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
             :aria-label="tt('Who')"
             :class="[inputClass, 'w-[180px]']"
           >
-          <HSelect
-            v-model="newShare.level"
-            class="w-[120px]"
-            :options="levelOptions"
-            :aria-label="tt('Level')"
-          />
+          <div class="w-[120px] shrink-0">
+            <HSelect
+              v-model="newShare.level"
+              :options="levelOptions"
+              :aria-label="tt('Level')"
+            />
+          </div>
           <HBtn
             size="sm"
             @click="addShare"

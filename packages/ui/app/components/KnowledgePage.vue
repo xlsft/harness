@@ -232,13 +232,14 @@ async function remove() {
         >
           <template v-if="writableScopes.length > 1">
             <span>{{ tt('Visible to') }}</span>
-            <HSelect
-              :model-value="String(editing.scope)"
-              class="w-[150px]"
-              :options="[{ value: String(Scope.USER), label: tt('Only you') }, { value: String(Scope.ORG), label: tt('Everyone') }]"
-              :aria-label="tt('Visible to')"
-              @update:model-value="editing!.scope = Number($event)"
-            />
+            <div class="w-[150px] shrink-0">
+              <HSelect
+                :model-value="String(editing.scope)"
+                :options="[{ value: String(Scope.USER), label: tt('Only you') }, { value: String(Scope.ORG), label: tt('Everyone') }]"
+                :aria-label="tt('Visible to')"
+                @update:model-value="editing!.scope = Number($event)"
+              />
+            </div>
           </template>
           <label class="cursor-pointer text-accent hover:underline">
             {{ tt('Load from a text file') }}
