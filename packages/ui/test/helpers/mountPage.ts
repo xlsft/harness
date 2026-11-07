@@ -28,6 +28,7 @@ export function stubNuxtGlobals(services: { transport: unknown, query: Record<st
   vi.stubGlobal('useSessionStore', () => ({ transport: services.transport, current: null }))
   vi.stubGlobal('useSettingsModal', () => ({ open: services.openSettings }))
   vi.stubGlobal('useToast', () => ({ add: () => {} }))
+  vi.stubGlobal('usePluginPane', () => ({ refresh: () => {} }))
   return route
 }
 
