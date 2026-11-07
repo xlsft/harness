@@ -1300,6 +1300,7 @@ type outcome struct {
 // one tool_result; on interrupt unfinished calls get a synthetic error.
 // rationale maps tool_use ids to the assistant text before them.
 func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, rationale map[string]string, res *TurnResult) ([]outcome, bool) {
+	a.waitCheckpoint(ctx) // before any tool of the batch starts, so none shows as running while it waits
 	outcomes := make([]outcome, len(uses))
 	autos := make([]*AutoDecision, len(uses))
 	defer func() {
@@ -1580,6 +1581,5 @@ func (a *Agent) runTool(ctx context.Context, t tools.Tool, id string, input json
 			r = tools.ErrorResult("tool %s panicked: %v", t.Name(), p)
 		}
 	}()
-	a.waitCheckpoint(ctx)
 	return t.Run(ctx, a.cfg.ToolEnv, tools.Call{ID: id, Input: input})
 }
