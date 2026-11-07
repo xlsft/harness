@@ -21,7 +21,7 @@ import (
 )
 
 // libraryToolNames are the tools that need the server's sync service.
-var libraryToolNames = []string{"ArtifactPublish", "KnowledgeSearch", "KnowledgeRead", "TaskTracker"}
+var libraryToolNames = []string{"ArtifactPublish", "KnowledgeSearch", "KnowledgeRead", "Issues"}
 
 // signedInHarness is the desktop's setup: serve with shared adapters and the signed-in server's credentials, the
 // gateway, prompts and sync service at one address, and a bundle that has prompts for the library tools.
@@ -222,7 +222,7 @@ func TestSessionWithoutSyncWarnsAndExplainsTools(t *testing.T) {
 			reasons[tl.GetName()] = tl.GetReason()
 		}
 	}
-	for name, want := range map[string]string{"ArtifactPublish": bootstrap.ToolReasonNeedsSync, "TaskTracker": bootstrap.ToolReasonNeedsSync, "WebFetch": bootstrap.ToolReasonDisabled, "Visual": bootstrap.ToolReasonNoPrompt} {
+	for name, want := range map[string]string{"ArtifactPublish": bootstrap.ToolReasonNeedsSync, "Issues": bootstrap.ToolReasonNeedsSync, "WebFetch": bootstrap.ToolReasonDisabled, "Visual": bootstrap.ToolReasonNoPrompt} {
 		if reasons[name] != want {
 			t.Fatalf("%s: reason %q, want %q (all: %v)", name, reasons[name], want, reasons)
 		}

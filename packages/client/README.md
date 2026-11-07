@@ -90,7 +90,7 @@ Environment variables:
 - `HARNESS_AUTOCOMPACT_PCT` sets the auto-compaction threshold as a share of the context window (`92` or `0.92`, default 92%).
 - `HARNESS_DISABLE_BACKGROUND_TASKS=1` disables `run_in_background` and auto-backgrounding.
 - `HARNESS_NO_MCP=1` disables MCP servers.
-- `HARNESS_NO_SYNC=1` runs sessions without server sync (no ArtifactPublish, KnowledgeSearch, KnowledgeRead or TaskTracker; the session says so).
+- `HARNESS_NO_SYNC=1` runs sessions without server sync (no ArtifactPublish, KnowledgeSearch, KnowledgeRead or Issues; the session says so).
 - `HARNESS_NO_LOG_FILE=1` writes no log file.
 - `HARNESS_NO_INTERRUPT_REPLY=1` (or the setting `"interruptReply": false`) turns off the model's short reply after the user stops a turn.
 - `HARNESS_MCP_APPROVE=name1,name2` (or `*`) approves those stdio MCP servers for this run without asking (not remembered). Otherwise a stdio server asks on first use through the interactive frontend and the answer is stored per config hash.

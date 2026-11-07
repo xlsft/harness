@@ -9,7 +9,7 @@ and stderr to `/dev/null`, so nothing of the session could be read afterwards.
 
 ## Root cause
 
-`ArtifactPublish`, `KnowledgeSearch`, `KnowledgeRead` and `TaskTracker` are registered only when the session has a
+`ArtifactPublish`, `KnowledgeSearch`, `KnowledgeRead` and the tracker tool (`TaskTracker`, now `Issues`) are registered only when the session has a
 sync client (`tools.RegisterLibraryTools`, under `if s.Sync != nil` in `bootstrap.Open`). `bootstrap.Open` opened sync,
 MCP, the pull request poller and the decision and search clients only inside `if gw == nil || src == nil`, that is,
 only when it created the gateway and prompt adapters itself from the stored credentials.
