@@ -838,3 +838,15 @@ func (r routed) SetAutoContinue(ctx context.Context, req *connect.Request[agentv
 			return &relayv1.SetAutoContinueRequest{Request: m, Options: commandOptions("")}
 		}, nil)
 }
+
+// knownHere reports whether a session is open on this machine or has a transcript here.
+func (s *Server) knownHere(cwd, id string) bool {
+	s.mu.Lock()
+	_, live := s.live[id]
+	s.mu.Unlock()
+	if live {
+		return true
+	}
+	_, err := (session.Store{Root: config.ProjectsDir()}).Find(cwd, id)
+	return err == nil
+}

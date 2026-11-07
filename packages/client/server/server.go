@@ -399,6 +399,11 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	}
 	// A session of another machine: only a fork of its server transcript can run here (remote.go).
 	remote := s.remoteInfo(m.GetResumeSessionId())
+	if remote == nil && m.GetFork() && m.GetResumeSessionId() != "" && !s.knownHere(m.GetCwd(), m.GetResumeSessionId()) {
+		// Not known here yet (a host forking a session moved to it, say): the server's listing may have it.
+		s.refreshListing(ctx, "")
+		remote = s.remoteInfo(m.GetResumeSessionId())
+	}
 	if remote != nil && !m.GetFork() {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("session %s runs on %s; fork it to continue here", remote.Id, deviceLabel(remote)))
 	}
