@@ -891,6 +891,8 @@ export const relayHost = pgTable(
     allowedRoots: jsonb("allowed_roots").notNull().default([]),
     tunnels: boolean("tunnels").notNull().default(false),
     pty: boolean("pty").notNull().default(false),
+    /** The machine takes remote starts in its recent folders (RegisterHostRequest.remote_starts). */
+    remoteStarts: boolean("remote_starts").notNull().default(false),
     lastSeenAt: ts("last_seen_at").notNull(),
     lastLocalActivityAt: ts("last_local_activity_at"),
     createdAt: ts("created_at").notNull(),
@@ -1672,3 +1674,87 @@ export const scimIdentity = pgTable(
   },
   (t) => [index("scim_identity_external_idx").on(t.externalId)],
 );
+
+// ---------------------------------------------------------------------------
+// Chat apps (src/chat, docs/design/chat.md)
+// ---------------------------------------------------------------------------
+
+/** A connected chat app (one per provider). Secrets are one encrypted blob (HKDF purpose "chat-secrets"). */
+export const chatApp = pgTable("chat_app", {
+  /** harness.chat.v1.ChatProvider. */
+  provider: integer("provider").primaryKey(),
+  enabled: boolean("enabled").notNull().default(true),
+  matchByEmail: boolean("match_by_email").notNull().default(true),
+  teamId: text("team_id").notNull().default(""),
+  teamName: text("team_name").notNull().default(""),
+  botUserId: text("bot_user_id").notNull().default(""),
+  /** Encrypted JSON {botToken, signingSecret}. */
+  secretsEnc: text("secrets_enc").notNull().default(""),
+  lastEventAt: ts("last_event_at"),
+  lastError: text("last_error").notNull().default(""),
+  createdAt: ts("created_at").notNull(),
+  updatedAt: ts("updated_at").notNull(),
+  updatedBy: text("updated_by").notNull().default(""),
+});
+
+/** A chat user linked to an account. Personal: only that account lists it. */
+export const chatIdentity = pgTable(
+  "chat_identity",
+  {
+    provider: integer("provider").notNull(),
+    teamId: text("team_id").notNull(),
+    externalUserId: text("external_user_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    displayName: text("display_name").notNull().default(""),
+    /** "directory" | "code" */
+    linkedVia: text("linked_via").notNull(),
+    linkedAt: ts("linked_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.provider, t.teamId, t.externalUserId] }), index("chat_identity_user_idx").on(t.userId)],
+);
+
+/** One-time link codes (StartChatLink); only the hash is kept. */
+export const chatLinkCode = pgTable("chat_link_code", {
+  codeHash: text("code_hash").primaryKey(),
+  provider: integer("provider").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  expiresAt: ts("expires_at").notNull(),
+  createdAt: ts("created_at").notNull(),
+});
+
+/** A chat thread bound to the session it started. */
+export const chatThread = pgTable(
+  "chat_thread",
+  {
+    id: text("id").primaryKey(),
+    provider: integer("provider").notNull(),
+    teamId: text("team_id").notNull(),
+    channel: text("channel").notNull(),
+    /** The thread's root message id (Slack ts). */
+    threadId: text("thread_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    sessionId: text("session_id").notNull().default(""),
+    hostId: text("host_id").notNull().default(""),
+    /** starting | active | ended | failed */
+    status: text("status").notNull(),
+    /** Highest session seq the thread has rendered. */
+    lastSeq: int8("last_seq").notNull().default(0),
+    /** The progress message being edited ("" when none). */
+    progressId: text("progress_id").notNull().default(""),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [uniqueIndex("chat_thread_ref_idx").on(t.provider, t.teamId, t.channel, t.threadId), index("chat_thread_session_idx").on(t.sessionId)],
+);
+
+/** Inbound requests already handled (event ids, message ids) and signatures already seen (replays). */
+export const chatDelivery = pgTable("chat_delivery", {
+  key: text("key").primaryKey(),
+  createdAt: ts("created_at").notNull(),
+});

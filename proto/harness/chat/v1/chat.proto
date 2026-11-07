@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package harness.chat.v1;
+
+// ChatService connects the server to chat apps (Slack today; the provider enum leaves room for Microsoft Teams). People
+// mention the bot or write to it, and a session starts on one of their own machines through the relay; the thread gets
+// progress, permission prompts as buttons and the final answer, and replies steer the session. docs/design/chat.md is
+// the spec.
+//
+// Inbound traffic from the chat app is plain HTTP, signature-checked: POST /api/chat/slack/events (Event Subscriptions
+// and Interactivity may both point there).
+//
+// Requires `Authorization: Bearer <access token>`. The app RPCs are admin-only; the identity RPCs act on the caller's
+// own links only (no one else, admins included, can list them).
+service ChatService {
+  // --- Admin: the app ---
+  rpc GetChatApp(GetChatAppRequest) returns (GetChatAppResponse);
+  // Saves the app. Secrets are write-only: an empty field keeps the stored one. The bot token is checked with the
+  // provider (Slack auth.test) before anything is stored.
+  rpc PutChatApp(PutChatAppRequest) returns (PutChatAppResponse);
+  rpc DeleteChatApp(DeleteChatAppRequest) returns (DeleteChatAppResponse);
+
+  // --- The caller's identities ---
+  rpc ListMyChatIdentities(ListMyChatIdentitiesRequest) returns (ListMyChatIdentitiesResponse);
+  // A one-time code (single use, 15 minutes) the caller sends to the bot as "link <code>" to link that chat identity.
+  rpc StartChatLink(StartChatLinkRequest) returns (StartChatLinkResponse);
+  rpc UnlinkChatIdentity(UnlinkChatIdentityRequest) returns (UnlinkChatIdentityResponse);
+}
+
+enum ChatProvider {
+  CHAT_PROVIDER_UNSPECIFIED = 0;
+  CHAT_PROVIDER_SLACK = 1;
+  // Reserved for a later Teams provider; not implemented.
+  CHAT_PROVIDER_TEAMS = 2;
+}
+
+message ChatApp {
+  ChatProvider provider = 1;
+  // Credentials are stored.
+  bool configured = 2;
+  // Turned on by the admin (the managed policy can still turn every chat app off).
+  bool enabled = 3;
+  // The workspace of the token (Slack team id and name) and the bot's own user id.
+  string team_id = 4;
+  string team_name = 5;
+  string bot_user_id = 6;
+  // Where the chat app sends events and button presses.
+  string request_url = 7;
+  // Link an unlinked chat user to the account with the same email when that account comes from the directory or has
+  // a verified email.
+  bool match_by_email = 8;
+  // RFC 3339, UTC; empty: none yet.
+  string last_event_at = 9;
+  string last_error = 10;
+  // The organization's managed policy turns chat apps off.
+  bool disabled_by_policy = 11;
+}
+
+message GetChatAppRequest {
+  ChatProvider provider = 1;
+}
+
+message GetChatAppResponse {
+  ChatApp app = 1;
+}
+
+message PutChatAppRequest {
+  ChatProvider provider = 1;
+  // Slack: xoxb-... Empty keeps the stored token.
+  string bot_token = 2;
+  // Slack: the app's signing secret. Empty keeps the stored one.
+  string signing_secret = 3;
+  bool enabled = 4;
+  bool match_by_email = 5;
+}
+
+message PutChatAppResponse {
+  ChatApp app = 1;
+}
+
+message DeleteChatAppRequest {
+  ChatProvider provider = 1;
+}
+
+message DeleteChatAppResponse {}
+
+message ChatIdentity {
+  ChatProvider provider = 1;
+  string team_id = 2;
+  string external_user_id = 3;
+  // The chat user's name as the provider showed it when linking.
+  string display_name = 4;
+  // "directory" or "code".
+  string linked_via = 5;
+  // RFC 3339, UTC.
+  string linked_at = 6;
+}
+
+message ListMyChatIdentitiesRequest {}
+
+message ListMyChatIdentitiesResponse {
+  repeated ChatIdentity identities = 1;
+  // Whether an app is connected and on (and not off by policy): the settings screen says so instead of offering links.
+  bool available = 2;
+}
+
+message StartChatLinkRequest {
+  ChatProvider provider = 1;
+}
+
+message StartChatLinkResponse {
+  // Shown once; only a hash is stored.
+  string code = 1;
+  // RFC 3339, UTC.
+  string expires_at = 2;
+}
+
+message UnlinkChatIdentityRequest {
+  ChatProvider provider = 1;
+  string team_id = 2;
+  string external_user_id = 3;
+}
+
+message UnlinkChatIdentityResponse {}

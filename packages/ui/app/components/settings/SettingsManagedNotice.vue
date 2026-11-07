@@ -82,6 +82,18 @@ defineProps<{ policy: ManagedPolicyView }>()
         </template>
       </dd>
     </template>
+    <template v-if="policy.remoteStartsDisabled || policy.chatAppsDisabled">
+      <dt class="text-muted">
+        {{ tt('Remote') }}
+      </dt><dd class="m-0 text-toned">
+        <template v-if="policy.remoteStartsDisabled">
+          {{ tt('Remote starts are off.') }}
+        </template>
+        <template v-if="policy.chatAppsDisabled">
+          {{ tt('Chat apps are off.') }}
+        </template>
+      </dd>
+    </template>
     <template v-if="policy.localModelsDisabled">
       <dt class="text-muted">
         {{ tt('Local models') }}

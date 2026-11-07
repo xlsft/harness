@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"connectrpc.com/connect"
@@ -57,6 +58,7 @@ func (s *Server) withManagedPolicy(p *agentv1.UserPreferences) *agentv1.UserPref
 		RestrictProviders: m.RestrictProviders, AllowedProviders: m.AllowedProviders, PersonalProvidersDisabled: m.PersonalProvidersDisabled,
 		RestrictMcpServers: m.RestrictMcpServers, AllowedMcpServers: m.AllowedMcpServers, LocalModelsDisabled: m.LocalModelsDisabled,
 		RestrictSkills: m.RestrictSkills, AllowedSkills: m.AllowedSkills, BlockedSkills: m.BlockedSkills, ExternalSkillSearchDisabled: m.ExternalSkillSearchDisabled,
+		ChatAppsDisabled: m.ChatAppsDisabled, RemoteStartsDisabled: m.RemoteStartsDisabled,
 	}
 	return p
 }
@@ -145,6 +147,15 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unknown cache lifetime %q", t.GetCacheTtl()))
 		}
 		set[settings.KeySpeedTier], set[settings.KeyCacheTTL], set[settings.KeyAdvisorModel] = t.GetSpeedTier(), t.GetCacheTtl(), t.GetAdvisorModel()
+	}
+	if d := req.Msg.ChatDefaults; d != nil {
+		if d.GetPermissionMode() != "" && !validChatMode(d.GetPermissionMode()) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("%q cannot be the mode of sessions started from a chat app", d.GetPermissionMode()))
+		}
+		if d.GetFolder() != "" && !filepath.IsAbs(d.GetFolder()) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("folder %q must be absolute", d.GetFolder()))
+		}
+		set[settings.KeyChatDefaults] = map[string]any{"deviceId": d.GetDeviceId(), "folder": d.GetFolder(), "permissionMode": d.GetPermissionMode()}
 	}
 	if sw := req.Msg.SkillSwitch; sw != nil {
 		if strings.TrimSpace(sw.GetName()) == "" {
@@ -249,6 +260,17 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	}
 	if v, ok := raw[settings.KeyDisableAllHooks]; ok && json.Unmarshal(v, &b) == nil {
 		p.HooksEnabled = !b
+	}
+	p.ChatDefaults = &agentv1.ChatDefaults{}
+	if v, ok := raw[settings.KeyChatDefaults]; ok {
+		var d struct {
+			DeviceID       string `json:"deviceId"`
+			Folder         string `json:"folder"`
+			PermissionMode string `json:"permissionMode"`
+		}
+		if json.Unmarshal(v, &d) == nil {
+			p.ChatDefaults = &agentv1.ChatDefaults{DeviceId: d.DeviceID, Folder: d.Folder, PermissionMode: d.PermissionMode}
+		}
 	}
 	p.ModelTuning = &agentv1.ModelTuning{}
 	for key, dst := range map[string]*string{settings.KeySpeedTier: &p.ModelTuning.SpeedTier, settings.KeyCacheTTL: &p.ModelTuning.CacheTtl, settings.KeyAdvisorModel: &p.ModelTuning.AdvisorModel} {

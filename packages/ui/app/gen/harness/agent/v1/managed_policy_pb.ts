@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/managed_policy.proto.
  */
 export const file_harness_agent_v1_managed_policy: GenFile = /*@__PURE__*/
-  fileDesc("CiVoYXJuZXNzL2FnZW50L3YxL21hbmFnZWRfcG9saWN5LnByb3RvEhBoYXJuZXNzLmFnZW50LnYxIvUDChFNYW5hZ2VkUG9saWN5VmlldxIOCgZhY3RpdmUYASABKAgSEwoLYWxsb3dfcnVsZXMYAiADKAkSEQoJYXNrX3J1bGVzGAMgAygJEhIKCmRlbnlfcnVsZXMYBCADKAkSGgoSbWFuYWdlZF9ydWxlc19vbmx5GAUgASgIEhgKEHNhbmRib3hfcmVxdWlyZWQYBiABKAgSHwoXc2FuZGJveF9vdXRzaWRlX3JlZnVzZWQYByABKAgSFgoOZGlzYWJsZWRfbW9kZXMYCCADKAkSGgoScmVzdHJpY3RfcHJvdmlkZXJzGAkgASgIEhkKEWFsbG93ZWRfcHJvdmlkZXJzGAogAygJEiMKG3BlcnNvbmFsX3Byb3ZpZGVyc19kaXNhYmxlZBgLIAEoCBIcChRyZXN0cmljdF9tY3Bfc2VydmVycxgMIAEoCBIbChNhbGxvd2VkX21jcF9zZXJ2ZXJzGA0gAygJEh0KFWxvY2FsX21vZGVsc19kaXNhYmxlZBgOIAEoCBIXCg9yZXN0cmljdF9za2lsbHMYDyABKAgSFgoOYWxsb3dlZF9za2lsbHMYECADKAkSFgoOYmxvY2tlZF9za2lsbHMYESADKAkSJgoeZXh0ZXJuYWxfc2tpbGxfc2VhcmNoX2Rpc2FibGVkGBIgASgIQtMBChRjb20uaGFybmVzcy5hZ2VudC52MUISTWFuYWdlZFBvbGljeVByb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYWdlbnQvdjE7YWdlbnR2MaICA0hBWKoCEEhhcm5lc3MuQWdlbnQuVjHKAhBIYXJuZXNzXEFnZW50XFYx4gIcSGFybmVzc1xBZ2VudFxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OkFnZW50OjpWMWIGcHJvdG8z");
+  fileDesc("CiVoYXJuZXNzL2FnZW50L3YxL21hbmFnZWRfcG9saWN5LnByb3RvEhBoYXJuZXNzLmFnZW50LnYxIrMEChFNYW5hZ2VkUG9saWN5VmlldxIOCgZhY3RpdmUYASABKAgSEwoLYWxsb3dfcnVsZXMYAiADKAkSEQoJYXNrX3J1bGVzGAMgAygJEhIKCmRlbnlfcnVsZXMYBCADKAkSGgoSbWFuYWdlZF9ydWxlc19vbmx5GAUgASgIEhgKEHNhbmRib3hfcmVxdWlyZWQYBiABKAgSHwoXc2FuZGJveF9vdXRzaWRlX3JlZnVzZWQYByABKAgSFgoOZGlzYWJsZWRfbW9kZXMYCCADKAkSGgoScmVzdHJpY3RfcHJvdmlkZXJzGAkgASgIEhkKEWFsbG93ZWRfcHJvdmlkZXJzGAogAygJEiMKG3BlcnNvbmFsX3Byb3ZpZGVyc19kaXNhYmxlZBgLIAEoCBIcChRyZXN0cmljdF9tY3Bfc2VydmVycxgMIAEoCBIbChNhbGxvd2VkX21jcF9zZXJ2ZXJzGA0gAygJEh0KFWxvY2FsX21vZGVsc19kaXNhYmxlZBgOIAEoCBIXCg9yZXN0cmljdF9za2lsbHMYDyABKAgSFgoOYWxsb3dlZF9za2lsbHMYECADKAkSFgoOYmxvY2tlZF9za2lsbHMYESADKAkSJgoeZXh0ZXJuYWxfc2tpbGxfc2VhcmNoX2Rpc2FibGVkGBIgASgIEhsKEmNoYXRfYXBwc19kaXNhYmxlZBiYAiABKAgSHwoWcmVtb3RlX3N0YXJ0c19kaXNhYmxlZBiZAiABKAhC0wEKFGNvbS5oYXJuZXNzLmFnZW50LnYxQhJNYW5hZ2VkUG9saWN5UHJvdG9QAVpFZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9hZ2VudC92MTthZ2VudHYxogIDSEFYqgIQSGFybmVzcy5BZ2VudC5WMcoCEEhhcm5lc3NcQWdlbnRcVjHiAhxIYXJuZXNzXEFnZW50XFYxXEdQQk1ldGFkYXRh6gISSGFybmVzczo6QWdlbnQ6OlYxYgZwcm90bzM");
 
 /**
  * The organization's managed policy as this client merged it from its POLICY documents (harness.sync.v1), for frontends
@@ -120,6 +120,21 @@ export type ManagedPolicyView = Message<"harness.agent.v1.ManagedPolicyView"> & 
    * @generated from field: bool external_skill_search_disabled = 18;
    */
   externalSkillSearchDisabled: boolean;
+
+  /**
+   * disableChatApps: chat apps (Slack) start and steer no sessions; inbound requests get a short notice.
+   *
+   * @generated from field: bool chat_apps_disabled = 280;
+   */
+  chatAppsDisabled: boolean;
+
+  /**
+   * disableRemoteStarts: no session starts through the relay (phone, chat apps, daemon hosts); the server refuses and
+   * clients stop offering it.
+   *
+   * @generated from field: bool remote_starts_disabled = 281;
+   */
+  remoteStartsDisabled: boolean;
 };
 
 /**

@@ -16,6 +16,7 @@
 import { MockHostsApi } from '~/lib/hosts/mock'
 import { MockSshApi } from '~/lib/ssh'
 import { MockVcsApi } from '~/lib/vcs/mock'
+import { MockRemoteApi } from '~/lib/remote/mock'
 import { SlashCommandResult_Action } from '~/gen/harness/agent/v1/slash_commands_pb'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 import { mockSlashCatalog } from './mockSlash'
@@ -178,9 +179,9 @@ export class MockTransport implements SessionTransport {
   private disabledSkills = new Set<string>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
-  private preferences: UserPreferences = { autoMemoryEnabled: true, compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: true, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20, modelTuning: { speedTier: '', cacheTtl: '', advisorModel: '' } }
+  private preferences: UserPreferences = { autoMemoryEnabled: true, compactIdleSessions: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: true, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20, modelTuning: { speedTier: '', cacheTtl: '', advisorModel: '' }, chatDefaults: { deviceId: '', folder: '', mode: '' } }
   private hookTrusted = false
-  private deviceSettings: DeviceSettings = { theme: '', notifications: true }
+  private deviceSettings: DeviceSettings = { theme: '', notifications: true, allowRemoteStarts: false }
   private tick: number
   private now: () => number
 
@@ -1606,6 +1607,11 @@ export class MockTransport implements SessionTransport {
   private vcsApi = new MockVcsApi()
   vcs() {
     return this.vcsApi
+  }
+
+  private remoteApi = new MockRemoteApi()
+  remote() {
+    return this.remoteApi
   }
 
   private prSeq = 0

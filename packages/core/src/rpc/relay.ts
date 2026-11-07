@@ -14,13 +14,14 @@ import {
   registerSession,
   sendSessionCommand,
   spawnSession,
+  listHostFolders,
   subscribeSession,
   unregisterSession,
   updatePresence,
   type CommandPayload,
   type HoldMode,
 } from "../relay/service.ts";
-import { requirePrincipal } from "./context.ts";
+import { peerIpKey, requirePrincipal } from "./context.ts";
 import { guard, toConnectError } from "./errors.ts";
 
 /** Frontend label of a viewer ("web", "mobile", ...), from the x-harness-frontend header. */
@@ -65,6 +66,7 @@ export function registerRelayService(router: ConnectRouter): void {
         allowedRoots: req.allowedRoots,
         tunnels: req.tunnels,
         pty: req.pty,
+        remoteStarts: req.remoteStarts,
       });
     }),
 
@@ -158,7 +160,12 @@ export function registerRelayService(router: ConnectRouter): void {
 
     spawnSession: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      return { session: await spawnSession(p, req.hostId, req.spawn, req.options, frontendOf(ctx)) };
+      return { session: await spawnSession(p, req.hostId, req.spawn, req.options, frontendOf(ctx), { ip: ctx.values.get(peerIpKey) }) };
+    }),
+
+    listHostFolders: guard(async (req, ctx: HandlerContext) => {
+      const p = await requirePrincipal(ctx);
+      return { folders: await listHostFolders(p, req.hostId, req.limit, frontendOf(ctx)) };
     }),
 
     requestTunnel: tunnelsUnimplemented,

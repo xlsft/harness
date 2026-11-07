@@ -126,9 +126,14 @@ service RelayService {
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
   rpc ListOutputStyles(ListOutputStylesRequest) returns (ListOutputStylesResponse);
   rpc ListSlashCommands(ListSlashCommandsRequest) returns (ListSlashCommandsResponse);
-  // "New session on machine X in folder Y". Only to daemon hosts, only under their allowed roots (checked by
-  // the server and again by the host). Held until the host acks with the created session (max ~30 s).
+  // "New session on machine X in folder Y" (a remote start, docs/design/chat.md). To daemon hosts under their allowed
+  // roots, and to hosts that take remote starts in one of their recent folders (checked by the host). The server checks
+  // what it can (roots, the host's switch, the managed policy) and audits every attempt. Held until the host acks with
+  // the created session (max ~30 s).
   rpc SpawnSession(SpawnSessionRequest) returns (SpawnSessionResponse);
+  // The recent folders of a host that takes remote starts, asked live (a query command, max ~10 s): where a remote start
+  // may run. FAILED_PRECONDITION when the host does not take remote starts, UNAVAILABLE when it is offline or slow.
+  rpc ListHostFolders(ListHostFoldersRequest) returns (ListHostFoldersResponse);
 
   // Tunnels from the viewer's side.
   // Asks a host to open a tunnel (preview port or PTY); held until the host registered it (max ~10 s).
@@ -174,6 +179,9 @@ message RegisterHostRequest {
   // The host can open preview tunnels / PTYs.
   bool tunnels = 5;
   bool pty = 6;
+  // The machine takes remote starts in its recent folders (device setting allow_remote_starts, and the managed policy
+  // does not turn them off). Re-registering with the same instance id updates it.
+  bool remote_starts = 280;
 }
 
 message RegisterHostResponse {
@@ -240,6 +248,9 @@ message Command {
     // A job of the auto-fix pipeline. Sent by the server itself, never by a viewer. It waits for the machine like a session
     // note and reaches a closed session on that machine too.
     harness.agent.v1.DeliverAutoFixJobRequest deliver_auto_fix_job = 150;
+    // Host-level query (no session): the machine's recent folders, for a remote start. Answered only while the host
+    // takes remote starts.
+    harness.agent.v1.ListRecentFoldersRequest list_recent_folders = 280;
   }
   // RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
   string expires_at = 7;
@@ -349,6 +360,7 @@ message CommandAck {
     harness.agent.v1.GetSubagentTranscriptResponse get_subagent_transcript = 31;
     harness.agent.v1.StopWorkflowResponse stop_workflow = 40;
     harness.agent.v1.ListSlashCommandsResponse list_slash_commands = 110;
+    harness.agent.v1.ListRecentFoldersResponse list_recent_folders = 280;
   }
 }
 
@@ -453,6 +465,8 @@ message Host {
   repeated string allowed_roots = 6;
   bool tunnels = 7;
   bool pty = 8;
+  // RegisterHostRequest.remote_starts of the host's latest registration.
+  bool remote_starts = 280;
   repeated harness.agent.v1.SessionInfo sessions = 9;
   // RFC 3339, UTC.
   string last_seen_at = 10;
@@ -763,6 +777,16 @@ message ListSlashCommandsRequest {
 
 message ListSlashCommandsResponse {
   harness.agent.v1.ListSlashCommandsResponse response = 1;
+}
+
+message ListHostFoldersRequest {
+  string host_id = 1;
+  // 0 = the host's default (20).
+  int32 limit = 2;
+}
+
+message ListHostFoldersResponse {
+  repeated harness.agent.v1.RecentFolder folders = 1;
 }
 
 message SpawnSessionRequest {

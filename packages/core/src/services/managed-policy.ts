@@ -9,6 +9,8 @@
  *   allowedProviders, disablePersonalProviders                         enforced here too: the gateway serves only allowed models
  *   allowedMcpServers                                                  enforced here too: the catalog, proxy and stdio launches
  *   disablePersonalHosts, sandbox.enabled true                         enforced here too for always-on hosts (relay/hosts.ts)
+ *   disableChatApps, disableRemoteStarts                               enforced here (chat apps, relay spawns); clients stop
+ *                                                                      offering remote starts too
  *   strictKnownMarketplaces, blockedMarketplaces, extraKnownMarketplaces, enabledPlugins
  *                                                                      enforced by clients (packages/client/plugins): plugins are a device's
  * The server cannot be talked out of what it enforces itself, whatever a modified client does; permission rules and the
@@ -49,6 +51,8 @@ export interface ManagedPolicy {
   blocked_skills: string[];
   external_skill_search_disabled: boolean;
   personal_hosts_disabled: boolean;
+  chat_apps_disabled: boolean;
+  remote_starts_disabled: boolean;
 }
 
 const isObject = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
@@ -151,6 +155,8 @@ export function managedOf(content: Json): ManagedPolicy {
     personal_hosts_disabled: content.disablePersonalHosts === true,
     ...pluginFields(content),
     ...skillFields(content),
+    chat_apps_disabled: content.disableChatApps === true,
+    remote_starts_disabled: content.disableRemoteStarts === true,
   };
 }
 
@@ -192,6 +198,8 @@ export function withManaged(content: Json, p: ManagedPolicy): Json {
   setOrDelete(next, "allowedSkills", p.allowed_skills, p.restrict_skills);
   setOrDelete(next, "blockedSkills", p.blocked_skills, p.blocked_skills.length > 0);
   setOrDelete(next, "disableExternalSkillSearch", true, p.external_skill_search_disabled);
+  setOrDelete(next, "disableChatApps", true, p.chat_apps_disabled);
+  setOrDelete(next, "disableRemoteStarts", true, p.remote_starts_disabled);
   return next;
 }
 
@@ -284,6 +292,8 @@ export interface ServerPolicy {
   allowedMcpServers?: string[];
   personalHostsDisabled: boolean;
   sandboxRequired: boolean;
+  chatAppsDisabled: boolean;
+  remoteStartsDisabled: boolean;
 }
 
 function intersect(a: string[] | undefined, b: string[]): string[] {
@@ -298,7 +308,7 @@ export async function serverPolicyFor(user: Pick<PublicUser, "role">): Promise<S
     .select({ content: d.content, targetRoles: d.targetRoles })
     .from(d)
     .where(and(eq(d.scope, Scope.ORG), eq(d.kind, DocumentKind.POLICY), isNull(d.deletedAt)));
-  const out: ServerPolicy = { personalProvidersDisabled: false, externalSkillSearchDisabled: false, personalHostsDisabled: false, sandboxRequired: false };
+  const out: ServerPolicy = { personalProvidersDisabled: false, externalSkillSearchDisabled: false, personalHostsDisabled: false, sandboxRequired: false, chatAppsDisabled: false, remoteStartsDisabled: false };
   for (const r of rows) {
     const roles = Array.isArray(r.targetRoles) ? (r.targetRoles as string[]) : [];
     if (roles.length && !roles.includes(user.role)) continue;
@@ -309,6 +319,8 @@ export async function serverPolicyFor(user: Pick<PublicUser, "role">): Promise<S
     out.externalSkillSearchDisabled ||= m.external_skill_search_disabled;
     out.personalHostsDisabled ||= m.personal_hosts_disabled;
     out.sandboxRequired ||= m.sandbox_required;
+    out.chatAppsDisabled ||= m.chat_apps_disabled;
+    out.remoteStartsDisabled ||= m.remote_starts_disabled;
   }
   return out;
 }

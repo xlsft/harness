@@ -107,6 +107,8 @@ const (
 type deviceSettingsFile struct {
 	Theme         string `json:"theme,omitempty"`
 	Notifications *bool  `json:"notifications,omitempty"`
+	// AllowRemoteStarts: nil (the default) is off.
+	AllowRemoteStarts *bool `json:"allowRemoteStarts,omitempty"`
 }
 
 func deviceSettingsFilePath() string { return filepath.Join(config.Home(), "device-settings.json") }
@@ -120,11 +122,18 @@ func readDeviceSettings() deviceSettingsFile {
 }
 
 func deviceSettingsProto(f deviceSettingsFile) *agentv1.DeviceSettings {
-	return &agentv1.DeviceSettings{Theme: f.Theme, Notifications: f.Notifications == nil || *f.Notifications}
+	return &agentv1.DeviceSettings{Theme: f.Theme, Notifications: f.Notifications == nil || *f.Notifications,
+		AllowRemoteStarts: f.AllowRemoteStarts != nil && *f.AllowRemoteStarts}
 }
 
 // updateDeviceSettings changes the given fields and tells the frontends watching this client's sessions.
 func (s *Server) updateDeviceSettings(theme *string, notifications *bool) (deviceSettingsFile, error) {
+	return s.updateDeviceSettingsFull(theme, notifications, nil)
+}
+
+// updateDeviceSettingsFull is updateDeviceSettings with the remote start switch, which only a frontend on this machine
+// changes (never the model, never a relay command).
+func (s *Server) updateDeviceSettingsFull(theme *string, notifications, remoteStarts *bool) (deviceSettingsFile, error) {
 	s.deviceMu.Lock()
 	f := readDeviceSettings()
 	if theme != nil {
@@ -137,10 +146,20 @@ func (s *Server) updateDeviceSettings(theme *string, notifications *bool) (devic
 	if notifications != nil {
 		f.Notifications = notifications
 	}
+	remoteChanged := false
+	if remoteStarts != nil {
+		was := f.AllowRemoteStarts != nil && *f.AllowRemoteStarts
+		remoteChanged = was != *remoteStarts
+		on := *remoteStarts
+		f.AllowRemoteStarts = &on
+	}
 	err := writeDeviceSettings(f)
 	s.deviceMu.Unlock()
 	if err != nil {
 		return f, err
+	}
+	if remoteChanged {
+		s.refreshRelayHost()
 	}
 	s.mu.Lock()
 	live := make([]*liveSession, 0, len(s.live))
@@ -173,8 +192,11 @@ func (s *Server) GetDeviceSettings(context.Context, *connect.Request[agentv1.Get
 	return connect.NewResponse(&agentv1.GetDeviceSettingsResponse{Settings: deviceSettingsProto(readDeviceSettings())}), nil
 }
 
-func (s *Server) UpdateDeviceSettings(_ context.Context, req *connect.Request[agentv1.UpdateDeviceSettingsRequest]) (*connect.Response[agentv1.UpdateDeviceSettingsResponse], error) {
-	f, err := s.updateDeviceSettings(req.Msg.Theme, req.Msg.Notifications)
+func (s *Server) UpdateDeviceSettings(ctx context.Context, req *connect.Request[agentv1.UpdateDeviceSettingsRequest]) (*connect.Response[agentv1.UpdateDeviceSettingsResponse], error) {
+	if req.Msg.AllowRemoteStarts != nil && isRelayOrigin(ctx) {
+		return nil, connect.NewError(connect.CodePermissionDenied, errors.New("remote starts are turned on or off only on the machine itself"))
+	}
+	f, err := s.updateDeviceSettingsFull(req.Msg.Theme, req.Msg.Notifications, req.Msg.AllowRemoteStarts)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}

@@ -11,6 +11,9 @@ message DeviceSettings {
   string theme = 1;
   // Whether frontends send system notifications when a session needs the user.
   bool notifications = 2;
+  // Whether this machine takes remote starts: sessions started from the phone or a chat app through the relay, in one
+  // of its recent folders (docs/design/chat.md). Off by default. Never synced: it says nothing about other machines.
+  bool allow_remote_starts = 3;
 }
 
 message GetDeviceSettingsRequest {}
@@ -23,6 +26,7 @@ message GetDeviceSettingsResponse {
 message UpdateDeviceSettingsRequest {
   optional string theme = 1;
   optional bool notifications = 2;
+  optional bool allow_remote_starts = 3;
 }
 
 message UpdateDeviceSettingsResponse {

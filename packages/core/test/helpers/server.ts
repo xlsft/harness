@@ -17,6 +17,7 @@ import { MfaService } from "../../src/gen/harness/auth/v1/mfa_pb.ts";
 import { PolicyService } from "../../src/gen/harness/auth/v1/managed_policy_pb.ts";
 import { SkillSearchService } from "../../src/gen/harness/skills/v1/search_pb.ts";
 import { SsoService } from "../../src/gen/harness/auth/v1/sso_pb.ts";
+import { ChatService } from "../../src/gen/harness/chat/v1/chat_pb.ts";
 import { DeviceAuthService, PollDeviceAuthResponse_Status } from "../../src/gen/harness/auth/v1/auth_pb.ts";
 import { GatewayService } from "../../src/gen/harness/llm/v1/gateway_pb.ts";
 import { ProviderService } from "../../src/gen/harness/llm/v1/providers_pb.ts";
@@ -68,6 +69,7 @@ export interface TestServer {
   mfa: Client<typeof MfaService>;
   policy: Client<typeof PolicyService>;
   sso: Client<typeof SsoService>;
+  chat: Client<typeof ChatService>;
   /** Connect clients authenticated with the given access token. */
   as(token: string): {
     auth: Client<typeof DeviceAuthService>;
@@ -97,6 +99,7 @@ export interface TestServer {
     mfa: Client<typeof MfaService>;
     policy: Client<typeof PolicyService>;
     sso: Client<typeof SsoService>;
+    chat: Client<typeof ChatService>;
   };
   close(): Promise<void>;
 }
@@ -177,6 +180,7 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       mfa: createClient(MfaService, transport),
       policy: createClient(PolicyService, transport),
       sso: createClient(SsoService, transport),
+      chat: createClient(ChatService, transport),
     };
   };
 

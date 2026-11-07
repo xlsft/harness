@@ -29,4 +29,9 @@ message ManagedPolicyView {
   repeated string allowed_skills = 16;
   repeated string blocked_skills = 17;
   bool external_skill_search_disabled = 18;
+  // disableChatApps: chat apps (Slack) start and steer no sessions; inbound requests get a short notice.
+  bool chat_apps_disabled = 280;
+  // disableRemoteStarts: no session starts through the relay (phone, chat apps, daemon hosts); the server refuses and
+  // clients stop offering it.
+  bool remote_starts_disabled = 281;
 }
