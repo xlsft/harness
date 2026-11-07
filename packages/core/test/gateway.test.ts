@@ -167,6 +167,21 @@ describe("Anthropic adapter", () => {
     expect(stop.costUsd).toBeCloseTo((120 * 3 + 42 * 15 + 1000 * 0.3 + 50 * 3.75) / 1e6, 10);
   });
 
+  it("caches on an Anthropic model that does not say prompt_cache, unless it was turned off by hand", async () => {
+    const req = { model: "claude-nt", maxTokens: 100, system: [{ text: "static", cache: true }], messages: [userText("hi")] };
+    up.enqueue({ sse: anthropicToolUse });
+    expect((await collect(req)).error).toBeUndefined();
+    expect(up.requests[0]!.body.system).toEqual([{ type: "text", text: "static", cache_control: { type: "ephemeral" } }]);
+
+    const api = (body: unknown) => adminApi(ts.url, token, "PATCH", "/api/admin/models/claude-nt", body);
+    expect((await api({ capabilities: { prompt_cache: false } })).status).toBe(200);
+    up.reset();
+    up.enqueue({ sse: anthropicToolUse });
+    expect((await collect(req)).error).toBeUndefined();
+    expect(up.requests[0]!.body.system).toEqual([{ type: "text", text: "static" }]);
+    expect((await api({ capabilities: { prompt_cache: true } })).status).toBe(200);
+  });
+
   it("streams tool_use input as input_json deltas", async () => {
     up.enqueue({ sse: anthropicToolUse, chunkSize: 5 });
     const { events } = await collect({

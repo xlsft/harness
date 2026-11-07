@@ -238,6 +238,10 @@ func (r *replayer) user(e session.Entry, at time.Time) {
 	if e.Skill != nil && !e.Skill.Restored {
 		r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_SkillInvoked{SkillInvoked: skillInvokedProto(e.Skill)}})
 	}
+	if e.TaskNotification() {
+		r.emit(at, &agentv1.SessionEvent{Event: &agentv1.SessionEvent_Notice{Notice: &agentv1.Notice{Level: agentv1.Notice_LEVEL_INFO, Kind: "task_notification", Text: taskNotificationSummary(blocks)}}})
+		return
+	}
 	if e.IsMeta || e.IsCompactSummary {
 		if r.compact != nil {
 			for _, b := range blocks {
@@ -304,6 +308,21 @@ func (r *replayer) user(e session.Entry, at time.Time) {
 			r.cur.interrupted = true
 		}
 	}
+}
+
+// taskNotificationSummary is the one line a task notification shows: its <summary>, or a generic line.
+func taskNotificationSummary(blocks []llm.ContentBlock) string {
+	for _, b := range blocks {
+		if b.Type != llm.BlockText {
+			continue
+		}
+		if _, rest, ok := strings.Cut(b.Text, "<summary>"); ok {
+			if sum, _, ok := strings.Cut(rest, "</summary>"); ok && strings.TrimSpace(sum) != "" {
+				return strings.TrimSpace(sum)
+			}
+		}
+	}
+	return "A background task reported back"
 }
 
 // commandNoise reports Claude Code's local command echo lines

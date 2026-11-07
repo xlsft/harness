@@ -708,11 +708,15 @@ func (e *Engine) Check(ctx context.Context, req Request) Decision {
 				req.ToolName, res.Provider, sentence(res.Reason))}
 		}
 		if asker == nil {
+			why := strings.TrimSuffix(strings.TrimSpace(res.Reason), ".")
+			if l := ProviderLabel(res.Provider); l != "" {
+				why = l + ": " + why
+			}
 			return Decision{Behavior: Deny, ResolvedBy: "auto", Auto: auto, Message: fmt.Sprintf(
-				"Permission to use %s was not granted: auto mode could not approve it (%s: %s) and nobody can be asked in this non-interactive session. Allow it with --allowedTools if it is expected.",
-				req.ToolName, res.Provider, strings.TrimSuffix(strings.TrimSpace(res.Reason), "."))}
+				"Permission to use %s was not granted: auto mode could not approve it (%s) and nobody can be asked in this non-interactive session. Allow it with --allowedTools if it is expected.",
+				req.ToolName, why)}
 		}
-		reason = "Auto mode could not approve this action (" + res.Provider + "): " + sentence(res.Reason)
+		reason = "Auto mode could not approve this action" + ProviderNote(res.Provider) + ": " + sentence(res.Reason)
 		if d.Message != "" {
 			reason += " " + d.Message
 		}
@@ -768,6 +772,23 @@ func (e *Engine) Check(ctx context.Context, req Request) Decision {
 		e.grantSite(req)
 	}
 	return ad
+}
+
+// ProviderLabel names the provider behind an auto-mode verdict for people: "" when none decided. "none" is the
+// protocol's word for a chain that fell through to ASK; the reason then comes from the last provider asked.
+func ProviderLabel(p string) string {
+	if p == "none" {
+		return ""
+	}
+	return p
+}
+
+// ProviderNote is ProviderLabel in parentheses after a space, or "" when none decided.
+func ProviderNote(p string) string {
+	if l := ProviderLabel(p); l != "" {
+		return " (" + l + ")"
+	}
+	return ""
 }
 
 // decide consults the Decider; an error becomes ASK with the error as reason.

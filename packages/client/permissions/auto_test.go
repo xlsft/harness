@@ -100,7 +100,7 @@ func TestAutoModeDeciderVerdicts(t *testing.T) {
 		if d.Behavior != permissions.Allow || d.ResolvedBy != "user" || d.Auto == nil || d.Auto.Behavior != permissions.Ask {
 			t.Fatalf("%+v", d)
 		}
-		if len(a.reqs) != 1 || !strings.Contains(a.reqs[0].Reason, "Not sure this fits") || len(a.reqs[0].Suggestions) == 0 {
+		if len(a.reqs) != 1 || !strings.Contains(a.reqs[0].Reason, "Auto mode could not approve this action: Not sure this fits") || len(a.reqs[0].Suggestions) == 0 {
 			t.Fatalf("asker %+v", a.reqs)
 		}
 	})
