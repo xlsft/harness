@@ -161,7 +161,7 @@ for _ in $(seq 1 60); do grep -q 'serving AgentService on http' "$WORK/laptop.lo
 LAPTOP_TOKEN="$(tr -d '\n' <"$WORK/admin-home/agent-token")"
 [[ -n "$LAPTOP_TOKEN" ]] || fail "no laptop agent token"
 agent() { curl -sS -H 'content-type: application/json' -H 'connect-protocol-version: 1' -H "authorization: Bearer $LAPTOP_TOKEN" -d "$2" "http://127.0.0.1:${LAPTOP_PORT}/harness.agent.v1.AgentService/$1"; }
-lsession() { agent ListSessions "$(jq -n --arg c "$LAPTOP" '{cwd:$c}')" | jq -c --arg s "$LSID" '.sessions[]? | select(.id==$s)'; }
+lsession() { agent ListSessions '{}' | jq -c --arg s "$LSID" '.sessions[]? | select(.id==$s)'; }
 LSID="$(agent CreateSession "$(jq -n --arg c "$LAPTOP" '{cwd:$c,model:"mock-model"}')" | jq -r .session.id)"
 [[ -n "$LSID" && "$LSID" != "null" ]] || fail "laptop session"
 agent SendUserMessage "$(jq -n --arg s "$LSID" '{sessionId:$s,uuid:"move-1",content:[{text:{text:"create out.txt with a marker"}}]}')" >/dev/null
@@ -212,7 +212,7 @@ done
 echo "$GROUP" >"$WORK/group.json"
 [[ "$(jq '[.group.attempts[] | select(.state == "ATTEMPT_STATE_IDLE")] | length' <<<"$GROUP")" == "2" ]] || fail "the attempts did not finish: $GROUP"
 jq -e '[.group.attempts[] | .check.exitCode // 0] | all(. == 0)' <<<"$GROUP" >/dev/null || fail "an attempt's tests failed: $GROUP"
-KEEP_BRANCH="$(jq -r '.group.attempts[] | select(.index // 0 == 0) | .branch' <<<"$GROUP")"
+KEEP_BRANCH="$(jq -r '.group.attempts[] | select((.index // 0) == 0) | .branch' <<<"$GROUP")"
 DROP_BRANCH="$(jq -r '.group.attempts[] | select(.index == 1) | .branch' <<<"$GROUP")"
 for _ in $(seq 1 40); do
   git --git-dir="$REPOS/acme/widgets.git" rev-parse -q --verify "refs/heads/$DROP_BRANCH" >/dev/null && git --git-dir="$REPOS/acme/widgets.git" rev-parse -q --verify "refs/heads/$KEEP_BRANCH" >/dev/null && break
