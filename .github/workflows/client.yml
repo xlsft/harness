@@ -81,13 +81,15 @@ jobs:
         run: go test -race -count=1 -v -run 'Linux' ./sandbox ./tools
 
       # Where it will mostly run: a default container refuses new namespaces, which leaves Landlock, and nothing there was
-      # set up for the sandbox.
+      # set up for the sandbox. Its packages are installed over the machine's network: on the runners a container's own
+      # network does not always resolve names.
       - name: Test in a default container
         run: |
           CGO_ENABLED=0 go test -c -o "$RUNNER_TEMP/sandbox.test" ./sandbox
-          docker run --rm -v "$RUNNER_TEMP/sandbox.test:/sandbox.test:ro" -e HARNESS_SANDBOX_REQUIRE=landlock ubuntu:24.04 sh -c '
-            apt-get update -qq && apt-get install -y -qq curl python3 git procps >/dev/null &&
-            /sandbox.test -test.count=1 -test.v -test.run Linux'
+          printf 'FROM ubuntu:24.04\nRUN apt-get update -qq && apt-get install -y -qq curl python3 git procps >/dev/null\n' |
+            docker build --network host -t harness-sandbox-box -
+          docker run --rm -v "$RUNNER_TEMP/sandbox.test:/sandbox.test:ro" -e HARNESS_SANDBOX_REQUIRE=landlock harness-sandbox-box \
+            /sandbox.test -test.count=1 -test.v -test.run Linux
 
   # The PowerShell tool against real PowerShell, and everything of the client compiling and vetting on Windows.
   powershell-windows:
