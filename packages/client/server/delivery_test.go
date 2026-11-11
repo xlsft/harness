@@ -109,18 +109,21 @@ func TestDeliveryClientUUIDs(t *testing.T) {
 	}
 
 	// 4. A NOW message while the model generates stops the turn and starts the next one with its uuid.
+	// When the command of step 1 starts slowly (a loaded machine), the queued messages' grace moves it to the
+	// background and its end wakes a turn of its own, which may run before "hold" or with "hold" queued behind it.
+	// So "now" goes out on a delta of the turn "hold" started, and the step ends with the turn "now" started.
 	h.sendID(sid, "c-hold", "hold", agentv1.SendUserMessageRequest_DELIVERY_QUEUE)
-	sent := false
-	finished := 0
+	holdStarted, sent, nowStarted := false, false, false
 	evs = h.until(ch, func(ev *agentv1.SessionEvent) bool {
-		if ev.GetAssistantDelta() != nil && !sent {
+		if u := ev.GetUserMessage(); u != nil {
+			holdStarted = holdStarted || slices.Contains(u.ClientUuids, "c-hold")
+			nowStarted = nowStarted || slices.Contains(u.ClientUuids, "c-now")
+		}
+		if ev.GetAssistantDelta() != nil && holdStarted && !sent {
 			sent = true
 			h.sendID(sid, "c-now", "now", agentv1.SendUserMessageRequest_DELIVERY_NOW)
 		}
-		if isTurnFinished(ev) {
-			finished++
-		}
-		return finished == 2
+		return nowStarted && isTurnFinished(ev)
 	})
 	var now *agentv1.UserMessage
 	for _, u := range userMessages(evs) {
