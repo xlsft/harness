@@ -207,7 +207,7 @@ func connectMessage(err error) string {
 }
 
 func runClear(ctx context.Context, s *Server, ls *liveSession, _ string) slashOutcome {
-	if ls.driver.Busy() {
+	if ls.driver.Settle() {
 		return slashError("/clear starts a new session when this one is idle; wait for the current turn to finish.")
 	}
 	req := &agentv1.CreateSessionRequest{Model: ls.sess.Agent.Model(), PermissionMode: modeToProto(ls.sess.Permissions.Mode()), Effort: pbconv.Effort(ls.sess.Agent.Effort())}

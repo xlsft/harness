@@ -3,6 +3,7 @@ package agent_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -264,6 +265,46 @@ func TestQueuedMessageInjectedAfterTools(t *testing.T) {
 	if len(lm.Content) != 2 || lm.Content[0].Type != llm.BlockToolResult || lm.Content[1].Text != "also check the README" {
 		t.Fatalf("queued message not injected after tool result: %+v", lm.Content)
 	}
+}
+
+// Right after a turn reports its result the driver is still finishing it: Settle and Exclusive wait that out and
+// find the driver idle, instead of refusing work the session (already idle for its user) should take.
+func TestSettleWaitsOutTheEndOfATurn(t *testing.T) {
+	e := setup(t, func(n int, r *llm.Request) fg.Reply { return fg.Reply{Events: fg.Message("m", fg.Text("ok"))} })
+	s := e.open(t, nil)
+	var reported, release chan struct{}
+	drv := agent.NewDriver(context.Background(), s.Agent, func(agent.TurnResult) {
+		close(reported)
+		<-release
+	})
+	// waitsOut runs f while the result of a turn is being reported: f must not return before the report is done.
+	waitsOut := func(name string, f func() error) {
+		t.Helper()
+		reported, release = make(chan struct{}), make(chan struct{})
+		drv.Submit("", prompt("hi"))
+		<-reported
+		if !drv.Busy() {
+			t.Fatal("the driver is still in the turn while its result is reported")
+		}
+		done := make(chan error, 1)
+		go func() { done <- f() }()
+		select {
+		case <-done:
+			t.Fatalf("%s returned while the turn was still ending", name)
+		case <-time.After(50 * time.Millisecond):
+		}
+		close(release)
+		if err := <-done; err != nil {
+			t.Fatalf("%s after the turn ended: %v", name, err)
+		}
+	}
+	waitsOut("Settle", func() error {
+		if drv.Settle() {
+			return errors.New("busy")
+		}
+		return nil
+	})
+	waitsOut("Exclusive", func() error { return drv.Exclusive(func() {}) })
 }
 
 func TestMaxTurns(t *testing.T) {

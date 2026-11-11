@@ -18,6 +18,10 @@ import (
 // Interrupt, Exclusive or Stop cancels the reply; it is skipped when a message
 // is already queued.
 //
+// A turn is over for the user once its result is reported (OnResult: the session says so) and nothing is queued.
+// The driver still counts as running until it has decided that nothing follows; Settle and Exclusive wait that
+// moment out (and cancel an interrupt reply), so what needs an idle session works right after a turn ends.
+//
 // While held (SetHeld: the provider of the session's model is out of usage) no message starts a turn: submitted
 // messages wait in the queue, and the queue stays there when a turn ends, until Release.
 type Driver struct {
@@ -36,7 +40,9 @@ type Driver struct {
 	// has decided what runs next; stopReply cancels the reply request.
 	replying  bool
 	stopReply context.CancelFunc
-	stopped   bool
+	// ending is set from the end of a turn (before OnResult) until the loop has decided what runs next.
+	ending  bool
+	stopped bool
 	// held: see SetHeld. wakeMissed: Wake was called while held (a background task's notification waits).
 	held, wakeMissed bool
 	// wakeLater: Wake was called during a turn, whose next request may never come; checked when it ends, dropped by
@@ -106,6 +112,9 @@ func (d *Driver) wakeDue() bool {
 func (d *Driver) loop(blocks []llm.ContentBlock, ids []string) {
 	for {
 		res := d.Agent.RunTurnWithIDs(d.ctx, blocks, ids)
+		d.mu.Lock()
+		d.ending = true
+		d.mu.Unlock()
 		if d.OnResult != nil {
 			d.OnResult(res)
 		}
@@ -123,6 +132,7 @@ func (d *Driver) loop(blocks []llm.ContentBlock, ids []string) {
 			next, nextIDs = d.Agent.takeQueue()
 		}
 		wake := d.wakeDue()
+		d.ending = false
 		if (len(next) == 0 && !wake) || d.ctx.Err() != nil {
 			d.running = false
 			d.idle.Broadcast()
@@ -131,6 +141,7 @@ func (d *Driver) loop(blocks []llm.ContentBlock, ids []string) {
 			return
 		}
 		d.interrupts = 0
+		d.idle.Broadcast()
 		d.mu.Unlock()
 		d.Agent.noteDrained(next)
 		blocks, ids = next, nextIDs
@@ -188,11 +199,32 @@ func (d *Driver) reply() {
 	ctx, cancel := context.WithTimeout(d.ctx, InterruptReplyTimeout)
 	defer cancel()
 	d.replying, d.stopReply = true, cancel
+	d.idle.Broadcast() // Settle and Exclusive cancel it
 	d.mu.Unlock()
 	d.Agent.ReplyToInterrupt(ctx)
 	d.mu.Lock()
 	d.stopReply = nil
 	d.mu.Unlock()
+}
+
+// Settle reports whether a turn is running, like Busy, after waiting out the end of a turn that just finished (its
+// OnResult and the decision of what runs next) and cancelling an interrupt reply: right after a turn ends it reports
+// false unless a queued message or a notification starts the next one. It must not be called from OnResult.
+func (d *Driver) Settle() (busy bool) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.settleLocked()
+	return d.running
+}
+
+// settleLocked waits (d.mu held) while a turn is ending or an interrupt reply runs, cancelling the reply.
+func (d *Driver) settleLocked() {
+	for d.running && (d.ending || d.replying) {
+		if d.stopReply != nil {
+			d.stopReply()
+		}
+		d.idle.Wait()
+	}
 }
 
 // Busy reports whether a turn (or the reply to an interrupted one) is running.
@@ -226,16 +258,11 @@ func (d *Driver) Stop() {
 
 // Exclusive runs f while no turn is running (compaction, rewind). Messages
 // submitted meanwhile are queued and start a turn when f returns. A running
-// interrupt reply is cancelled first. It returns ErrBusy when a turn is
-// running.
+// interrupt reply is cancelled first, and the end of a turn that just finished
+// is waited out (see Settle). It returns ErrBusy when a turn is running.
 func (d *Driver) Exclusive(f func()) error {
 	d.mu.Lock()
-	for d.running && d.replying {
-		if d.stopReply != nil {
-			d.stopReply()
-		}
-		d.idle.Wait()
-	}
+	d.settleLocked()
 	if d.running {
 		d.mu.Unlock()
 		return ErrBusy
