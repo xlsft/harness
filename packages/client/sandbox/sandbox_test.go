@@ -10,20 +10,31 @@ import (
 	"github.com/xlsft/harness/packages/client/decision"
 )
 
-// renamedTempRoot is a scratch folder that is nobody's writable root. On Linux CI it lands in /tmp, which every policy
-// writes to (the temp of programs), so a BuildPolicy over it makes the whole folder writable and no refusal below /tmp
-// has a reason. macOS keeps it under /private/var/folders, which is why the tests passed locally.
-func renamedTempRoot(t *testing.T) string {
+// outsideTmpRoot is a scratch folder that is not under /tmp, resolved. On Linux t.TempDir is under /tmp, which every policy
+// makes writable (the temp of programs), so a policy over it has no refusal to explain below it. macOS keeps t.TempDir under
+// /private/var/folders, which is why tests over it passed there. The user's cache folder is no root of a test's policy:
+// those name a home of their own.
+func outsideTmpRoot(t *testing.T) string {
 	t.Helper()
-	dir := filepath.Join(filepath.Dir(t.TempDir()), filepath.Base(t.TempDir())+"-away", "work")
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatal(err)
+	base, err := os.UserCacheDir()
+	if err == nil {
+		err = os.MkdirAll(base, 0o755)
 	}
+	if err != nil {
+		t.Skipf("no folder for the test outside /tmp: %v", err)
+	}
+	dir, err := os.MkdirTemp(base, "hsbt")
+	if err != nil {
+		t.Skipf("no folder for the test outside /tmp: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
 	root, err := filepath.EvalSymlinks(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { os.RemoveAll(filepath.Dir(root)) })
+	if within(root, systemTmp) {
+		t.Fatalf("%s is under %s", root, systemTmp)
+	}
 	return root
 }
 
@@ -89,10 +100,7 @@ func TestSeatbeltProfileIsAPureRendering(t *testing.T) {
 }
 
 func TestBuildPolicy(t *testing.T) {
-	root, err := filepath.EvalSymlinks(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
+	root := outsideTmpRoot(t)
 	home := filepath.Join(root, "home")
 	hh := filepath.Join(home, ".harness")
 	work := filepath.Join(root, "work")
@@ -291,7 +299,7 @@ func TestStub(t *testing.T) {
 }
 
 func TestDiagnose(t *testing.T) {
-	root := renamedTempRoot(t)
+	root := outsideTmpRoot(t)
 	home := filepath.Join(root, "home")
 	work := filepath.Join(root, "work")
 	w := &Wrapped{Policy: BuildPolicy(PolicyInput{Home: home, HarnessHome: filepath.Join(home, ".harness"), WorkDirs: []string{work}, Getenv: func(string) string { return "" }})}

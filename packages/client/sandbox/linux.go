@@ -132,6 +132,7 @@ func landlockLimits(abi int) string {
 // rule needs to find.
 func prepareLinuxPolicy(p *Policy, backend string, abi int, proxySocket func() (string, error)) error {
 	p.GuardNames = true
+	p.DenyHeld = backend == backendBubblewrap
 	p.FilesByPermission = backend == backendLandlock
 	p.PortRules = abi >= 4
 	if backend == backendBubblewrap && !p.Server {
