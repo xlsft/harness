@@ -76,15 +76,42 @@ type guard struct {
 // agentFiles are the files of a working directory that the client itself reads as settings or starts programs from.
 var agentFiles = []string{".mcp.json", ".harness/settings.json", ".harness/settings.local.json", ".claude/settings.json", ".claude/settings.local.json"}
 
+// agentHomeGuarded are what the guard looks at in an agent's data directory (Policy.AgentHomes): settings with allow rules
+// and hooks, the programs and instructions the agents load, what this client trusts or starts, and its credentials. The
+// rest of it (transcripts, plans, file history, caches, logs, a browser profile) the agents write while a command runs, so
+// a guard over it would put their writes back, and read all of it before every command.
+var agentHomeGuarded = []string{
+	"settings.json", "settings.local.json",
+	"plugins", "skills", "agents", "commands", "hooks", "bin", "extensions",
+	"trust.json", "hook-trust.json", "mcp-local.json", "mcp-approvals.json", "import-approvals.json",
+	"local-providers.json", "device-settings.json", "computer-use", "environments", "hosts", "ssh",
+	"credentials.json", "agent-token", "local-provider-keys.json", "pr-marker-salt",
+}
+
 func newGuard(p Policy, scratch string) *guard {
 	g := &guard{policy: p, aside: filepath.Join(scratch, "sandbox-rejected"), watched: map[string]guardEntry{}, present: map[string]bool{}}
+	// What the kernel holds needs no second look, and must get none: the client itself may write there while the command
+	// runs, and the guard cannot tell its writes from the command's.
+	held := func(path string) bool {
+		if !p.DenyHeld {
+			return false
+		}
+		_, err := os.Lstat(path)
+		return err == nil
+	}
 	watch := func(path string) {
-		if _, ok := g.watched[path]; ok {
+		if _, ok := g.watched[path]; ok || held(path) {
 			return
 		}
 		e, ok := readGuardEntry(path)
 		g.watched[path] = e
 		g.present[path] = ok
+	}
+	// A tree with a writable folder of the policy inside (a folderless session's) is that folder's.
+	addTree := func(t string) {
+		if !held(t) && !slices.ContainsFunc(p.WriteAllowAfterDeny, func(a string) bool { return within(a, t) }) {
+			g.trees = appendUnique(g.trees, t)
+		}
 	}
 	for _, l := range p.WriteDenyLiteral {
 		watch(l)
@@ -93,19 +120,28 @@ func newGuard(p Policy, scratch string) *guard {
 		for _, n := range agentFiles {
 			watch(filepath.Join(w, filepath.FromSlash(n)))
 		}
-		g.trees = appendUnique(g.trees, filepath.Join(w, ".git", "hooks"))
+		addTree(filepath.Join(w, ".git", "hooks"))
 		for _, d := range gitDirs(w) {
-			g.trees = appendUnique(g.trees, filepath.Join(d, "hooks"))
+			addTree(filepath.Join(d, "hooks"))
 		}
 		// A .git that is a file sends git elsewhere; a new directory is an ordinary git init.
 		if st, err := os.Lstat(filepath.Join(w, ".git")); err != nil || !st.IsDir() {
 			watch(filepath.Join(w, ".git"))
 		}
 	}
-	g.trees = appendUnique(g.trees, p.FreeDeny...)
+	for _, d := range p.FreeDeny {
+		addTree(d)
+	}
 	for _, d := range p.WriteDeny {
-		if slices.ContainsFunc(p.Write, func(r string) bool { return within(d, r) }) && !slices.ContainsFunc(p.WriteAllowAfterDeny, func(a string) bool { return within(a, d) }) {
-			g.trees = appendUnique(g.trees, d)
+		if !slices.ContainsFunc(p.Write, func(r string) bool { return within(d, r) }) || held(d) {
+			continue
+		}
+		if !slices.Contains(p.AgentHomes, d) {
+			addTree(d)
+			continue
+		}
+		for _, n := range agentHomeGuarded {
+			addTree(filepath.Join(d, n))
 		}
 	}
 	for _, t := range g.trees {

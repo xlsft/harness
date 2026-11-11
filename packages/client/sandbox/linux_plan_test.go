@@ -559,8 +559,66 @@ func TestGuard(t *testing.T) {
 	}
 }
 
+// A data directory of the harness inside a writable root: a HARNESS_HOME under /tmp, or a session in the home folder. The
+// client writes its transcript there while a command runs, and the guard must leave that be; a settings file it still puts
+// back. Under bubblewrap, what exists is mounted read-only, so the guard looks only at what does not exist yet.
+func TestGuardAgentHome(t *testing.T) {
+	root := outsideTmpRoot(t)
+	home := filepath.Join(root, "home")
+	hh := filepath.Join(home, ".harness")
+	scratch := filepath.Join(root, "scratch")
+	write := func(path, content string) {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	transcript := filepath.Join(hh, "projects", "p", "s.jsonl")
+	settings := filepath.Join(hh, "settings.json")
+	claudeTranscript := filepath.Join(home, ".claude", "projects", "p", "s.jsonl")
+	write(transcript, "{}\n")
+	write(settings, "{}\n")
+	write(claudeTranscript, "{}\n")
+	if err := os.MkdirAll(scratch, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	p := BuildPolicy(PolicyInput{Home: home, HarnessHome: hh, WorkDirs: []string{home}, ScratchDir: scratch, Getenv: func(string) string { return "" }})
+	if !slices.Contains(p.AgentHomes, hh) || !slices.Contains(p.AgentHomes, filepath.Join(home, ".claude")) {
+		t.Fatalf("agent homes: %v", p.AgentHomes)
+	}
+
+	w := &Wrapped{Policy: p, guard: newGuard(p, scratch)}
+	write(transcript, "{}\n{\"more\":1}\n")
+	write(claudeTranscript, "{}\n{\"more\":1}\n")
+	write(settings, `{"permissions":{"allow":["Bash"]}}`)
+	newHook := filepath.Join(hh, "hooks", "h.sh")
+	write(newHook, "evil")
+	got := w.Verify()
+	if len(got) != 2 || !strings.HasPrefix(got[0], settings+": ") || !strings.HasPrefix(got[1], newHook+": ") {
+		t.Fatalf("%q", got)
+	}
+	if read(t, transcript) != "{}\n{\"more\":1}\n" || read(t, claudeTranscript) != "{}\n{\"more\":1}\n" {
+		t.Error("a transcript was put back")
+	}
+	if read(t, settings) != "{}\n" {
+		t.Error("the settings were not put back")
+	}
+
+	held := p
+	held.DenyHeld = true
+	w = &Wrapped{Policy: held, guard: newGuard(held, scratch)}
+	write(settings, `{"permissions":{"allow":["Bash"]}}`)
+	write(filepath.Join(home, ".zshrc"), "evil")
+	if got := w.Verify(); len(got) != 1 || !strings.HasPrefix(got[0], filepath.Join(home, ".zshrc")+": ") {
+		t.Fatalf("held: %q", got)
+	}
+}
+
 func TestDiagnoseLinuxWordings(t *testing.T) {
-	root := renamedTempRoot(t)
+	root := outsideTmpRoot(t)
 	home := filepath.Join(root, "home")
 	work := filepath.Join(root, "work")
 	base := BuildPolicy(PolicyInput{Home: home, HarnessHome: filepath.Join(home, ".harness"), WorkDirs: []string{work}, Getenv: func(string) string { return "" }})

@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -33,6 +34,7 @@ type lbox struct {
 	home, harness, work string
 	outside, scratch    string
 	session             *Session
+	settingsMu          sync.Mutex
 	settings            Settings
 	realEnv             map[string]string
 	wrapped             *Wrapped
@@ -66,22 +68,7 @@ func forBackends(t *testing.T, f func(t *testing.T, b *lbox)) {
 
 func newLbox(t *testing.T, d Driver, backend string) *lbox {
 	t.Helper()
-	base, err := os.UserCacheDir()
-	if err != nil {
-		t.Skipf("no folder for the box outside /tmp: %v", err)
-	}
-	if err := os.MkdirAll(base, 0o755); err != nil {
-		t.Skipf("no folder for the box outside /tmp: %v", err)
-	}
-	root, err := os.MkdirTemp(base, "hsbt")
-	if err != nil {
-		t.Skipf("no folder for the box outside /tmp: %v", err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(root) })
-	root, err = filepath.EvalSymlinks(root)
-	if err != nil {
-		t.Fatal(err)
-	}
+	root := outsideTmpRoot(t)
 	abi, _ := landlockVersion()
 	b := &lbox{t: t, backend: backend, abi: abi, home: filepath.Join(root, "home"), harness: filepath.Join(root, "home", ".harness"),
 		work: filepath.Join(root, "work"), outside: filepath.Join(root, "outside"), scratch: filepath.Join(root, "scratch"), realEnv: map[string]string{}}
@@ -91,9 +78,22 @@ func newLbox(t *testing.T, d Driver, backend string) *lbox {
 		}
 	}
 	b.settings = Settings{Enabled: true}
-	b.session = &Session{Driver: d, Home: b.home, HarnessHome: b.harness, Settings: func() Settings { return b.settings }, Getenv: func(k string) string { return b.realEnv[k] }}
+	b.session = &Session{Driver: d, Home: b.home, HarnessHome: b.harness, Settings: b.current, Getenv: func(k string) string { return b.realEnv[k] }}
 	t.Cleanup(b.session.Close)
 	return b
+}
+
+// current and update keep the settings of the box, which the proxy reads while a test changes them.
+func (b *lbox) current() Settings {
+	b.settingsMu.Lock()
+	defer b.settingsMu.Unlock()
+	return b.settings
+}
+
+func (b *lbox) update(f func(s *Settings)) {
+	b.settingsMu.Lock()
+	defer b.settingsMu.Unlock()
+	f(&b.settings)
 }
 
 func (b *lbox) write(path, content string) string {
@@ -239,14 +239,14 @@ func TestLinuxWrites(t *testing.T) {
 
 func TestLinuxAllowedWritePath(t *testing.T) {
 	forBackends(t, func(t *testing.T, b *lbox) {
-		b.settings.AllowedWritePaths = []string{b.outside, "~/extra"}
+		b.update(func(s *Settings) { s.AllowedWritePaths = []string{b.outside, "~/extra"} })
 		b.ok("echo hi > " + b.outside + "/ok")
 		if err := os.MkdirAll(filepath.Join(b.home, "extra"), 0o755); err != nil {
 			t.Fatal(err)
 		}
 		b.ok("mkdir -p " + b.home + "/extra/x")
 		// A protected path wins over the list.
-		b.settings.AllowedWritePaths = []string{"~/.ssh", b.home}
+		b.update(func(s *Settings) { s.AllowedWritePaths = []string{"~/.ssh", b.home} })
 		rc := b.write(filepath.Join(b.home, ".zshrc"), "# rc\n")
 		_, _, _ = b.sh("echo evil >> " + rc)
 		if strings.Contains(read(t, rc), "evil") {
@@ -373,11 +373,11 @@ func TestLinuxOffSwitch(t *testing.T) {
 	forBackends(t, func(t *testing.T, b *lbox) {
 		target := filepath.Join(b.outside, "off")
 		b.refused("echo hi > " + target)
-		b.settings.Enabled = false
+		b.update(func(s *Settings) { s.Enabled = false })
 		if w, err := b.session.Wrap(Request{WorkDirs: []string{b.work}, ScratchDir: b.scratch}, []string{"/bin/true"}); w != nil || err != nil {
 			t.Fatalf("the sandbox should not apply: %v %v", w, err)
 		}
-		b.settings.Forced = true
+		b.update(func(s *Settings) { s.Forced = true })
 		if st := b.session.State(); !st.Active {
 			t.Fatalf("forced: %+v", st)
 		}
@@ -468,7 +468,7 @@ func TestLinuxNetwork(t *testing.T) {
 			t.Fatalf("%+v", d)
 		}
 		// On the list: through. The list does not open the address directly.
-		b.settings.AllowedHosts = []string{addr}
+		b.update(func(s *Settings) { s.AllowedHosts = []string{addr} })
 		if out := b.ok(`curl --noproxy "" -sS --fail --max-time 5 ` + srv.URL); !strings.Contains(out, "hello from upstream") {
 			t.Fatal(out)
 		}
@@ -533,7 +533,7 @@ func TestLinuxLocalhost(t *testing.T) {
 		} else if b.backend == backendLandlock {
 			b.refused(`python3 -c '` + server + `'`)
 		}
-		b.settings.AllowLocalhost = true
+		b.update(func(s *Settings) { s.AllowLocalhost = true })
 		if b.backend == backendLandlock && b.abi < 4 {
 			b.refused(`python3 -c '` + server + `'`)
 			return

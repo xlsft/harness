@@ -29,6 +29,10 @@ type Policy struct {
 	FreeDeny []string
 	// WriteDenyLiteral are single files, which may not exist yet.
 	WriteDenyLiteral []string
+	// AgentHomes are the data directories of agents among WriteDeny: HARNESS_HOME, ~/.harness and ~/.claude. The agents
+	// write transcripts and caches there all the time, this client while the command runs, so the guard (guard.go) looks
+	// only at what in them runs code or grants rights, agentHomeGuarded.
+	AgentHomes []string
 	// ReadDeny are the credential stores.
 	ReadDeny []string
 	// Sockets are the roots in which unix sockets can be made and reached.
@@ -48,6 +52,9 @@ type Policy struct {
 	PrivateLoopback bool
 	// GuardNames says the kernel cannot hold the protected names in the writable roots here, so the guard looks at them.
 	GuardNames bool
+	// DenyHeld says the kernel holds every protected path that exists when a command starts (bubblewrap mounts each one
+	// read-only), so the guard looks only at those that do not exist yet.
+	DenyHeld bool
 	// FilesByPermission says a refused file access shows as EACCES, as Landlock's does, and not as EPERM.
 	FilesByPermission bool
 	// PortRules says a refused connection shows as EACCES, as Landlock's does.
@@ -199,6 +206,7 @@ func BuildPolicy(in PolicyInput) Policy {
 	}
 
 	if home != "" {
+		p.AgentHomes = appendUnique(p.AgentHomes, filepath.Join(home, ".harness"), filepath.Join(home, ".claude"))
 		for _, n := range homeWriteDeny {
 			p.WriteDeny = appendUnique(p.WriteDeny, filepath.Join(home, filepath.FromSlash(n)))
 		}
@@ -215,6 +223,7 @@ func BuildPolicy(in PolicyInput) Policy {
 	}
 	p.ReadDeny = appendUnique(p.ReadDeny, systemReadDeny...)
 	if harnessHome != "" {
+		p.AgentHomes = appendUnique(p.AgentHomes, harnessHome)
 		p.WriteDeny = appendUnique(p.WriteDeny, harnessHome)
 		for _, n := range harnessSecrets {
 			p.ReadDeny = appendUnique(p.ReadDeny, filepath.Join(harnessHome, n))
