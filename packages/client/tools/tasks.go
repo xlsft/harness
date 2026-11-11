@@ -218,7 +218,9 @@ func (m *TaskManager) track(info TaskInfo, f *os.File, kill func(), done <-chan 
 	}
 	m.tasks[info.ID] = t
 	m.mu.Unlock()
-	m.emit(TaskEvent{Kind: TaskEventStarted, Task: t.info})
+	// What is returned is the task as it started: a command that ends at once has the goroutine below writing t.info.
+	started := t.info
+	m.emit(TaskEvent{Kind: TaskEventStarted, Task: started})
 
 	var limit <-chan time.Time
 	if m.Unattended {
@@ -276,7 +278,7 @@ func (m *TaskManager) track(info TaskInfo, f *os.File, kill func(), done <-chan 
 		m.emit(TaskEvent{Kind: TaskEventFinished, Task: info})
 		close(t.done)
 	}()
-	return t.info
+	return started
 }
 
 // tail emits throttled TaskOutput events with new output.

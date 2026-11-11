@@ -67,7 +67,37 @@ func (t *Terminal) foreground() (pgid int, busy, known bool) {
 	if err != nil || pgid <= 0 {
 		return 0, false, false
 	}
-	return pgid, pgid != t.pid, true
+	shell := t.pid
+	if t.wrapped {
+		t.mu.Lock()
+		shell = t.shellGroup
+		t.mu.Unlock()
+		if shell == 0 {
+			return pgid, false, false
+		}
+	}
+	return pgid, pgid != shell, true
+}
+
+// learnShellGroup records the foreground group of a sandboxed shell at its prompt, which is the shell's own: an interactive
+// shell takes the terminal for its group. Under bubblewrap the shell is not the process started, which is bwrap.
+func (t *Terminal) learnShellGroup() {
+	if !t.wrapped {
+		return
+	}
+	in, ok := t.p.(inspector)
+	if !ok {
+		return
+	}
+	pgid, err := in.foregroundGroup()
+	if err != nil || pgid <= 0 {
+		return
+	}
+	t.mu.Lock()
+	if t.shellGroup == 0 {
+		t.shellGroup = pgid
+	}
+	t.mu.Unlock()
 }
 
 // State looks at what runs in the terminal now.
@@ -247,6 +277,8 @@ func (t *Terminal) Type(command string) (*Run, error) {
 	if !t.Info().Running {
 		return nil, ErrExited
 	}
+	// The tab was opened for this command and nothing was typed yet: what holds the terminal is the shell.
+	t.learnShellGroup()
 	_, _, known := t.foreground()
 	r := &Run{t: t, Command: command, done: make(chan struct{}), watched: known}
 	t.mu.Lock()

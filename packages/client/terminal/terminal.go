@@ -91,8 +91,12 @@ type Terminal struct {
 	done                             chan struct{}
 	mgr                              *Manager
 	agent                            bool
+	// wrapped: the shell runs under a sandbox, which may start it as a process of its own (bubblewrap does, in a PID
+	// namespace), so pid is not the shell's. shellGroup is then the foreground group seen at the shell's prompt (run.go).
+	wrapped bool
 
 	mu         sync.Mutex
+	shellGroup int
 	ring       *ring
 	cols, rows uint16
 	running    bool
@@ -403,7 +407,7 @@ func (m *Manager) Create(o Options) (*Terminal, error) {
 	}
 	t := &Terminal{
 		id: "term_" + randomHex(8), sessionID: o.SessionID, title: title, cwd: o.Cwd, shell: shell,
-		created: time.Now(), p: p, pid: p.Pid(), done: make(chan struct{}), mgr: m, agent: o.Agent,
+		created: time.Now(), p: p, pid: p.Pid(), done: make(chan struct{}), mgr: m, agent: o.Agent, wrapped: spec.Shell != shell,
 		ring: newRing(size), cols: cols, rows: rows, running: true, viewers: map[*Viewer]struct{}{},
 	}
 	go t.run()
