@@ -266,6 +266,41 @@ func TestQueuedMessageInjectedAfterTools(t *testing.T) {
 	}
 }
 
+// Right after a turn reports its result the driver is still finishing it: Settle and Exclusive wait that out and
+// find the driver idle, instead of refusing work the session (already idle for its user) should take.
+func TestSettleWaitsOutTheEndOfATurn(t *testing.T) {
+	e := setup(t, func(n int, r *llm.Request) fg.Reply { return fg.Reply{Events: fg.Message("m", fg.Text("ok"))} })
+	s := e.open(t, nil)
+	reported, release := make(chan struct{}), make(chan struct{})
+	drv := agent.NewDriver(context.Background(), s.Agent, func(agent.TurnResult) {
+		close(reported)
+		<-release
+	})
+	drv.Submit("", prompt("hi"))
+	<-reported
+	if !drv.Busy() {
+		t.Fatal("the driver is still in the turn while its result is reported")
+	}
+	settled := make(chan bool, 1)
+	go func() { settled <- drv.Settle() }()
+	excl := make(chan error, 1)
+	go func() { excl <- drv.Exclusive(func() {}) }()
+	select {
+	case <-settled:
+		t.Fatal("Settle returned while the turn was still ending")
+	case <-excl:
+		t.Fatal("Exclusive returned while the turn was still ending")
+	case <-time.After(50 * time.Millisecond):
+	}
+	close(release)
+	if busy := <-settled; busy {
+		t.Fatal("Settle: busy after the turn ended")
+	}
+	if err := <-excl; err != nil {
+		t.Fatalf("Exclusive after the turn ended: %v", err)
+	}
+}
+
 func TestMaxTurns(t *testing.T) {
 	e := setup(t, func(n int, r *llm.Request) fg.Reply {
 		return fg.Reply{Events: fg.Message("m", fg.ToolUse("g"+string(rune('a'+n)), "Glob", map[string]any{"pattern": "*"}))}

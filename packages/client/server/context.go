@@ -56,7 +56,8 @@ func contextUsageToProto(u agent.ContextUsage, catalog []mcp.ToolInfo) *agentv1.
 // compactCommand runs "/compact [instructions]" sent as a message: in the background, like the Compact RPC (the
 // Compacted event reports it, a notice reports a failure); refused while a turn or another compaction runs.
 func (ls *liveSession) compactCommand(instructions string) error {
-	if ls.driver.Busy() || ls.compacting.Load() {
+	// Settle: right after a turn ends (TurnFinished, the session idle) the driver is still finishing it.
+	if ls.compacting.Load() || ls.driver.Settle() {
 		return connect.NewError(connect.CodeFailedPrecondition, errors.New("/compact runs when the session is idle; wait for the current turn to finish"))
 	}
 	ls.mu.Lock()
