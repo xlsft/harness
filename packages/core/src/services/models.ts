@@ -98,6 +98,9 @@ export interface ModelEntry {
  * `title`: model of session titles; falls back to `small`. `classifier`: model of the auto-mode decision
  * classifier (src/decision/llm.ts); falls back to `small`.
  */
+/** The output limit of a model whose provider did not say one, nor the person who added it. */
+export const DEFAULT_MAX_OUTPUT_TOKENS = 8192;
+
 export const SLOT_NAMES = ["main", "small", "plan", "title", "classifier"] as const;
 /** The slots the settings screens set (ProviderService.SetSlots); the classifier has its own call. */
 export const ROLE_SLOT_NAMES = ["main", "small", "plan", "title"] as const;
@@ -434,7 +437,7 @@ async function insertModel(input: ModelInput & { id: string; provider_id: string
       providerId: input.provider_id,
       upstreamModel: input.upstream_model,
       contextWindow: positiveInt(input.context_window ?? 128_000, "context_window"),
-      maxOutputTokens: positiveInt(input.max_output_tokens ?? 8192, "max_output_tokens"),
+      maxOutputTokens: positiveInt(input.max_output_tokens ?? DEFAULT_MAX_OUTPUT_TOKENS, "max_output_tokens"),
       capabilities: pricingSource === "hand" ? withPriceSetByHand(capabilities) : capabilities,
       pricing,
       pricingSource,

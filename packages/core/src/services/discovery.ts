@@ -13,7 +13,7 @@ import { ApiError } from "../lib/errors.ts";
 import { guardedFetch } from "../lib/ssrf.ts";
 import type { PublicUser } from "./devices.ts";
 import { applyModelPrices, type PriceChangeCount } from "./model-prices.ts";
-import { backfilledCapabilities, EFFORT_LEVELS, type Effort, type ListedCapabilities, type ModelPricing } from "./models.ts";
+import { backfilledCapabilities, DEFAULT_MAX_OUTPUT_TOKENS, EFFORT_LEVELS, type Effort, type ListedCapabilities, type ModelPricing } from "./models.ts";
 import { catalogPriceOf, loadCatalogSnapshot } from "./price-catalog.ts";
 import { presetOf, presetPriceOf } from "./presets.ts";
 import { loadProviderRuntime, providerForUser, redactSecrets, type ProviderRuntime } from "./providers.ts";
@@ -58,6 +58,19 @@ const listedCaps = new Map<string, Map<string, ListedCapabilities>>();
 /** The capabilities the provider's last model list gave for a model (a user adds models from that list). */
 export function listedCapabilitiesOf(providerId: string, upstreamModel: string): ListedCapabilities | undefined {
   return listedCaps.get(providerId)?.get(upstreamModel);
+}
+
+/** The context window and output limit of each provider's last model list, by upstream model. */
+const listedLimits = new Map<string, Map<string, ListedLimits>>();
+
+export interface ListedLimits {
+  context_window?: number;
+  max_output_tokens?: number;
+}
+
+/** The limits the provider's last model list gave for a model (a user adds models from that list). */
+export function listedLimitsOf(providerId: string, upstreamModel: string): ListedLimits | undefined {
+  return listedLimits.get(providerId)?.get(upstreamModel);
 }
 
 function num(v: unknown): number | undefined {
@@ -286,9 +299,20 @@ export async function discoverModels(providerId: string, globalOnly = false): Pr
   listedPrices.set(providerId, listed);
   const caps = new Map(models.flatMap((m) => (m.capabilities ? [[m.upstream_model, m.capabilities] as const] : [])));
   listedCaps.set(providerId, caps);
+  const limits = new Map(
+    models.flatMap((m) =>
+      m.context_window || m.max_output_tokens ? [[m.upstream_model, { context_window: m.context_window, max_output_tokens: m.max_output_tokens }] as const] : [],
+    ),
+  );
+  listedLimits.set(providerId, limits);
   for (const e of catalog) {
     const capabilities = backfilledCapabilities(e.capabilities, caps.get(e.upstreamModel));
     if (capabilities) await getDb().update(schema.model).set({ capabilities }).where(eq(schema.model.id, e.id));
+    // A model added before its limit was taken from the list kept the default; the list's value replaces only that.
+    const out = limits.get(e.upstreamModel)?.max_output_tokens;
+    if (out && e.maxOutputTokens === DEFAULT_MAX_OUTPUT_TOKENS && out !== e.maxOutputTokens) {
+      await getDb().update(schema.model).set({ maxOutputTokens: out }).where(eq(schema.model.id, e.id));
+    }
   }
   const applied = await applyModelPrices({ providerId, listed });
   return { provider_id: providerId, models, prices: { updated: known.updated + applied.updated, held: known.held + applied.held } };

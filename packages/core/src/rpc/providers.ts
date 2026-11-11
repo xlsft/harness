@@ -18,7 +18,7 @@ import {
 } from "../decision/classifier.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "../services/devices.ts";
-import { discoverModelsForUser, listedCapabilitiesOf, listedPriceOf, testLlmProvider } from "../services/discovery.ts";
+import { discoverModelsForUser, listedCapabilitiesOf, listedLimitsOf, listedPriceOf, testLlmProvider } from "../services/discovery.ts";
 import { refreshModelPrices } from "../services/model-prices.ts";
 import { catalogStatus } from "../services/price-catalog.ts";
 import {
@@ -298,8 +298,9 @@ export function registerProviderService(router: ConnectRouter): void {
           id: req.id,
           upstream_model: req.upstreamModel,
           display_name: req.displayName,
-          context_window: Number(req.contextWindow),
-          max_output_tokens: Number(req.maxOutputTokens),
+          // What the screen leaves out comes from the provider's model list, then the defaults.
+          context_window: Number(req.contextWindow) || listedLimitsOf(req.providerId, req.upstreamModel)?.context_window || 0,
+          max_output_tokens: Number(req.maxOutputTokens) || listedLimitsOf(req.providerId, req.upstreamModel)?.max_output_tokens || 0,
           // False says nothing here (the field is not optional, and the settings screens leave it out).
           capabilities: { ...(req.thinking && { thinking: true }), ...(req.images && { images: true }) },
           listed: listedCapabilitiesOf(req.providerId, req.upstreamModel),

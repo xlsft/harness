@@ -234,6 +234,30 @@ describe("prices by hand", () => {
   });
 });
 
+describe("model limits", () => {
+  it("come from the provider's list when a model is added from it, and replace the default on models added before", async () => {
+    const a = ts.as(admin.accessToken).providers;
+    const limitsOf = async (id: string) => {
+      const m = await getDb().query.model.findFirst({ where: eq(schema.model.id, id) });
+      return [m?.contextWindow, m?.maxOutputTokens];
+    };
+    // Added before the list's limits were used: the default output limit.
+    await a.addModel({ providerId: "cust", upstreamModel: "lim-old", id: "lim-old" });
+    await a.addModel({ providerId: "cust", upstreamModel: "lim-set", id: "lim-set", maxOutputTokens: 4000n });
+    expect(await limitsOf("lim-old")).toEqual([128_000, 8192]);
+
+    // An OpenRouter-style list: the output limit under top_provider.
+    const entry = (id: string) => ({ id, context_length: 1_000_000, top_provider: { context_length: 1_000_000, max_completion_tokens: 128_000 } });
+    up.enqueue({ json: { data: ["lim-old", "lim-set", "lim-new"].map(entry) } });
+    await a.discoverModels({ providerId: "cust" });
+    await a.addModel({ providerId: "cust", upstreamModel: "lim-new", id: "lim-new" });
+    expect(await limitsOf("lim-new")).toEqual([1_000_000, 128_000]);
+    expect((await limitsOf("lim-old"))[1]).toBe(128_000);
+    // A limit someone set stays.
+    expect((await limitsOf("lim-set"))[1]).toBe(4000);
+  });
+});
+
 describe("computeCost", () => {
   it("charges the long-context prices for the whole request past the threshold, cached tokens counted", () => {
     const p = presetPriceOf({ presetId: "anthropic", kind: "llm", type: "anthropic", baseUrl: "" }, "claude-haiku-5-5")!;
