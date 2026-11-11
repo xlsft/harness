@@ -81,13 +81,20 @@ jobs:
         run: go test -race -count=1 -v -run 'Linux' ./sandbox ./tools
 
       # Where it will mostly run: a default container refuses new namespaces, which leaves Landlock, and nothing there was
-      # set up for the sandbox. Its packages are installed over the machine's network: on the runners a container's own
-      # network does not always resolve names.
+      # set up for the sandbox. On the runners a container does not always resolve names through Docker's resolver, so its
+      # packages are installed once into an image, and when that fails, again with public resolvers named directly.
       - name: Test in a default container
         run: |
           CGO_ENABLED=0 go test -c -o "$RUNNER_TEMP/sandbox.test" ./sandbox
-          printf 'FROM ubuntu:24.04\nRUN apt-get update -qq && apt-get install -y -qq curl python3 git procps >/dev/null\n' |
-            docker build --network host -t harness-sandbox-box -
+          box() { printf 'FROM ubuntu:24.04\nRUN apt-get update -qq && apt-get install -y -qq curl python3 git procps >/dev/null\n' | docker build "$@" -t harness-sandbox-box -; }
+          if ! box; then
+            echo "::warning::the container could not resolve names; host: $(getent hosts archive.ubuntu.com || echo none)"
+            cat /etc/resolv.conf
+            conf=/etc/docker/daemon.json
+            { sudo cat "$conf" 2>/dev/null || echo '{}'; } | jq '.dns = ["1.1.1.1", "8.8.8.8"]' | sudo tee "$conf.new" >/dev/null
+            sudo mv "$conf.new" "$conf" && sudo systemctl restart docker
+            box
+          fi
           docker run --rm -v "$RUNNER_TEMP/sandbox.test:/sandbox.test:ro" -e HARNESS_SANDBOX_REQUIRE=landlock harness-sandbox-box \
             /sandbox.test -test.count=1 -test.v -test.run Linux
 
