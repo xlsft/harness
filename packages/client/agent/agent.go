@@ -891,6 +891,7 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 	a.appendMessage(llm.RoleUser, append(first, input...))
 
 	toolTurns := 0
+	outputLimitResumes := 0
 	stopHookActive := false
 	for {
 		if ctx.Err() != nil {
@@ -926,6 +927,32 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 		}
 		a.accountUsage(&res, resp)
 		res.StopReason = resp.StopReason
+
+		if resp.StopReason == stopMaxTokens {
+			switch a.outputLimitAction(resp.Message.Content, &outputLimitResumes) {
+			case outputLimitResume:
+				// Cut off mid-answer: keep what it wrote and let it carry on from there.
+				content := sanitizeAssistant(resp.Message.Content)
+				resp.Message.Content = content
+				a.appendMessage(llm.RoleAssistant, content)
+				a.noteUsage(resp.Usage)
+				asstUUID := a.record(session.Entry{Type: session.TypeAssistant, Message: session.AssistantMessage(resp), RequestID: resp.ID})
+				msg := resp.Message
+				a.emit(Event{Kind: EventAssistant, UUID: asstUUID, Message: &msg, Response: &resp})
+				nudge := []llm.ContentBlock{llm.TextBlock(outputLimitResumeText)}
+				a.record(session.Entry{Type: session.TypeUser, Message: session.UserBlocks(nudge), IsMeta: true, PromptID: promptID})
+				a.appendMessage(llm.RoleUser, nudge)
+				continue
+			case outputLimitFail:
+				// Only thinking, a tool call cut off midway, or still cut off after resuming: nothing usable came back, and
+				// a half-written tool call must not run. The reply stays out of the history.
+				text := outputLimitError(resp.Usage.OutputTokens)
+				a.record(session.Entry{Type: session.TypeSystem, Subtype: "api_error", Level: "error", Content: text})
+				res.Subtype, res.IsError = SubtypeErrorDuringExecution, true
+				res.Errors = append(res.Errors, text)
+				return finish()
+			}
+		}
 
 		content := sanitizeAssistant(resp.Message.Content)
 		if len(content) == 0 {

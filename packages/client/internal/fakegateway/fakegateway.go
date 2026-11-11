@@ -551,3 +551,14 @@ func Sequence(replies ...func(req *llm.Request) Reply) Responder {
 
 // ErrNoCwd is returned by demo scripts when the request has no env section.
 var ErrNoCwd = errors.New("fake gateway: no working directory in system prompt")
+
+// CutOff makes a scripted message end as if it reached max_tokens: stop reason max_tokens and the given output tokens.
+func CutOff(events []*llmv1.StreamMessageResponse, outputTokens int64) []*llmv1.StreamMessageResponse {
+	for _, ev := range events {
+		if d, ok := ev.Event.(*llmv1.StreamMessageResponse_MessageDelta); ok {
+			d.MessageDelta.StopReason = llmv1.StopReason_STOP_REASON_MAX_TOKENS
+			d.MessageDelta.Usage.OutputTokens = outputTokens
+		}
+	}
+	return events
+}
