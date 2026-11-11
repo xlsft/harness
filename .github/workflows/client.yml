@@ -86,7 +86,7 @@ jobs:
       - name: Test in a default container
         run: |
           CGO_ENABLED=0 go test -c -o "$RUNNER_TEMP/sandbox.test" ./sandbox
-          box() { printf 'FROM ubuntu:24.04\nRUN apt-get update -qq && apt-get install -y -qq curl python3 git procps >/dev/null\n' | docker build "$@" -t harness-sandbox-box -; }
+          box() { printf 'FROM ubuntu:24.04\nRUN apt-get update -qq && apt-get install -y -qq curl python3 git procps >/dev/null\n' | docker build -t harness-sandbox-box -; }
           if ! box; then
             echo "::warning::the container could not resolve names; host: $(getent hosts archive.ubuntu.com || echo none)"
             cat /etc/resolv.conf
