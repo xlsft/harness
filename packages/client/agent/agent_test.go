@@ -3,6 +3,7 @@ package agent_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -271,34 +272,39 @@ func TestQueuedMessageInjectedAfterTools(t *testing.T) {
 func TestSettleWaitsOutTheEndOfATurn(t *testing.T) {
 	e := setup(t, func(n int, r *llm.Request) fg.Reply { return fg.Reply{Events: fg.Message("m", fg.Text("ok"))} })
 	s := e.open(t, nil)
-	reported, release := make(chan struct{}), make(chan struct{})
+	var reported, release chan struct{}
 	drv := agent.NewDriver(context.Background(), s.Agent, func(agent.TurnResult) {
 		close(reported)
 		<-release
 	})
-	drv.Submit("", prompt("hi"))
-	<-reported
-	if !drv.Busy() {
-		t.Fatal("the driver is still in the turn while its result is reported")
+	// waitsOut runs f while the result of a turn is being reported: f must not return before the report is done.
+	waitsOut := func(name string, f func() error) {
+		t.Helper()
+		reported, release = make(chan struct{}), make(chan struct{})
+		drv.Submit("", prompt("hi"))
+		<-reported
+		if !drv.Busy() {
+			t.Fatal("the driver is still in the turn while its result is reported")
+		}
+		done := make(chan error, 1)
+		go func() { done <- f() }()
+		select {
+		case <-done:
+			t.Fatalf("%s returned while the turn was still ending", name)
+		case <-time.After(50 * time.Millisecond):
+		}
+		close(release)
+		if err := <-done; err != nil {
+			t.Fatalf("%s after the turn ended: %v", name, err)
+		}
 	}
-	settled := make(chan bool, 1)
-	go func() { settled <- drv.Settle() }()
-	excl := make(chan error, 1)
-	go func() { excl <- drv.Exclusive(func() {}) }()
-	select {
-	case <-settled:
-		t.Fatal("Settle returned while the turn was still ending")
-	case <-excl:
-		t.Fatal("Exclusive returned while the turn was still ending")
-	case <-time.After(50 * time.Millisecond):
-	}
-	close(release)
-	if busy := <-settled; busy {
-		t.Fatal("Settle: busy after the turn ended")
-	}
-	if err := <-excl; err != nil {
-		t.Fatalf("Exclusive after the turn ended: %v", err)
-	}
+	waitsOut("Settle", func() error {
+		if drv.Settle() {
+			return errors.New("busy")
+		}
+		return nil
+	})
+	waitsOut("Exclusive", func() error { return drv.Exclusive(func() {}) })
 }
 
 func TestMaxTurns(t *testing.T) {
