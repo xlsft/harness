@@ -524,8 +524,18 @@ func TestRealVim(t *testing.T) {
 	}
 	r := newRig(t)
 	id := tabOf(t, r.call(ToolRun, map[string]any{"command": vim + " -u NONE -N notes.txt"}))
-	res := r.readUntilQuiet(id, "notes.txt")
-	m := res.Structured.(map[string]any)
+	// The command line already shows the file name; vim's own screen is up once it has switched to the alternate screen,
+	// which a loaded machine can take seconds to do.
+	var res tools.Result
+	var m map[string]any
+	for deadline := time.Now().Add(20 * time.Second); ; {
+		res = r.readUntilQuiet(id, "notes.txt")
+		m = res.Structured.(map[string]any)
+		if m["alternate_screen"] == true || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
 	if m["program"] != "vim" || m["alternate_screen"] != true || !strings.Contains(resultText(res), "running vim") {
 		t.Fatalf("read: %v\n%s", m, resultText(res))
 	}
