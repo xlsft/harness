@@ -56,6 +56,10 @@ func open(t *testing.T, respond fg.Responder, mod func(*bootstrap.Options)) *boo
 func TestSpawnManyRespectsTheCap(t *testing.T) {
 	var running, peak atomic.Int32
 	var reminders atomic.Int32
+	// No agent finishes before all are spawned, so a slot cannot free up while the loop below still spawns.
+	spawned := make(chan struct{})
+	var release sync.Once
+	t.Cleanup(func() { release.Do(func() { close(spawned) }) })
 	s := open(t, func(n int, r *llm.Request) fg.Reply {
 		if r.Metadata == nil || r.Metadata.AgentID == "" {
 			reminders.Add(1)
@@ -68,6 +72,7 @@ func TestSpawnManyRespectsTheCap(t *testing.T) {
 				break
 			}
 		}
+		<-spawned
 		time.Sleep(60 * time.Millisecond)
 		running.Add(-1)
 		return fg.Reply{Events: fg.Message("c", fg.Text(`{"ok": true}`))}
@@ -87,6 +92,7 @@ func TestSpawnManyRespectsTheCap(t *testing.T) {
 		sawQueued = sawQueued || h.Info().State == tools.AgentQueued
 		handles = append(handles, h)
 	}
+	release.Do(func() { close(spawned) })
 	if !sawQueued {
 		t.Fatal("no agent waited for a slot")
 	}
