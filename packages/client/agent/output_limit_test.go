@@ -88,3 +88,16 @@ func TestOutputLimitResumesAreCapped(t *testing.T) {
 		t.Fatalf("result: %+v, requests %d", res, len(e.srv.Requests()))
 	}
 }
+
+// A session asks for the same max_tokens whatever the catalog said about the model when it opened: the server cuts it to
+// the limit of the model each request goes to, so a limit corrected later, or a switch to another model, takes effect.
+func TestSessionMaxTokensIsNotTheCatalogLimit(t *testing.T) {
+	e := setup(t, nil)
+	s := e.open(t, nil)
+	defer s.Close()
+	s.Agent.RunTurn(context.Background(), prompt("hi"))
+	reqs := e.srv.Requests()
+	if len(reqs) == 0 || reqs[0].MaxTokens != 32000 {
+		t.Fatalf("max_tokens %+v (the fake catalog says 16000)", reqs)
+	}
+}

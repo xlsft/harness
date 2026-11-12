@@ -797,10 +797,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 
 	todos := tools.RestoreTodos(conv.Todos, conv.TodoLinks)
 
+	// The server cuts max_tokens to the output limit of the model a request goes to. A limit taken from the catalog here
+	// would stay for the whole session: through a model switch, and after the limit is corrected on the server.
 	maxTokens := 32000
-	if info.MaxOutputTokens > 0 && info.MaxOutputTokens < maxTokens {
-		maxTokens = info.MaxOutputTokens
-	}
 	model := s.Model
 	s.log = log
 	s.Hooks = s.newHookEngine(st)
