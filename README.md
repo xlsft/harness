@@ -19,6 +19,30 @@ docker run -d --name harness -p 3000:3000 -v harness-data:/data \
   ghcr.io/xlsft/harness:latest
 ```
 
+Or with Docker Compose: put this in `compose.yml`, the secrets in `.env` next to it, and run `docker compose up -d`.
+
+```yaml
+services:
+  harness:
+    image: ghcr.io/xlsft/harness:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - harness-data:/data
+    environment:
+      HARNESS_PUBLIC_URL: http://localhost:3000
+      HARNESS_ADMIN_EMAIL: you@example.com
+      HARNESS_ADMIN_PASSWORD: ${HARNESS_ADMIN_PASSWORD} # a long password
+      HARNESS_SECRET: ${HARNESS_SECRET}                 # openssl rand -base64 48
+    stop_grace_period: 20s
+
+volumes:
+  harness-data:
+```
+
+Behind a reverse proxy with TLS, such as Traefik, see [`deploy/README.md`](deploy/README.md#docker-compose).
+
 [Download the app](https://github.com/xlsft/harness/releases/latest) for macOS, move it to Applications and sign in to your server. Add a provider under **Settings > Models** and start a session.
 
 Coming from Claude Code? **Settings > Import** brings your configuration and sessions across, and `CLAUDE.md` and `AGENTS.md` are read as they are. <sub>xlsft\`s harness is independent and isn't affiliated with Anthropic. Claude Code is a trademark of Anthropic.</sub>

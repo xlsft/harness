@@ -42,6 +42,52 @@ pre-release gets only its own `X.Y.Z-rc.N`), and signed; [how to verify them](..
   (safe, but not clean). Some Docker setups use a timeout shorter than the usual 10 s, so set it.
 - Put TLS in front with a reverse proxy and set `HARNESS_TRUST_PROXY` as core documents.
 
+### Docker Compose
+
+The same server behind [Traefik](https://traefik.io) with a Let's Encrypt certificate. It assumes Traefik already runs
+on an external network `traefik` with an entrypoint `websecure` and a certificate resolver `letsencrypt`; rename those
+to match yours. Keep the secrets in `.env` next to `compose.yml`, not in the file itself:
+
+```yaml
+services:
+  harness:
+    image: ghcr.io/xlsft/harness:latest
+    restart: unless-stopped
+    volumes:
+      - harness-data:/data
+    networks:
+      - traefik
+    environment:
+      HARNESS_PUBLIC_URL: https://harness.example.com
+      HARNESS_TRUST_PROXY: "true"
+      HARNESS_ADMIN_EMAIL: you@example.com
+      HARNESS_ADMIN_PASSWORD: ${HARNESS_ADMIN_PASSWORD}
+      HARNESS_SECRET: ${HARNESS_SECRET}
+    stop_grace_period: 20s
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: traefik
+      traefik.http.routers.harness.rule: Host(`harness.example.com`)
+      traefik.http.routers.harness.entrypoints: websecure
+      traefik.http.routers.harness.tls.certresolver: letsencrypt
+      traefik.http.services.harness.loadbalancer.server.port: "3000"
+
+volumes:
+  harness-data:
+
+networks:
+  traefik:
+    external: true
+```
+
+- `HARNESS_PUBLIC_URL` must be the exact address people open: sign-in links and the app's device sign-in page are built
+  from it.
+- No `ports:` here: the container is reached only through Traefik, so nothing skips TLS. Add `"127.0.0.1:3000:3000"` to
+  reach it from the host itself.
+- Router and service names (`harness` above) are global in Traefik. Reusing a name from another stack merges the two.
+- The named volume keeps the database, files and the generated keys across `docker compose down`. Without it the data
+  sits in an anonymous volume that `down -v` or a manual cleanup removes.
+
 Build it yourself from the repo root:
 
 ```bash
