@@ -41,7 +41,7 @@ volumes:
   harness-data:
 ```
 
-Behind a reverse proxy with TLS, such as Traefik, see [`deploy/README.md`](deploy/README.md#docker-compose).
+Behind a reverse proxy with TLS, see [`deploy/README.md`](deploy/README.md#docker-compose).
 
 [Download the app](https://github.com/xlsft/harness/releases/latest) for macOS, move it to Applications and sign in to your server. Add a provider under **Settings > Models** and start a session.
 
