@@ -35,6 +35,8 @@ type pshape struct {
 	txBody     *Node
 	paragraphs []string
 	fp         string
+	// alt is the alternative text; media the picture part a pic shows.
+	alt, media string
 }
 
 func (s *pshape) addr() string { return "s" + s.slide.id + "/sp" + s.id }
@@ -239,7 +241,7 @@ func (d *pptxDoc) scanShapes(s *pslide, tree *Node, inGroup bool, tf groupTransf
 		if len(k.Kids) > 0 {
 			nv := k.Kids[0]
 			if c := nv.Kid("cNvPr"); c != nil {
-				sh.id, sh.name = c.Attr("id"), c.Attr("name")
+				sh.id, sh.name, sh.alt = c.Attr("id"), c.Attr("name"), c.Attr("descr")
 				sh.hidden = c.Attr("hidden") == "1" || c.Attr("hidden") == "true"
 			}
 			if ph := nv.Kid("nvPr").kidOrNil("ph"); ph != nil {
@@ -248,6 +250,11 @@ func (d *pptxDoc) scanShapes(s *pslide, tree *Node, inGroup bool, tf groupTransf
 				if sh.phType == "" {
 					sh.phType = "body"
 				}
+			}
+		}
+		if b := k.Kid("blipFill").kidOrNil("blip"); b != nil {
+			if r, ok := relByID(s.rels, relAttr(b, "embed")); ok && !r.External {
+				sh.media = ResolveTarget(s.part, r.Target)
 			}
 		}
 		sh.geom = readXfrm(k)
@@ -450,6 +457,12 @@ func (sh *pshape) line() string {
 	b.WriteString(" " + sh.geom.String())
 	if sh.inherited {
 		b.WriteString(" (from layout)")
+	}
+	if sh.media != "" {
+		fmt.Fprintf(&b, " picture %s", sh.media)
+	}
+	if sh.kind == "pic" || sh.alt != "" {
+		fmt.Fprintf(&b, " alt=%q", sh.alt)
 	}
 	if sh.txBody != nil {
 		b.WriteString(": " + strings.NewReplacer("\n", " ¶ ", "\v", "⏎").Replace(sh.text()))

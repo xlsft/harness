@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const pptxEditOps = "set_text, replace_text, set_geometry, delete_shape, add_textbox, add_slide, delete_slide, move_slide"
+const pptxEditOps = "set_text, replace_text, set_geometry, delete_shape, add_textbox, add_image, replace_image, add_slide, delete_slide, move_slide"
 
 type pptxEdit struct {
 	d       *pptxDoc
@@ -19,6 +19,9 @@ type pptxEdit struct {
 	deleted map[*pslide]bool
 	edited  map[*pslide]bool
 	nextNum int
+	// shapeIDs is the last cNvPr id given out per slide; maybeDrop the relationships replaced pictures may have freed.
+	shapeIDs  map[*pslide]int
+	maybeDrop []droppedRels
 }
 
 // Apply implements Document. Shape edits go to the slides as they were; slide operations run in order on the slide list.
@@ -44,6 +47,10 @@ func (d *pptxDoc) Apply(edits []Edit) (*EditResult, error) {
 			err = e.deleteShape(ed)
 		case "add_textbox":
 			err = e.addTextbox(ed)
+		case "add_image":
+			err = e.addImage(ed)
+		case "replace_image":
+			err = e.replaceImage(ed)
 		case "add_slide":
 			err = e.addSlide(ed)
 		case "delete_slide":
@@ -434,17 +441,7 @@ func (e *pptxEdit) addTextbox(ed Edit) error {
 		return refuse("slide %s does not declare the DrawingML namespace at its root", ed.Target)
 	}
 	tree := s.x.Root.Kid("cSld").Kid("spTree")
-	maxID := 1
-	for _, sh := range s.shapes {
-		if v, err := strconv.Atoi(sh.id); err == nil && v > maxID {
-			maxID = v
-		}
-	}
-	// New shapes of this batch number after each other.
-	for _, sp := range e.spans[s] {
-		maxID += strings.Count(sp.Text, "txBox=")
-	}
-	id := maxID + 1
+	id := e.newShapeID(s)
 	xml := textBoxXML(s.x.Root.Prefix, a, id, fmt.Sprintf("TextBox %d", id), rect{x: *ed.X, y: *ed.Y, cx: *ed.CX, cy: *ed.CY}, ed.Text)
 	// extLst must stay last in the tree.
 	at := tree.InnerEnd
@@ -939,6 +936,9 @@ func (e *pptxEdit) finish() (*EditResult, error) {
 			return nil, refuse("the edits of this batch overlap on slide s%s; send them in separate calls", s.id)
 		}
 		e.c.Set[s.part] = Splice(s.x.Data, sp)
+	}
+	if err := e.dropRels(); err != nil {
+		return nil, err
 	}
 	if err := e.sweep(); err != nil {
 		return nil, err

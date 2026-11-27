@@ -50,6 +50,10 @@ func Verify(name string, orig, updated []byte, dir string) *Verification {
 		v.Unverified = append(v.Unverified, Finding{SeverityUnverified, "verify:temp", "the temporary copy could not be read"})
 		return v
 	}
+	if _, known := ExtensionFormat(name); !known {
+		checkOther(v, name, copyBytes)
+		return v
+	}
 	doc, err := Open(name, copyBytes)
 	if err != nil {
 		v.New = append(v.New, Finding{SeverityError, "verify:open", "the new version does not open: " + err.Error()})
@@ -134,4 +138,29 @@ func ProjectBytes(name string, data []byte) (lines []string, err error) {
 		return nil, err
 	}
 	return doc.Project(), nil
+}
+
+// checkOther checks what can be checked of a format these tools do not read: an OpenDocument text is a zip whose
+// first entry names its type and whose content part is well-formed XML.
+func checkOther(v *Verification, name string, data []byte) {
+	if !strings.EqualFold(filepath.Ext(name), ".odt") {
+		v.Unverified = append(v.Unverified, Finding{SeverityUnverified, "verify:format", "this format is not read here, so nothing about it was checked"})
+		return
+	}
+	bad := func(key, msg string) { v.New = append(v.New, Finding{SeverityError, "odt:" + key, msg}) }
+	pkg, err := OpenPackage(data)
+	if err != nil {
+		bad("zip", "the new file is not a readable package: "+err.Error())
+		return
+	}
+	names := pkg.Names()
+	if len(names) == 0 || names[0] != "mimetype" {
+		bad("mimetype", "the package does not start with its mimetype entry")
+	} else if b, err := pkg.Read("mimetype"); err != nil || string(b) != "application/vnd.oasis.opendocument.text" {
+		bad("mimetype", "the package is not an OpenDocument text")
+	}
+	if _, err := pkg.XML("content.xml"); err != nil {
+		bad("content", "content.xml does not read: "+err.Error())
+	}
+	v.Unverified = append(v.Unverified, Finding{SeverityUnverified, "odt:content", "an OpenDocument file is checked only as a package; its content was not compared with the source"})
 }

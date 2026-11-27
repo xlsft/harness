@@ -39,13 +39,26 @@ type docxEdit struct {
 	// extra part edits, applied after the stories.
 	cmtSpans []Span
 	touched  map[*docxPara]bool
+	// c holds new parts (pictures) and their relationships; maybeDrop the relationships replaced pictures may free.
+	c         *Changes
+	maybeDrop []docxDrop
+	docPrID   int
+	// removedRows are rows this batch deletes or moves.
+	removedRows map[*docxRow]bool
+	// Comment threads: ids in use, the extended parts' new entries and removals.
+	usedIDs                     map[string]bool
+	w14Done                     bool
+	newParaIDs                  map[*docxComment]string
+	exFor, deletedComments      map[*docxComment]bool
+	exSpans, idsSpans, extSpans []Span
+	exAdd, idsAdd, extAdd       []string
 }
 
-var docxEditOps = "replace_text, set_text, insert_after, insert_before, delete_paragraph, add_comment, delete_comment, accept_change, reject_change"
+var docxEditOps = "replace_text, set_text, insert_after, insert_before, delete_paragraph, delete_row, move_row, insert_image, replace_image, add_comment, reply_comment, resolve_comment, reopen_comment, delete_comment, accept_change, reject_change"
 
 // Apply implements Document. Every target is resolved against the document as it is, then all changes apply together.
 func (d *docxDoc) Apply(edits []Edit) (*EditResult, error) {
-	e := &docxEdit{d: d, res: &EditResult{}, reps: map[*docxPara][]*rep{}, spans: map[*docxStory][]Span{}, removed: map[*docxPara]bool{}, touched: map[*docxPara]bool{}, nextID: d.maxAnnotationID() + 1}
+	e := &docxEdit{d: d, res: &EditResult{}, reps: map[*docxPara][]*rep{}, spans: map[*docxStory][]Span{}, removed: map[*docxPara]bool{}, touched: map[*docxPara]bool{}, c: NewChanges(), removedRows: map[*docxRow]bool{}, newParaIDs: map[*docxComment]string{}, exFor: map[*docxComment]bool{}, deletedComments: map[*docxComment]bool{}, nextID: d.maxAnnotationID() + 1}
 	for i, ed := range edits {
 		var err error
 		switch ed.Op {
@@ -54,13 +67,29 @@ func (d *docxDoc) Apply(edits []Edit) (*EditResult, error) {
 		case "set_text":
 			err = e.setText(ed)
 		case "insert_after", "insert_before":
-			err = e.insert(ed)
+			if docxRowRe.MatchString(ed.Target) {
+				err = e.insertRows(ed)
+			} else {
+				err = e.insert(ed)
+			}
+		case "delete_row":
+			err = e.deleteRow(ed)
+		case "move_row":
+			err = e.moveRow(ed)
 		case "delete_paragraph":
 			err = e.deleteParagraph(ed)
+		case "insert_image":
+			err = e.insertImage(ed)
+		case "replace_image":
+			err = e.replaceImage(ed)
 		case "add_comment":
 			err = e.addComment(ed)
 		case "delete_comment":
 			err = e.deleteComment(ed)
+		case "reply_comment":
+			err = e.replyComment(ed)
+		case "resolve_comment", "reopen_comment":
+			err = e.resolveComment(ed)
 		case "accept_change", "reject_change":
 			err = e.resolveChange(ed)
 		default:
@@ -687,19 +716,28 @@ func (e *docxEdit) addComment(ed Edit) error {
 var commentTargetRe = regexp.MustCompile(`^comment:(\S+)$`)
 
 func (e *docxEdit) deleteComment(ed Edit) error {
-	m := commentTargetRe.FindStringSubmatch(ed.Target)
-	if m == nil {
-		return refuse("target %q is not a comment address such as comment:3", ed.Target)
+	first, err := e.commentAt(ed.Target)
+	if err != nil {
+		return err
 	}
-	var c *docxComment
-	for _, x := range e.d.comments {
-		if x.id == m[1] {
-			c = x
+	// Replies go with the comment they answer.
+	for _, c := range append([]*docxComment{first}, first.replies...) {
+		if e.deletedComments[c] {
+			continue
 		}
+		e.deletedComments[c] = true
+		e.deleteOneComment(c)
 	}
-	if c == nil {
-		return refuse("no comment %s", m[1])
+	if n := len(first.replies); n > 0 {
+		e.res.Changes = append(e.res.Changes, fmt.Sprintf("Deleted comment:%s by %s and its %d replies.", first.id, first.author, n))
+	} else {
+		e.res.Changes = append(e.res.Changes, fmt.Sprintf("Deleted comment:%s by %s.", first.id, first.author))
 	}
+	return nil
+}
+
+func (e *docxEdit) deleteOneComment(c *docxComment) {
+	e.dropThreadEntries(c)
 	e.cmtSpans = append(e.cmtSpans, Span{c.node.Start, c.node.End, ""})
 	for _, s := range e.d.stories {
 		data := s.xml.Data
@@ -730,8 +768,6 @@ func (e *docxEdit) deleteComment(ed Edit) error {
 		})
 		_ = data
 	}
-	e.res.Changes = append(e.res.Changes, fmt.Sprintf("Deleted comment:%s by %s.", c.id, c.author))
-	return nil
 }
 
 // resolveChange accepts or rejects one tracked change, or all of them. What cannot be done safely (merging paragraphs
@@ -817,9 +853,26 @@ func (e *docxEdit) resolveChange(ed Edit) error {
 		case "moveFrom", "moveTo":
 			return refuse("change:%s is a tracked move; resolve moves in Word", c.id)
 		case "ins", "del":
-			inRowProps := n.Parent != nil && n.Parent.Local == "trPr"
-			if inRowProps {
-				return refuse("change:%s tracks a table row; resolve it in Word", c.id)
+			if n.Parent != nil && n.Parent.Local == "trPr" {
+				// A whole row was inserted or deleted: it goes, or its mark does.
+				if (accept && n.Local == "del") || (!accept && n.Local == "ins") {
+					tr := n.Parent.Parent
+					if tr == nil || tr.Local != "tr" {
+						return refuse("change:%s marks a row that is not in a table", c.id)
+					}
+					if tbl := tr.Parent; tbl != nil && len(tbl.KidsNamed("tr")) <= 1 {
+						return refuse("change:%s would remove the only row of its table; resolve it in Word", c.id)
+					}
+					removed[tr] = true
+					todo = append(todo, pending{func() {
+						if !covered(tr, removed) {
+							e.spans[c.story] = append(e.spans[c.story], Span{tr.Start, tr.End, ""})
+						}
+					}})
+				} else {
+					removeWhole()
+				}
+				break
 			}
 			isMark := n.Parent != nil && n.Parent.Local == "rPr" && n.Parent.Parent != nil && n.Parent.Parent.Local == "pPr"
 			if isMark {
@@ -835,7 +888,12 @@ func (e *docxEdit) resolveChange(ed Edit) error {
 				}
 				pn := para.node
 				removed[pn] = true
-				todo = append(todo, pending{func() { e.spans[c.story] = append(e.spans[c.story], Span{pn.Start, pn.End, ""}) }})
+				todo = append(todo, pending{func() {
+					if covered(pn, removed) {
+						return
+					}
+					e.spans[c.story] = append(e.spans[c.story], Span{pn.Start, pn.End, ""})
+				}})
 				break
 			}
 			if (accept && n.Local == "ins") || (!accept && n.Local == "del") {
@@ -882,7 +940,7 @@ func paragraphContentGoes(p *docxPara, accept bool) bool {
 }
 
 func (e *docxEdit) finish() (*EditResult, error) {
-	c := NewChanges()
+	c := e.c
 	for p := range e.reps {
 		e.spans[p.story] = append(e.spans[p.story], e.rewriteRuns(p)...)
 	}
@@ -892,10 +950,16 @@ func (e *docxEdit) finish() (*EditResult, error) {
 		}
 		c.Set[s.part] = Splice(s.xml.Data, spans)
 	}
+	if err := e.dropRels(); err != nil {
+		return nil, err
+	}
 	if len(e.comment) > 0 || len(e.cmtSpans) > 0 {
 		if err := e.writeComments(c); err != nil {
 			return nil, err
 		}
+	}
+	if err := e.writeThreads(c); err != nil {
+		return nil, err
 	}
 	data, err := e.d.pkg.Write(c)
 	if err != nil {

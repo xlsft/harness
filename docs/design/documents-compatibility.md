@@ -20,6 +20,10 @@ HARNESS_WRITE_EVAL_FIXTURES=/tmp/doc-fixtures go test ./documents -run TestWrite
 - [ ] `add_comment` on a file with no comments part, with and without an anchor, and `delete_comment`.
 - [ ] An edit in a header, a footer, a footnote and a text box. A text box edited here keeps its old text in the `mc:Fallback` copy, and the report says so: check that Word shows the new text.
 - [ ] A file with a table of contents, after a heading changed: it is flagged, and Update Field brings it up to date.
+- [ ] `insert_image` inline, after `find` in a paragraph, floating with `x` and `y`, and in a header: the picture shows at the size reported, with its alt text in Word's Alt Text pane.
+- [ ] `replace_image` on a picture Word inserted (it has an SVG copy in its extension list for some pictures): the new picture shows, not the old one; and tracked, with Accept and Reject.
+- [ ] `reply_comment`, `resolve_comment`, `reopen_comment` on a file with and without `commentsExtended.xml`, and on one from current Word with `commentsIds.xml`: the thread and the resolved state show in the comments pane.
+- [ ] `insert_after` with a row target, `delete_row`, `move_row`, tracked and not; Accept All and Reject All on the tracked rows.
 - [ ] `.dotx` template used through `create` with `template`: the result opens as a document, not a template.
 - [ ] `.docm`: macros are still there after an edit.
 
@@ -41,6 +45,7 @@ HARNESS_WRITE_EVAL_FIXTURES=/tmp/doc-fixtures go test ./documents -run TestWrite
 - [ ] `set_text` and `replace_text` in a placeholder: the theme's format still applies.
 - [ ] `set_geometry` on a placeholder that inherited its position, and on one that has its own.
 - [ ] `add_textbox`, `delete_shape`.
+- [ ] `add_image` and `replace_image` (PNG, JPEG, GIF), alt text in the Alt Text pane, and a replaced picture that a cloned slide shares.
 - [ ] `add_slide` from a layout, in a deck with and without sections.
 - [ ] `add_slide` with `clone_of` on a slide with a chart: the clone's chart is its own, and editing its data leaves the original alone. Also on slides with SmartArt, video, comments and animation, none of which is in the fixtures.
 - [ ] `delete_slide` on a slide with notes, and one whose image another slide shares.
@@ -53,9 +58,11 @@ HARNESS_WRITE_EVAL_FIXTURES=/tmp/doc-fixtures go test ./documents -run TestWrite
 - [ ] `fill_form` on a real form: the values show in Acrobat, and the appearance matches the field (fonts, checkboxes, radio buttons, combo boxes). Fixtures only cover text fields.
 - [ ] A signed file and an XFA form: both are reported and refused. The fixtures declare them in the AcroForm; try real ones.
 - [ ] A PDF from `create`: only Latin-1 text, Helvetica, plain layout.
+- [ ] `add_text` and `add_image` on a page from Word, one from a scanner and a rotated one, in Acrobat and Preview: placed where asked, nothing of the page lost.
 
 ## The engine
 
 - [ ] One run per release against the real LibreOffice, with the sandbox off: `HARNESS_TEST_LIBREOFFICE=1 HARNESS_TEST_PDFIUM=1 go test ./documents -run Real`. It is off by default because a failed launch leaves crash reports behind. It last passed on macOS, LibreOffice from Homebrew's cask, in November 2026.
 - [ ] `render` with `run_outside_sandbox` on macOS with the sandbox on: the prompt appears, and declining it runs nothing.
+- [ ] `convert` docx→pdf, pptx→pdf, docx→odt and odt→docx with the real LibreOffice, and with `run_outside_sandbox` on macOS: the prompt names the command and output folder.
 - [ ] Linux and Windows have never run the real engine. The sandbox has no driver there yet.

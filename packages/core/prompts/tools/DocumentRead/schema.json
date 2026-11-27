@@ -14,7 +14,8 @@
         "search",
         "fields",
         "check",
-        "render"
+        "render",
+        "ocr"
       ],
       "description": "What to do; structure when left out"
     },
@@ -24,7 +25,7 @@
     },
     "pages": {
       "type": "string",
-      "description": "PDF pages to read, or pages to render, such as \"3\", \"1-5\" or \"1,3,7-9\""
+      "description": "PDF pages to read, render or recognise, such as \"3\", \"1-5\" or \"1,3,7-9\""
     },
     "query": {
       "type": "string",
@@ -47,6 +48,10 @@
     "text_only": {
       "type": "boolean",
       "description": "For render: no images, just the rendered pages' text"
+    },
+    "languages": {
+      "type": "string",
+      "description": "For ocr: languages of the text, \"eng\" (the default), \"rus\" or \"eng+rus\""
     },
     "run_outside_sandbox": {
       "type": "boolean",

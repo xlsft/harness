@@ -45,6 +45,8 @@ type documentReadInput struct {
 	Pages     string `json:"pages"`
 	UseEngine bool   `json:"use_engine"`
 	TextOnly  bool   `json:"text_only"`
+	// Languages: for ocr, trained data to use, such as "eng" or "eng+rus".
+	Languages string `json:"languages"`
 	// RunOutsideSandbox: see Bash's. LibreOffice cannot run under the macOS sandbox, so this is the way to it there.
 	RunOutsideSandbox bool `json:"run_outside_sandbox"`
 }
@@ -114,6 +116,9 @@ func (*DocumentRead) Run(ctx context.Context, env *Env, call Call) Result {
 	if err := decode(call.Input, &in); err != nil {
 		return ErrorResult("%v", err)
 	}
+	if in.Operation == "ocr" {
+		return documentOCR(ctx, env, in)
+	}
 	path, _, bad := documentPath(env, in.FilePath)
 	if bad != nil {
 		return *bad
@@ -164,7 +169,7 @@ func (*DocumentRead) Run(ctx context.Context, env *Env, call Call) Result {
 	case "render":
 		return documentRender(ctx, env, path, data, doc, in)
 	default:
-		return ErrorResult("InputValidationError: operation must be structure, read, search, fields, check or render, got %q", op)
+		return ErrorResult("InputValidationError: operation must be structure, read, search, fields, check, render or ocr, got %q", op)
 	}
 	r := TextResult(text, structured)
 	r.Summary = "Read document: " + op
@@ -384,6 +389,8 @@ type documentEditInput struct {
 	Sources   []documentSource      `json:"sources"`
 	Source    string                `json:"source"`
 	Pages     string                `json:"pages"`
+	// RunOutsideSandbox: for convert, as DocumentRead's.
+	RunOutsideSandbox bool `json:"run_outside_sandbox"`
 }
 
 func (*DocumentEdit) Name() string                  { return "DocumentEdit" }
@@ -401,12 +408,12 @@ func (*DocumentEdit) Run(ctx context.Context, env *Env, call Call) Result {
 		return ErrorResult("file_path must be an absolute path, got %q", in.FilePath)
 	}
 	path := filepath.Clean(in.FilePath)
-	if _, ok := documents.ExtensionFormat(path); !ok {
-		return ErrorResult("%s is not a .docx, .xlsx, .pptx or .pdf file (or one of their macro and template variants).", path)
-	}
 	op := in.Operation
 	if op == "" {
 		op = "edit"
+	}
+	if _, ok := documents.ExtensionFormat(path); !ok && !(op == "convert" && strings.EqualFold(filepath.Ext(path), ".odt")) {
+		return ErrorResult("%s is not a .docx, .xlsx, .pptx or .pdf file (or one of their macro and template variants).", path)
 	}
 	switch op {
 	case "edit":
@@ -417,8 +424,10 @@ func (*DocumentEdit) Run(ctx context.Context, env *Env, call Call) Result {
 		return documentMerge(ctx, env, path, in)
 	case "split":
 		return documentSplit(ctx, env, path, in)
+	case "convert":
+		return documentConvert(ctx, env, path, in)
 	}
-	return ErrorResult("InputValidationError: operation must be edit, create, merge or split, got %q", op)
+	return ErrorResult("InputValidationError: operation must be edit, create, merge, split or convert, got %q", op)
 }
 
 // refusedResult says the file was not changed. A refusal carries the current state.
@@ -448,6 +457,9 @@ func documentApply(ctx context.Context, env *Env, path string, in documentEditIn
 	doc, err := openDocument(path, orig)
 	if err != nil {
 		return ErrorResult("%s: %v", path, err)
+	}
+	if err := loadEditImages(env, in.Edits); err != nil {
+		return ErrorResult("%s was not changed: %v", path, err)
 	}
 	res, err := applyEdits(doc, in.Edits)
 	if err != nil {
@@ -565,6 +577,9 @@ func documentCreate(ctx context.Context, env *Env, path string, in documentEditI
 			doc, err := openDocument(path, data)
 			if err != nil {
 				return ErrorResult("%s: %v", in.Template, err)
+			}
+			if err := loadEditImages(env, in.Edits); err != nil {
+				return ErrorResult("%s was not written: %v", path, err)
 			}
 			applied, err := applyEdits(doc, in.Edits)
 			if err != nil {
