@@ -448,6 +448,7 @@ func runStep(ctx context.Context, root string, r *StepResult, mu *sync.Mutex, bu
 	out := &tailBuffer{max: SetupOutputBytes}
 	_, _ = out.Write([]byte(r.Output))
 	cmd.Stdout, cmd.Stderr, cmd.Stdin = out, out, nil
+	prepareGroup(cmd)
 	if err := cmd.Start(); err != nil {
 		set(func() { r.Status, r.Error = StepFailed, err.Error() })
 		return
