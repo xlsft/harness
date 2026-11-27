@@ -197,6 +197,22 @@ export class EventBuilder {
     return this.emit({ case: 'computerUseState', value: { controlling, action, grants } as never })
   }
 
+  demoRecordingState(recording: boolean, recordingId: string, steps: number, apps: { id: string, name: string, tier: ComputerAccessTier }[], lastStep = '', hotkey = '⌃⌥⌘.') {
+    return this.emit({ case: 'demoRecordingState', value: { recording, recordingId, steps, apps: apps.map(a => ({ ...a, tierNote: '' })), hotkey, lastStep, startedAt: '' } as never })
+  }
+
+  demoSkillReviewRequested(requestId: string, toolUseId: string, recordingId: string, name: string, content: string, scope = 'project', projectPath = '', personalPath = '') {
+    return this.emit({ case: 'demoSkillReviewRequested', value: { requestId, toolUseId, recordingId, name, scope, content, projectPath, personalPath } as never })
+  }
+
+  demoSkillReviewResolved(requestId: string, saved: boolean, scope = 'project', resolvedBy = 'local') {
+    return this.emit({ case: 'demoSkillReviewResolved', value: { requestId, saved, scope, resolvedBy } as never })
+  }
+
+  simulatorActivity(udid: string, action: string) {
+    return this.emit({ case: 'simulatorActivity', value: { udid, action } as never })
+  }
+
   toolFinishedWithImage(toolUseId: string, output: string, data: Uint8Array, mediaType: string) {
     const ev = this.toolFinished(toolUseId, { output, summary: output })
     if (ev.event.case === 'toolCallFinished') ev.event.value.content.push({ block: { case: 'image', value: { data, mediaType } } } as never)

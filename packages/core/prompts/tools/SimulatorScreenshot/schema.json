@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "device": {
+      "type": "string",
+      "description": "The device's UDID or name. Optional when one device is booted."
+    }
+  },
+  "additionalProperties": false
+}

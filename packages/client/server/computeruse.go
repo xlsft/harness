@@ -34,6 +34,12 @@ func (s *Server) computerUse() *computeruse.Manager {
 		if s.ComputerUse.OnStop == nil {
 			s.ComputerUse.OnStop = s.interruptSession
 		}
+		if s.ComputerUse.OnRecording == nil {
+			s.ComputerUse.OnRecording = s.onDemoRecording
+		}
+		if s.ComputerUse.OnRecorded == nil {
+			s.ComputerUse.OnRecorded = s.onDemoRecorded
+		}
 	})
 	return s.ComputerUse
 }

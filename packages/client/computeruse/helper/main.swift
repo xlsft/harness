@@ -215,6 +215,36 @@ func find(appID: String, windowID: Int, query: String, role: String, max: Int) t
     return out
 }
 
+/// The frames of the secure text fields in one window of an app, in screen points, for blanking them in a recording's
+/// screenshots. With secure input on (a password field somewhere asked macOS to hide keystrokes) the focused element
+/// counts as one too, whatever its role.
+func secureFields(appID: String, windowID: Int) throws -> [String: Any] {
+    guard let running = runningApp(appID) else { throw Refusal("not_running", "\(appID) is not running") }
+    let app = AXUIElementCreateApplication(running.processIdentifier)
+    AXUIElementSetMessagingTimeout(app, 1.0)
+    var frames: [[String: Any]] = []
+    func add(_ box: CGRect) {
+        frames.append(["x": box.origin.x, "y": box.origin.y, "w": box.width, "h": box.height])
+    }
+    if let root = axWindow(app, windowID: windowID, appID: appID) {
+        var queue: [(AXUIElement, Int)] = [(root, 0)]
+        var visited = 0
+        let deadline = Date(timeIntervalSinceNow: 3)
+        while let (element, depth) = queue.first, visited < 4000, Date() < deadline {
+            queue.removeFirst()
+            visited += 1
+            if isSecure(element), let box = frame(of: element) { add(box) }
+            if depth < 40 { queue.append(contentsOf: children(element).map { ($0, depth + 1) }) }
+        }
+    }
+    let secureInput = IsSecureEventInputEnabled()
+    if secureInput, let raw = attribute(app, kAXFocusedUIElementAttribute), CFGetTypeID(raw) == AXUIElementGetTypeID(),
+       let box = frame(of: raw as! AXUIElement) {
+        add(box)
+    }
+    return ["frames": frames, "secure_input": secureInput]
+}
+
 func pressMenu(appID: String, path: [String]) throws {
     guard AXIsProcessTrusted() else { throw Refusal("no_permission", "Accessibility is not allowed") }
     guard let running = runningApp(appID) else { throw Refusal("not_running", "\(appID) is not running") }
@@ -424,6 +454,145 @@ func pressCombo(_ combo: String, repeatCount: Int, expect: String, refuseSecure:
     }
 }
 
+// MARK: - iOS Simulator input
+
+// Touches, keys and hardware buttons go to a booted simulator through SimulatorKit's HID client, the path Simulator.app
+// uses itself, so nothing is clicked on this Mac's screen, Simulator.app does not have to be open, and no permission of
+// macOS is needed. These are private frameworks of Xcode: everything is looked up at run time, and a missing piece
+// makes the operation refuse with "simulator_input_unavailable" instead of crashing. The message builders are the C
+// functions SimulatorKit exports; their arguments are what Simulator.app passes (Xcode 26: a point as a fraction of the
+// screen with a size of 1×1, no second finger, the digitizer target 0x32 of the main screen).
+
+typealias MouseMessageFn = @convention(c) (UnsafePointer<CGPoint>, UnsafePointer<CGPoint>?, UInt32, UInt, CGSize, UInt) -> UnsafeMutableRawPointer?
+typealias KeyMessageFn = @convention(c) (UInt32, UInt32) -> UnsafeMutableRawPointer?
+typealias ButtonMessageFn = @convention(c) (UInt32, UInt32, UInt32) -> UnsafeMutableRawPointer?
+typealias SendFn = @convention(c) (AnyObject, Selector, UnsafeMutableRawPointer, ObjCBool, DispatchQueue?, (@convention(block) (NSError?) -> Void)?) -> Void
+
+final class SimulatorHID {
+    let mouse: MouseMessageFn
+    let key: KeyMessageFn
+    let button: ButtonMessageFn
+    let deviceSet: AnyObject
+    var clients: [String: AnyObject] = [:]
+
+    init(developerDir: String) throws {
+        let core = "/Library/Developer/PrivateFrameworks/CoreSimulator.framework/CoreSimulator"
+        let kit = developerDir + "/Library/PrivateFrameworks/SimulatorKit.framework/SimulatorKit"
+        guard dlopen(core, RTLD_NOW) != nil, let handle = dlopen(kit, RTLD_NOW) else {
+            throw Refusal("simulator_input_unavailable", "Xcode's simulator frameworks could not be loaded from \(developerDir)")
+        }
+        guard let m = dlsym(handle, "IndigoHIDMessageForMouseNSEvent"), let k = dlsym(handle, "IndigoHIDMessageForKeyboardArbitrary"),
+              let b = dlsym(handle, "IndigoHIDMessageForButton") else {
+            throw Refusal("simulator_input_unavailable", "this Xcode's SimulatorKit lacks the HID functions")
+        }
+        mouse = unsafeBitCast(m, to: MouseMessageFn.self)
+        key = unsafeBitCast(k, to: KeyMessageFn.self)
+        button = unsafeBitCast(b, to: ButtonMessageFn.self)
+        guard let contextClass = NSClassFromString("SimServiceContext") as AnyObject?,
+              let context = contextClass.perform(NSSelectorFromString("sharedServiceContextForDeveloperDir:error:"), with: developerDir, with: nil)?.takeUnretainedValue(),
+              let set = context.perform(NSSelectorFromString("defaultDeviceSetWithError:"), with: nil)?.takeUnretainedValue() else {
+            throw Refusal("simulator_input_unavailable", "CoreSimulator did not open the device set")
+        }
+        deviceSet = set
+    }
+
+    func client(_ udid: String) throws -> AnyObject {
+        if let c = clients[udid] { return c }
+        guard let uuid = UUID(uuidString: udid) else { throw Refusal("bad_request", "not a device UDID: \(udid)") }
+        let devices = deviceSet.perform(NSSelectorFromString("devicesByUDID"))?.takeUnretainedValue() as? NSDictionary
+        guard let device = devices?[uuid as NSUUID] as AnyObject? else { throw Refusal("no_device", "no simulator \(udid)") }
+        guard let cls = (NSClassFromString("SimulatorKit.SimDeviceLegacyHIDClient") ?? NSClassFromString("SimDeviceLegacyHIDClient")) as AnyObject?,
+              let raw = cls.perform(NSSelectorFromString("alloc"))?.takeUnretainedValue(),
+              // init consumes what alloc returned and returns its own +1; both are kept on purpose, the client is cached.
+              let made = raw.perform(NSSelectorFromString("initWithDevice:error:"), with: device, with: nil)?.takeUnretainedValue() else {
+            throw Refusal("simulator_input_unavailable", "the simulator's HID client did not start: is \(udid) booted?")
+        }
+        clients[udid] = made
+        return made
+    }
+
+    /// Sends one message and waits for the simulator to take it. The message is freed by SimulatorKit.
+    func send(_ udid: String, _ message: UnsafeMutableRawPointer?) throws {
+        guard let message = message else { return } // a move closer than a frame to the last one: dropped by design
+        let c = try client(udid)
+        let sel = NSSelectorFromString("sendWithMessage:freeWhenDone:completionQueue:completion:")
+        guard let imp = class_getMethodImplementation(object_getClass(c), sel) else {
+            free(message)
+            throw Refusal("simulator_input_unavailable", "the HID client cannot send")
+        }
+        let fn = unsafeBitCast(imp, to: SendFn.self)
+        let done = DispatchSemaphore(value: 0)
+        var failure: NSError?
+        fn(c, sel, message, true, DispatchQueue.global(), { error in
+            failure = error
+            done.signal()
+        })
+        if done.wait(timeout: .now() + 5) == .timedOut {
+            clients[udid] = nil
+            throw Refusal("simulator_input_failed", "the simulator did not take the event in time")
+        }
+        if let failure = failure {
+            clients[udid] = nil
+            throw Refusal("simulator_input_failed", failure.localizedDescription)
+        }
+    }
+
+    /// A touch along points given as fractions of the screen: down at the first, moves through the others, up at the
+    /// last. holdMs keeps the finger down before lifting (a long press); stepMs spaces the moves.
+    func touch(_ udid: String, points: [CGPoint], holdMs: Int, stepMs: Int) throws {
+        guard let first = points.first else { throw Refusal("bad_request", "no points") }
+        let unit = CGSize(width: 1, height: 1)
+        let target: UInt32 = 0x32
+        func message(_ p: CGPoint, _ type: NSEvent.EventType) -> UnsafeMutableRawPointer? {
+            var point = CGPoint(x: min(max(p.x, 0), 1), y: min(max(p.y, 0), 1))
+            return mouse(&point, nil, target, type.rawValue, unit, 0)
+        }
+        try send(udid, message(first, .leftMouseDown))
+        var last = first
+        for p in points.dropFirst() {
+            // SimulatorKit drops a move that comes within 16 ms of the one before.
+            Thread.sleep(forTimeInterval: Double(max(stepMs, 20)) / 1000)
+            try send(udid, message(p, .leftMouseDragged))
+            last = p
+        }
+        if holdMs > 0 { Thread.sleep(forTimeInterval: Double(min(holdMs, 10000)) / 1000) }
+        try send(udid, message(last, .leftMouseUp))
+    }
+
+    /// Presses HID keyboard usages: each entry is [usage, modifier usages...], modifiers held around the key.
+    func keys(_ udid: String, _ presses: [[Int]]) throws {
+        for press in presses {
+            guard let usage = press.first else { continue }
+            let mods = press.dropFirst().map { UInt32($0) }
+            for m in mods { try send(udid, key(m, 1)) }
+            try send(udid, key(UInt32(usage), 1))
+            try send(udid, key(UInt32(usage), 2))
+            for m in mods.reversed() { try send(udid, key(m, 2)) }
+            Thread.sleep(forTimeInterval: 0.012)
+        }
+    }
+
+    /// A hardware button: home, lock (the side button of newer devices), siri, apple_pay.
+    func press(_ udid: String, button name: String, holdMs: Int) throws {
+        let sources: [String: UInt32] = ["home": 0x0, "lock": 0x1, "side_button": 0xbb8, "siri": 0x400002, "apple_pay": 0x1f4]
+        guard let source = sources[name] else { throw Refusal("bad_request", "unknown button \(name)") }
+        let hardware: UInt32 = 0x33
+        try send(udid, button(source, 1, hardware))
+        if holdMs > 0 { Thread.sleep(forTimeInterval: Double(min(holdMs, 10000)) / 1000) }
+        try send(udid, button(source, 2, hardware))
+    }
+}
+
+var simulatorHID: SimulatorHID?
+
+func simulator(_ developerDir: String) throws -> SimulatorHID {
+    if let s = simulatorHID { return s }
+    let dir = developerDir.isEmpty ? "/Applications/Xcode.app/Contents/Developer" : developerDir
+    let s = try SimulatorHID(developerDir: dir)
+    simulatorHID = s
+    return s
+}
+
 // MARK: - Requests
 
 func handle(_ req: [String: Any]) throws -> Any? {
@@ -457,6 +626,22 @@ func handle(_ req: [String: Any]) throws -> Any? {
         guard AXIsProcessTrusted() else { throw Refusal("no_permission", "Accessibility is not allowed") }
         return try find(appID: text("app"), windowID: int("window"), query: text("query"), role: text("role"), max: int("max"))
     case "menu": try pressMenu(appID: text("app"), path: req["path"] as? [String] ?? []); return nil
+    case "secure_fields":
+        guard AXIsProcessTrusted() else { throw Refusal("no_permission", "Accessibility is not allowed") }
+        return try secureFields(appID: text("app"), windowID: int("window"))
+    case "sim_probe": _ = try simulator(text("developer_dir")); return ["ok": true]
+    case "sim_touch":
+        let raw = req["points"] as? [[NSNumber]] ?? []
+        let points = raw.compactMap { $0.count == 2 ? CGPoint(x: $0[0].doubleValue, y: $0[1].doubleValue) : nil }
+        try simulator(text("developer_dir")).touch(text("udid"), points: points, holdMs: int("hold_ms"), stepMs: int("step_ms"))
+        return nil
+    case "sim_keys":
+        let presses = (req["presses"] as? [[NSNumber]] ?? []).map { $0.map(\.intValue) }
+        try simulator(text("developer_dir")).keys(text("udid"), presses)
+        return nil
+    case "sim_button":
+        try simulator(text("developer_dir")).press(text("udid"), button: text("button"), holdMs: int("hold_ms"))
+        return nil
     default: throw Refusal("bad_op", "unknown operation \(text("op"))")
     }
 }
@@ -534,10 +719,227 @@ func runIndicator(label: String) -> Never {
     exit(0)
 }
 
+// MARK: - Recording a demo
+
+// With --record the helper watches what the user does, for a demo the agent turns into a skill: clicks, scrolls, key
+// presses and app switches, one JSON object per line on stdout. It only listens (a listen-only event tap: nothing is
+// changed or delayed), shows a red panel with a Stop button while it runs, and stops on ⌃⌥⌘. as well. Keystrokes are
+// dropped, not just hidden, while secure input is on or a secure field has the focus: only {"type":"secure_key"} says
+// one happened. Everything else (which apps count, the screenshots, the blanking) is the client's.
+
+func emit(_ object: [String: Any]) {
+    var o = object
+    o["t"] = Date().timeIntervalSince1970
+    reply(o)
+}
+
+func elementAt(_ point: CGPoint) -> [String: Any] {
+    var out: [String: Any] = ["role": "", "title": "", "description": "", "secure": false]
+    guard AXIsProcessTrusted() else { return out }
+    let system = AXUIElementCreateSystemWide()
+    AXUIElementSetMessagingTimeout(system, 0.5)
+    var raw: AXUIElement?
+    guard AXUIElementCopyElementAtPosition(system, Float(point.x), Float(point.y), &raw) == .success, let element = raw else { return out }
+    out["role"] = string(element, kAXRoleAttribute)
+    out["title"] = String(string(element, kAXTitleAttribute).prefix(200))
+    out["description"] = String(string(element, kAXDescriptionAttribute).prefix(200))
+    out["secure"] = isSecure(element)
+    if (out["title"] as? String ?? "").isEmpty && !isSecure(element) {
+        // A button's text is often on its child; a field's label on the element it names.
+        if let first = children(element).first { out["title"] = String(string(first, kAXTitleAttribute).prefix(200)) }
+    }
+    if let box = frame(of: element) { out["frame"] = ["x": box.origin.x, "y": box.origin.y, "w": box.width, "h": box.height] }
+    return out
+}
+
+func windowAt(_ point: CGPoint, pid: Int32) -> [String: Any]? {
+    for info in onScreenWindows() {
+        guard let owner = info[kCGWindowOwnerPID as String] as? Int32, owner == pid,
+              (info[kCGWindowLayer as String] as? Int ?? 0) == 0,
+              let number = info[kCGWindowNumber as String] as? Int,
+              let box = bounds(of: info), box.contains(point) else { continue }
+        return ["id": number, "title": info[kCGWindowName as String] as? String ?? "", "x": box.origin.x, "y": box.origin.y, "w": box.width, "h": box.height]
+    }
+    return nil
+}
+
+func frontWindow(pid: Int32) -> [String: Any]? {
+    for info in onScreenWindows() {
+        guard let owner = info[kCGWindowOwnerPID as String] as? Int32, owner == pid,
+              (info[kCGWindowLayer as String] as? Int ?? 0) == 0,
+              let number = info[kCGWindowNumber as String] as? Int, let box = bounds(of: info), box.width > 1 else { continue }
+        return ["id": number, "title": info[kCGWindowName as String] as? String ?? "", "x": box.origin.x, "y": box.origin.y, "w": box.width, "h": box.height]
+    }
+    return nil
+}
+
+/// Whether typed keys must be dropped: secure input is on, or the focused element is a secure field.
+func typingIsSecret() -> Bool {
+    if IsSecureEventInputEnabled() { return true }
+    return focused()["secure"] as? Bool ?? false
+}
+
+let keyNames: [Int: String] = Dictionary(uniqueKeysWithValues: keyCodes.map { ($0.value, $0.key) })
+
+func modifierNames(_ flags: CGEventFlags) -> [String] {
+    var out: [String] = []
+    if flags.contains(.maskControl) { out.append("ctrl") }
+    if flags.contains(.maskAlternate) { out.append("alt") }
+    if flags.contains(.maskShift) { out.append("shift") }
+    if flags.contains(.maskCommand) { out.append("cmd") }
+    return out
+}
+
+var recorderTap: CFMachPort?
+let ownPID = ProcessInfo.processInfo.processIdentifier
+
+func recorded(_ type: CGEventType, _ event: CGEvent) {
+    let point = event.location
+    switch type {
+    case .leftMouseDown, .rightMouseDown:
+        let app = NSRunningApplication(processIdentifier: Int32(appAt(point)["pid"] as? Int ?? 0))
+        let pid = app?.processIdentifier ?? 0
+        if pid == ownPID { return } // the panel's own Stop button
+        var o: [String: Any] = [
+            "type": "click", "x": point.x, "y": point.y, "button": type == .rightMouseDown ? "right" : "left",
+            "count": Int(event.getIntegerValueField(.mouseEventClickState)), "modifiers": modifierNames(event.flags),
+            "app": appObject(app), "element": elementAt(point),
+        ]
+        if let w = windowAt(point, pid: pid) { o["window"] = w }
+        emit(o)
+    case .scrollWheel:
+        let app = NSRunningApplication(processIdentifier: Int32(appAt(point)["pid"] as? Int ?? 0))
+        if app?.processIdentifier == ownPID { return }
+        var o: [String: Any] = [
+            "type": "scroll", "x": point.x, "y": point.y,
+            "dy": -Int(event.getIntegerValueField(.scrollWheelEventDeltaAxis1)), "dx": -Int(event.getIntegerValueField(.scrollWheelEventDeltaAxis2)),
+            "app": appObject(app),
+        ]
+        if let app = app, let w = windowAt(point, pid: app.processIdentifier) { o["window"] = w }
+        emit(o)
+    case .keyDown:
+        let front = NSWorkspace.shared.frontmostApplication
+        var o: [String: Any] = ["app": appObject(front)]
+        if let front = front, let w = frontWindow(pid: front.processIdentifier) { o["window"] = w }
+        if typingIsSecret() {
+            o["type"] = "secure_key"
+            emit(o)
+            return
+        }
+        let code = Int(event.getIntegerValueField(.keyboardEventKeycode))
+        let mods = modifierNames(event.flags)
+        var length = 0
+        var chars = [UniChar](repeating: 0, count: 8)
+        event.keyboardGetUnicodeString(maxStringLength: 8, actualStringLength: &length, unicodeString: &chars)
+        let text = String(utf16CodeUnits: chars, count: length)
+        o["type"] = "key"
+        o["key"] = keyNames[code] ?? ""
+        o["modifiers"] = mods
+        // Only plain characters count as typing; a combination is a command.
+        let commandLike = mods.contains("cmd") || mods.contains("ctrl")
+        if !commandLike, let scalar = text.unicodeScalars.first, !CharacterSet.controlCharacters.contains(scalar) { o["text"] = text }
+        emit(o)
+    default:
+        break
+    }
+}
+
+func isStopHotkey(_ event: CGEvent) -> Bool {
+    let f = event.flags
+    return Int(event.getIntegerValueField(.keyboardEventKeycode)) == kVK_ANSI_Period
+        && f.contains(.maskControl) && f.contains(.maskAlternate) && f.contains(.maskCommand)
+}
+
+final class RecordStop: NSObject {
+    @objc func stop() { emit(["type": "stop", "reason": "button"]) }
+}
+
+func runRecorder(label: String) -> Never {
+    let app = NSApplication.shared
+    app.setActivationPolicy(.accessory)
+    guard AXIsProcessTrusted() else {
+        emit(["type": "error", "error": "Accessibility is not allowed"])
+        exit(1)
+    }
+    let mask: CGEventMask = (1 << CGEventType.leftMouseDown.rawValue) | (1 << CGEventType.rightMouseDown.rawValue)
+        | (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.scrollWheel.rawValue)
+    let callback: CGEventTapCallBack = { _, type, event, _ in
+        if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+            if let tap = recorderTap { CGEvent.tapEnable(tap: tap, enable: true) }
+            return Unmanaged.passUnretained(event)
+        }
+        if type == .keyDown && isStopHotkey(event) {
+            emit(["type": "stop", "reason": "hotkey"])
+            return Unmanaged.passUnretained(event)
+        }
+        // Looked at after the event went on, so the tap never holds anything up.
+        let copy = event.copy() ?? event
+        DispatchQueue.main.async { recorded(type, copy) }
+        return Unmanaged.passUnretained(event)
+    }
+    guard let tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .tailAppendEventTap, options: .listenOnly, eventsOfInterest: mask, callback: callback, userInfo: nil) else {
+        emit(["type": "error", "error": "macOS refused to let the helper watch input. Allow Accessibility (or Input Monitoring) for the Harness app"])
+        exit(1)
+    }
+    recorderTap = tap
+    let source = CFMachPortCreateRunLoopSource(nil, tap, 0)
+    CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
+    CGEvent.tapEnable(tap: tap, enable: true)
+    NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { note in
+        let a = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+        if a?.processIdentifier == ownPID { return }
+        var o: [String: Any] = ["type": "activate", "app": appObject(a)]
+        if let a = a, let w = frontWindow(pid: a.processIdentifier) { o["window"] = w }
+        emit(o)
+    }
+
+    let size = NSSize(width: 380, height: 34)
+    let panel = NSPanel(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+    panel.level = .statusBar
+    panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
+    panel.isFloatingPanel = true
+    panel.hidesOnDeactivate = false
+    panel.sharingType = .none
+    panel.backgroundColor = NSColor(calibratedRed: 0.72, green: 0.16, blue: 0.14, alpha: 0.96)
+    let title = NSTextField(labelWithString: label)
+    title.textColor = .white
+    title.font = .systemFont(ofSize: 12, weight: .medium)
+    title.lineBreakMode = .byTruncatingTail
+    title.frame = NSRect(x: 12, y: 8, width: size.width - 84, height: 18)
+    let target = RecordStop()
+    let button = NSButton(title: "Stop", target: target, action: #selector(RecordStop.stop))
+    button.bezelStyle = .rounded
+    button.frame = NSRect(x: size.width - 66, y: 3, width: 60, height: 28)
+    panel.contentView?.addSubview(title)
+    panel.contentView?.addSubview(button)
+    if let screen = NSScreen.main?.visibleFrame {
+        panel.setFrameOrigin(NSPoint(x: screen.midX - size.width / 2, y: screen.maxY - size.height - 8))
+    }
+    panel.orderFrontRegardless()
+    if let front = NSWorkspace.shared.frontmostApplication, front.processIdentifier != ownPID {
+        var o: [String: Any] = ["type": "activate", "app": appObject(front)]
+        if let w = frontWindow(pid: front.processIdentifier) { o["window"] = w }
+        emit(o)
+    }
+    emit(["type": "started"])
+    DispatchQueue.global().async {
+        while let line = readLine(strippingNewline: true) {
+            let text = (try? JSONSerialization.jsonObject(with: Data(line.utf8), options: .fragmentsAllowed)) as? String ?? line
+            DispatchQueue.main.async { title.stringValue = text }
+        }
+        DispatchQueue.main.async { exit(0) }
+    }
+    withExtendedLifetime((target, source)) { app.run() }
+    exit(0)
+}
+
 // MARK: - Main
 
 let arguments = CommandLine.arguments
 if arguments.count >= 2 && arguments[1] == "--indicator" {
     runIndicator(label: arguments.count >= 3 ? arguments[2] : "Harness is controlling this machine")
+}
+if arguments.count >= 2 && arguments[1] == "--record" {
+    runRecorder(label: arguments.count >= 3 ? arguments[2] : "Recording a demo. ⌃⌥⌘. or Stop ends it")
 }
 serve()

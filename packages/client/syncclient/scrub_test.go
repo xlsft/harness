@@ -26,4 +26,8 @@ func TestScrubComputerUse(t *testing.T) {
 	if bad := `{"toolUseResult":{"computer_use":true}`; scrubComputerUse(bad) != bad {
 		t.Fatal("a malformed line changed")
 	}
+	demo := `{"type":"user","message":{"content":[{"type":"tool_result","content":[{"type":"image","source":{"data":"STEPPIXELS"}}]}]},"toolUseResult":{"device_only":true}}`
+	if got := scrubComputerUse(demo); strings.Contains(got, "STEPPIXELS") {
+		t.Fatalf("a demo recording's screenshot is uploaded: %s", got)
+	}
 }

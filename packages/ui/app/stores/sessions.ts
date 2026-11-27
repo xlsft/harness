@@ -791,7 +791,7 @@ export const useSessionStore = defineStore('sessions', {
           return
         }
         setTimeout(() => {
-          if (this.sessions[id] === s && this.isBusy(id) && !s.pendingPermission && !s.pendingQuestion && !s.pendingPlan && !s.pendingComputerAccess) this.restartStream(id)
+          if (this.sessions[id] === s && this.isBusy(id) && !s.pendingPermission && !s.pendingQuestion && !s.pendingPlan && !s.pendingComputerAccess && !s.pendingDemoReview) this.restartStream(id)
         }, INTERRUPT_SETTLE_MS)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
@@ -818,6 +818,15 @@ export const useSessionStore = defineStore('sessions', {
 
     async stopComputerUse(id: string) {
       await this.transport?.stopComputerUse(id)
+    },
+    async startDemoRecording(id: string, appIds: string[]) {
+      await this.transport?.startDemoRecording?.(id, appIds)
+    },
+    async stopDemoRecording(id: string, discard = false) {
+      await this.transport?.stopDemoRecording?.(id, discard)
+    },
+    async respondToDemoSkillReview(id: string, requestId: string, answer: { save: boolean, content: string, scope: 'project' | 'personal', note: string }) {
+      await this.transport?.respondToDemoSkillReview?.(id, requestId, answer)
     },
 
     async answerQuestion(id: string, requestId: string, answers: QuestionAnswerVM[]) {

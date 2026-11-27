@@ -17,6 +17,7 @@ import { WorktreeSetup_State, WorktreeSetupStep_Status, type WorktreeSetup } fro
 import { sessionNoteOf } from './links'
 import { blockAttachments, isFileBlock } from './attachments'
 import { accessItem, computerUseVM, toolImages } from './computer'
+import { demoRecordingVM, demoReviewItem } from './demo'
 import type { ContentBlock, Usage as PbUsage } from '~/gen/harness/llm/v1/content_pb'
 import { SubagentState, SubagentStepStatus, type SubagentInfo } from '~/gen/harness/agent/v1/subagents_pb'
 import { WorkflowState, type WorkflowInfo } from '~/gen/harness/agent/v1/workflows_pb'
@@ -143,6 +144,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     pendingQuestion: null,
     pendingPlan: null,
     pendingComputerAccess: null,
+    pendingDemoReview: null,
     showRequest: null,
     browserAction: null,
     browserSteps: 0,
@@ -417,7 +419,7 @@ function setStatus(s: SessionState, status: Status) {
 }
 
 function blockingStatus(s: SessionState): Status {
-  return s.pendingPermission || s.pendingQuestion || s.pendingPlan || s.pendingComputerAccess ? 'needs_input' : 'working'
+  return s.pendingPermission || s.pendingQuestion || s.pendingPlan || s.pendingComputerAccess || s.pendingDemoReview ? 'needs_input' : 'working'
 }
 
 // A reply streamed outside a turn (the model's answer to a Stop) that was cancelled leaves deltas with no final
@@ -443,6 +445,7 @@ export function settleTurn(s: SessionState) {
     if (it.kind === 'assistant') it.streaming = false
     if (it.kind === 'question' && it.state === 'pending') it.state = 'cancelled'
     if (it.kind === 'computerAccess' && it.state === 'pending') it.state = 'cancelled'
+    if (it.kind === 'demoSkillReview' && it.state === 'pending') it.state = 'cancelled'
     if (it.kind === 'browserSite' && it.state === 'pending') it.state = 'cancelled'
   }
   s.turnStartedAt = 0
@@ -450,6 +453,7 @@ export function settleTurn(s: SessionState) {
   s.pendingQuestion = null
   s.pendingPlan = null
   s.pendingComputerAccess = null
+  s.pendingDemoReview = null
   if (s.computerUse) s.computerUse = { ...s.computerUse, controlling: false, action: '' }
   s.browserAction = null
   if (isBusy(s.meta.status) || s.meta.status === 'waiting_for_connection') setStatus(s, 'idle')
@@ -724,6 +728,34 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       break
     }
 
+    case 'demoRecordingState': {
+      s.demoRecording = demoRecordingVM(e.value)
+      break
+    }
+
+    case 'demoSkillReviewRequested': {
+      if (!find(s, 'demoSkillReview', e.value.requestId)) push(s, demoReviewItem(e.value))
+      s.pendingDemoReview = e.value.requestId
+      setStatus(s, 'needs_input')
+      break
+    }
+
+    case 'demoSkillReviewResolved': {
+      const item = find(s, 'demoSkillReview', e.value.requestId)
+      if (item) {
+        item.state = e.value.resolvedBy === 'interrupt' ? 'cancelled' : e.value.saved ? 'saved' : 'discarded'
+        if (e.value.scope === 'personal' || e.value.scope === 'project') item.scope = e.value.scope
+      }
+      if (s.pendingDemoReview === e.value.requestId) s.pendingDemoReview = null
+      if (s.meta.status === 'needs_input') setStatus(s, blockingStatus(s))
+      break
+    }
+
+    case 'simulatorActivity': {
+      s.simulatorActivity = { udid: e.value.udid, action: e.value.action, at: Date.now() }
+      break
+    }
+
     case 'planProposed': {
       const p = e.value
       if (!find(s, 'plan', p.requestId)) {
@@ -800,7 +832,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
         // A question still open when the turn ends can no longer be answered.
         if (it.kind === 'question' && it.state === 'pending') it.state = 'cancelled'
         if (it.kind === 'computerAccess' && it.state === 'pending') it.state = 'cancelled'
-        if (it.kind === 'browserSite' && it.state === 'pending') it.state = 'cancelled'
+        if (it.kind === 'demoSkillReview' && it.state === 'pending') it.state = 'cancelled'
         if (it.kind === 'browserSite' && it.state === 'pending') it.state = 'cancelled'
       }
       s.turnStartedAt = 0
@@ -808,6 +840,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       s.pendingQuestion = null
       s.pendingPlan = null
       s.pendingComputerAccess = null
+      s.pendingDemoReview = null
       if (s.computerUse) s.computerUse = { ...s.computerUse, controlling: false, action: '' }
       setStatus(s, result === 'error' || result === 'max_turns' ? 'error' : 'idle')
       break

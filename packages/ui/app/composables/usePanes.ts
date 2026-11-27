@@ -4,7 +4,7 @@
 // `?menu=<name>` opens a pane's menu on load (used to reach the menu states of the artboards).
 import { isDesktop } from '~/lib/desktop'
 
-export const PANES = ['details', 'terminal', 'diff', 'browser', 'files', 'artifact', 'sidechat', 'tasks', 'agents', 'sentfile', 'visual', 'plugin'] as const
+export const PANES = ['details', 'terminal', 'diff', 'browser', 'files', 'artifact', 'sidechat', 'tasks', 'agents', 'sentfile', 'visual', 'plugin', 'simulator'] as const
 export type PaneName = typeof PANES[number]
 
 export const PANE_WIDTH: Record<PaneName, number> = {
@@ -19,7 +19,8 @@ export const PANE_WIDTH: Record<PaneName, number> = {
   agents: 600,
   sentfile: 640,
   visual: 640,
-  plugin: 480
+  plugin: 480,
+  simulator: 480
 }
 
 const isPane = (p: string): p is PaneName => (PANES as readonly string[]).includes(p)

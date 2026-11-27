@@ -27,9 +27,21 @@ const allItems: { pane: PaneName, label: string, icon: IconName, kbd?: string }[
   { pane: 'diff', label: tt('Changes'), icon: 'diff' },
   { pane: 'sidechat', label: tt('Side chat'), icon: 'chat', kbd: 'meta+;' },
   { pane: 'tasks', label: tt('Background tasks'), icon: 'diamond' },
-  { pane: 'agents', label: tt('Agents'), icon: 'ai' }
+  { pane: 'agents', label: tt('Agents'), icon: 'ai' },
+  { pane: 'simulator', label: tt('iOS Simulator'), icon: 'phone' }
 ]
-const items = computed(() => allItems.filter(i => !current.value?.meta.unsupported.includes(FEATURE_OF[i.pane] ?? '')))
+// Device-local tools (the iOS Simulator, recording a demo) only for a session of this machine; the client says when
+// they are not available here (no Xcode, not a Mac, computer use off).
+const local = computed(() => !!current.value && !current.value.meta.remote)
+const LOCAL_ONLY: PaneName[] = ['simulator']
+const items = computed(() => allItems.filter(i => !current.value?.meta.unsupported.includes(FEATURE_OF[i.pane] ?? '') && (local.value || !LOCAL_ONLY.includes(i.pane))))
+const picker = useDemoRecordingPicker()
+const canRecord = computed(() => local.value && !!store.transport?.startDemoRecording && !current.value?.demoRecording?.recording)
+
+function recordDemo() {
+  if (store.currentId) picker.open(store.currentId)
+  emit('select')
+}
 
 function choose(p: PaneName) {
   togglePane(p)
@@ -64,6 +76,20 @@ function choose(p: PaneName) {
         class="text-accent"
       />
     </div>
+    <template v-if="canRecord">
+      <div class="h-px bg-line" />
+      <div
+        role="menuitem"
+        class="flex cursor-pointer items-center gap-2.5 rounded-none px-3 py-2 hover:bg-raised"
+        @click="recordDemo"
+      >
+        <HIcon
+          name="monitor"
+          class="text-muted"
+        />
+        <span class="flex flex-1 flex-col gap-px"><span class="text-strong">{{ tt('Record a demo') }}</span><span class="text-[11px] text-muted">{{ tt('Show a workflow once; the agent turns it into a skill') }}</span></span>
+      </div>
+    </template>
     <template v-if="showAwake">
       <div class="h-px bg-line-strong" />
       <div

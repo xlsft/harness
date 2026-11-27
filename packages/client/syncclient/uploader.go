@@ -641,7 +641,9 @@ func (u *Uploader) readBatch(sessionID, agentID, path string, startOffset int64)
 			break
 		}
 		text := strings.TrimRight(string(line), "\r\n")
-		if u.o.Objects.Available() {
+		if strings.Contains(text, deviceOnlyMarker) {
+			text = scrubComputerUse(text) // these images stay here even with a store
+		} else if u.o.Objects.Available() {
 			text = u.o.Objects.referObjects(sessionID, text)
 		} else {
 			text = scrubComputerUse(text)

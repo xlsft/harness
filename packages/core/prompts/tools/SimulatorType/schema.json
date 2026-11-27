@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "device": {
+      "type": "string",
+      "description": "The device's UDID or name. Optional when one device is booted."
+    },
+    "text": {
+      "type": "string",
+      "description": "Text to type."
+    },
+    "keys": {
+      "type": "string",
+      "description": "Key combinations to press after the text, space separated."
+    }
+  },
+  "additionalProperties": false
+}

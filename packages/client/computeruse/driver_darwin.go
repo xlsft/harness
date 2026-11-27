@@ -50,6 +50,139 @@ type darwinDriver struct {
 // NewDriver returns the driver of this platform.
 func NewDriver() Driver { return &darwinDriver{sem: make(chan struct{}, 1)} }
 
+// NewHelper returns a helper process of its own (Helper).
+func NewHelper() Helper { return &darwinDriver{sem: make(chan struct{}, 1)} }
+
+// Call implements Helper.
+func (d *darwinDriver) Call(ctx context.Context, op string, params map[string]any, out any) error {
+	return d.call(ctx, op, params, out)
+}
+
+// SecureFields implements SecureFieldLister.
+func (d *darwinDriver) SecureFields(ctx context.Context, appID string, windowID int64) ([]Rect, error) {
+	var r struct {
+		Frames []struct {
+			X, Y, W, H float64
+		} `json:"frames"`
+	}
+	if err := d.call(ctx, "secure_fields", map[string]any{"app": appID, "window": windowID}, &r); err != nil {
+		return nil, err
+	}
+	out := make([]Rect, len(r.Frames))
+	for i, f := range r.Frames {
+		out[i] = Rect{f.X, f.Y, f.W, f.H}
+	}
+	return out, nil
+}
+
+// Watch implements Watcher: the helper's --record mode, a process of its own with the recording panel. Its lines are
+// the user's input, decoded here; Stop ends it.
+func (d *darwinDriver) Watch(label string) (Feed, error) {
+	path := d.helperPath()
+	if path == "" {
+		return nil, errNoHelper
+	}
+	cmd := exec.Command(path, "--record", label)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, fmt.Errorf("start the recording helper: %w", err)
+	}
+	f := &helperFeed{cmd: cmd, stdin: stdin, events: make(chan RawEvent, 256), done: make(chan struct{}), exited: make(chan struct{})}
+	go func() {
+		_ = cmd.Wait()
+		close(f.exited)
+	}()
+	go f.read(bufio.NewReaderSize(stdout, 1<<20))
+	return f, nil
+}
+
+type helperFeed struct {
+	cmd    *exec.Cmd
+	stdin  io.WriteCloser
+	events chan RawEvent
+	done   chan struct{}
+	exited chan struct{}
+	once   sync.Once
+}
+
+func (f *helperFeed) Events() <-chan RawEvent { return f.events }
+
+func (f *helperFeed) Stop() {
+	f.once.Do(func() {
+		close(f.done)
+		_ = f.stdin.Close() // the helper exits on end of input
+		go func() {
+			select {
+			case <-time.After(2 * time.Second):
+				_ = f.cmd.Process.Kill()
+			case <-f.exited:
+			}
+		}()
+	})
+}
+
+type helperEvent struct {
+	Type      string    `json:"type"`
+	X         float64   `json:"x"`
+	Y         float64   `json:"y"`
+	Button    string    `json:"button"`
+	Count     int       `json:"count"`
+	Modifiers []string  `json:"modifiers"`
+	App       helperApp `json:"app"`
+	Element   struct {
+		Role        string `json:"role"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		Secure      bool   `json:"secure"`
+	} `json:"element"`
+	Window *helperWindow `json:"window"`
+	Key    string        `json:"key"`
+	Text   string        `json:"text"`
+	DX     int           `json:"dx"`
+	DY     int           `json:"dy"`
+	Reason string        `json:"reason"`
+	Error  string        `json:"error"`
+	T      float64       `json:"t"`
+}
+
+func (f *helperFeed) read(r *bufio.Reader) {
+	defer close(f.events)
+	for {
+		line, err := r.ReadBytes('\n')
+		if len(line) > 0 {
+			var e helperEvent
+			if json.Unmarshal(line, &e) == nil && e.Type != "" {
+				ev := RawEvent{
+					Type: e.Type, X: e.X, Y: e.Y, Button: e.Button, Count: e.Count, Modifiers: e.Modifiers, App: e.App.app(),
+					Element: RawElement{Role: e.Element.Role, Title: e.Element.Title, Description: e.Element.Description, Secure: e.Element.Secure},
+					Key: e.Key, Text: e.Text, DX: e.DX, DY: e.DY, Reason: e.Reason, Error: e.Error,
+				}
+				if e.T > 0 {
+					ev.At = time.Unix(0, int64(e.T*float64(time.Second)))
+				}
+				if e.Window != nil {
+					ev.Window = &Window{ID: e.Window.ID, AppID: ev.App.ID, Title: e.Window.Title, Bounds: Rect{e.Window.X, e.Window.Y, e.Window.W, e.Window.H}}
+				}
+				select {
+				case f.events <- ev:
+				case <-f.done:
+					return
+				}
+			}
+		}
+		if err != nil {
+			return
+		}
+	}
+}
+
 func (d *darwinDriver) Info() Info {
 	return Info{
 		Platform: "macos", Supported: true, Surface: SurfaceDesktop, Coordinates: "screen points",

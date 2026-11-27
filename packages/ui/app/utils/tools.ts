@@ -25,6 +25,9 @@ export function toolIcon(t: ToolItem): IconName {
   if (t.name.startsWith('Browser') || t.name === 'PreviewStart') return 'globe'
   if (t.name === 'ComputerClick' || t.name === 'ComputerDrag') return 'cursor'
   if (t.name.startsWith('Computer')) return 'monitor'
+  if (t.name.startsWith('Simulator')) return 'phone'
+  if (t.name === 'DemoRecording') return 'monitor'
+  if (t.name === 'DemoSkillSave') return 'page'
   if (t.name.startsWith('Terminal')) return 'term'
   switch (t.name) {
     case 'Bash':
@@ -186,6 +189,17 @@ export function toolTarget(t: ToolItem): string {
     case 'ComputerActivate':
     case 'ComputerFind':
     case 'ComputerBatch': return String(i.app ?? t.summary)
+    case 'SimulatorList': return i.all ? 'all simulators' : 'simulators'
+    case 'SimulatorBoot':
+    case 'SimulatorScreenshot': return String(i.device ?? t.summary ?? '') || 'booted device'
+    case 'SimulatorInstall': return String(i.app_path ?? '').split('/').filter(Boolean).pop() ?? t.summary
+    case 'SimulatorLaunch': return String(i.bundle_id ?? t.summary)
+    case 'SimulatorTap': return `${String(i.x ?? '')}, ${String(i.y ?? '')}`
+    case 'SimulatorSwipe': return `${String(i.from_x ?? '')}, ${String(i.from_y ?? '')} → ${String(i.to_x ?? '')}, ${String(i.to_y ?? '')}`
+    case 'SimulatorType': return i.text ? `"${String(i.text).split('\n')[0]!.slice(0, 80)}"` : String(i.keys ?? t.summary)
+    case 'SimulatorButton': return String(i.button ?? t.summary)
+    case 'DemoRecording': return Array.isArray(i.screenshots) && i.screenshots.length ? `steps ${i.screenshots.join(', ')}` : 'the recorded demo'
+    case 'DemoSkillSave': return String(i.name ?? t.summary)
     case 'SettingsGet': return String(i.key ?? 'Settings')
     case 'SettingsSet': return `${String(i.key ?? '')} = ${String(i.value ?? '')}`
     case 'OpenInEditor': return i.line ? `${String(i.path ?? '')}:${String(i.line)}` : String(i.path ?? t.summary)

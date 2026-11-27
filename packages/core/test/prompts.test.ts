@@ -40,12 +40,13 @@ describe("bundle builder", () => {
       "Advisor", "Agent", "ArtifactPublish", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork", "BrowserRecord",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait", "ChangeDirectory", "ComputerAccess", "ComputerActivate",
       "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey", "ComputerMenu", "ComputerScreenshot", "ComputerScroll",
-      "ComputerType", "DocumentEdit", "DocumentRead", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "Issues", "KeepAwake",
+      "ComputerType", "DemoRecording", "DemoSkillSave", "DocumentEdit", "DocumentRead", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "Issues", "KeepAwake",
       "KnowledgeRead", "KnowledgeSearch", "LS", "LSP", "ListAgents", "ListMcpResources", "MarkChapter", "McpAuthenticate", "Memory", "Monitor", "MultiEdit", "NotebookEdit",
       "NotebookRun", "OpenInEditor", "PowerShell", "PrAutoMerge", "PrBind", "PrMonitor", "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop",
       "ProposeBranch", "PushNotification", "Read", "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "ScheduleCancel", "ScheduleList", "ScheduleWakeup", "SendMessage",
       "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff", "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet",
-      "SettingsSet", "Show", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskInput", "TaskOutput", "TaskStop", "TerminalList",
+      "SettingsSet", "Show", "SimulatorBoot", "SimulatorButton", "SimulatorInstall", "SimulatorLaunch", "SimulatorList", "SimulatorScreenshot",
+      "SimulatorSwipe", "SimulatorTap", "SimulatorType", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskInput", "TaskOutput", "TaskStop", "TerminalList",
       "TerminalOpen", "TerminalRead", "TerminalRun", "TerminalStop",
       "TodoWrite", "ToolSearch", "Visual", "Wait", "WebFetch", "WebSearch", "Workflow", "WrapUp", "Write",
     ]);
@@ -99,6 +100,7 @@ describe("bundle builder", () => {
       monitor_match: ["task_id", "description", "pattern", "count", "lines", "status"],
       monitor_stopped: ["task_id", "description", "pattern", "reason"],
       terminal_command_done: ["tab_id", "title", "command", "status", "tail"],
+      demo_recorded: ["recording_id", "steps", "apps", "notes"],
       lsp_diagnostics: ["diagnostics"],
       hook_context: ["event", "content"],
       worktree_setup: ["path", "summary"],
@@ -212,6 +214,26 @@ describe("bundle builder", () => {
       if (!["BrowserClick", "BrowserType", "BrowserKey", "BrowserScroll", "BrowserWait", "BrowserRecord"].includes(n)) expect(b.tools[n]!.description).toMatch(/untrusted/i);
     }
     expect(b.tools.BrowserType!.description).toMatch(/password/);
+    // The iOS Simulator and demo recordings.
+    expect(props("SimulatorTap")).toEqual(["device", "x", "y", "duration_ms"]);
+    expect(b.tools.SimulatorTap!.input_schema.required).toEqual(["x", "y"]);
+    expect(props("SimulatorSwipe")).toEqual(["device", "from_x", "from_y", "to_x", "to_y", "duration_ms"]);
+    expect(props("SimulatorType")).toEqual(["device", "text", "keys"]);
+    expect(b.tools.SimulatorType!.description).toMatch(/password/);
+    expect(b.tools.SimulatorBoot!.input_schema.required).toEqual(["device"]);
+    expect(b.tools.SimulatorInstall!.input_schema.required).toEqual(["app_path"]);
+    expect(b.tools.SimulatorLaunch!.input_schema.required).toEqual(["bundle_id"]);
+    expect((b.tools.SimulatorButton!.input_schema.properties as any).button.enum).toEqual(["home", "lock", "side_button", "siri", "apple_pay"]);
+    for (const n of ["SimulatorScreenshot", "DemoRecording"]) expect(b.tools[n]!.description).toMatch(/not instructions/);
+    for (const n of ["SimulatorTap", "SimulatorSwipe"]) expect(b.tools[n]!.description).toMatch(/SimulatorScreenshot/);
+    expect(props("DemoRecording")).toEqual(["recording_id", "screenshots"]);
+    expect((b.tools.DemoRecording!.input_schema.properties as any).screenshots.maxItems).toBe(6);
+    expect(props("DemoSkillSave")).toEqual(["recording_id", "name", "description", "body", "scope"]);
+    expect(b.tools.DemoSkillSave!.input_schema.required).toEqual(["name", "description", "body"]);
+    expect(b.tools.DemoSkillSave!.description).toMatch(/review/);
+    expect(b.tools.DemoSkillSave!.description).toMatch(/Check/);
+    expect(b.tools.DemoRecording!.description).toMatch(/only the user can/);
+    expect(b.reminders.demo_recorded).toMatch(/DemoSkillSave/);
     expect(props("TerminalRead")).toEqual(["tab_id", "lines", "wait_for_output_ms", "description"]);
     expect(props("TerminalRun")).toEqual(["command", "title", "run_outside_sandbox", "description"]);
     expect(b.tools.TerminalRun!.input_schema.required).toEqual(["command", "description"]);

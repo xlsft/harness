@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "device": {
+      "type": "string",
+      "description": "The device's UDID or name. Optional when one device is booted."
+    },
+    "x": {
+      "type": "number",
+      "description": "Pixels from the left of the last screenshot."
+    },
+    "y": {
+      "type": "number",
+      "description": "Pixels from the top of the last screenshot."
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000,
+      "description": "How long to hold the finger down; 0 (the default) is a tap, 600 or more a long press."
+    }
+  },
+  "required": [
+    "x",
+    "y"
+  ],
+  "additionalProperties": false
+}

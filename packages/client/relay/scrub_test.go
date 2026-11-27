@@ -91,3 +91,26 @@ func TestScrubReplacesImagesByReferences(t *testing.T) {
 		t.Fatalf("%+v", b)
 	}
 }
+
+func TestScrubKeepsDemoRecordingsOnTheMachine(t *testing.T) {
+	for _, ev := range []*agentv1.SessionEvent{
+		{Event: &agentv1.SessionEvent_DemoRecordingState{DemoRecordingState: &agentv1.DemoRecordingState{Recording: true}}},
+		{Event: &agentv1.SessionEvent_DemoSkillReviewRequested{DemoSkillReviewRequested: &agentv1.DemoSkillReviewRequested{Content: "draft"}}},
+		{Event: &agentv1.SessionEvent_DemoSkillReviewResolved{DemoSkillReviewResolved: &agentv1.DemoSkillReviewResolved{Saved: true}}},
+		{Event: &agentv1.SessionEvent_SimulatorActivity{SimulatorActivity: &agentv1.SimulatorActivity{Udid: "u"}}},
+	} {
+		scrubDeviceLocal(ev, nil, "")
+		if ev.GetEvent() != nil {
+			t.Fatalf("%+v", ev)
+		}
+	}
+	image := &llmv1.ContentBlock{Block: &llmv1.ContentBlock_Image{Image: &llmv1.ImageBlock{MediaType: "image/jpeg", Data: []byte("step")}}}
+	tool := &agentv1.SessionEvent{Event: &agentv1.SessionEvent_ToolCallFinished{ToolCallFinished: &agentv1.ToolCallFinished{
+		StructuredResultJson: `{"computer_use":true,"device_only":true}`, Content: []*llmv1.ContentBlock{image},
+	}}}
+	sink := &sinkFake{available: true}
+	scrubDeviceLocal(tool, sink, "s1")
+	if len(tool.GetToolCallFinished().GetContent()) != 0 || len(sink.added) != 0 {
+		t.Fatalf("a recording's screenshot went to the store: %+v %v", tool.GetToolCallFinished().GetContent(), sink.added)
+	}
+}

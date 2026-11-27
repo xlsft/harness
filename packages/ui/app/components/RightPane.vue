@@ -21,7 +21,8 @@ const component = computed(() => ({
   agents: resolveComponent('AgentsPane'),
   sentfile: resolveComponent('SentFilePane'),
   visual: resolveComponent('VisualPane'),
-  plugin: resolveComponent('PluginPane')
+  plugin: resolveComponent('PluginPane'),
+  simulator: resolveComponent('SimulatorPane')
 }[props.pane]))
 
 const { isFull, leave } = usePaneFullscreen()
@@ -34,7 +35,7 @@ const pluginTitle = computed(() => pluginOpen.value[props.session.meta.id]?.titl
 const TITLES: Record<PaneName, string> = {
   details: tt('Overview'), terminal: tt('Terminal'), diff: tt('Changes'), browser: tt('Browser'), files: tt('Files'),
   artifact: tt('Artifacts'), sidechat: tt('Side chat'), tasks: tt('Tasks'), agents: tt('Agents'), sentfile: tt('File'), visual: tt('Visual'),
-  plugin: tt('Plugin')
+  plugin: tt('Plugin'), simulator: tt('iOS Simulator')
 }
 function onFullKey(e: KeyboardEvent) {
   if (e.key === 'Escape') leave(props.session.meta.id)

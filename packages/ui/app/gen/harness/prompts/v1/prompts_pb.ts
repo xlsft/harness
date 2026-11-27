@@ -119,6 +119,8 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *   monitor_stopped       {{task_id}} {{description}} {{pattern}} {{reason}}  a Monitor ended by itself (timeout, too noisy)
    *   terminal_command_done {{tab_id}} {{title}} {{command}} {{status}} {{tail}}  a command the agent typed into a
    *                         terminal tab ended (TerminalRun); rides on the next model request, starts one when idle
+   *   demo_recorded         {{recording_id}} {{steps}} {{apps}} {{notes}}  the user finished recording a demo to turn into
+   *                         a skill (DemoRecording, DemoSkillSave); starts a turn when idle
    *   lsp_diagnostics       {{diagnostics}}        errors a language server found after the agent's edits, marked as data
    *   hook_context          {{event}} {{content}}  what a hook of the session's settings reports, marked as not the user's
    *   worktree_setup        {{path}} {{summary}}   what the setup of a new worktree ran (.harness/worktree.json) and how

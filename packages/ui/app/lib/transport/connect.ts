@@ -11,7 +11,7 @@ import type { ComputerProfileVM, EffortName, QuestionReply } from '~/lib/session
 import { messageContent, type OutgoingAttachment } from '~/lib/session/attachments'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 import { ConfiguredHook_Status } from '~/gen/harness/agent/v1/hooks_pb'
-import type { ConfiguredHookVM, DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, PullRequestInput, SandboxStatus, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
+import type { ConfiguredHookVM, DeviceSettings, ComputerUseStatusVM, SimulatorInputVM, SimulatorFrameVM, ModelInfo, NewSessionOptions, PullRequestInput, SandboxStatus, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { createClient, type Client, type Interceptor, type Transport } from '@connectrpc/connect'
 import { createConnectTransport } from '@connectrpc/connect-web'
 import {
@@ -340,6 +340,67 @@ export class ConnectTransport implements SessionTransport {
 
   async stopComputerUse(sessionId: string) {
     await this.client.stopComputerUse({ sessionId })
+  }
+
+  async listDemoRecordingApps() {
+    const r = await this.client.listDemoRecordingApps({})
+    return { apps: r.apps.map(a => ({ id: a.id, name: a.name, tier: tierName(a.tier), note: a.tierNote })), unavailable: r.unavailableReason }
+  }
+
+  async startDemoRecording(sessionId: string, appIds: string[]) {
+    await this.client.startDemoRecording({ sessionId, appIds })
+  }
+
+  async stopDemoRecording(sessionId: string, discard: boolean) {
+    await this.client.stopDemoRecording({ sessionId, discard })
+  }
+
+  async respondToDemoSkillReview(sessionId: string, requestId: string, a: { save: boolean, content: string, scope: 'project' | 'personal', note: string }) {
+    await this.client.respondToDemoSkillReview({ sessionId, requestId, save: a.save, content: a.content, scope: a.scope, note: a.note })
+  }
+
+  async listSimulators() {
+    const r = await this.client.listSimulators({})
+    return { devices: r.devices.map(d => ({ udid: d.udid, name: d.name, state: d.state, runtimeName: d.runtimeName })), unavailable: r.unavailableReason }
+  }
+
+  async bootSimulator(udid: string) {
+    await this.client.bootSimulator({ udid })
+  }
+
+  async shutdownSimulator(udid: string) {
+    await this.client.shutdownSimulator({ udid })
+  }
+
+  // Each frame is a blob URL; the caller revokes the one it no longer shows.
+  async watchSimulator(udid: string, onFrame: (f: SimulatorFrameVM) => void, signal: AbortSignal) {
+    try {
+      for await (const f of this.client.watchSimulator({ udid }, { signal })) {
+        onFrame({ url: URL.createObjectURL(new Blob([f.jpeg as Uint8Array<ArrayBuffer>], { type: 'image/jpeg' })), width: f.width, height: f.height })
+      }
+    } catch (e) {
+      if (!signal.aborted) throw e
+    }
+  }
+
+  async simulatorInput(udid: string, input: SimulatorInputVM) {
+    switch (input.kind) {
+      case 'tap':
+        await this.client.simulatorInput({ udid, input: { case: 'tap', value: { x: input.x, y: input.y, durationMs: input.durationMs ?? 0 } } })
+        break
+      case 'swipe':
+        await this.client.simulatorInput({ udid, input: { case: 'swipe', value: { fromX: input.fromX, fromY: input.fromY, toX: input.toX, toY: input.toY, durationMs: input.durationMs ?? 0 } } })
+        break
+      case 'text':
+        await this.client.simulatorInput({ udid, input: { case: 'text', value: input.text } })
+        break
+      case 'keys':
+        await this.client.simulatorInput({ udid, input: { case: 'keys', value: input.keys } })
+        break
+      case 'button':
+        await this.client.simulatorInput({ udid, input: { case: 'button', value: input.button } })
+        break
+    }
   }
 
   async setAutoContinue(sessionId: string, enabled: boolean) {

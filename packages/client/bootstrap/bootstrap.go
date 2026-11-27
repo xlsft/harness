@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/xlsft/harness/packages/client/browser"
 	"github.com/xlsft/harness/packages/client/computeruse"
+	"github.com/xlsft/harness/packages/client/simulator"
 	"log/slog"
 	"net/http"
 	"os"
@@ -176,6 +177,9 @@ type Options struct {
 	// ComputerUse, when set, gives the session the Computer* tools (HARNESS_NO_COMPUTER_USE=1 leaves them out). They are
 	// only offered while the device-local switch is on. The session's grants end when the session closes.
 	ComputerUse *computeruse.Manager
+	// Simulator, when set, gives the session the Simulator* tools for the iOS Simulators of this Mac
+	// (HARNESS_NO_SIMULATOR=1 leaves them out). They are only offered where Xcode is.
+	Simulator *simulator.Manager
 	// Terminals, when set, gives the agent the tabs of the Terminal pane (the Terminal* tools).
 	Terminals *terminal.Manager
 	// SkillDocs replaces the sync cache as the source of the skills and commands stored on the server (tests).
@@ -699,7 +703,15 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		for _, t := range o.ComputerUse.Tools() {
 			s.Tools.Register(t)
 		}
+		for _, t := range o.ComputerUse.RecordingTools() {
+			s.Tools.Register(t)
+		}
 		s.computer = o.ComputerUse
+	}
+	if o.Simulator != nil && os.Getenv("HARNESS_NO_SIMULATOR") != "1" {
+		for _, t := range o.Simulator.Tools() {
+			s.Tools.Register(t)
+		}
 	}
 
 	// Permissions.

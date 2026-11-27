@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "recording_id": {
+      "type": "string",
+      "description": "The recording to read. Default: the session's latest."
+    },
+    "screenshots": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "maxItems": 6,
+      "description": "Step numbers whose screenshots to include."
+    }
+  },
+  "additionalProperties": false
+}

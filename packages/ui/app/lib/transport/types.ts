@@ -62,6 +62,38 @@ export interface ComputerUseStatusVM {
   blockEntries: { id: string, label: string, warning: string }[]
 }
 
+// An app a demo recording can watch (ListDemoRecordingApps): its tier in the active profile; blocked ones cannot be picked.
+export interface DemoRecordingAppVM {
+  id: string
+  name: string
+  tier: ComputerTierName
+  note: string
+}
+
+// A simulator of this Mac (ListSimulators).
+export interface SimulatorDeviceVM {
+  udid: string
+  name: string
+  // "Booted", "Shutdown", "Booting"...
+  state: string
+  runtimeName: string
+}
+
+// A frame of a booted simulator (WatchSimulator), in device pixels.
+export interface SimulatorFrameVM {
+  url: string
+  width: number
+  height: number
+}
+
+// What the Simulator pane sends to a device: points are fractions of the screen.
+export type SimulatorInputVM
+  = | { kind: 'tap', x: number, y: number, durationMs?: number }
+    | { kind: 'swipe', fromX: number, fromY: number, toX: number, toY: number, durationMs?: number }
+    | { kind: 'text', text: string }
+    | { kind: 'keys', keys: string }
+    | { kind: 'button', button: string }
+
 // An app of this machine for the profile editor (ListComputerUseApps).
 export interface ComputerUseAppVM {
   id: string
@@ -328,6 +360,19 @@ export interface SessionTransport {
   listComputerUseApps(): Promise<ComputerUseAppVM[]>
   respondToComputerAccess(sessionId: string, requestId: string, approvedAppIds: string[]): Promise<void>
   stopComputerUse(sessionId: string): Promise<void>
+  // Recording a demo into a skill (device-local, only from this machine). `unavailable` says why none can start now.
+  listDemoRecordingApps?(): Promise<{ apps: DemoRecordingAppVM[], unavailable: string }>
+  startDemoRecording?(sessionId: string, appIds: string[]): Promise<void>
+  // Stops the session's recording; discarded, it is deleted and the agent is not told.
+  stopDemoRecording?(sessionId: string, discard: boolean): Promise<void>
+  respondToDemoSkillReview?(sessionId: string, requestId: string, answer: { save: boolean, content: string, scope: 'project' | 'personal', note: string }): Promise<void>
+  // The iOS Simulators of this Mac (device-local). `unavailable` says why there are none (no Xcode, not a Mac).
+  listSimulators?(): Promise<{ devices: SimulatorDeviceVM[], unavailable: string }>
+  bootSimulator?(udid: string): Promise<void>
+  shutdownSimulator?(udid: string): Promise<void>
+  // Streams frames until `signal` aborts; resolves when the stream ends.
+  watchSimulator?(udid: string, onFrame: (f: SimulatorFrameVM) => void, signal: AbortSignal): Promise<void>
+  simulatorInput?(udid: string, input: SimulatorInputVM): Promise<void>
   respondToPlan(sessionId: string, requestId: string, decision: RespondToPlanRequest_Decision, feedback?: string): Promise<void>
 
   // engine: the engine the picked model belongs to; omitted means the session's own. The client refuses any other.

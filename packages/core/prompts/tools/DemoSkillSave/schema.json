@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "recording_id": {
+      "type": "string",
+      "description": "The recording it was drafted from. Default: the session's latest."
+    },
+    "name": {
+      "type": "string",
+      "description": "The skill's name: lowercase letters, digits and hyphens, like export-invoice. Becomes its slash command."
+    },
+    "description": {
+      "type": "string",
+      "description": "One or two sentences: what the skill does and when to use it."
+    },
+    "body": {
+      "type": "string",
+      "description": "The Markdown of the skill after its frontmatter."
+    },
+    "scope": {
+      "type": "string",
+      "enum": [
+        "project",
+        "personal"
+      ],
+      "description": "Where to save it. Default project."
+    }
+  },
+  "required": [
+    "name",
+    "description",
+    "body"
+  ],
+  "additionalProperties": false
+}
