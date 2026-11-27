@@ -96,7 +96,7 @@ Everything here is tested against the fake gateway, fake MCP server and local gi
 | Copy gitignored files | closed | `.worktreeinclude` | 1a |
 | Setup of a new worktree | closed | `.harness/worktree.json`: commands and `shareDependencies` (installs from the package managers' caches), run under the sandbox before the first turn, a suggestion for projects with lockfiles. [worktree-setup.md](worktree-setup.md) | |
 | Auto cleanup of worktrees | closed | `worktree.Prune`, at client start and daily | 1a |
-| Non-git VCS | open | Needs `WorktreeCreate` and `WorktreeRemove` hook events, a way to read a hook's stdout as a path (`hooks.Outcome` has none), and a non-git form of `session.Worktree` that `ExitWorktree` and `Dirty` understand. Few people need it, so it was left for last | |
+| Non-git VCS | closed | `WorktreeCreate` and `WorktreeRemove` replace git worktrees in sessions, `EnterWorktree` and isolated agents; `VcsStatus` and `VcsDiff` feed the Changes pane outside git; a one-time notice in Mercurial, Jujutsu and Perforce folders without them; a Jujutsu example. See [vcs-hooks.md](vcs-hooks.md). Not done: Mercurial and Perforce examples, cleanup of stale hook copies | vcs |
 
 ## Workflows and orchestration
 
@@ -181,6 +181,7 @@ No `No` or `Partial` rows.
 | 1b | `bea5ca48` | Subagents |
 | 2 | `6d1862bc` | Policy files, profiles, limits, tools, reports, commands |
 | 3 | `63906771` | Stdin, decision log, pull request field |
+| vcs | `4984c7e0` | Version control through hooks (and the commits after it on that branch) |
 
 ## What only fakes have seen
 
@@ -189,3 +190,4 @@ No `No` or `Partial` rows.
 - MDM: the plist reader is only unit-tested on its JSON unwrapping, the registry reader on `reg query` text. Neither has seen a real profile.
 - `bashMemoryLimitMB`: the prefix is tested; it has never run on Linux.
 - Windows: nothing here ran on it.
+- VCS hooks: the tests use shell scripts and a stand-in `jj`. The Jujutsu example has a test against the real `jj` that skips when `jj` is not on `PATH`, as it was where this was written; Mercurial and Perforce have met nothing.

@@ -903,6 +903,8 @@ message SessionEvent {
     HostWorkUpdated host_work_updated = 230;
     // The setup of a new worktree (worktree_setup.proto); numbered apart like the shell events.
     WorktreeSetupUpdated worktree_setup_updated = 430;
+    // Version control through hooks (hooks.proto, docs/design/vcs-hooks.md); numbered apart like the shell events.
+    VcsHooksSuggested vcs_hooks_suggested = 410;
   }
 }
 

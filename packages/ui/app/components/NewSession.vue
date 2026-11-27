@@ -53,6 +53,8 @@ const text = ref('')
 const files = ref<ComposerFile[]>([])
 const busy = ref(false)
 const error = ref('')
+// Creating the worktree failed (git, or a WorktreeCreate hook): starting in the folder itself is offered, never done.
+const worktreeFailed = ref(false)
 // One open menu at a time; the environment menu has two triggers (centre card and footer chip).
 const menu = ref<'' | 'env' | 'env-centre' | 'folder' | 'model' | 'effort' | 'mode'>('')
 const browsing = ref(false)
@@ -318,6 +320,7 @@ async function start() {
   if ((!msg && !files.value.length) || busy.value) return
   busy.value = true
   error.value = ''
+  worktreeFailed.value = false
   try {
     if (host.value) {
       await startOnHost(msg)
@@ -354,9 +357,16 @@ async function start() {
     })
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err)
+    worktreeFailed.value = !!(cwd.value && worktree.value && !host.value)
   } finally {
     busy.value = false
   }
+}
+
+// The user's answer to a failed worktree: the same session, in the folder itself.
+function startInPlace() {
+  worktree.value = false
+  void start()
 }
 
 const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitespace-nowrap hover:bg-hover hover:text-toned'
@@ -600,6 +610,19 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
             <p class="m-0 border border-bad px-2.5 py-1.5 text-[12px] text-bad">
               {{ error }}
             </p>
+            <div
+              v-if="worktreeFailed"
+              class="flex items-center gap-2 px-2.5 py-1 text-[12px] text-muted"
+            >
+              <span class="min-w-0 flex-1">{{ tt('Nothing started. The session can work in the folder itself instead.') }}</span>
+              <button
+                type="button"
+                class="shrink-0 border border-accented px-2 py-0.5 text-toned hover:bg-hover"
+                @click="startInPlace"
+              >
+                {{ tt('Start without a worktree') }}
+              </button>
+            </div>
           </template>
           <template #bottom>
             <div class="flex min-w-0 items-center gap-1 overflow-hidden text-muted">

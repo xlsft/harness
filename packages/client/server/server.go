@@ -455,7 +455,10 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if opts.Entrypoint == "" {
 		opts.Entrypoint = "agent-service"
 	}
-	wt, wtMeta, err := createWorktree(ctx, m)
+	if m.Worktree != nil && opts.SessionID == "" {
+		opts.SessionID = session.NewID() // the WorktreeCreate hooks see the session they work for
+	}
+	wt, wtMeta, err := s.createWorktree(ctx, m, opts.SessionID)
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +473,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	if remote != nil {
 		id, err := s.forkRemote(ctx, remote, opts.Cwd, opts.SessionID)
 		if err != nil {
-			s.rollbackWorktree(wt)
+			s.rollbackWorktree(wt, m.GetCwd(), opts.SessionID)
 			chat.rollback()
 			return nil, err
 		}
@@ -497,7 +500,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	ls.usage.monitor = usage
 	sess, err := bootstrap.Open(ctx, opts)
 	if err != nil {
-		s.rollbackWorktree(wt)
+		s.rollbackWorktree(wt, m.GetCwd(), opts.SessionID)
 		chat.rollback()
 		return nil, modeError(err, connect.CodeFailedPrecondition)
 	}
@@ -592,6 +595,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		ls.startWorktreeSetup(wt)
 	}
 	sess.StartHooks()
+	ls.suggestVcsHooks()
 	s.sessionOpened(sess.ID)
 	return connect.NewResponse(&agentv1.CreateSessionResponse{Session: ls.info()}), nil
 }

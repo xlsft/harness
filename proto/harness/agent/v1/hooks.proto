@@ -107,3 +107,13 @@ message SetHooksTrustRequest {
 }
 
 message SetHooksTrustResponse {}
+
+// The session's folder is under a version control that git does not cover (Mercurial, Jujutsu, Perforce), and no
+// WorktreeCreate or VcsStatus hook runs for it: worktrees cannot isolate it and the Changes pane falls back to snapshots.
+// Published once per working copy on this device, when a session opens there. Not stored or replayed.
+message VcsHooksSuggested {
+  // "mercurial", "jujutsu" or "perforce".
+  string vcs = 1;
+  // The working copy's root.
+  string root = 2;
+}

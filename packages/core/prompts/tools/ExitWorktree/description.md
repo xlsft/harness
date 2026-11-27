@@ -5,4 +5,6 @@ Moves this session out of its worktree, back to the folder it entered from, keep
 
 Removing refuses when the worktree has uncommitted changes, when background tasks of this session are running, or when another session works there. Commit the changes first, or choose keep. Set `discard_changes: true` only when the user told you to throw those changes away; the user is asked to confirm it.
 
+In a copy a WorktreeCreate hook made, `remove` runs the project's WorktreeRemove hook, and the changed files its VcsStatus hook lists count as uncommitted changes.
+
 Fails when the session does not run in a worktree.

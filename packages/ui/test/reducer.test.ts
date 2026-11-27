@@ -26,6 +26,18 @@ describe('changes the model makes to the session', () => {
   })
 })
 
+describe('a folder under another version control', () => {
+  it('shows the suggestion to configure VCS hooks as a notice', () => {
+    const { b, s } = setup()
+    b.vcsHooksSuggested('jujutsu', '/work/repo')
+    reduceAll(s, b.events)
+    expect(s.items.at(-1)).toMatchObject({ kind: 'notice', level: 'info', noticeKind: 'vcs_hooks' })
+    const text = (s.items.at(-1) as { text: string }).text
+    expect(text).toContain('/work/repo is under Jujutsu')
+    expect(text).toContain('WorktreeCreate')
+  })
+})
+
 describe('hook runs', () => {
   it('are one row from start to end, in the order they happened', () => {
     const { b, s } = setup()

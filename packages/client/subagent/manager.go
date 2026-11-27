@@ -599,9 +599,9 @@ func (m *Manager) SpawnSubagent(ctx context.Context, o Options) (*Handle, error)
 	a := &sub{depth: depth, typeName: t.Name, readOnly: t.ReadOnly, mode: permissions.Mode(t.Mode), seed: seed, cwd: m.cfg.Cwd, silent: o.Silent, schema: o.OutputSchema, resolved: resolved, isSettled: true, settled: closedChan(),
 		info: tools.AgentInfo{ID: id, ParentID: o.ParentID, ToolUseID: o.ToolUseID, Name: o.Description, Team: o.Team, Type: t.Name, Model: model, State: tools.AgentQueued, StartedAt: rfc3339(time.Now())}}
 	if o.Isolation == tools.IsolationWorktree || t.Isolation == tools.IsolationWorktree {
-		r, err := worktree.Create(ctx, m.cfg.Cwd, worktree.Options{Name: "agent-" + id})
+		r, err := m.createWorktree(ctx, id)
 		if err != nil {
-			return nil, fmt.Errorf("cannot create a worktree for the agent: %w", err)
+			return nil, err
 		}
 		a.wt, a.cwd = r, r.Cwd
 		a.info.WorktreePath, a.info.WorktreeBranch = r.Path, r.Branch
@@ -614,7 +614,7 @@ func (m *Manager) SpawnSubagent(ctx context.Context, o Options) (*Handle, error)
 	}
 	if err := m.build(ctx, a, t, nil); err != nil {
 		if a.wt != nil {
-			_ = worktree.Rollback(context.WithoutCancel(ctx), a.wt)
+			m.rollbackWorktree(context.WithoutCancel(ctx), a.wt)
 		}
 		return nil, err
 	}
@@ -1595,7 +1595,7 @@ func (m *Manager) Shutdown() {
 			if wt != nil {
 				ctx, cancel := context.WithTimeout(context.Background(), worktreeCleanupTimeout)
 				defer cancel()
-				if _, err := worktree.RemoveIfUntouched(ctx, wt); err != nil {
+				if err := m.removeIfUntouched(ctx, wt); err != nil {
 					m.log().Warn("remove agent worktree", "path", wt.Path, "err", err)
 				}
 			}

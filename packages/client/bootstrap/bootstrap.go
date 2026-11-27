@@ -543,7 +543,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	} else if o.NoFolder {
 		s.Trusted = true // created by the client for this session alone
 	} else {
-		s.Trusted = permissions.IsTrusted(cwd)
+		s.Trusted = permissions.IsTrusted(cwd) || hookCopyTrusted(s.Worktree, cwd)
 	}
 	var docs settings.DocSource
 	var memDocs memory.DocSource

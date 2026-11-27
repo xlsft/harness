@@ -9,6 +9,7 @@
 // - PermissionRequest / Question / PlanProposed cards are resolved by the matching *Resolved event.
 
 import { BrowserSiteDecision } from '~/gen/harness/agent/v1/real_browser_pb'
+import { tt } from '~/utils/i18n'
 import { goalVM, taskNodeVM } from './teamwork'
 import { SessionProposal_State } from '~/gen/harness/agent/v1/session_links_pb'
 import { HookRun_Status } from '~/gen/harness/agent/v1/hooks_pb'
@@ -877,6 +878,20 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
 
     case 'goalUpdated': {
       s.goal = e.value.goal ? goalVM(e.value.goal) : null
+      break
+    }
+
+    case 'vcsHooksSuggested': {
+      // A folder under another version control and no hooks for it (docs/design/vcs-hooks.md); once per folder.
+      const v = e.value
+      const name = ({ mercurial: 'Mercurial', jujutsu: 'Jujutsu', perforce: 'Perforce' } as Record<string, string>)[v.vcs] ?? v.vcs
+      push(s, {
+        kind: 'notice',
+        id: 'n' + seq,
+        level: 'info',
+        noticeKind: 'vcs_hooks',
+        text: tt('{0} is under {1}. Worktrees and the Changes pane use git; for {1} they need WorktreeCreate, WorktreeRemove, VcsStatus and VcsDiff hooks (docs/design/vcs-hooks.md has a Jujutsu example).', [v.root, name])
+      })
       break
     }
 

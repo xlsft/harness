@@ -15,6 +15,7 @@ import (
 	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/vcshooks"
 	"github.com/xlsft/harness/packages/client/workspace"
 )
 
@@ -91,6 +92,9 @@ type mover struct{ s *Session }
 var _ tools.Mover = mover{}
 
 func (m mover) Worktree() *session.Worktree { return m.s.CurrentWorktree() }
+
+// VcsHooks implements tools.VcsHooker: the session's WorktreeCreate and VcsStatus hooks.
+func (m mover) VcsHooks() vcshooks.Hooks { return vcshooks.Of(m.s.Hooks) }
 func (m mover) Move(ctx context.Context, mv tools.Move) error {
 	return m.s.move(ctx, mv)
 }
@@ -155,7 +159,7 @@ func (s *Session) move(ctx context.Context, mv tools.Move) error {
 		s.ToolEnv.SetExtraEnv(environ)
 	}
 
-	trusted := folderTrust(s.open, cwd)
+	trusted := folderTrust(s.open, cwd) || hookCopyTrusted(mv.Worktree, cwd)
 	s.placeMu.Lock()
 	s.Cwd = cwd
 	s.Worktree = mv.Worktree
@@ -324,6 +328,20 @@ func orNone(s string) string {
 		return "(none)"
 	}
 	return s
+}
+
+// hookCopyTrusted: cwd is in a working copy a WorktreeCreate hook made of a trusted folder. The copy sits wherever the
+// hook put it, often outside that folder, and holds the same project: it has the folder's trust, so the session keeps the
+// project's hooks (VcsStatus, WorktreeRemove) there.
+func hookCopyTrusted(wt *session.Worktree, cwd string) bool {
+	if wt == nil || !wt.Hook || wt.RepositoryPath == "" {
+		return false
+	}
+	rel, err := filepath.Rel(wt.Path, cwd)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return false
+	}
+	return permissions.IsTrusted(wt.RepositoryPath)
 }
 
 // folderTrust is the trust of a folder the session moves to: as Open decides it.

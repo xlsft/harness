@@ -300,7 +300,7 @@ Plan names in brackets are the lowest tier the vendor lists. Codex rows cover al
 | Sync with base branch tool | Yes (`SyncWithBase`) | ? | ? |
 | Propose a branch tool | Yes (`ProposeBranch`) | ? | ? |
 | Auto cleanup of worktrees | No (never removed) | Yes | ? |
-| Non-git VCS | No | Yes (hooks) | ? |
+| Non-git VCS | Yes (hooks: `WorktreeCreate`, `WorktreeRemove`, `VcsStatus`, `VcsDiff`) | Yes (hooks) | ? |
 | Session moves folder while running | Yes (`ChangeDirectory`, `RequestDirectory`) | Yes (`/cd`) | Yes (`/cd`) |
 | Environment per folder (env, dirs, defaults) | Yes (encrypted `.env`) | Yes (Desktop) | Yes (Local env) |
 
