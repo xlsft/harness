@@ -3,6 +3,7 @@
 // serves it. Every call carries `Authorization: Bearer <token>` when a token is given (see token.ts).
 
 import { ConnectSshApi } from '~/lib/ssh'
+import { doctorReport } from '~/lib/doctor'
 import { ResolveSessionProposalRequest_Action } from '~/gen/harness/agent/v1/session_links_pb'
 import type { SchedulesApi } from '~/lib/schedule/types'
 import type { ComputerUseStatus } from '~/gen/harness/agent/v1/computer_use_pb'
@@ -66,7 +67,7 @@ const EFFORT_NAME: Partial<Record<Effort, EffortName>> = {
 function preferencesVM(p: UserPreferences_pb | undefined): UserPreferences {
   const b = p?.sandbox
   const m = p?.managedPolicy
-  return { autoMemoryEnabled: p?.autoMemoryEnabled ?? true, managedPolicy: { active: m?.active ?? false, allowRules: m?.allowRules ?? [], askRules: m?.askRules ?? [], denyRules: m?.denyRules ?? [], managedRulesOnly: m?.managedRulesOnly ?? false, sandboxRequired: m?.sandboxRequired ?? false, sandboxOutsideRefused: m?.sandboxOutsideRefused ?? false, disabledModes: m?.disabledModes ?? [], restrictProviders: m?.restrictProviders ?? false, allowedProviders: m?.allowedProviders ?? [], personalProvidersDisabled: m?.personalProvidersDisabled ?? false, restrictMcpServers: m?.restrictMcpServers ?? false, allowedMcpServers: m?.allowedMcpServers ?? [], localModelsDisabled: m?.localModelsDisabled ?? false, restrictSkills: m?.restrictSkills ?? false, allowedSkills: m?.allowedSkills ?? [], blockedSkills: m?.blockedSkills ?? [], externalSkillSearchDisabled: m?.externalSkillSearchDisabled ?? false, deferBuiltinTools: m?.deferBuiltinTools, pluginUiDisabled: m?.pluginUiDisabled ?? false, pluginUiNetworkDisabled: m?.pluginUiNetworkDisabled ?? false, chatAppsDisabled: m?.chatAppsDisabled ?? false, remoteStartsDisabled: m?.remoteStartsDisabled ?? false }, compactIdleSessions: p?.compactIdleSessions ?? true, deferBuiltinTools: p?.deferBuiltinTools ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
+  return { autoMemoryEnabled: p?.autoMemoryEnabled ?? true, managedPolicy: { active: m?.active ?? false, allowRules: m?.allowRules ?? [], askRules: m?.askRules ?? [], denyRules: m?.denyRules ?? [], managedRulesOnly: m?.managedRulesOnly ?? false, sandboxRequired: m?.sandboxRequired ?? false, sandboxOutsideRefused: m?.sandboxOutsideRefused ?? false, disabledModes: m?.disabledModes ?? [], restrictProviders: m?.restrictProviders ?? false, allowedProviders: m?.allowedProviders ?? [], personalProvidersDisabled: m?.personalProvidersDisabled ?? false, restrictMcpServers: m?.restrictMcpServers ?? false, allowedMcpServers: m?.allowedMcpServers ?? [], localModelsDisabled: m?.localModelsDisabled ?? false, restrictSkills: m?.restrictSkills ?? false, allowedSkills: m?.allowedSkills ?? [], blockedSkills: m?.blockedSkills ?? [], externalSkillSearchDisabled: m?.externalSkillSearchDisabled ?? false, minClientVersion: m?.minClientVersion ?? '', maxClientVersion: m?.maxClientVersion ?? '', deferBuiltinTools: m?.deferBuiltinTools, pluginUiDisabled: m?.pluginUiDisabled ?? false, pluginUiNetworkDisabled: m?.pluginUiNetworkDisabled ?? false, chatAppsDisabled: m?.chatAppsDisabled ?? false, remoteStartsDisabled: m?.remoteStartsDisabled ?? false }, compactIdleSessions: p?.compactIdleSessions ?? true, deferBuiltinTools: p?.deferBuiltinTools ?? true, prMonitorWakesPerHour: p?.prMonitorWakesPerHour || 30, subagentMaxDepth: p?.subagentMaxDepth || 2, subagentMaxRunning: p?.subagentMaxRunning || 8, workflowMaxAgents: p?.workflowMaxAgents || 30, lspEnabled: p?.lspEnabled ?? true, lspDiagnostics: p?.lspDiagnostics ?? true, lspDiagnosticsStartServer: p?.lspDiagnosticsStartServer ?? false,
     sandbox: { enabled: b?.enabled ?? true, allowedWritePaths: b?.allowedWritePaths ?? [], allowedHosts: b?.allowedHosts ?? [], allowLocalhost: b?.allowLocalhost ?? true, autoAllowBash: b?.autoAllowBash ?? false, outsideWithoutPrompt: b?.outsideWithoutPrompt ?? false },
     hooksEnabled: p?.hooksEnabled ?? true, schedulesEnabled: p?.schedulesEnabled ?? true, goalMaxTurns: p?.goalMaxTurns || 20, bestOfNParallel: p?.bestOfNParallel ?? 0, bestOfNBudgetUsd: p?.bestOfNBudgetUsd ?? 0,
     modelTuning: { speedTier: p?.modelTuning?.speedTier ?? '', cacheTtl: p?.modelTuning?.cacheTtl ?? '', advisorModel: p?.modelTuning?.advisorModel ?? '' }, imageModel: p?.imageModel ?? '',
@@ -437,6 +438,10 @@ export class ConnectTransport implements SessionTransport {
 
   async setKeepAwake(sessionId: string, enabled: boolean) {
     await this.client.setKeepAwake({ sessionId, enabled })
+  }
+
+  async runDoctor(o?: { skipMcp?: boolean }) {
+    return doctorReport(await this.client.runDoctor({ skipMcp: o?.skipMcp ?? false }))
   }
 
   async getDeviceSettings(): Promise<DeviceSettings> {

@@ -8,6 +8,8 @@
 // folder, so they are hidden without one. Model, effort and mode are remembered; the folder is not.
 // Picking an ACP agent's model starts the session on that agent: the mode chip then lists the agent's modes, and what
 // the agent cannot do (effort, worktree) is hidden.
+// A harness:// link (useDeepLinks) can leave a draft: its prompt goes into the text box, its folder comes as ?cwd=, and a
+// notice says where they came from. Nothing is sent until the user sends it.
 // With ?fork=<id> ("Continue here" on a session of another machine) the new session starts from a copy of that
 // session's transcript, in the folder picked here.
 // The text box is the session's (ComposerBox), less what needs a session: no shell or memory, the commands known
@@ -60,6 +62,24 @@ const menu = ref<'' | 'env' | 'env-centre' | 'folder' | 'model' | 'effort' | 'mo
 const browsing = ref(false)
 const box = ref<{ focusEnd: () => void } | null>(null)
 const toast = useToast()
+const linkDraft = useLinkDraft()
+// Set while the text box holds a prompt from a link: what the notice above it says.
+const fromLink = ref<{ folderDropped: boolean } | null>(null)
+
+/** Puts a link's draft into the text box, replacing nothing the user typed without asking. */
+function takeLinkDraft() {
+  const d = linkDraft.value
+  if (!d) return
+  linkDraft.value = null
+  if (text.value.trim() && d.prompt && text.value !== d.prompt) {
+    text.value = `${text.value}\n\n${d.prompt}`
+  } else if (d.prompt) {
+    text.value = d.prompt
+  }
+  fromLink.value = { folderDropped: d.folderDropped }
+  box.value?.focusEnd()
+}
+watch(linkDraft, d => d && takeLinkDraft())
 
 const name = (p: string) => p.replace(/\/+$/, '').split('/').pop() || p
 
@@ -168,6 +188,7 @@ onMounted(async () => {
   cwd.value = asked
   if (asked && !folders.value.some(f => f.path === asked)) folders.value.unshift({ path: asked, name: name(asked), exists: true } as RecentFolder)
   box.value?.focusEnd()
+  takeLinkDraft()
 })
 
 // The server's policy can disable the chosen mode while this screen is open.
@@ -636,10 +657,13 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           @retry="start"
         >
           <template
-            v-if="error"
+            v-if="error || fromLink"
             #top
           >
-            <p class="m-0 border border-bad px-2.5 py-1.5 text-[12px] text-bad">
+            <p
+              v-if="error"
+              class="m-0 border border-bad px-2.5 py-1.5 text-[12px] text-bad"
+            >
               {{ error }}
             </p>
             <div
@@ -653,6 +677,29 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
                 @click="startInPlace"
               >
                 {{ tt('Start without a worktree') }}
+              </button>
+            </div>
+            <div
+              v-else-if="fromLink"
+              role="status"
+              class="flex items-start gap-2 border border-default px-2.5 py-1.5 text-[12px] text-toned"
+            >
+              <span class="min-w-0 flex-1">
+                {{ tt('From a link. Read the message and check the folder before you start: nothing runs until you do.') }}
+                <template v-if="fromLink.folderDropped">
+                  {{ tt('The link named a folder that isn\'t there, so none is chosen.') }}
+                </template>
+              </span>
+              <button
+                type="button"
+                class="shrink-0 text-muted hover:text-strong"
+                :aria-label="tt('Dismiss')"
+                @click="fromLink = null"
+              >
+                <HIcon
+                  name="close"
+                  :size="12"
+                />
               </button>
             </div>
           </template>

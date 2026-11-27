@@ -99,7 +99,8 @@ Defaults baked into the image:
 | `DATABASE_URL` | `postgres://harness@/harness?host=/run/postgresql` | internal Postgres over its unix socket |
 | `HARNESS_SEARXNG_URL` | `http://127.0.0.1:8888` | internal SearXNG |
 | `HARNESS_PROMPTS_DIR` | `/app/prompts` | prompt files shipped in the image |
-| `HARNESS_WEB_DIR` | `/app/web` | the built web UI; empty: the server serves no pages but `/device` |
+| `HARNESS_WEB_DIR` | `/app/web` | the built web UI, served at `/` |
+| `HARNESS_WEB_UI` | on | `off` serves no pages but `/device` and the sign-in pages; `/api/health` then reports no web UI |
 | `HARNESS_VERSION` | the release's version | set by the image build; `/api/health` reports it |
 | `PGHOST` | `/run/postgresql` | so `psql` / `pg_dump` in `docker exec` find the socket |
 | `HARNESS_S3_ENDPOINT` | `http://127.0.0.1:3900` | internal object store; see "Object store" |
@@ -129,7 +130,14 @@ mirror of the same document, which may be on your private network. See [the gate
 ## Web UI
 
 The image serves the web interface at `/`, so people reach xlsft`s harness from a browser with nothing installed. Set
-`HARNESS_PUBLIC_URL` to the address they use: the session cookie and its same-origin check depend on it.
+`HARNESS_PUBLIC_URL` to the address they use: the session cookie and its same-origin check depend on it. The UI is the static
+build of `packages/ui` (`nuxt generate`, about 14 MB), served by core itself from `HARNESS_WEB_DIR`, after every API route, so
+nothing of the API can be shadowed by it. `HARNESS_WEB_UI=off` turns it off, for a server only the desktop app and clients use.
+
+It is served at `/` and not under a path because the build has its base path compiled in; serving it elsewhere would mean a
+second build, and the image ships one. `/api/health` says where it is (`"web": "/"`, or `""` when off), and clients use that:
+a signed-in client reports `<server>/?session=<id>` as the web link of a session (`InitializeResponse.web_url`) unless
+`HARNESS_WEB_URL` on the client names another UI.
 
 What it can do depends on whether a client is connected, because the server never runs code: sessions, tools and files live
 on a client.
@@ -149,7 +157,20 @@ harness-client serve --listen 127.0.0.1:7801 --cors-origin https://harness.examp
 ```
 
 and enter its address and the token it prints on the page. The browser talks to that client directly and the server never sees
-the token; the choice lasts as long as the tab. For another machine add `--allow-non-loopback` to the client and read the
+the token; the choice lasts as long as the tab.
+
+How the pieces talk:
+
+```
+browser (UI from https://harness.example.com)
+  ├── server: sign-in cookie, administration (users, providers, policy, usage)  → core, same origin
+  └── agent work: sessions, tools, files, terminal                              → harness-client serve, http://127.0.0.1:7801
+                                                                                  with its token; core never sees it
+harness-client ── model calls, sync, relay ──────────────────────────────────────→ core, with the device's own sign-in
+```
+
+The page holds no secret of its own and runs no code on the server. The client allows the page's origin only because
+`--cors-origin` names it, and every call carries the token, so another site open in the same browser can't drive it. For another machine add `--allow-non-loopback` to the client and read the
 warning it prints: the connection is plain HTTP, and browsers refuse a plain HTTP address from an HTTPS page unless it is
 loopback, so put TLS in front of it. Safari is stricter and may refuse plain HTTP to loopback from an HTTPS page too; use another browser, or the
 desktop app.

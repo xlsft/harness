@@ -110,7 +110,9 @@ export function policyView(p: ManagedPolicyPb | undefined): ManagedPolicy {
     pluginUiNetworkDisabled: p?.pluginUiNetworkDisabled ?? false,
     chatAppsDisabled: p?.chatAppsDisabled ?? false,
     remoteStartsDisabled: p?.remoteStartsDisabled ?? false,
-    personalChatBotsDisabled: p?.personalChatBotsDisabled ?? false
+    personalChatBotsDisabled: p?.personalChatBotsDisabled ?? false,
+    minClientVersion: p?.minClientVersion ?? '',
+    maxClientVersion: p?.maxClientVersion ?? ''
   }
 }
 

@@ -9,6 +9,7 @@ A release is one tag, `vX.Y.Z`, and one version for everything. It produces:
 | Installer package | GitHub Release: `harness_X.Y.Z_darwin_<arch>.pkg`, the same app for device management ([enterprise.md](enterprise.md)) | macOS, Apple Silicon and Intel |
 | `harness-client` | GitHub Release: `harness-client_X.Y.Z_darwin_<arch>.tar.gz`, with an SBOM each | macOS, Apple Silicon and Intel |
 | Metadata | `checksums.txt`, signed twice (`.sigstore.json`, `.sig`); `latest.json`; a source SBOM; `harness.intoto.jsonl` | |
+| Homebrew | `Formula/harness-client.rb` and `Casks/harness.rb` in the tap `xlsft/homebrew-harness`, when it is set up (below) | macOS, Apple Silicon and Intel |
 
 Linux and Windows clients and the terminal frontend (`harness`) aren't released yet; CI keeps them compiling.
 
@@ -81,6 +82,9 @@ plain version.
    `desktop` also makes the installer packages (`scripts/release/build-pkg.sh`).
 5. `publish` assembles (`scripts/release/assemble.sh`), signs, creates a **draft** release, attaches provenance, moves the
    image's `X.Y` and `latest` to the same digest, and only then publishes the draft.
+6. `homebrew`, for the newest stable release only, writes the formula and the cask from the published `checksums.txt`
+   (`scripts/release/homebrew.sh`) and pushes them to the tap (`scripts/release/homebrew-publish.sh`). Without the
+   `HOMEBREW_TAP_TOKEN` secret it does nothing. It runs after the release is public, so if it fails, re-run it alone.
 
 ### If it fails
 
@@ -93,9 +97,62 @@ Nothing visible changes until the very end of `publish`. Until then:
 | `image`, `desktop`, `client-archives` | maybe the image under its exact `X.Y.Z`, not `latest` | If the cause was outside the code (a flaky runner), re-run the failed jobs. Otherwise fix, delete the tag, and tag again, or use the next patch version |
 | `publish`, before "Move the image tags" | also a draft release, which nobody can see or be offered | Re-run the failed job: it replaces the draft |
 | `publish`, "Move the image tags" or "Publish" | possibly `latest` on the new image with the release still a draft | Re-run the failed job, which is safe to repeat |
+| `homebrew` | a published release; the tap still at the previous one | Fix the token or the tap, re-run `homebrew`: it is safe to repeat |
 
 An exact image version that's already pushed gets overwritten when the tag is rebuilt, and that's fine as long as no release
 pointed at it. Don't reuse the version of a published release: make the next one. To withdraw a bad release, delete it on GitHub (updaters then go back to the previous one for new checks) and retag the image's `latest`.
+
+## Installing
+
+**The install script** installs `harness-client` for one user, with no sudo:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xlsft/harness/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/xlsft/harness/main/scripts/install.sh | sh -s -- --version v0.2.0 --prefix ~/.local/share/harness
+```
+
+It downloads the archive for this Mac and `checksums.txt` of the latest stable release (or `--version`), checks the archive
+against `checksums.txt`, and, when `cosign` is installed, checks the Sigstore signature of `checksums.txt` against this
+repository's release workflow; a failure stops it before anything is written. `--require-signature` makes a missing `cosign`
+an error too. It puts the binary in `~/.harness/bin` (`--prefix DIR` for `DIR/bin`), runs it once, and prints the line that
+adds it to `PATH`; it never edits shell profiles. `scripts/install-test.sh` tests it against a fake release server.
+
+**Homebrew**, once the tap exists:
+
+```bash
+brew install xlsft/harness/harness-client      # the client, with shell completions
+brew install --cask xlsft/harness/harness      # the app
+```
+
+The formula installs the release archive and its completions (`harness-client completion bash|zsh|fish`); `brew upgrade`
+keeps it current, and `harness-client update` refuses a Homebrew install and says so. The cask is marked `auto_updates`: the
+app updates itself as usual.
+
+### Setting up the tap (once, by the owner)
+
+Nothing in the release creates the tap; the `homebrew` job only pushes to one that exists.
+
+1. Create the public repository `xlsft/homebrew-harness` (the `homebrew-` prefix is what makes `brew install
+   xlsft/harness/...` find it), with a README and a default branch.
+2. Create a fine-grained personal access token with **Contents: Read and write** on that repository only, and nothing else.
+3. Set it as a secret of this repository: `gh secret set HOMEBREW_TAP_TOKEN`. For another tap name, also set the variable
+   `gh variable set HOMEBREW_TAP --body owner/homebrew-name`.
+
+The next stable release fills the tap. To fill it for the current one, re-run the release's `homebrew` job.
+
+## Shell completions
+
+`harness-client completion bash|zsh|fish` and `harness completion bash|zsh|fish` print a completion script; `--help` on
+either says where to put it. The scripts are generated from the flag sets the commands parse
+(`packages/client/completion`), so they never fall behind a new flag. Homebrew installs them by itself.
+
+## Checking a machine
+
+`harness-client doctor` checks the sign-in and that the server answers, version skew with the server and the organization's
+version policy, where the sign-in is kept (keychain or file), the command sandbox, the MCP servers a session would start
+(they are started; `--no-mcp` skips that), disk space for transcripts, git and the proxy settings. Each line is pass, warn,
+fail or skip, with what to do under a problem; `--json` prints the same as JSON, and a failure exits 1. Settings > About
+shows the same checks, run by the app's client (`AgentService.RunDoctor`).
 
 ## Signing the macOS app
 
@@ -263,6 +320,17 @@ number from the client's User-Agent and ignores any suffix, so `0.2.0-rc.1` coun
 
 What keeps a client one version behind working is `buf breaking`, which runs on pull requests against `main`: contracts stay
 backward compatible within `v1`.
+
+### Version policy
+
+Admins can also bound the client versions of their organization in **Settings > Managed policy > Client versions**
+(`minimumClientVersion`, `maximumClientVersion` in the policy document). This is not `HARNESS_MIN_CLIENT_VERSION`: nothing is
+refused. A client outside the bounds keeps working and warns: `serve` and `update` on standard error, `doctor` (a fail below
+the minimum, a warning above the maximum) and Settings > About. Updates respect the maximum: `harness-client update` installs
+the newest release up to it, the maximum itself when the latest is newer; the app is offered no update while the latest is
+above it, since its updater only sees the newest release, and Settings > About says why. Several policy documents combine
+to the strictest bounds. The rule above stands: a release never sets `HARNESS_MIN_CLIENT_VERSION`, and a version policy is
+the admin's own setting, never shipped.
 
 ## Verifying a release
 

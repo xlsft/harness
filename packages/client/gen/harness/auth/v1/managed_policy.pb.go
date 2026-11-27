@@ -94,8 +94,13 @@ type ManagedPolicy struct {
 	// maxSessionsPerUser / maxSessionsPerGroup: containers that exist at once, per user and per directory group. 0: no limit.
 	CloudMaxSessionsPerUser  int32 `protobuf:"varint,453,opt,name=cloud_max_sessions_per_user,json=cloudMaxSessionsPerUser,proto3" json:"cloud_max_sessions_per_user,omitempty"`
 	CloudMaxSessionsPerGroup int32 `protobuf:"varint,454,opt,name=cloud_max_sessions_per_group,json=cloudMaxSessionsPerGroup,proto3" json:"cloud_max_sessions_per_group,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	// minimumClientVersion, maximumClientVersion: the harness-client and app versions allowed (X.Y.Z), empty for no bound.
+	// Clients warn outside them, and their updates go no further than the maximum. Not the server's
+	// HARNESS_MIN_CLIENT_VERSION, which refuses older clients outright and which a release never sets.
+	MinClientVersion string `protobuf:"bytes,270,opt,name=min_client_version,json=minClientVersion,proto3" json:"min_client_version,omitempty"`
+	MaxClientVersion string `protobuf:"bytes,271,opt,name=max_client_version,json=maxClientVersion,proto3" json:"max_client_version,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -380,6 +385,20 @@ func (x *ManagedPolicy) GetCloudMaxSessionsPerGroup() int32 {
 	return 0
 }
 
+func (x *ManagedPolicy) GetMinClientVersion() string {
+	if x != nil {
+		return x.MinClientVersion
+	}
+	return ""
+}
+
+func (x *ManagedPolicy) GetMaxClientVersion() string {
+	if x != nil {
+		return x.MaxClientVersion
+	}
+	return ""
+}
+
 type GetManagedPolicyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -638,7 +657,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xb3\x0e\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\x91\x0f\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -678,7 +697,9 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	" cloud_bypass_permissions_allowed\x18\xc3\x03 \x01(\bR\x1dcloudBypassPermissionsAllowed\x12-\n" +
 	"\x12cloud_egress_allow\x18\xc4\x03 \x03(\tR\x10cloudEgressAllow\x12=\n" +
 	"\x1bcloud_max_sessions_per_user\x18\xc5\x03 \x01(\x05R\x17cloudMaxSessionsPerUser\x12?\n" +
-	"\x1ccloud_max_sessions_per_group\x18\xc6\x03 \x01(\x05R\x18cloudMaxSessionsPerGroupB\x16\n" +
+	"\x1ccloud_max_sessions_per_group\x18\xc6\x03 \x01(\x05R\x18cloudMaxSessionsPerGroup\x12-\n" +
+	"\x12min_client_version\x18\x8e\x02 \x01(\tR\x10minClientVersion\x12-\n" +
+	"\x12max_client_version\x18\x8f\x02 \x01(\tR\x10maxClientVersionB\x16\n" +
 	"\x14_defer_builtin_tools\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +

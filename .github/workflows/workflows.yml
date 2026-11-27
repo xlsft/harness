@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['.github/workflows/**', '.goreleaser.yaml', 'scripts/release.sh', 'scripts/release/**', 'packages/desktop/scripts/build-release.sh', 'packages/desktop/src-tauri/tauri.conf.json', 'deploy/devcontainer/**']
+    paths: ['.github/workflows/**', '.goreleaser.yaml', 'scripts/release.sh', 'scripts/release/**', 'scripts/install.sh', 'scripts/install-test.sh', 'packages/desktop/scripts/build-release.sh', 'packages/desktop/src-tauri/tauri.conf.json', 'deploy/devcontainer/**']
   pull_request:
-    paths: ['.github/workflows/**', '.goreleaser.yaml', 'scripts/release.sh', 'scripts/release/**', 'packages/desktop/scripts/build-release.sh', 'packages/desktop/src-tauri/tauri.conf.json', 'deploy/devcontainer/**']
+    paths: ['.github/workflows/**', '.goreleaser.yaml', 'scripts/release.sh', 'scripts/release/**', 'scripts/install.sh', 'scripts/install-test.sh', 'packages/desktop/scripts/build-release.sh', 'packages/desktop/src-tauri/tauri.conf.json', 'deploy/devcontainer/**']
 
 permissions:
   contents: read
@@ -44,3 +44,5 @@ jobs:
           node-version: 24
       - name: Test the release scripts
         run: scripts/release/test.sh
+      - name: Test the install script against a fake release server
+        run: scripts/install-test.sh

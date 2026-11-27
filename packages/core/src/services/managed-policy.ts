@@ -16,6 +16,8 @@
  *                                                                      enforced here and by runners: cloud sessions (relay/cloud.ts)
  *   strictKnownMarketplaces, blockedMarketplaces, extraKnownMarketplaces, enabledPlugins
  *                                                                      enforced by clients (packages/client/plugins): plugins are a device's
+ *   minimumClientVersion, maximumClientVersion                         clients warn outside them, and their updates stop at the maximum.
+ *                                                                      Unlike HARNESS_MIN_CLIENT_VERSION, nothing is refused here
  * The server cannot be talked out of what it enforces itself, whatever a modified client does; permission rules and the
  * sandbox can only live on the client, because that is where commands run.
  */
@@ -71,6 +73,9 @@ export interface ManagedPolicy {
   cloud_egress_allow: string[];
   cloud_max_sessions_per_user: number;
   cloud_max_sessions_per_group: number;
+  /** X.Y.Z, or "" for no bound. */
+  min_client_version: string;
+  max_client_version: string;
 }
 
 const isObject = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
@@ -142,6 +147,29 @@ function skillFields(content: Json) {
   };
 }
 
+function versionFields(content: Json) {
+  const v = (x: unknown) => (typeof x === "string" && VERSION.test(x.trim()) ? x.trim().replace(/^v/, "") : "");
+  return { min_client_version: v(content.minimumClientVersion), max_client_version: v(content.maximumClientVersion) };
+}
+
+/** A release version, as clients read it (selfupdate.Valid): X.Y.Z with an optional -prerelease, a leading v allowed. */
+const VERSION = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$/;
+
+/** Orders two versions that passed VERSION by their numbers; a pre-release before its release. */
+export function compareVersions(a: string, b: string): number {
+  const parse = (s: string) => {
+    const [core, pre = ""] = s.replace(/^v/, "").split(/-(.*)/s);
+    return { n: core!.split(".").map(Number), pre };
+  };
+  const x = parse(a);
+  const y = parse(b);
+  for (let i = 0; i < 3; i++) if (x.n[i] !== y.n[i]) return x.n[i]! - y.n[i]!;
+  if (x.pre === y.pre) return 0;
+  if (!x.pre) return 1;
+  if (!y.pre) return -1;
+  return x.pre < y.pre ? -1 : 1;
+}
+
 function pluginFields(content: Json) {
   const enabled = isObject(content.enabledPlugins) ? content.enabledPlugins : {};
   const extra = isObject(content.extraKnownMarketplaces) ? content.extraKnownMarketplaces : {};
@@ -200,6 +228,7 @@ export function managedOf(content: Json): ManagedPolicy {
     chat_apps_disabled: content.disableChatApps === true,
     remote_starts_disabled: content.disableRemoteStarts === true,
     personal_chat_bots_disabled: content.disablePersonalChatBots === true,
+    ...versionFields(content),
   };
 }
 
@@ -257,6 +286,8 @@ export function withManaged(content: Json, p: ManagedPolicy): Json {
   setOrDelete(next, "disableChatApps", true, p.chat_apps_disabled);
   setOrDelete(next, "disableRemoteStarts", true, p.remote_starts_disabled);
   setOrDelete(next, "disablePersonalChatBots", true, p.personal_chat_bots_disabled);
+  setOrDelete(next, "minimumClientVersion", p.min_client_version, !!p.min_client_version);
+  setOrDelete(next, "maximumClientVersion", p.max_client_version, !!p.max_client_version);
   return next;
 }
 
@@ -299,6 +330,14 @@ export function cleanManaged(p: ManagedPolicy): ManagedPolicy {
   }
   for (const id of [...out.distributed_plugins, ...out.blocked_plugins]) {
     if (!PLUGIN_ID.test(id)) throw new ApiError("invalid_request", `Not name@marketplace: ${id}`);
+  }
+  out.min_client_version = (p.min_client_version ?? "").trim().replace(/^v/, "");
+  out.max_client_version = (p.max_client_version ?? "").trim().replace(/^v/, "");
+  for (const v of [out.min_client_version, out.max_client_version]) {
+    if (v && !VERSION.test(v)) throw new ApiError("invalid_request", `Not a version (X.Y.Z): ${v}`);
+  }
+  if (out.min_client_version && out.max_client_version && compareVersions(out.min_client_version, out.max_client_version) > 0) {
+    throw new ApiError("invalid_request", `The minimum client version ${out.min_client_version} is above the maximum ${out.max_client_version}`);
   }
   const both = out.distributed_plugins.find((id) => out.blocked_plugins.includes(id));
   if (both) throw new ApiError("invalid_request", `Both distributed and blocked: ${both}`);

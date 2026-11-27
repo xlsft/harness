@@ -14,6 +14,7 @@
 //   permission request; a claude-acp session waits for a sign-in first, codex reports subscription limits.
 
 import { MockHostsApi } from '~/lib/hosts/mock'
+import type { DoctorCheckVM, DoctorReport } from '~/lib/doctor'
 import { MockSshApi } from '~/lib/ssh'
 import { MockVcsApi } from '~/lib/vcs/mock'
 import { MockRemoteApi } from '~/lib/remote/mock'
@@ -1507,6 +1508,26 @@ export class MockTransport implements SessionTransport {
 
   async setHooksTrust(_hash: string, trusted: boolean) {
     this.hookTrusted = trusted
+  }
+
+  async runDoctor(o?: { skipMcp?: boolean }): Promise<DoctorReport> {
+    const checks: DoctorCheckVM[] = [
+      { id: 'signin', title: 'Sign-in', status: 'pass', detail: 'Signed in to harness.example.com as you@example.com', hint: '' },
+      { id: 'server', title: 'Server', status: 'pass', detail: 'harness.example.com answers in 42ms, version 0.3.0', hint: '' },
+      { id: 'version', title: 'Version skew', status: 'pass', detail: 'harness-client 0.3.0, server 0.3.0', hint: '' },
+      { id: 'version_policy', title: 'Version policy', status: 'pass', detail: 'Your organization sets no client versions', hint: '' },
+      { id: 'keychain', title: 'Keychain', status: 'pass', detail: 'The sign-in is kept in the login keychain', hint: '' },
+      { id: 'sandbox', title: 'Sandbox', status: 'pass', detail: 'Commands can run in the Seatbelt sandbox', hint: '' },
+      o?.skipMcp
+        ? { id: 'mcp', title: 'MCP servers', status: 'skip', detail: 'Not checked', hint: '' }
+        : { id: 'mcp', title: 'MCP servers', status: 'warn', detail: '1 of 2 failed to start: jira: exec: npx: not found', hint: 'Extensions > Connectors shows each server\'s error' },
+      { id: 'disk', title: 'Disk space', status: 'pass', detail: '120.4 GB free for transcripts in ~/.harness', hint: '' },
+      { id: 'git', title: 'git', status: 'pass', detail: '2.50.1 at /usr/bin/git', hint: '' },
+      { id: 'proxy', title: 'Proxy', status: 'pass', detail: 'No proxy configured: connections go direct', hint: '' }
+    ]
+    const rank = { skip: 0, pass: 1, warn: 2, fail: 3 } as const
+    const status = checks.reduce<DoctorReport['status']>((w, c) => rank[c.status] > rank[w] ? c.status : w, 'pass')
+    return { status, clientVersion: '0.3.0', checks }
   }
 
   async getDeviceSettings() {

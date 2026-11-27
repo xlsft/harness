@@ -18,6 +18,7 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, RunEvent, State};
 use tauri_plugin_opener::OpenerExt;
 
+mod deeplink;
 mod update;
 
 /// Origins the webview loads the UI from (macOS/Linux, Windows, dev server); the sidecar allows them.
@@ -354,8 +355,19 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_deep_link::init())
         .manage(Shell::default())
+        .manage(deeplink::Links::default())
         .setup(|app| {
+            // harness:// links (deeplink.rs): the one the app was started with, and those that come while it runs.
+            use tauri_plugin_deep_link::DeepLinkExt;
+            let handle = app.handle().clone();
+            app.deep_link().on_open_url(move |event| {
+                deeplink::receive(&handle, event.urls().into_iter().map(|u| u.to_string()));
+            });
+            if let Ok(Some(urls)) = app.deep_link().get_current() {
+                deeplink::receive(app.handle(), urls.into_iter().map(|u| u.to_string()));
+            }
             let saved = ground_file(app.handle()).and_then(|f| std::fs::read_to_string(f).ok()).and_then(|s| parse_hex(&s));
             for w in app.webview_windows().values() {
                 if let Some(c) = saved {
@@ -389,6 +401,7 @@ pub fn run() {
             agent_endpoint,
             confirm_quit,
             set_ground,
+            deeplink::take_deep_links,
             update::update_check,
             update::update_install,
             update::update_restart

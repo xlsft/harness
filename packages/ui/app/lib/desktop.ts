@@ -1,4 +1,5 @@
 import { tt } from '~/utils/i18n'
+import type { DeepLink } from '~/lib/deeplink'
 // The desktop shell (packages/desktop, Tauri 2). Inside it the UI gets its agent endpoint and sign-in from
 // the shell, which owns the harness-client sidecar, and can use native dialogs and Finder. In a browser
 // none of this exists and isDesktop() is false. Tauri modules load lazily so the web build does not need them.
@@ -114,16 +115,28 @@ export async function askConfirm(message: string, title: string, okLabel: string
   return ask(message, { title, kind: 'warning', okLabel, cancelLabel: tt('Not now') })
 }
 
-/** What the shell's updater says about this build (src-tauri/src/update.rs). */
+/** What the shell's updater says about this build (src-tauri/src/update.rs). held: a newer release exists, above the
+ * maximum version the organization's managed policy allows, so it isn't offered. */
 export type UpdateCheck
   = | { state: 'unavailable', reason: string, current: string }
     | { state: 'up_to_date', current: string }
+    | { state: 'held', current: string, version: string, max: string }
     | { state: 'available', current: string, version: string, notes: string }
 
-export const updateCheck = () => invoke<UpdateCheck>('update_check')
+/** maxVersion: the managed policy's maximum client version ('' for none); the shell compares, and offers nothing above it. */
+export const updateCheck = (maxVersion = '') => invoke<UpdateCheck>('update_check', { maxVersion })
 /** Downloads, verifies and installs the update the last check found; the app keeps running until updateRestart. */
 export const updateInstall = () => invoke<null>('update_install')
 export const updateRestart = () => invoke<null>('update_restart')
+
+/** harness:// links the shell checked and queued (src-tauri/src/deeplink.rs), oldest first; taking them empties the queue. */
+export const takeDeepLinks = () => invoke<DeepLink[]>('take_deep_links')
+
+/** Calls back whenever the shell queued links. Returns a stop function. */
+export async function onDeepLinks(f: () => void): Promise<() => void> {
+  const { listen } = await import('@tauri-apps/api/event')
+  return listen('deep-link', () => f())
+}
 
 /** The theme's ground colour as the window background (seen before the page paints and while resizing). */
 export async function setWindowGround(color: string) {

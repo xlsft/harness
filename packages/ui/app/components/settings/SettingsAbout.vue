@@ -166,6 +166,13 @@ async function openLogs() {
       </template>
     </div>
 
+    <p
+      v-if="desktop && update.held.value.version"
+      class="m-0 border border-default px-4 py-3 text-[11.5px] text-muted"
+    >
+      {{ tt('v{0} is available, but your administrator allows versions up to {1}, so this app isn\'t offered it.', [update.held.value.version, update.held.value.max]) }}
+    </p>
+
     <div
       v-if="serverBehind"
       class="flex flex-col gap-3 border border-default px-4 py-3"
@@ -231,6 +238,8 @@ async function openLogs() {
         </p>
       </div>
     </div>
+
+    <SettingsDoctor />
 
     <div class="flex flex-col">
       <h3 class="m-0 mb-2 text-[11px] font-normal text-muted">

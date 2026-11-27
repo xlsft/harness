@@ -85,6 +85,11 @@ message ManagedPolicy {
   // maxSessionsPerUser / maxSessionsPerGroup: containers that exist at once, per user and per directory group. 0: no limit.
   int32 cloud_max_sessions_per_user = 453;
   int32 cloud_max_sessions_per_group = 454;
+  // minimumClientVersion, maximumClientVersion: the harness-client and app versions allowed (X.Y.Z), empty for no bound.
+  // Clients warn outside them, and their updates go no further than the maximum. Not the server's
+  // HARNESS_MIN_CLIENT_VERSION, which refuses older clients outright and which a release never sets.
+  string min_client_version = 270;
+  string max_client_version = 271;
 }
 
 message GetManagedPolicyRequest {}

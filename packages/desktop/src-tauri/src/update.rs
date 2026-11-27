@@ -15,7 +15,18 @@ pub enum Check {
     /// This build can't update: a development build, or a release built without the updater key.
     Unavailable { reason: String, current: String },
     UpToDate { current: String },
+    /// A newer release exists, above the maximum version the organization's managed policy allows: not offered.
+    Held { current: String, version: String, max: String },
     Available { current: String, version: String, notes: String },
+}
+
+/// Whether the policy's maximum holds a release back. A maximum that isn't a version holds nothing, like the client's.
+fn held_back(version: &str, max: &str) -> bool {
+    let parse = |v: &str| semver::Version::parse(v.trim().trim_start_matches('v')).ok();
+    match (parse(version), parse(max)) {
+        (Some(v), Some(m)) => v > m,
+        _ => false,
+    }
 }
 
 /// Why this build can't update, if so. An empty pubkey is the state of the repository until the release key is generated
@@ -49,8 +60,11 @@ fn configured_pubkey(app: &AppHandle) -> String {
 }
 
 /// Whether a newer release exists. Finding none is an answer; failing to look is an error the UI keeps quiet about.
+/// max_version is the managed policy's maximum client version as the client merged it (UserPreferences), "" for none: the
+/// app is never offered a release above it. Only the newest release is published to the updater, so one above the maximum
+/// means no update here; `harness-client update` can still install the maximum itself.
 #[tauri::command]
-pub async fn update_check(app: AppHandle, shell: State<'_, Shell>) -> Result<Check, String> {
+pub async fn update_check(app: AppHandle, shell: State<'_, Shell>, max_version: Option<String>) -> Result<Check, String> {
     let current = app.package_info().version.to_string();
     let machine = crate::machine();
     if let Some(reason) = unavailable(&configured_pubkey(&app), cfg!(debug_assertions), machine.disable_updates) {
@@ -65,6 +79,12 @@ pub async fn update_check(app: AppHandle, shell: State<'_, Shell>) -> Result<Che
     }
     .map_err(|e| e.to_string())?;
     let update = updater.check().await.map_err(|e| e.to_string())?;
+    let max = max_version.unwrap_or_default();
+    if let Some(u) = update.as_ref().filter(|u| held_back(&u.version, &max)) {
+        let check = Check::Held { current, version: u.version.clone(), max: max.trim().trim_start_matches('v').to_string() };
+        *shell.update.lock().unwrap() = None;
+        return Ok(check);
+    }
     let check = match &update {
         Some(u) => Check::Available {
             current,

@@ -363,3 +363,35 @@ func TestInitializeReportsWebURL(t *testing.T) {
 		t.Fatalf("%v %+v", err, init)
 	}
 }
+
+func TestInitializeTakesTheServersWebUI(t *testing.T) {
+	core := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"ok":true,"version":"1.2.3","web":"/"}`)
+	}))
+	defer core.Close()
+	h := startHarnessSrv(t, nil, nil, nil, func(s *server.Server) {
+		s.ServerHealth = func(ctx context.Context) server.Health {
+			return server.ReadServerHealth(ctx, core.Client(), core.URL+"/")
+		}
+	})
+	init, err := h.client.Initialize(h.ctx, connect.NewRequest(&agentv1.InitializeRequest{}))
+	if err != nil || init.Msg.WebUrl != core.URL || init.Msg.ServerVersion != "1.2.3" {
+		t.Fatalf("%v %+v", err, init)
+	}
+	// HARNESS_WEB_URL wins over what the server serves.
+	h = startHarnessSrv(t, nil, nil, nil, func(s *server.Server) {
+		s.WebURL = "https://elsewhere.example.com"
+		s.ServerHealth = func(ctx context.Context) server.Health { return server.ReadServerHealth(ctx, core.Client(), core.URL) }
+	})
+	if init, err = h.client.Initialize(h.ctx, connect.NewRequest(&agentv1.InitializeRequest{})); err != nil || init.Msg.WebUrl != "https://elsewhere.example.com" {
+		t.Fatalf("%v %+v", err, init)
+	}
+	// A path that isn't one is ignored.
+	odd := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{"ok":true,"version":"1.2.3","web":"//evil.example.com"}`)
+	}))
+	defer odd.Close()
+	if got := server.ReadServerHealth(context.Background(), odd.Client(), odd.URL); got.WebURL != "" {
+		t.Fatalf("got %q", got.WebURL)
+	}
+}

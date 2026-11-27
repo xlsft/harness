@@ -35,7 +35,16 @@ func (s *Server) mcpInventory() *mcp.Inventory {
 	if s.MCPInventory == nil {
 		s.MCPInventory = &mcp.Inventory{Client: s.MCPClient, PolicyAllows: func(name string) bool { return s.Base.ModePolicy.Managed().McpServerAllowed(name) }}
 	}
-	inv := s.MCPInventory
+	inv := FillMCPInventory(s.MCPInventory)
+	if inv.Rules == nil {
+		inv.Rules = s.mcpSyncedRules
+	}
+	return inv
+}
+
+// FillMCPInventory gives an inventory this device's stores and folder lookups where it has none (`harness-client doctor`
+// builds one without a Server).
+func FillMCPInventory(inv *mcp.Inventory) *mcp.Inventory {
 	if inv.Local == nil {
 		inv.Local = &mcp.LocalStore{Path: bootstrap.MCPLocalFile()}
 	}
@@ -50,9 +59,6 @@ func (s *Server) mcpInventory() *mcp.Inventory {
 			}
 			return mcp.ProjectInfo{Root: permissions.RepoRoot(abs), Key: workspace.ProjectKey(ctx, abs), Trusted: permissions.DefaultTrustStore().TrustedRoot(abs) != ""}
 		}
-	}
-	if inv.Rules == nil {
-		inv.Rules = s.mcpSyncedRules
 	}
 	return inv
 }

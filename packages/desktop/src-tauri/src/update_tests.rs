@@ -126,6 +126,18 @@ fn update(key: &Key, base: &str, exe: &Path) -> Result<Option<String>, String> {
 }
 
 #[test]
+fn the_policy_maximum_holds_newer_releases_back() {
+    use super::held_back;
+    assert!(held_back("0.5.0", "0.4.2"));
+    assert!(held_back("0.4.3-rc.1", "v0.4.2"));
+    assert!(!held_back("0.4.2", "0.4.2"));
+    assert!(!held_back("0.4.1", "0.4.2"));
+    // No maximum, or one that isn't a version, holds nothing.
+    assert!(!held_back("9.0.0", ""));
+    assert!(!held_back("9.0.0", "latest"));
+}
+
+#[test]
 fn says_why_a_build_cannot_update() {
     assert_eq!(unavailable("", false, false).as_deref(), Some("built without an update key"));
     assert_eq!(unavailable("  ", false, false).as_deref(), Some("built without an update key"));

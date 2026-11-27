@@ -60,8 +60,12 @@ type ManagedPolicyView struct {
 	// disableRemoteStarts: no session starts through the relay (phone, chat apps, daemon hosts); the server refuses and
 	// clients stop offering it.
 	RemoteStartsDisabled bool `protobuf:"varint,281,opt,name=remote_starts_disabled,json=remoteStartsDisabled,proto3" json:"remote_starts_disabled,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
+	// The client versions the organization allows (X.Y.Z), empty for no bound. A client outside them warns, and its updates
+	// go no further than the maximum.
+	MinClientVersion string `protobuf:"bytes,270,opt,name=min_client_version,json=minClientVersion,proto3" json:"min_client_version,omitempty"`
+	MaxClientVersion string `protobuf:"bytes,271,opt,name=max_client_version,json=maxClientVersion,proto3" json:"max_client_version,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ManagedPolicyView) Reset() {
@@ -255,11 +259,25 @@ func (x *ManagedPolicyView) GetRemoteStartsDisabled() bool {
 	return false
 }
 
+func (x *ManagedPolicyView) GetMinClientVersion() string {
+	if x != nil {
+		return x.MinClientVersion
+	}
+	return ""
+}
+
+func (x *ManagedPolicyView) GetMaxClientVersion() string {
+	if x != nil {
+		return x.MaxClientVersion
+	}
+	return ""
+}
+
 var File_harness_agent_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"%harness/agent/v1/managed_policy.proto\x12\x10harness.agent.v1\"\xcf\b\n" +
+	"%harness/agent/v1/managed_policy.proto\x12\x10harness.agent.v1\"\xad\t\n" +
 	"\x11ManagedPolicyView\x12\x16\n" +
 	"\x06active\x18\x01 \x01(\bR\x06active\x12\x1f\n" +
 	"\vallow_rules\x18\x02 \x03(\tR\n" +
@@ -286,7 +304,9 @@ const file_harness_agent_v1_managed_policy_proto_rawDesc = "" +
 	"\x12plugin_ui_disabled\x18\x90\x03 \x01(\bR\x10pluginUiDisabled\x12<\n" +
 	"\x1aplugin_ui_network_disabled\x18\x91\x03 \x01(\bR\x17pluginUiNetworkDisabled\x12-\n" +
 	"\x12chat_apps_disabled\x18\x98\x02 \x01(\bR\x10chatAppsDisabled\x125\n" +
-	"\x16remote_starts_disabled\x18\x99\x02 \x01(\bR\x14remoteStartsDisabledB\x16\n" +
+	"\x16remote_starts_disabled\x18\x99\x02 \x01(\bR\x14remoteStartsDisabled\x12-\n" +
+	"\x12min_client_version\x18\x8e\x02 \x01(\tR\x10minClientVersion\x12-\n" +
+	"\x12max_client_version\x18\x8f\x02 \x01(\tR\x10maxClientVersionB\x16\n" +
 	"\x14_defer_builtin_toolsB\xd3\x01\n" +
 	"\x14com.harness.agent.v1B\x12ManagedPolicyProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 

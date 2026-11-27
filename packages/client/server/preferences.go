@@ -60,7 +60,8 @@ func (s *Server) withManagedPolicy(p *agentv1.UserPreferences) *agentv1.UserPref
 		RestrictMcpServers: m.RestrictMcpServers, AllowedMcpServers: m.AllowedMcpServers, LocalModelsDisabled: m.LocalModelsDisabled,
 		RestrictSkills: m.RestrictSkills, AllowedSkills: m.AllowedSkills, BlockedSkills: m.BlockedSkills, ExternalSkillSearchDisabled: m.ExternalSkillSearchDisabled,
 		DeferBuiltinTools: m.DeferBuiltinTools,
-		ChatAppsDisabled: m.ChatAppsDisabled, RemoteStartsDisabled: m.RemoteStartsDisabled,
+		ChatAppsDisabled:  m.ChatAppsDisabled, RemoteStartsDisabled: m.RemoteStartsDisabled,
+		MinClientVersion: m.MinClientVersion, MaxClientVersion: m.MaxClientVersion,
 	}
 	if m.DeferBuiltinTools != nil {
 		p.DeferBuiltinTools = *m.DeferBuiltinTools

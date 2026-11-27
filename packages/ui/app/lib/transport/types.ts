@@ -2,6 +2,7 @@
 // Two implementations: MockTransport (scripted events, the default) and ConnectTransport (connect-web).
 
 import type { HostsApi } from '~/lib/hosts/types'
+import type { DoctorReport } from '~/lib/doctor'
 import type { SshApi } from '~/lib/ssh'
 import type { VcsApi } from '~/lib/vcs/types'
 import type { RemoteApi } from '~/lib/remote/types'
@@ -179,6 +180,9 @@ export interface ManagedPolicyView {
   // Chat apps start no sessions, and no session starts through the relay (phone, chat apps).
   chatAppsDisabled: boolean
   remoteStartsDisabled: boolean
+  // The client versions allowed (X.Y.Z); '' is no bound.
+  minClientVersion: string
+  maxClientVersion: string
 }
 
 export interface UserPreferences {
@@ -461,6 +465,9 @@ export interface SessionTransport {
   // Trusts on this machine hooks the server delivered (device-local, never synced); applies from the next session.
   setHooksTrust(hash: string, trusted: boolean): Promise<void>
 
+  // The checks of `harness-client doctor` on the machine of this client (Settings > About). skipMcp: don't start MCP
+  // servers, which takes the longest.
+  runDoctor(o?: { skipMcp?: boolean }): Promise<DoctorReport>
   // This device's preferences; an update changes only the fields it sets and returns them all.
   getDeviceSettings(): Promise<DeviceSettings>
   updateDeviceSettings(patch: Partial<DeviceSettings>): Promise<DeviceSettings>

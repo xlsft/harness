@@ -28,6 +28,7 @@ import (
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	"github.com/xlsft/harness/packages/client/computeruse"
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/doctor"
 	"github.com/xlsft/harness/packages/client/environment"
 	"github.com/xlsft/harness/packages/client/extensions"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
@@ -148,6 +149,11 @@ type Server struct {
 	WebURL string
 	// ServerVersion reads the version of the signed-in server (InitializeResponse.server_version); nil: unknown.
 	ServerVersion func(context.Context) string
+	// ServerHealth reads the server's version and web UI (ReadServerHealth); when set it answers for ServerVersion, and its
+	// web UI is the web_url when WebURL is empty.
+	ServerHealth func(context.Context) Health
+	// DoctorOptions are the machine's side of RunDoctor (doctor.go): sign-in, server, keychain. Nil: those are skipped.
+	DoctorOptions func(context.Context) doctor.Options
 
 	// states is the last known user state of sessions, by id (stateMu; never held while taking ls.mu).
 	stateMu sync.Mutex
@@ -341,7 +347,14 @@ func (s *Server) serveHandler(ctx context.Context, ln net.Listener, h http.Handl
 
 func (s *Server) Initialize(ctx context.Context, req *connect.Request[agentv1.InitializeRequest]) (*connect.Response[agentv1.InitializeResponse], error) {
 	resp := &agentv1.InitializeResponse{ClientVersion: config.Version, UserEmail: s.UserEmail, WebUrl: s.WebURL}
-	if s.ServerVersion != nil {
+	switch {
+	case s.ServerHealth != nil:
+		h := s.ServerHealth(ctx)
+		resp.ServerVersion = h.Version
+		if resp.WebUrl == "" {
+			resp.WebUrl = h.WebURL
+		}
+	case s.ServerVersion != nil:
 		resp.ServerVersion = s.ServerVersion(ctx)
 	}
 	policy := s.Base.ModePolicy

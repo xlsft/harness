@@ -60,3 +60,20 @@ func TestPolicyDeferBuiltinTools(t *testing.T) {
 		t.Fatalf("off in any document wins: %+v", both)
 	}
 }
+
+func TestPolicyClientVersions(t *testing.T) {
+	m := PolicyManaged([]*syncv1.Document{
+		orgPolicy(`{"minimumClientVersion":"0.2.0","maximumClientVersion":"v0.5.0"}`),
+		orgPolicy(`{"minimumClientVersion":"v0.3.1","maximumClientVersion":"0.4.0"}`),
+		orgPolicy(`{"minimumClientVersion":"soon","maximumClientVersion":"later"}`),
+	})
+	if m.MinClientVersion != "0.3.1" || m.MaxClientVersion != "0.4.0" {
+		t.Fatalf("the strictest bounds win: %q %q", m.MinClientVersion, m.MaxClientVersion)
+	}
+	if !m.Active() {
+		t.Fatal("a version bound is policy in force")
+	}
+	if got := PolicyManaged([]*syncv1.Document{orgPolicy(`{"minimumClientVersion":"latest"}`)}); got.MinClientVersion != "" || got.Active() {
+		t.Fatalf("a bound that isn't a version: %+v", got)
+	}
+}

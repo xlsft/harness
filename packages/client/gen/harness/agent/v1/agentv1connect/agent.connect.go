@@ -383,6 +383,8 @@ const (
 	// AgentServiceSimulatorInputProcedure is the fully-qualified name of the AgentService's
 	// SimulatorInput RPC.
 	AgentServiceSimulatorInputProcedure = "/harness.agent.v1.AgentService/SimulatorInput"
+	// AgentServiceRunDoctorProcedure is the fully-qualified name of the AgentService's RunDoctor RPC.
+	AgentServiceRunDoctorProcedure = "/harness.agent.v1.AgentService/RunDoctor"
 	// AgentServiceGetDeviceSettingsProcedure is the fully-qualified name of the AgentService's
 	// GetDeviceSettings RPC.
 	AgentServiceGetDeviceSettingsProcedure = "/harness.agent.v1.AgentService/GetDeviceSettings"
@@ -786,6 +788,8 @@ type AgentServiceClient interface {
 	ShutdownSimulator(context.Context, *connect.Request[v1.ShutdownSimulatorRequest]) (*connect.Response[v1.ShutdownSimulatorResponse], error)
 	WatchSimulator(context.Context, *connect.Request[v1.WatchSimulatorRequest]) (*connect.ServerStreamForClient[v1.WatchSimulatorResponse], error)
 	SimulatorInput(context.Context, *connect.Request[v1.SimulatorInputRequest]) (*connect.Response[v1.SimulatorInputResponse], error)
+	// Runs the checks of `harness-client doctor` (doctor.proto). MCP servers that may run are started to see that they do.
+	RunDoctor(context.Context, *connect.Request[v1.RunDoctorRequest]) (*connect.Response[v1.RunDoctorResponse], error)
 	GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error)
 	UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error)
 	// Holds off sleep on the machine running the session while it works, until it is turned off or the session closes.
@@ -1600,6 +1604,12 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("SimulatorInput")),
 			connect.WithClientOptions(opts...),
 		),
+		runDoctor: connect.NewClient[v1.RunDoctorRequest, v1.RunDoctorResponse](
+			httpClient,
+			baseURL+AgentServiceRunDoctorProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("RunDoctor")),
+			connect.WithClientOptions(opts...),
+		),
 		getDeviceSettings: connect.NewClient[v1.GetDeviceSettingsRequest, v1.GetDeviceSettingsResponse](
 			httpClient,
 			baseURL+AgentServiceGetDeviceSettingsProcedure,
@@ -1942,6 +1952,7 @@ type agentServiceClient struct {
 	shutdownSimulator        *connect.Client[v1.ShutdownSimulatorRequest, v1.ShutdownSimulatorResponse]
 	watchSimulator           *connect.Client[v1.WatchSimulatorRequest, v1.WatchSimulatorResponse]
 	simulatorInput           *connect.Client[v1.SimulatorInputRequest, v1.SimulatorInputResponse]
+	runDoctor                *connect.Client[v1.RunDoctorRequest, v1.RunDoctorResponse]
 	getDeviceSettings        *connect.Client[v1.GetDeviceSettingsRequest, v1.GetDeviceSettingsResponse]
 	updateDeviceSettings     *connect.Client[v1.UpdateDeviceSettingsRequest, v1.UpdateDeviceSettingsResponse]
 	setKeepAwake             *connect.Client[v1.SetKeepAwakeRequest, v1.SetKeepAwakeResponse]
@@ -2585,6 +2596,11 @@ func (c *agentServiceClient) SimulatorInput(ctx context.Context, req *connect.Re
 	return c.simulatorInput.CallUnary(ctx, req)
 }
 
+// RunDoctor calls harness.agent.v1.AgentService.RunDoctor.
+func (c *agentServiceClient) RunDoctor(ctx context.Context, req *connect.Request[v1.RunDoctorRequest]) (*connect.Response[v1.RunDoctorResponse], error) {
+	return c.runDoctor.CallUnary(ctx, req)
+}
+
 // GetDeviceSettings calls harness.agent.v1.AgentService.GetDeviceSettings.
 func (c *agentServiceClient) GetDeviceSettings(ctx context.Context, req *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error) {
 	return c.getDeviceSettings.CallUnary(ctx, req)
@@ -3058,6 +3074,8 @@ type AgentServiceHandler interface {
 	ShutdownSimulator(context.Context, *connect.Request[v1.ShutdownSimulatorRequest]) (*connect.Response[v1.ShutdownSimulatorResponse], error)
 	WatchSimulator(context.Context, *connect.Request[v1.WatchSimulatorRequest], *connect.ServerStream[v1.WatchSimulatorResponse]) error
 	SimulatorInput(context.Context, *connect.Request[v1.SimulatorInputRequest]) (*connect.Response[v1.SimulatorInputResponse], error)
+	// Runs the checks of `harness-client doctor` (doctor.proto). MCP servers that may run are started to see that they do.
+	RunDoctor(context.Context, *connect.Request[v1.RunDoctorRequest]) (*connect.Response[v1.RunDoctorResponse], error)
 	GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error)
 	UpdateDeviceSettings(context.Context, *connect.Request[v1.UpdateDeviceSettingsRequest]) (*connect.Response[v1.UpdateDeviceSettingsResponse], error)
 	// Holds off sleep on the machine running the session while it works, until it is turned off or the session closes.
@@ -3868,6 +3886,12 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("SimulatorInput")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceRunDoctorHandler := connect.NewUnaryHandler(
+		AgentServiceRunDoctorProcedure,
+		svc.RunDoctor,
+		connect.WithSchema(agentServiceMethods.ByName("RunDoctor")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentServiceGetDeviceSettingsHandler := connect.NewUnaryHandler(
 		AgentServiceGetDeviceSettingsProcedure,
 		svc.GetDeviceSettings,
@@ -4328,6 +4352,8 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceWatchSimulatorHandler.ServeHTTP(w, r)
 		case AgentServiceSimulatorInputProcedure:
 			agentServiceSimulatorInputHandler.ServeHTTP(w, r)
+		case AgentServiceRunDoctorProcedure:
+			agentServiceRunDoctorHandler.ServeHTTP(w, r)
 		case AgentServiceGetDeviceSettingsProcedure:
 			agentServiceGetDeviceSettingsHandler.ServeHTTP(w, r)
 		case AgentServiceUpdateDeviceSettingsProcedure:
@@ -4891,6 +4917,10 @@ func (UnimplementedAgentServiceHandler) WatchSimulator(context.Context, *connect
 
 func (UnimplementedAgentServiceHandler) SimulatorInput(context.Context, *connect.Request[v1.SimulatorInputRequest]) (*connect.Response[v1.SimulatorInputResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.SimulatorInput is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) RunDoctor(context.Context, *connect.Request[v1.RunDoctorRequest]) (*connect.Response[v1.RunDoctorResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.RunDoctor is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) GetDeviceSettings(context.Context, *connect.Request[v1.GetDeviceSettingsRequest]) (*connect.Response[v1.GetDeviceSettingsResponse], error) {

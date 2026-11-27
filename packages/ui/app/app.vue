@@ -42,6 +42,8 @@ async function connectDesktop() {
     await store.init(new ConnectTransport(ep.url, ep.token))
     endpointUrl = ep.url
     phase.value = 'ready'
+    // harness:// links wait in the shell until here: signed in and connected.
+    startDeepLinks()
   } catch (err) {
     signInError.value = err instanceof Error ? err.message : String(err)
     phase.value = 'signin'

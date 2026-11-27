@@ -40,4 +40,8 @@ message ManagedPolicyView {
   // disableRemoteStarts: no session starts through the relay (phone, chat apps, daemon hosts); the server refuses and
   // clients stop offering it.
   bool remote_starts_disabled = 281;
+  // The client versions the organization allows (X.Y.Z), empty for no bound. A client outside them warns, and its updates
+  // go no further than the maximum.
+  string min_client_version = 270;
+  string max_client_version = 271;
 }

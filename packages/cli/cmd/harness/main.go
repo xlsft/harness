@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"syscall"
 
@@ -20,6 +21,7 @@ import (
 
 	"github.com/xlsft/harness/packages/client/auth"
 	"github.com/xlsft/harness/packages/client/bootstrap"
+	"github.com/xlsft/harness/packages/client/completion"
 	"github.com/xlsft/harness/packages/client/config"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	"github.com/xlsft/harness/packages/client/permissions"
@@ -43,6 +45,7 @@ Usage:
   harness whoami                  Show the signed-in user
   harness demo                    Render the terminal identity (colors, logo, loaders)
   harness update                  Says how this binary is updated (no release of it yet)
+  harness completion bash|zsh|fish  Print a shell completion script
   harness version
 
 Flags:
@@ -67,6 +70,8 @@ func run(args []string) int {
 		case "version", "--version":
 			fmt.Println("harness " + config.Version)
 			return 0
+		case "completion":
+			return runCompletion(args[1:])
 		case "update":
 			// Releases carry harness-client and the desktop app, not this terminal frontend (docs/release.md).
 			return fail(errors.New("harness has no release builds yet, so it can't update itself: rebuild it from source. `harness-client update` updates the client"))
@@ -151,51 +156,74 @@ func protoMode(m permissions.Mode) agentv1.PermissionMode {
 	return agentv1.PermissionMode_PERMISSION_MODE_DEFAULT
 }
 
-func cmdMain(ctx context.Context, args []string) int {
+// mainFlags are the flags of the interactive session and of -p.
+type mainFlags struct {
+	printMode                    *bool
+	outputFormat                 *string
+	model                        *string
+	mode                         *string
+	outputStyle                  *string
+	resume                       *string
+	cont                         *bool
+	serverURL                    *string
+	verbose                      *bool
+	help                         *bool
+	allowed, disallowed, addDirs []string
+}
+
+func newMainFlags() (*pflag.FlagSet, *mainFlags) {
 	fs := pflag.NewFlagSet("harness", pflag.ContinueOnError)
+	f := &mainFlags{}
 	fs.SetInterspersed(true)
-	printMode := fs.BoolP("print", "p", false, "run one headless turn and print the result")
-	outputFormat := fs.String("output-format", "text", "with -p: text | json | stream-json")
-	model := fs.String("model", "", "model id (default: the server's main slot)")
-	mode := fs.String("permission-mode", "", "default | acceptEdits | plan | auto | dontAsk | bypassPermissions (unset: settings, else auto)")
-	outputStyle := fs.String("output-style", "", "output style: a built-in id (default, proactive, concise, explanatory, learning) or a user/project style name (default: settings outputStyle)")
-	var allowed, disallowed, addDirs []string
-	fs.StringArrayVar(&allowed, "allowedTools", nil, `tools allowed without asking, e.g. "Bash(git *) Edit"`)
-	fs.StringArrayVar(&disallowed, "disallowedTools", nil, "tools that are always denied")
-	fs.StringArrayVar(&addDirs, "add-dir", nil, "additional working directories")
-	resume := fs.StringP("resume", "r", "", "resume a session by id")
-	cont := fs.BoolP("continue", "c", false, "with -p: continue the most recent session in this directory")
-	serverURL := fs.String("server", "", "harness server URL (overrides stored credentials)")
-	verbose := fs.Bool("verbose", false, "debug logging (to $HARNESS_HOME/cli.log in the TUI)")
-	help := fs.BoolP("help", "h", false, "show help")
+	f.printMode = fs.BoolP("print", "p", false, "run one headless turn and print the result")
+	f.outputFormat = fs.String("output-format", "text", "with -p: text | json | stream-json")
+	f.model = fs.String("model", "", "model id (default: the server's main slot)")
+	f.mode = fs.String("permission-mode", "", "default | acceptEdits | plan | auto | dontAsk | bypassPermissions (unset: settings, else auto)")
+	f.outputStyle = fs.String("output-style", "", "output style: a built-in id (default, proactive, concise, explanatory, learning) or a user/project style name (default: settings outputStyle)")
+	fs.StringArrayVar(&f.allowed, "allowedTools", nil, `tools allowed without asking, e.g. "Bash(git *) Edit"`)
+	fs.StringArrayVar(&f.disallowed, "disallowedTools", nil, "tools that are always denied")
+	fs.StringArrayVar(&f.addDirs, "add-dir", nil, "additional working directories")
+	f.resume = fs.StringP("resume", "r", "", "resume a session by id")
+	f.cont = fs.BoolP("continue", "c", false, "with -p: continue the most recent session in this directory")
+	f.serverURL = fs.String("server", "", "harness server URL (overrides stored credentials)")
+	f.verbose = fs.Bool("verbose", false, "debug logging (to $HARNESS_HOME/cli.log in the TUI)")
+	f.help = fs.BoolP("help", "h", false, "show help")
+	completion.Choices(fs, "output-format", "text", "json", "stream-json")
+	completion.Choices(fs, "permission-mode", "default", "acceptEdits", "plan", "auto", "dontAsk", "bypassPermissions")
+	completion.Dirs(fs, "add-dir")
+	return fs, f
+}
+
+func cmdMain(ctx context.Context, args []string) int {
+	fs, f := newMainFlags()
 	fs.SetOutput(io.Discard)
 	if err := fs.Parse(args); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		fmt.Fprint(os.Stderr, usage+fs.FlagUsages())
 		return 2
 	}
-	if *help {
+	if *f.help {
 		fmt.Print(usage + fs.FlagUsages())
 		return 0
 	}
 	// Unset leaves the mode to settings (permissions.defaultMode), else auto.
 	var pm permissions.Mode
-	if *mode != "" {
+	if *f.mode != "" {
 		var err error
-		if pm, err = permissions.ParseMode(*mode); err != nil {
+		if pm, err = permissions.ParseMode(*f.mode); err != nil {
 			return fail(err)
 		}
 	}
-	if *printMode {
+	if *f.printMode {
 		level := slog.LevelWarn
-		if *verbose {
+		if *f.verbose {
 			level = slog.LevelDebug
 		}
 		return sdk.Run(ctx, sdk.Options{
-			Prompt: strings.Join(fs.Args(), " "), OutputFormat: *outputFormat,
+			Prompt: strings.Join(fs.Args(), " "), OutputFormat: *f.outputFormat,
 			Bootstrap: bootstrap.Options{
-				ServerURL: *serverURL, Model: *model, OutputStyle: *outputStyle, PermissionMode: pm, AllowedTools: allowed, DisallowedTools: disallowed,
-				AdditionalDirs: addDirs, Continue: *cont, Resume: *resume, Entrypoint: "cli",
+				ServerURL: *f.serverURL, Model: *f.model, OutputStyle: *f.outputStyle, PermissionMode: pm, AllowedTools: f.allowed, DisallowedTools: f.disallowed,
+				AdditionalDirs: f.addDirs, Continue: *f.cont, Resume: *f.resume, Entrypoint: "cli",
 				Logger: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})),
 			},
 		})
@@ -206,7 +234,7 @@ func cmdMain(ctx context.Context, args []string) int {
 
 	cwd, _ := os.Getwd()
 	var logger *slog.Logger
-	if *verbose || os.Getenv("HARNESS_DEBUG") == "1" {
+	if *f.verbose || os.Getenv("HARNESS_DEBUG") == "1" {
 		if f, err := os.OpenFile(filepath.Join(config.Home(), "cli.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600); err == nil {
 			defer f.Close()
 			logger = slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -215,8 +243,8 @@ func cmdMain(ctx context.Context, args []string) int {
 	env := brand.Detect()
 	fmt.Fprint(os.Stderr, "Starting harness…\r")
 	conn, err := client.Open(ctx, client.Options{
-		Cwd: cwd, Model: *model, OutputStyle: *outputStyle, PermissionMode: protoMode(pm), AllowedTools: allowed, DisallowedTools: disallowed,
-		AddDirs: addDirs, Resume: *resume, ServerURL: *serverURL, Logger: logger,
+		Cwd: cwd, Model: *f.model, OutputStyle: *f.outputStyle, PermissionMode: protoMode(pm), AllowedTools: f.allowed, DisallowedTools: f.disallowed,
+		AddDirs: f.addDirs, Resume: *f.resume, ServerURL: *f.serverURL, Logger: logger,
 		Trust: func(tr *agentv1.GetWorkspaceTrustResponse) bool { return askTrust(env, cwd, tr) },
 	})
 	fmt.Fprint(os.Stderr, "\x1b[2K\r")
@@ -272,4 +300,36 @@ func askTrust(env brand.Env, cwd string, tr *agentv1.GetWorkspaceTrustResponse) 
 	var answer string
 	_, _ = fmt.Scanln(&answer)
 	return strings.TrimSpace(answer) == "1" || strings.EqualFold(strings.TrimSpace(answer), "y")
+}
+
+// runCompletion prints the completion script of a shell.
+func runCompletion(args []string) int {
+	if len(args) != 1 || !slices.Contains(completion.Shells, args[0]) {
+		fmt.Fprint(os.Stderr, completion.Usage("harness"))
+		if len(args) == 1 && (args[0] == "-h" || args[0] == "--help" || args[0] == "help") {
+			return 0
+		}
+		return 2
+	}
+	if err := completion.Write(os.Stdout, args[0], commandTree()); err != nil {
+		return fail(err)
+	}
+	return 0
+}
+
+// commandTree describes harness's commands for completion, with the flag sets they parse.
+func commandTree() *completion.Command {
+	fs, _ := newMainFlags()
+	return &completion.Command{
+		Name: "harness", Flags: fs,
+		Subcommands: []*completion.Command{
+			{Name: "login", Short: "Sign in with the device flow"},
+			{Name: "logout", Short: "Revoke this device and delete credentials"},
+			{Name: "whoami", Short: "Show the signed-in user"},
+			{Name: "demo", Short: "Render the terminal identity"},
+			{Name: "update", Short: "Say how this binary is updated"},
+			{Name: "completion", Short: "Print a shell completion script", Args: completion.Shells},
+			{Name: "version", Short: "Print the version"},
+		},
+	}
 }

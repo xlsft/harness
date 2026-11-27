@@ -209,6 +209,9 @@ export interface ManagedPolicy {
   chatAppsDisabled: boolean
   remoteStartsDisabled: boolean
   personalChatBotsDisabled: boolean
+  // The client versions allowed (X.Y.Z); '' is no bound.
+  minClientVersion: string
+  maxClientVersion: string
 }
 
 export interface PolicyChoice {
@@ -224,7 +227,7 @@ export interface ManagedPolicyState {
 }
 
 export function emptyManagedPolicy(): ManagedPolicy {
-  return { allowRules: [], askRules: [], denyRules: [], managedRulesOnly: false, sandboxRequired: false, sandboxOutsideRefused: false, restrictProviders: false, allowedProviders: [], personalProvidersDisabled: false, personalHostsDisabled: false, cloudDisabled: false, cloudBypassPermissionsAllowed: false, cloudEgressAllow: [], cloudMaxSessionsPerUser: 0, cloudMaxSessionsPerGroup: 0, restrictMcpServers: false, allowedMcpServers: [], restrictPluginSources: false, allowedPluginSources: [], blockedPluginSources: [], distributedMarketplaces: [], distributedPlugins: [], blockedPlugins: [], restrictSkills: false, allowedSkills: [], blockedSkills: [], externalSkillSearchDisabled: false, deferBuiltinTools: null, pluginUiDisabled: false, pluginUiNetworkDisabled: false, chatAppsDisabled: false, remoteStartsDisabled: false, personalChatBotsDisabled: false }
+  return { allowRules: [], askRules: [], denyRules: [], managedRulesOnly: false, sandboxRequired: false, sandboxOutsideRefused: false, restrictProviders: false, allowedProviders: [], personalProvidersDisabled: false, personalHostsDisabled: false, cloudDisabled: false, cloudBypassPermissionsAllowed: false, cloudEgressAllow: [], cloudMaxSessionsPerUser: 0, cloudMaxSessionsPerGroup: 0, restrictMcpServers: false, allowedMcpServers: [], restrictPluginSources: false, allowedPluginSources: [], blockedPluginSources: [], distributedMarketplaces: [], distributedPlugins: [], blockedPlugins: [], restrictSkills: false, allowedSkills: [], blockedSkills: [], externalSkillSearchDisabled: false, minClientVersion: '', maxClientVersion: '', deferBuiltinTools: null, pluginUiDisabled: false, pluginUiNetworkDisabled: false, chatAppsDisabled: false, remoteStartsDisabled: false, personalChatBotsDisabled: false }
 }
 
 export interface EnterpriseApi {
