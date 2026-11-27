@@ -104,7 +104,7 @@ async function signOut() {
             class="truncate text-[11.5px] text-muted"
           >{{ host }}</span>
         </div>
-        <div class="my-1 h-px bg-line" />
+        <div class="my-1 h-px bg-line-strong" />
         <PaneMenuItem
           icon="lock"
           @click="openSettings('account')"
@@ -131,13 +131,13 @@ async function signOut() {
         >
           {{ tt('Settings') }}
         </PaneMenuItem>
-        <div class="my-1 h-px bg-line" />
+        <div class="my-1 h-px bg-line-strong" />
         <PaneMenuItem
           v-if="store.account.server"
           icon="arrow-up-right"
           @click="open = false; openExternal(store.account.server)"
         >
-          {{ tt('Open the server in a browser') }}
+          {{ tt('Open in browser') }}
         </PaneMenuItem>
         <PaneMenuItem
           icon="info"
@@ -146,7 +146,7 @@ async function signOut() {
           {{ tt('About and updates') }}
         </PaneMenuItem>
         <template v-if="desktop">
-          <div class="my-1 h-px bg-line" />
+          <div class="my-1 h-px bg-line-strong" />
           <PaneMenuItem
             icon="arrow-left"
             danger

@@ -118,7 +118,7 @@ const active = computed(() => props.filters.filter(f => props.filterValues[f.key
               >
                 <div
                   v-if="i"
-                  class="my-1 h-px bg-line"
+                  class="my-1 h-px bg-line-strong"
                 />
                 <div class="px-[11px] py-1 text-[11px] text-muted">
                   {{ f.title }}

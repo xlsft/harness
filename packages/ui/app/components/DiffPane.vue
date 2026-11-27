@@ -378,7 +378,7 @@ async function copy(text: string) {
               {{ tt('Uncommitted changes') }}
             </PaneMenuItem>
             <template v-if="bases?.inGit">
-              <div class="my-1 h-px bg-line" />
+              <div class="my-1 h-px bg-line-strong" />
               <UPopover
                 :open="baseSub === 'ref'"
                 :content="{ side: 'right', align: 'start', sideOffset: 4 }"
@@ -626,14 +626,14 @@ async function copy(text: string) {
                       </div>
                     </template>
                   </UPopover>
-                  <div class="my-1 h-px bg-line" />
+                  <div class="my-1 h-px bg-line-strong" />
                   <PaneMenuItem @click="openFile(row.group.path)">
                     {{ tt('Show whole file') }}
                   </PaneMenuItem>
                   <PaneMenuItem @click="toggleViewed(row.group.path); fileMenu = ''">
                     {{ viewed[row.group.path] ? tt('Mark as not viewed') : tt('Mark as viewed') }}
                   </PaneMenuItem>
-                  <div class="my-1 h-px bg-line" />
+                  <div class="my-1 h-px bg-line-strong" />
                   <PaneMenuItem @click="openFile(row.group.path)">
                     {{ tt('Open file') }}
                   </PaneMenuItem>

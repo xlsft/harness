@@ -42,7 +42,7 @@ async function run(it: RowMenuItem) {
         >
           <div
             v-if="!it"
-            class="my-1 h-px bg-line"
+            class="my-1 h-px bg-line-strong"
           />
           <PaneMenuItem
             v-else

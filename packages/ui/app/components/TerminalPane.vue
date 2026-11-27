@@ -302,7 +302,7 @@ async function copy(text: string) {
         >
           {{ tt('Blink cursor') }}
         </PaneMenuItem>
-        <div class="my-1 h-px bg-line" />
+        <div class="my-1 h-px bg-line-strong" />
         <PaneMenuItem
           :disabled="!tab"
           @click="clearCurrent"

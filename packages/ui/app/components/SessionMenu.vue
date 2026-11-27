@@ -177,7 +177,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           >
             {{ tt('Copy path') }}
           </PaneMenuItem>
-          <div class="my-1 h-px bg-line" />
+          <div class="my-1 h-px bg-line-strong" />
         </template>
         <PaneMenuItem
           icon="download"
@@ -191,7 +191,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
         >
           {{ tt('Export as JSONL') }}
         </PaneMenuItem>
-        <div class="my-1 h-px bg-line" />
+        <div class="my-1 h-px bg-line-strong" />
         <PaneMenuItem
           icon="pin"
           value="P"
@@ -222,7 +222,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           {{ remote ? tt('Continue here…') : tt('Fork') }}
         </PaneMenuItem>
         <template v-if="sub">
-          <div class="my-1 h-px bg-line" />
+          <div class="my-1 h-px bg-line-strong" />
           <PaneMenuItem
             icon="arrow-up-right"
             @click="run(detach)"
@@ -230,7 +230,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
             {{ tt('Detach to top level') }}
           </PaneMenuItem>
         </template>
-        <div class="my-1 h-px bg-line" />
+        <div class="my-1 h-px bg-line-strong" />
         <PaneMenuItem
           icon="archive"
           value="A"

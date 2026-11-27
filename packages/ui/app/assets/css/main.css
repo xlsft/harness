@@ -537,6 +537,10 @@
 :where([class~="border-b"], [class~="border-t"], [class~="border-x"], [class~="border-y"], [class~="border-l"], [class~="border-r"]):not([class~="border"]) {
   border-radius: 0;
 }
+/* Rows of a popup menu run edge to edge, so they stay square: the menu's own border carries the corners. */
+:where([role="menu"]) :where([role^="menuitem"]) {
+  border-radius: 0;
+}
 /* Menu items, options and list rows marked by a 2px accent rule: the rule only in square themes. */
 :where(:is([role="option"], [role^="menuitem"], button, a, [class~="cursor-pointer"])[class~="border-l-2"]) {
   border-left-width: max(0px, calc(2px - var(--radius-control) * 100));

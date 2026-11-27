@@ -625,7 +625,7 @@ async function copyUrl() {
         <PaneMenuItem @click="clearData">
           {{ tt('Clear browsing data') }}
         </PaneMenuItem>
-        <div class="my-1 h-px bg-line" />
+        <div class="my-1 h-px bg-line-strong" />
         <PaneMenuItem
           danger
           @click="stopBrowser"

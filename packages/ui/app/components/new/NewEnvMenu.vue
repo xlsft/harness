@@ -79,7 +79,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
       />
     </div>
     <template v-if="shownAgentHosts.length">
-      <div class="my-1 h-px bg-line" />
+      <div class="my-1 h-px bg-line-strong" />
       <div class="px-2.5 pt-[5px] pb-0.5 text-[11px] text-muted">
         {{ tt('Always-on hosts') }}
       </div>
@@ -109,7 +109,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
         />
       </div>
     </template>
-    <div class="my-1 h-px bg-line" />
+    <div class="my-1 h-px bg-line-strong" />
     <div class="px-2.5 pt-[5px] pb-0.5 text-[11px] text-muted">
       {{ tt('SSH') }}
     </div>

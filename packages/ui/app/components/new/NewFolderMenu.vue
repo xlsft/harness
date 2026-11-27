@@ -88,7 +88,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
         {{ folders.length ? tt('No matches') : tt('No recent folders yet') }}
       </div>
     </div>
-    <div class="my-1 h-px bg-line" />
+    <div class="my-1 h-px bg-line-strong" />
     <div
       role="menuitem"
       :class="[ROW, 'border-transparent text-toned hover:bg-raised hover:text-strong']"
@@ -99,7 +99,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
         :size="13"
       />{{ tt('Open folder…') }}
     </div>
-    <div class="my-1 h-px bg-line" />
+    <div class="my-1 h-px bg-line-strong" />
     <UPopover
       v-model:open="branchOpen"
       :content="{ side: 'right', align: 'end', sideOffset: 4 }"

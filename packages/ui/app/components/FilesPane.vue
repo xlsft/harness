@@ -755,7 +755,7 @@ const remoteText = computed(() => {
         >
           <div
             v-if="a.sep && a !== actions[0]"
-            class="my-1 h-px bg-line"
+            class="my-1 h-px bg-line-strong"
           />
           <PaneMenuItem @click="runAction(a)">
             {{ a.label }}
@@ -786,7 +786,7 @@ const remoteText = computed(() => {
         >
           {{ tt('Show ignored files') }}
         </PaneMenuItem>
-        <div class="my-1 h-px bg-line" />
+        <div class="my-1 h-px bg-line-strong" />
         <PaneMenuItem
           role="menuitemcheckbox"
           :checked="settings.wrap"
@@ -795,7 +795,7 @@ const remoteText = computed(() => {
         >
           {{ tt('Word wrap') }}
         </PaneMenuItem>
-        <div class="my-1 h-px bg-line" />
+        <div class="my-1 h-px bg-line-strong" />
         <div class="px-[11px] pt-1 pb-0.5 text-[11px] text-muted">
           {{ tt('Tab size') }}
         </div>

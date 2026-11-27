@@ -65,7 +65,7 @@ function choose(p: PaneName) {
       />
     </div>
     <template v-if="showAwake">
-      <div class="h-px bg-line" />
+      <div class="h-px bg-line-strong" />
       <div
         role="menuitemcheckbox"
         :aria-checked="awake"
