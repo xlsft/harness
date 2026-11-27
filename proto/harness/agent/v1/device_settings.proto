@@ -14,6 +14,10 @@ message DeviceSettings {
   // Whether this machine takes remote starts: sessions started from the phone or a chat app through the relay, in one
   // of its recent folders (docs/design/chat.md). Off by default. Never synced: it says nothing about other machines.
   bool allow_remote_starts = 3;
+  // The image model of the ImageGenerate tool on this device: "local:<local provider id>/<model name>", a model of an
+  // OpenAI-compatible local provider (localmodels.proto) that serves /v1/images/generations. Empty: the user's synced
+  // choice (UserPreferences.image_model) or the server default. Never synced.
+  string image_model = 4;
 }
 
 message GetDeviceSettingsRequest {}
@@ -27,6 +31,8 @@ message UpdateDeviceSettingsRequest {
   optional string theme = 1;
   optional bool notifications = 2;
   optional bool allow_remote_starts = 3;
+  // "" clears it. INVALID_ARGUMENT for an id that is not "local:<provider>/<model>" of an OpenAI-compatible local provider.
+  optional string image_model = 4;
 }
 
 message UpdateDeviceSettingsResponse {

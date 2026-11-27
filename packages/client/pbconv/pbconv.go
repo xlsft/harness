@@ -275,8 +275,14 @@ func FromCatalog(r *llmv1.ListModelsResponse) *llm.Catalog {
 	for _, m := range r.GetModels() {
 		c.Models = append(c.Models, FromModel(m))
 	}
+	for _, m := range r.GetImageModels() {
+		c.ImageModels = append(c.ImageModels, FromModel(m))
+	}
 	if s := r.GetSlots(); s != nil {
 		c.Slots["main"], c.Slots["small"], c.Slots["plan"], c.Slots["title"] = s.GetMain(), s.GetSmall(), s.GetPlan(), s.GetTitle()
+		if img := s.GetImage(); img != "" {
+			c.Slots["image"] = img
+		}
 	}
 	return c
 }

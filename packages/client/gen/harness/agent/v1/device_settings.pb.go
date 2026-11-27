@@ -30,8 +30,12 @@ type DeviceSettings struct {
 	// Whether this machine takes remote starts: sessions started from the phone or a chat app through the relay, in one
 	// of its recent folders (docs/design/chat.md). Off by default. Never synced: it says nothing about other machines.
 	AllowRemoteStarts bool `protobuf:"varint,3,opt,name=allow_remote_starts,json=allowRemoteStarts,proto3" json:"allow_remote_starts,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// The image model of the ImageGenerate tool on this device: "local:<local provider id>/<model name>", a model of an
+	// OpenAI-compatible local provider (localmodels.proto) that serves /v1/images/generations. Empty: the user's synced
+	// choice (UserPreferences.image_model) or the server default. Never synced.
+	ImageModel    string `protobuf:"bytes,4,opt,name=image_model,json=imageModel,proto3" json:"image_model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DeviceSettings) Reset() {
@@ -83,6 +87,13 @@ func (x *DeviceSettings) GetAllowRemoteStarts() bool {
 		return x.AllowRemoteStarts
 	}
 	return false
+}
+
+func (x *DeviceSettings) GetImageModel() string {
+	if x != nil {
+		return x.ImageModel
+	}
+	return ""
 }
 
 type GetDeviceSettingsRequest struct {
@@ -171,8 +182,10 @@ type UpdateDeviceSettingsRequest struct {
 	Theme             *string                `protobuf:"bytes,1,opt,name=theme,proto3,oneof" json:"theme,omitempty"`
 	Notifications     *bool                  `protobuf:"varint,2,opt,name=notifications,proto3,oneof" json:"notifications,omitempty"`
 	AllowRemoteStarts *bool                  `protobuf:"varint,3,opt,name=allow_remote_starts,json=allowRemoteStarts,proto3,oneof" json:"allow_remote_starts,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// "" clears it. INVALID_ARGUMENT for an id that is not "local:<provider>/<model>" of an OpenAI-compatible local provider.
+	ImageModel    *string `protobuf:"bytes,4,opt,name=image_model,json=imageModel,proto3,oneof" json:"image_model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateDeviceSettingsRequest) Reset() {
@@ -224,6 +237,13 @@ func (x *UpdateDeviceSettingsRequest) GetAllowRemoteStarts() bool {
 		return *x.AllowRemoteStarts
 	}
 	return false
+}
+
+func (x *UpdateDeviceSettingsRequest) GetImageModel() string {
+	if x != nil && x.ImageModel != nil {
+		return *x.ImageModel
+	}
+	return ""
 }
 
 type UpdateDeviceSettingsResponse struct {
@@ -399,21 +419,26 @@ var File_harness_agent_v1_device_settings_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_device_settings_proto_rawDesc = "" +
 	"\n" +
-	"&harness/agent/v1/device_settings.proto\x12\x10harness.agent.v1\"|\n" +
+	"&harness/agent/v1/device_settings.proto\x12\x10harness.agent.v1\"\x9d\x01\n" +
 	"\x0eDeviceSettings\x12\x14\n" +
 	"\x05theme\x18\x01 \x01(\tR\x05theme\x12$\n" +
 	"\rnotifications\x18\x02 \x01(\bR\rnotifications\x12.\n" +
-	"\x13allow_remote_starts\x18\x03 \x01(\bR\x11allowRemoteStarts\"\x1a\n" +
+	"\x13allow_remote_starts\x18\x03 \x01(\bR\x11allowRemoteStarts\x12\x1f\n" +
+	"\vimage_model\x18\x04 \x01(\tR\n" +
+	"imageModel\"\x1a\n" +
 	"\x18GetDeviceSettingsRequest\"Y\n" +
 	"\x19GetDeviceSettingsResponse\x12<\n" +
-	"\bsettings\x18\x01 \x01(\v2 .harness.agent.v1.DeviceSettingsR\bsettings\"\xcc\x01\n" +
+	"\bsettings\x18\x01 \x01(\v2 .harness.agent.v1.DeviceSettingsR\bsettings\"\x82\x02\n" +
 	"\x1bUpdateDeviceSettingsRequest\x12\x19\n" +
 	"\x05theme\x18\x01 \x01(\tH\x00R\x05theme\x88\x01\x01\x12)\n" +
 	"\rnotifications\x18\x02 \x01(\bH\x01R\rnotifications\x88\x01\x01\x123\n" +
-	"\x13allow_remote_starts\x18\x03 \x01(\bH\x02R\x11allowRemoteStarts\x88\x01\x01B\b\n" +
+	"\x13allow_remote_starts\x18\x03 \x01(\bH\x02R\x11allowRemoteStarts\x88\x01\x01\x12$\n" +
+	"\vimage_model\x18\x04 \x01(\tH\x03R\n" +
+	"imageModel\x88\x01\x01B\b\n" +
 	"\x06_themeB\x10\n" +
 	"\x0e_notificationsB\x16\n" +
-	"\x14_allow_remote_starts\"\\\n" +
+	"\x14_allow_remote_startsB\x0e\n" +
+	"\f_image_model\"\\\n" +
 	"\x1cUpdateDeviceSettingsResponse\x12<\n" +
 	"\bsettings\x18\x01 \x01(\v2 .harness.agent.v1.DeviceSettingsR\bsettings\"\x17\n" +
 	"\x15DeviceSettingsChanged\"N\n" +

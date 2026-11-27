@@ -22,7 +22,7 @@ import (
 
 // CoreProxy forwards unary Connect calls of selected harness server services
 // (harness.llm.v1.ProviderService: the settings screens' providers and
-// classifier; harness.llm.v1.UsageService: the Usage tab's reports;
+// classifier; harness.llm.v1.ImageService: Settings > Images; harness.llm.v1.UsageService: the Usage tab's reports;
 // harness.auth.v1.AdminService: user administration and LDAP, admins only;
 // harness.llm.v1.ProviderLimitsService: provider budgets, GetProviderLimits also
 // as AgentService.GetProviderLimits in limits.go; the organization's administration:
@@ -47,7 +47,7 @@ type CoreProxy struct {
 
 // coreProxyServices are the server services frontends may reach through the client.
 var coreProxyServices = []string{
-	llmv1connect.ProviderServiceName, llmv1connect.UsageServiceName, authv1connect.AdminServiceName, llmv1connect.ProviderLimitsServiceName,
+	llmv1connect.ProviderServiceName, llmv1connect.UsageServiceName, authv1connect.AdminServiceName, llmv1connect.ProviderLimitsServiceName, llmv1connect.ImageServiceName,
 	authv1connect.AuditServiceName, authv1connect.BillingServiceName, authv1connect.DirectoryServiceName, authv1connect.MfaServiceName,
 	authv1connect.PolicyServiceName, authv1connect.SsoServiceName,
 	libraryv1connect.ArtifactServiceName, libraryv1connect.KnowledgeServiceName, libraryv1connect.BoardServiceName, libraryv1connect.ProjectServiceName, libraryv1connect.TrackerConnectionServiceName,

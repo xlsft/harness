@@ -178,6 +178,8 @@ export const model = pgTable("model", {
     // removes a personal provider's models with it (also when its owner is deleted).
     .references(() => provider.id, { onDelete: "cascade" }),
   upstreamModel: text("upstream_model").notNull(),
+  /** "chat" (GatewayService.StreamMessage) or "image" (GatewayService.GenerateImages, docs/design/images.md). */
+  kind: text("kind").notNull().default("chat"),
   contextWindow: integer("context_window").notNull(),
   maxOutputTokens: integer("max_output_tokens").notNull(),
   /** JSON: ModelCapabilities */
@@ -244,6 +246,8 @@ export const usageRecord = pgTable(
     cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
     cacheWriteTokens: integer("cache_write_tokens").notNull().default(0),
     costUsd: doublePrecision("cost_usd").notNull().default(0),
+    /** Images an image generation request returned (request class "image"); 0 for messages. */
+    images: integer("images").notNull().default(0),
     /**
      * The request was billed at a catalog price (a priced model on a metered provider). False: it counts
      * tokens only (no price, or a subscription / coding plan provider), so its cost is unknown, not 0.

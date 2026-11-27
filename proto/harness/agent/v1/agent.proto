@@ -1773,6 +1773,10 @@ message UserPreferences {
   int32 best_of_n_parallel = 58;
   // Best-of-N: what one attempt may spend in USD (settings key bestOfNBudgetUsd). 0: no limit of the user's own.
   double best_of_n_budget_usd = 59;
+  // The image model of the ImageGenerate tool (settings key imageModel): one of the server's image models
+  // (harness.llm.v1.ListModelsResponse.image_models). Empty: the server default (Slots.image). A device-local image
+  // model is chosen on the device instead (DeviceSettings.image_model) and wins there.
+  string image_model = 52;
 }
 
 // Choices about how a user's requests run. Sessions opened from then on follow them.
@@ -1845,6 +1849,8 @@ message UpdateUserPreferencesRequest {
   optional int32 best_of_n_parallel = 58;
   // INVALID_ARGUMENT below 0 or above 1000.
   optional double best_of_n_budget_usd = 59;
+  // "" follows the server default. INVALID_ARGUMENT for a device-local ("local:") id: those are chosen per device.
+  optional string image_model = 52;
 }
 
 message UpdateUserPreferencesResponse {

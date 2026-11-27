@@ -325,6 +325,22 @@ type Model struct {
 type Catalog struct {
 	Models []Model           `json:"models"`
 	Slots  map[string]string `json:"slots"`
+	// ImageModels are the image generation models the user may use (GatewayService.GenerateImages); never in Models.
+	// Slots["image"] is the server default among them ("" none).
+	ImageModels []Model `json:"image_models,omitempty"`
+}
+
+// FindImage returns the image model with the given id.
+func (c *Catalog) FindImage(id string) (Model, bool) {
+	if c == nil {
+		return Model{}, false
+	}
+	for _, m := range c.ImageModels {
+		if m.ID == id {
+			return m, true
+		}
+	}
+	return Model{}, false
 }
 
 // Find returns the model with the given id.

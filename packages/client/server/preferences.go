@@ -191,6 +191,13 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 		set[settings.KeyChatDefaults] = map[string]any{"deviceId": d.GetDeviceId(), "folder": d.GetFolder(), "permissionMode": d.GetPermissionMode(),
 			"agentHostId": d.GetAgentHostId(), "repositoryKey": d.GetRepositoryKey()}
 	}
+	if m := req.Msg.ImageModel; m != nil {
+		id := strings.TrimSpace(*m)
+		if strings.HasPrefix(id, "local:") {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("a device-local image model is chosen on its device (UpdateDeviceSettings), not in the synced preferences"))
+		}
+		set[settings.KeyImageModel] = id
+	}
 	if sw := req.Msg.SkillSwitch; sw != nil {
 		if strings.TrimSpace(sw.GetName()) == "" {
 			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("the skill's name is empty"))
@@ -323,6 +330,9 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 		if v, ok := raw[key]; ok {
 			_ = json.Unmarshal(v, dst)
 		}
+	}
+	if v, ok := raw[settings.KeyImageModel]; ok {
+		_ = json.Unmarshal(v, &p.ImageModel)
 	}
 	var n int32
 	if v, ok := raw[settings.KeyPRMonitorWakesPerHour]; ok && json.Unmarshal(v, &n) == nil && settings.ValidPRMonitorWakesPerHour(int(n)) {

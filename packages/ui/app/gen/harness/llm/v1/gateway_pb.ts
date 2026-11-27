@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/llm/v1/gateway.proto.
  */
 export const file_harness_llm_v1_gateway: GenFile = /*@__PURE__*/
-  fileDesc("ChxoYXJuZXNzL2xsbS92MS9nYXRld2F5LnByb3RvEg5oYXJuZXNzLmxsbS52MSITChFMaXN0TW9kZWxzUmVxdWVzdCJhChJMaXN0TW9kZWxzUmVzcG9uc2USJQoGbW9kZWxzGAEgAygLMhUuaGFybmVzcy5sbG0udjEuTW9kZWwSJAoFc2xvdHMYAiABKAsyFS5oYXJuZXNzLmxsbS52MS5TbG90cyKIAgoFTW9kZWwSCgoCaWQYASABKAkSFAoMZGlzcGxheV9uYW1lGAIgASgJEhAKCHByb3ZpZGVyGAMgASgJEhYKDmNvbnRleHRfd2luZG93GAQgASgDEhkKEW1heF9vdXRwdXRfdG9rZW5zGAUgASgDEjIKDGNhcGFiaWxpdGllcxgGIAEoCzIcLmhhcm5lc3MubGxtLnYxLkNhcGFiaWxpdGllcxItCgdwcmljaW5nGAcgASgLMhcuaGFybmVzcy5sbG0udjEuUHJpY2luZ0gAiAEBEhUKDXByb3ZpZGVyX25hbWUYCCABKAkSEgoKZGlzcGxheV9pZBgJIAEoCUIKCghfcHJpY2luZyLxAQoMQ2FwYWJpbGl0aWVzEhAKCHRoaW5raW5nGAEgASgIEiYKBmVmZm9ydBgCIAMoDjIWLmhhcm5lc3MubGxtLnYxLkVmZm9ydBIOCgZpbWFnZXMYAyABKAgSCwoDcGRmGAQgASgIEhsKE3BhcmFsbGVsX3Rvb2xfY2FsbHMYBSABKAgSFAoMcHJvbXB0X2NhY2hlGAYgASgIEi4KDmRlZmF1bHRfZWZmb3J0GAcgASgOMhYuaGFybmVzcy5sbG0udjEuRWZmb3J0EhMKC3NwZWVkX3RpZXJzGAggAygJEhIKCmNhY2hlX3R0bHMYCSADKAkiUQoHUHJpY2luZxINCgVpbnB1dBgBIAEoARIOCgZvdXRwdXQYAiABKAESEgoKY2FjaGVfcmVhZBgDIAEoARITCgtjYWNoZV93cml0ZRgEIAEoASJBCgVTbG90cxIMCgRtYWluGAEgASgJEg0KBXNtYWxsGAIgASgJEgwKBHBsYW4YAyABKAkSDQoFdGl0bGUYBCABKAkipwEKD1JlcXVlc3RNZXRhZGF0YRISCgpzZXNzaW9uX2lkGAEgASgJEjMKDXJlcXVlc3RfY2xhc3MYAiABKA4yHC5oYXJuZXNzLmxsbS52MS5SZXF1ZXN0Q2xhc3MSEAoIYWdlbnRfaWQYAyABKAkSHQoVcHJvbXB0X2J1bmRsZV92ZXJzaW9uGAQgASgJEhoKEnNlc3Npb25fYnVkZ2V0X3VzZBgFIAEoASLQAwoUU3RyZWFtTWVzc2FnZVJlcXVlc3QSDQoFbW9kZWwYASABKAkSEgoKbWF4X3Rva2VucxgCIAEoBRIpCgZzeXN0ZW0YAyADKAsyGS5oYXJuZXNzLmxsbS52MS5UZXh0QmxvY2sSKQoIbWVzc2FnZXMYBCADKAsyFy5oYXJuZXNzLmxsbS52MS5NZXNzYWdlEiMKBXRvb2xzGAUgAygLMhQuaGFybmVzcy5sbG0udjEuVG9vbBIvCgt0b29sX2Nob2ljZRgGIAEoCzIaLmhhcm5lc3MubGxtLnYxLlRvb2xDaG9pY2USKgoIdGhpbmtpbmcYByABKAsyGC5oYXJuZXNzLmxsbS52MS5UaGlua2luZxImCgZlZmZvcnQYCCABKA4yFi5oYXJuZXNzLmxsbS52MS5FZmZvcnQSFgoOc3RvcF9zZXF1ZW5jZXMYCSADKAkSGAoLdGVtcGVyYXR1cmUYCiABKAFIAIgBARIxCghtZXRhZGF0YRgLIAEoCzIfLmhhcm5lc3MubGxtLnYxLlJlcXVlc3RNZXRhZGF0YRINCgVzcGVlZBgMIAEoCRIRCgljYWNoZV90dGwYDSABKAlCDgoMX3RlbXBlcmF0dXJlItUDChVTdHJlYW1NZXNzYWdlUmVzcG9uc2USNQoNbWVzc2FnZV9zdGFydBgBIAEoCzIcLmhhcm5lc3MubGxtLnYxLk1lc3NhZ2VTdGFydEgAEkAKE2NvbnRlbnRfYmxvY2tfc3RhcnQYAiABKAsyIS5oYXJuZXNzLmxsbS52MS5Db250ZW50QmxvY2tTdGFydEgAEkAKE2NvbnRlbnRfYmxvY2tfZGVsdGEYAyABKAsyIS5oYXJuZXNzLmxsbS52MS5Db250ZW50QmxvY2tEZWx0YUgAEj4KEmNvbnRlbnRfYmxvY2tfc3RvcBgEIAEoCzIgLmhhcm5lc3MubGxtLnYxLkNvbnRlbnRCbG9ja1N0b3BIABI1Cg1tZXNzYWdlX2RlbHRhGAUgASgLMhwuaGFybmVzcy5sbG0udjEuTWVzc2FnZURlbHRhSAASMwoMbWVzc2FnZV9zdG9wGAYgASgLMhsuaGFybmVzcy5sbG0udjEuTWVzc2FnZVN0b3BIABIkCgRwaW5nGAcgASgLMhQuaGFybmVzcy5sbG0udjEuUGluZ0gAEiYKBXJldHJ5GAggASgLMhUuaGFybmVzcy5sbG0udjEuUmV0cnlIAEIHCgVldmVudCJPCgxNZXNzYWdlU3RhcnQSCgoCaWQYASABKAkSDQoFbW9kZWwYAiABKAkSJAoFdXNhZ2UYAyABKAsyFS5oYXJuZXNzLmxsbS52MS5Vc2FnZSJPChFDb250ZW50QmxvY2tTdGFydBINCgVpbmRleBgBIAEoBRIrCgVibG9jaxgCIAEoCzIcLmhhcm5lc3MubGxtLnYxLkNvbnRlbnRCbG9jayJ6ChFDb250ZW50QmxvY2tEZWx0YRINCgVpbmRleBgBIAEoBRIOCgR0ZXh0GAIgASgJSAASEgoIdGhpbmtpbmcYAyABKAlIABITCglzaWduYXR1cmUYBCABKAlIABIUCgppbnB1dF9qc29uGAUgASgJSABCBwoFZGVsdGEiIQoQQ29udGVudEJsb2NrU3RvcBINCgVpbmRleBgBIAEoBSJ8CgxNZXNzYWdlRGVsdGESLwoLc3RvcF9yZWFzb24YASABKA4yGi5oYXJuZXNzLmxsbS52MS5TdG9wUmVhc29uEhUKDXN0b3Bfc2VxdWVuY2UYAiABKAkSJAoFdXNhZ2UYAyABKAsyFS5oYXJuZXNzLmxsbS52MS5Vc2FnZSJeCgtNZXNzYWdlU3RvcBIQCghjb3N0X3VzZBgBIAEoARIWCg51cHN0cmVhbV9tb2RlbBgCIAEoCRIPCgdyZXRyaWVzGAMgASgFEhQKDHNlcnZlZF9tb2RlbBgEIAEoCSIGCgRQaW5nInIKBVJldHJ5Eg8KB2F0dGVtcHQYASABKAUSEwoLbWF4X3JldHJpZXMYAiABKAUSFgoOcmV0cnlfZGVsYXlfbXMYAyABKAMSKwoFZXJyb3IYBCABKAsyHC5oYXJuZXNzLmNvbW1vbi52MS5FcnJvckluZm8ingEKEkNvdW50VG9rZW5zUmVxdWVzdBINCgVtb2RlbBgBIAEoCRIpCgZzeXN0ZW0YAiADKAsyGS5oYXJuZXNzLmxsbS52MS5UZXh0QmxvY2sSKQoIbWVzc2FnZXMYAyADKAsyFy5oYXJuZXNzLmxsbS52MS5NZXNzYWdlEiMKBXRvb2xzGAQgAygLMhQuaGFybmVzcy5sbG0udjEuVG9vbCI+ChNDb3VudFRva2Vuc1Jlc3BvbnNlEhQKDGlucHV0X3Rva2VucxgBIAEoAxIRCgllc3RpbWF0ZWQYAiABKAgqnAEKDFJlcXVlc3RDbGFzcxIdChlSRVFVRVNUX0NMQVNTX1VOU1BFQ0lGSUVEEAASFgoSUkVRVUVTVF9DTEFTU19NQUlOEAESGgoWUkVRVUVTVF9DTEFTU19TVUJBR0VOVBACEhwKGFJFUVVFU1RfQ0xBU1NfQ09NUEFDVElPThADEhsKF1JFUVVFU1RfQ0xBU1NfQVVYSUxJQVJZEAQynQIKDkdhdGV3YXlTZXJ2aWNlElMKCkxpc3RNb2RlbHMSIS5oYXJuZXNzLmxsbS52MS5MaXN0TW9kZWxzUmVxdWVzdBoiLmhhcm5lc3MubGxtLnYxLkxpc3RNb2RlbHNSZXNwb25zZRJeCg1TdHJlYW1NZXNzYWdlEiQuaGFybmVzcy5sbG0udjEuU3RyZWFtTWVzc2FnZVJlcXVlc3QaJS5oYXJuZXNzLmxsbS52MS5TdHJlYW1NZXNzYWdlUmVzcG9uc2UwARJWCgtDb3VudFRva2VucxIiLmhhcm5lc3MubGxtLnYxLkNvdW50VG9rZW5zUmVxdWVzdBojLmhhcm5lc3MubGxtLnYxLkNvdW50VG9rZW5zUmVzcG9uc2VCvwEKEmNvbS5oYXJuZXNzLmxsbS52MUIMR2F0ZXdheVByb3RvUAFaQWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvbGxtL3YxO2xsbXYxogIDSExYqgIOSGFybmVzcy5MbG0uVjHKAg5IYXJuZXNzXExsbVxWMeICGkhhcm5lc3NcTGxtXFYxXEdQQk1ldGFkYXRh6gIQSGFybmVzczo6TGxtOjpWMWIGcHJvdG8z", [file_harness_common_v1_errors, file_harness_llm_v1_content]);
+  fileDesc("ChxoYXJuZXNzL2xsbS92MS9nYXRld2F5LnByb3RvEg5oYXJuZXNzLmxsbS52MSITChFMaXN0TW9kZWxzUmVxdWVzdCKOAQoSTGlzdE1vZGVsc1Jlc3BvbnNlEiUKBm1vZGVscxgBIAMoCzIVLmhhcm5lc3MubGxtLnYxLk1vZGVsEiQKBXNsb3RzGAIgASgLMhUuaGFybmVzcy5sbG0udjEuU2xvdHMSKwoMaW1hZ2VfbW9kZWxzGAMgAygLMhUuaGFybmVzcy5sbG0udjEuTW9kZWwiiAIKBU1vZGVsEgoKAmlkGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRIQCghwcm92aWRlchgDIAEoCRIWCg5jb250ZXh0X3dpbmRvdxgEIAEoAxIZChFtYXhfb3V0cHV0X3Rva2VucxgFIAEoAxIyCgxjYXBhYmlsaXRpZXMYBiABKAsyHC5oYXJuZXNzLmxsbS52MS5DYXBhYmlsaXRpZXMSLQoHcHJpY2luZxgHIAEoCzIXLmhhcm5lc3MubGxtLnYxLlByaWNpbmdIAIgBARIVCg1wcm92aWRlcl9uYW1lGAggASgJEhIKCmRpc3BsYXlfaWQYCSABKAlCCgoIX3ByaWNpbmci8QEKDENhcGFiaWxpdGllcxIQCgh0aGlua2luZxgBIAEoCBImCgZlZmZvcnQYAiADKA4yFi5oYXJuZXNzLmxsbS52MS5FZmZvcnQSDgoGaW1hZ2VzGAMgASgIEgsKA3BkZhgEIAEoCBIbChNwYXJhbGxlbF90b29sX2NhbGxzGAUgASgIEhQKDHByb21wdF9jYWNoZRgGIAEoCBIuCg5kZWZhdWx0X2VmZm9ydBgHIAEoDjIWLmhhcm5lc3MubGxtLnYxLkVmZm9ydBITCgtzcGVlZF90aWVycxgIIAMoCRISCgpjYWNoZV90dGxzGAkgAygJIlEKB1ByaWNpbmcSDQoFaW5wdXQYASABKAESDgoGb3V0cHV0GAIgASgBEhIKCmNhY2hlX3JlYWQYAyABKAESEwoLY2FjaGVfd3JpdGUYBCABKAEiUAoFU2xvdHMSDAoEbWFpbhgBIAEoCRINCgVzbWFsbBgCIAEoCRIMCgRwbGFuGAMgASgJEg0KBXRpdGxlGAQgASgJEg0KBWltYWdlGAUgASgJIqcBCg9SZXF1ZXN0TWV0YWRhdGESEgoKc2Vzc2lvbl9pZBgBIAEoCRIzCg1yZXF1ZXN0X2NsYXNzGAIgASgOMhwuaGFybmVzcy5sbG0udjEuUmVxdWVzdENsYXNzEhAKCGFnZW50X2lkGAMgASgJEh0KFXByb21wdF9idW5kbGVfdmVyc2lvbhgEIAEoCRIaChJzZXNzaW9uX2J1ZGdldF91c2QYBSABKAEi0AMKFFN0cmVhbU1lc3NhZ2VSZXF1ZXN0Eg0KBW1vZGVsGAEgASgJEhIKCm1heF90b2tlbnMYAiABKAUSKQoGc3lzdGVtGAMgAygLMhkuaGFybmVzcy5sbG0udjEuVGV4dEJsb2NrEikKCG1lc3NhZ2VzGAQgAygLMhcuaGFybmVzcy5sbG0udjEuTWVzc2FnZRIjCgV0b29scxgFIAMoCzIULmhhcm5lc3MubGxtLnYxLlRvb2wSLwoLdG9vbF9jaG9pY2UYBiABKAsyGi5oYXJuZXNzLmxsbS52MS5Ub29sQ2hvaWNlEioKCHRoaW5raW5nGAcgASgLMhguaGFybmVzcy5sbG0udjEuVGhpbmtpbmcSJgoGZWZmb3J0GAggASgOMhYuaGFybmVzcy5sbG0udjEuRWZmb3J0EhYKDnN0b3Bfc2VxdWVuY2VzGAkgAygJEhgKC3RlbXBlcmF0dXJlGAogASgBSACIAQESMQoIbWV0YWRhdGEYCyABKAsyHy5oYXJuZXNzLmxsbS52MS5SZXF1ZXN0TWV0YWRhdGESDQoFc3BlZWQYDCABKAkSEQoJY2FjaGVfdHRsGA0gASgJQg4KDF90ZW1wZXJhdHVyZSLVAwoVU3RyZWFtTWVzc2FnZVJlc3BvbnNlEjUKDW1lc3NhZ2Vfc3RhcnQYASABKAsyHC5oYXJuZXNzLmxsbS52MS5NZXNzYWdlU3RhcnRIABJAChNjb250ZW50X2Jsb2NrX3N0YXJ0GAIgASgLMiEuaGFybmVzcy5sbG0udjEuQ29udGVudEJsb2NrU3RhcnRIABJAChNjb250ZW50X2Jsb2NrX2RlbHRhGAMgASgLMiEuaGFybmVzcy5sbG0udjEuQ29udGVudEJsb2NrRGVsdGFIABI+ChJjb250ZW50X2Jsb2NrX3N0b3AYBCABKAsyIC5oYXJuZXNzLmxsbS52MS5Db250ZW50QmxvY2tTdG9wSAASNQoNbWVzc2FnZV9kZWx0YRgFIAEoCzIcLmhhcm5lc3MubGxtLnYxLk1lc3NhZ2VEZWx0YUgAEjMKDG1lc3NhZ2Vfc3RvcBgGIAEoCzIbLmhhcm5lc3MubGxtLnYxLk1lc3NhZ2VTdG9wSAASJAoEcGluZxgHIAEoCzIULmhhcm5lc3MubGxtLnYxLlBpbmdIABImCgVyZXRyeRgIIAEoCzIVLmhhcm5lc3MubGxtLnYxLlJldHJ5SABCBwoFZXZlbnQiTwoMTWVzc2FnZVN0YXJ0EgoKAmlkGAEgASgJEg0KBW1vZGVsGAIgASgJEiQKBXVzYWdlGAMgASgLMhUuaGFybmVzcy5sbG0udjEuVXNhZ2UiTwoRQ29udGVudEJsb2NrU3RhcnQSDQoFaW5kZXgYASABKAUSKwoFYmxvY2sYAiABKAsyHC5oYXJuZXNzLmxsbS52MS5Db250ZW50QmxvY2siegoRQ29udGVudEJsb2NrRGVsdGESDQoFaW5kZXgYASABKAUSDgoEdGV4dBgCIAEoCUgAEhIKCHRoaW5raW5nGAMgASgJSAASEwoJc2lnbmF0dXJlGAQgASgJSAASFAoKaW5wdXRfanNvbhgFIAEoCUgAQgcKBWRlbHRhIiEKEENvbnRlbnRCbG9ja1N0b3ASDQoFaW5kZXgYASABKAUifAoMTWVzc2FnZURlbHRhEi8KC3N0b3BfcmVhc29uGAEgASgOMhouaGFybmVzcy5sbG0udjEuU3RvcFJlYXNvbhIVCg1zdG9wX3NlcXVlbmNlGAIgASgJEiQKBXVzYWdlGAMgASgLMhUuaGFybmVzcy5sbG0udjEuVXNhZ2UiXgoLTWVzc2FnZVN0b3ASEAoIY29zdF91c2QYASABKAESFgoOdXBzdHJlYW1fbW9kZWwYAiABKAkSDwoHcmV0cmllcxgDIAEoBRIUCgxzZXJ2ZWRfbW9kZWwYBCABKAkiBgoEUGluZyJyCgVSZXRyeRIPCgdhdHRlbXB0GAEgASgFEhMKC21heF9yZXRyaWVzGAIgASgFEhYKDnJldHJ5X2RlbGF5X21zGAMgASgDEisKBWVycm9yGAQgASgLMhwuaGFybmVzcy5jb21tb24udjEuRXJyb3JJbmZvIp4BChJDb3VudFRva2Vuc1JlcXVlc3QSDQoFbW9kZWwYASABKAkSKQoGc3lzdGVtGAIgAygLMhkuaGFybmVzcy5sbG0udjEuVGV4dEJsb2NrEikKCG1lc3NhZ2VzGAMgAygLMhcuaGFybmVzcy5sbG0udjEuTWVzc2FnZRIjCgV0b29scxgEIAMoCzIULmhhcm5lc3MubGxtLnYxLlRvb2wiPgoTQ291bnRUb2tlbnNSZXNwb25zZRIUCgxpbnB1dF90b2tlbnMYASABKAMSEQoJZXN0aW1hdGVkGAIgASgIIskBChVHZW5lcmF0ZUltYWdlc1JlcXVlc3QSDQoFbW9kZWwYASABKAkSDgoGcHJvbXB0GAIgASgJEgwKBHNpemUYAyABKAkSDQoFY291bnQYBCABKAUSMAoMaW5wdXRfaW1hZ2VzGAUgAygLMhouaGFybmVzcy5sbG0udjEuSW5wdXRJbWFnZRIxCghtZXRhZGF0YRgGIAEoCzIfLmhhcm5lc3MubGxtLnYxLlJlcXVlc3RNZXRhZGF0YRIPCgdxdWFsaXR5GAcgASgJIjwKCklucHV0SW1hZ2USDAoEZGF0YRgBIAEoDBISCgptZWRpYV90eXBlGAIgASgJEgwKBG5hbWUYAyABKAkiMgoOR2VuZXJhdGVkSW1hZ2USDAoEZGF0YRgBIAEoDBISCgptZWRpYV90eXBlGAIgASgJItMBChZHZW5lcmF0ZUltYWdlc1Jlc3BvbnNlEi4KBmltYWdlcxgBIAMoCzIeLmhhcm5lc3MubGxtLnYxLkdlbmVyYXRlZEltYWdlEhYKDnJldmlzZWRfcHJvbXB0GAIgASgJEgwKBHRleHQYAyABKAkSEAoIY29zdF91c2QYBCABKAESDgoGcHJpY2VkGAUgASgIEhQKDHNlcnZlZF9tb2RlbBgGIAEoCRIUCgxpbnB1dF90b2tlbnMYByABKAMSFQoNb3V0cHV0X3Rva2VucxgIIAEoAyqcAQoMUmVxdWVzdENsYXNzEh0KGVJFUVVFU1RfQ0xBU1NfVU5TUEVDSUZJRUQQABIWChJSRVFVRVNUX0NMQVNTX01BSU4QARIaChZSRVFVRVNUX0NMQVNTX1NVQkFHRU5UEAISHAoYUkVRVUVTVF9DTEFTU19DT01QQUNUSU9OEAMSGwoXUkVRVUVTVF9DTEFTU19BVVhJTElBUlkQBDL+AgoOR2F0ZXdheVNlcnZpY2USUwoKTGlzdE1vZGVscxIhLmhhcm5lc3MubGxtLnYxLkxpc3RNb2RlbHNSZXF1ZXN0GiIuaGFybmVzcy5sbG0udjEuTGlzdE1vZGVsc1Jlc3BvbnNlEl4KDVN0cmVhbU1lc3NhZ2USJC5oYXJuZXNzLmxsbS52MS5TdHJlYW1NZXNzYWdlUmVxdWVzdBolLmhhcm5lc3MubGxtLnYxLlN0cmVhbU1lc3NhZ2VSZXNwb25zZTABElYKC0NvdW50VG9rZW5zEiIuaGFybmVzcy5sbG0udjEuQ291bnRUb2tlbnNSZXF1ZXN0GiMuaGFybmVzcy5sbG0udjEuQ291bnRUb2tlbnNSZXNwb25zZRJfCg5HZW5lcmF0ZUltYWdlcxIlLmhhcm5lc3MubGxtLnYxLkdlbmVyYXRlSW1hZ2VzUmVxdWVzdBomLmhhcm5lc3MubGxtLnYxLkdlbmVyYXRlSW1hZ2VzUmVzcG9uc2VCvwEKEmNvbS5oYXJuZXNzLmxsbS52MUIMR2F0ZXdheVByb3RvUAFaQWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvbGxtL3YxO2xsbXYxogIDSExYqgIOSGFybmVzcy5MbG0uVjHKAg5IYXJuZXNzXExsbVxWMeICGkhhcm5lc3NcTGxtXFYxXEdQQk1ldGFkYXRh6gIQSGFybmVzczo6TGxtOjpWMWIGcHJvdG8z", [file_harness_common_v1_errors, file_harness_llm_v1_content]);
 
 /**
  * @generated from message harness.llm.v1.ListModelsRequest
@@ -42,6 +42,13 @@ export type ListModelsResponse = Message<"harness.llm.v1.ListModelsResponse"> & 
    * @generated from field: harness.llm.v1.Slots slots = 2;
    */
   slots?: Slots | undefined;
+
+  /**
+   * The image models the caller may use (GenerateImages), never in `models`. Their capabilities and pricing are empty.
+   *
+   * @generated from field: repeated harness.llm.v1.Model image_models = 3;
+   */
+  imageModels: Model[];
 };
 
 /**
@@ -246,6 +253,14 @@ export type Slots = Message<"harness.llm.v1.Slots"> & {
    * @generated from field: string title = 4;
    */
   title: string;
+
+  /**
+   * The server default image model (one of ListModelsResponse.image_models); empty: none, or the caller may not use it.
+   * It never falls back to another model. GetSlots / SetSlots leave it alone (ImageService.SetImageDefault sets it).
+   *
+   * @generated from field: string image = 5;
+   */
+  image: string;
 };
 
 /**
@@ -732,6 +747,176 @@ export const CountTokensResponseSchema: GenMessage<CountTokensResponse> = /*@__P
   messageDesc(file_harness_llm_v1_gateway, 18);
 
 /**
+ * GenerateImages: see images.proto for image models.
+ *
+ * @generated from message harness.llm.v1.GenerateImagesRequest
+ */
+export type GenerateImagesRequest = Message<"harness.llm.v1.GenerateImagesRequest"> & {
+  /**
+   * An image model id (ListModelsResponse.image_models).
+   *
+   * @generated from field: string model = 1;
+   */
+  model: string;
+
+  /**
+   * @generated from field: string prompt = 2;
+   */
+  prompt: string;
+
+  /**
+   * "WIDTHxHEIGHT" ("1024x1536") or "auto"/empty. APIs that take an aspect ratio get the nearest one they have.
+   *
+   * @generated from field: string size = 3;
+   */
+  size: string;
+
+  /**
+   * 1 to 4. 0: 1.
+   *
+   * @generated from field: int32 count = 4;
+   */
+  count: number;
+
+  /**
+   * Images to edit or to take as reference, at most 8, 20 MiB each and 50 MiB together.
+   *
+   * @generated from field: repeated harness.llm.v1.InputImage input_images = 5;
+   */
+  inputImages: InputImage[];
+
+  /**
+   * @generated from field: harness.llm.v1.RequestMetadata metadata = 6;
+   */
+  metadata?: RequestMetadata | undefined;
+
+  /**
+   * "low", "medium", "high" or empty, where the API has a quality setting.
+   *
+   * @generated from field: string quality = 7;
+   */
+  quality: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.GenerateImagesRequest.
+ * Use `create(GenerateImagesRequestSchema)` to create a new message.
+ */
+export const GenerateImagesRequestSchema: GenMessage<GenerateImagesRequest> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_gateway, 19);
+
+/**
+ * @generated from message harness.llm.v1.InputImage
+ */
+export type InputImage = Message<"harness.llm.v1.InputImage"> & {
+  /**
+   * @generated from field: bytes data = 1;
+   */
+  data: Uint8Array;
+
+  /**
+   * image/png, image/jpeg or image/webp.
+   *
+   * @generated from field: string media_type = 2;
+   */
+  mediaType: string;
+
+  /**
+   * For the upstream's multipart upload.
+   *
+   * @generated from field: string name = 3;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.InputImage.
+ * Use `create(InputImageSchema)` to create a new message.
+ */
+export const InputImageSchema: GenMessage<InputImage> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_gateway, 20);
+
+/**
+ * @generated from message harness.llm.v1.GeneratedImage
+ */
+export type GeneratedImage = Message<"harness.llm.v1.GeneratedImage"> & {
+  /**
+   * @generated from field: bytes data = 1;
+   */
+  data: Uint8Array;
+
+  /**
+   * @generated from field: string media_type = 2;
+   */
+  mediaType: string;
+};
+
+/**
+ * Describes the message harness.llm.v1.GeneratedImage.
+ * Use `create(GeneratedImageSchema)` to create a new message.
+ */
+export const GeneratedImageSchema: GenMessage<GeneratedImage> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_gateway, 21);
+
+/**
+ * @generated from message harness.llm.v1.GenerateImagesResponse
+ */
+export type GenerateImagesResponse = Message<"harness.llm.v1.GenerateImagesResponse"> & {
+  /**
+   * @generated from field: repeated harness.llm.v1.GeneratedImage images = 1;
+   */
+  images: GeneratedImage[];
+
+  /**
+   * The prompt the upstream rewrote and used, when it says so.
+   *
+   * @generated from field: string revised_prompt = 2;
+   */
+  revisedPrompt: string;
+
+  /**
+   * Text the model returned with the images (Gemini, OpenRouter).
+   *
+   * @generated from field: string text = 3;
+   */
+  text: string;
+
+  /**
+   * @generated from field: double cost_usd = 4;
+   */
+  costUsd: number;
+
+  /**
+   * The cost is known (the model has a price, or the upstream reported one).
+   *
+   * @generated from field: bool priced = 5;
+   */
+  priced: boolean;
+
+  /**
+   * @generated from field: string served_model = 6;
+   */
+  servedModel: string;
+
+  /**
+   * @generated from field: int64 input_tokens = 7;
+   */
+  inputTokens: bigint;
+
+  /**
+   * @generated from field: int64 output_tokens = 8;
+   */
+  outputTokens: bigint;
+};
+
+/**
+ * Describes the message harness.llm.v1.GenerateImagesResponse.
+ * Use `create(GenerateImagesResponseSchema)` to create a new message.
+ */
+export const GenerateImagesResponseSchema: GenMessage<GenerateImagesResponse> = /*@__PURE__*/
+  messageDesc(file_harness_llm_v1_gateway, 22);
+
+/**
  * @generated from enum harness.llm.v1.RequestClass
  */
 export enum RequestClass {
@@ -804,6 +989,17 @@ export const GatewayService: GenService<{
     methodKind: "unary";
     input: typeof CountTokensRequestSchema;
     output: typeof CountTokensResponseSchema;
+  },
+  /**
+   * Generates images with an image model (images.proto): text to image, or an edit of the input images. Checks the
+   * caller's spend limits first and records the usage (request class "image") like a message.
+   *
+   * @generated from rpc harness.llm.v1.GatewayService.GenerateImages
+   */
+  generateImages: {
+    methodKind: "unary";
+    input: typeof GenerateImagesRequestSchema;
+    output: typeof GenerateImagesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_llm_v1_gateway, 0);

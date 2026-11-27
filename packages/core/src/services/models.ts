@@ -65,8 +65,12 @@ export interface HeldPriceChange {
 
 const PRICE_SET_BY_HAND = "pricing";
 
+/** "chat": GatewayService.StreamMessage; "image": GatewayService.GenerateImages (src/images, docs/design/images.md). */
+export type ModelKind = "chat" | "image";
+
 export interface ModelEntry {
   id: string;
+  kind: ModelKind;
   displayName: string;
   providerId: string;
   upstreamModel: string;
@@ -101,7 +105,7 @@ export interface ModelEntry {
 /** The output limit of a model whose provider did not say one, nor the person who added it. */
 export const DEFAULT_MAX_OUTPUT_TOKENS = 8192;
 
-export const SLOT_NAMES = ["main", "small", "plan", "title", "classifier"] as const;
+export const SLOT_NAMES = ["main", "small", "plan", "title", "classifier", "image"] as const;
 /** The slots the settings screens set (ProviderService.SetSlots); the classifier has its own call. */
 export const ROLE_SLOT_NAMES = ["main", "small", "plan", "title"] as const;
 export type Slots = Partial<Record<(typeof SLOT_NAMES)[number], string>>;
@@ -142,6 +146,7 @@ function toEntry(r: Row, provider: { ownerUserId: string | null; type: string })
   return {
     ownerUserId: provider.ownerUserId,
     id: r.id,
+    kind: r.kind === "image" ? "image" : "chat",
     displayName: r.displayName,
     providerId: r.providerId,
     upstreamModel: r.upstreamModel,
@@ -186,6 +191,7 @@ export function adminEntry(m: ModelEntry) {
     extra_body: m.extraBody,
     roles: m.roles,
     enabled: m.enabled,
+    kind: m.kind,
   };
 }
 
@@ -211,23 +217,34 @@ export async function listModelsForUser(user: PublicUser) {
     .filter((r) => providerAllowed(policy, r.provider))
     .map((r) => ({ ...withTiers(toEntry(r.model, r.provider), r.provider), ...shownAs(r.model, r.provider) }))
     .filter((m) => canSee(m, user));
-  const visible = [...entries.filter((m) => !m.ownerUserId), ...entries.filter((m) => m.ownerUserId)];
+  const ordered = [...entries.filter((m) => !m.ownerUserId), ...entries.filter((m) => m.ownerUserId)];
+  const visible = ordered.filter((m) => m.kind === "chat");
+  const images = ordered.filter((m) => m.kind === "image");
   const ids = new Set(visible.map((m) => m.id));
   const slots = await getSlots();
   const effective: Slots = {};
+  // The image slot never falls back: a session without an image model has no ImageGenerate tool.
+  if (slots.image && images.some((m) => m.id === slots.image)) effective.image = slots.image;
   for (const name of SLOT_NAMES) {
+    if (name === "image") continue;
     const v = slots[name];
     if (v && ids.has(v)) effective[name] = v;
     else if (name === "title" && effective.small) effective.title = effective.small;
     else if (visible[0]) effective[name] = visible[0].id;
   }
-  return { models: visible.map(catalogEntry), slots: effective };
+  return { models: visible.map(catalogEntry), image_models: images.map(catalogEntry), slots: effective };
 }
 
-/** Resolves a model alias for a request, enforcing visibility (another user's model is "not available"). */
-export async function resolveModelForUser(id: string, user: PublicUser): Promise<ModelEntry> {
+/**
+ * Resolves a model alias for a request, enforcing visibility (another user's model is "not available") and the kind of
+ * request: a chat request never reaches an image model, nor an image request a chat model.
+ */
+export async function resolveModelForUser(id: string, user: PublicUser, kind: ModelKind = "chat"): Promise<ModelEntry> {
   const m = await findModel(id);
   if (!m || !canSee(m, user)) throw new ApiError("not_found", `Model ${id} is not available`);
+  if (m.kind !== kind) {
+    throw new ApiError("invalid_request", kind === "image" ? `Model ${id} is not an image model` : `Model ${id} is an image model; it only takes image generation requests`);
+  }
   const policy = await serverPolicyFor(user);
   if (policy.allowedProviders || policy.personalProvidersDisabled) {
     const provider = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, m.providerId) });
@@ -414,7 +431,7 @@ export async function createModel(input: ModelInput) {
   return getModelAdmin(input.id);
 }
 
-async function insertModel(input: ModelInput & { id: string; provider_id: string; upstream_model: string; listed?: ListedCapabilities; price_source: "list" | "hand" }) {
+export async function insertModel(input: ModelInput & { id: string; provider_id: string; upstream_model: string; listed?: ListedCapabilities; price_source: "list" | "hand"; kind?: ModelKind }) {
   if (await findModel(input.id)) throw new ApiError("invalid_request", `Model ${input.id} already exists`, { status: 409 });
   const provider = await getDb().query.provider.findFirst({ where: eq(schema.provider.id, input.provider_id) });
   if (provider?.kind === "classifier") throw new ApiError("invalid_request", "Classifier providers serve no chat models");
@@ -436,6 +453,7 @@ async function insertModel(input: ModelInput & { id: string; provider_id: string
       displayName: input.display_name ?? input.id,
       providerId: input.provider_id,
       upstreamModel: input.upstream_model,
+      kind: input.kind ?? "chat",
       contextWindow: positiveInt(input.context_window ?? 128_000, "context_window"),
       maxOutputTokens: positiveInt(input.max_output_tokens ?? DEFAULT_MAX_OUTPUT_TOKENS, "max_output_tokens"),
       capabilities: pricingSource === "hand" ? withPriceSetByHand(capabilities) : capabilities,
@@ -527,7 +545,8 @@ export async function listProviderModels(providerId: string, user: PublicUser): 
     .from(schema.model)
     .where(eq(schema.model.providerId, providerId))
     .orderBy(asc(schema.model.sortOrder), asc(schema.model.createdAt));
-  const all = rows.map((r) => toEntry(r, row));
+  // Image models have their own settings (Settings > Images, src/images/service.ts).
+  const all = rows.map((r) => toEntry(r, row)).filter((m) => m.kind === "chat");
   return writable ? all : all.filter((m) => canSee(m, user));
 }
 
@@ -645,7 +664,11 @@ export async function setSlots(input: Slots) {
     const v = input[name];
     // Unset or empty: the slot follows its default.
     if (v === undefined || v === null || v === "") continue;
-    if (!(await findGlobalModel(v))) throw new ApiError("invalid_request", `Unknown model ${v} for slot ${name}`);
+    const m = await findGlobalModel(v);
+    if (!m) throw new ApiError("invalid_request", `Unknown model ${v} for slot ${name}`);
+    if ((name === "image") !== (m.kind === "image")) {
+      throw new ApiError("invalid_request", name === "image" ? `Model ${v} is not an image model` : `Model ${v} is an image model, not one for slot ${name}`);
+    }
     slots[name] = v;
   }
   await getDb()

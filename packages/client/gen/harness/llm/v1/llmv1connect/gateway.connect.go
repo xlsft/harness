@@ -42,6 +42,9 @@ const (
 	// GatewayServiceCountTokensProcedure is the fully-qualified name of the GatewayService's
 	// CountTokens RPC.
 	GatewayServiceCountTokensProcedure = "/harness.llm.v1.GatewayService/CountTokens"
+	// GatewayServiceGenerateImagesProcedure is the fully-qualified name of the GatewayService's
+	// GenerateImages RPC.
+	GatewayServiceGenerateImagesProcedure = "/harness.llm.v1.GatewayService/GenerateImages"
 )
 
 // GatewayServiceClient is a client for the harness.llm.v1.GatewayService service.
@@ -54,6 +57,9 @@ type GatewayServiceClient interface {
 	// Errors end the stream with a Connect error carrying harness.common.v1.ErrorInfo.
 	StreamMessage(context.Context, *connect.Request[v1.StreamMessageRequest]) (*connect.ServerStreamForClient[v1.StreamMessageResponse], error)
 	CountTokens(context.Context, *connect.Request[v1.CountTokensRequest]) (*connect.Response[v1.CountTokensResponse], error)
+	// Generates images with an image model (images.proto): text to image, or an edit of the input images. Checks the
+	// caller's spend limits first and records the usage (request class "image") like a message.
+	GenerateImages(context.Context, *connect.Request[v1.GenerateImagesRequest]) (*connect.Response[v1.GenerateImagesResponse], error)
 }
 
 // NewGatewayServiceClient constructs a client for the harness.llm.v1.GatewayService service. By
@@ -85,14 +91,21 @@ func NewGatewayServiceClient(httpClient connect.HTTPClient, baseURL string, opts
 			connect.WithSchema(gatewayServiceMethods.ByName("CountTokens")),
 			connect.WithClientOptions(opts...),
 		),
+		generateImages: connect.NewClient[v1.GenerateImagesRequest, v1.GenerateImagesResponse](
+			httpClient,
+			baseURL+GatewayServiceGenerateImagesProcedure,
+			connect.WithSchema(gatewayServiceMethods.ByName("GenerateImages")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // gatewayServiceClient implements GatewayServiceClient.
 type gatewayServiceClient struct {
-	listModels    *connect.Client[v1.ListModelsRequest, v1.ListModelsResponse]
-	streamMessage *connect.Client[v1.StreamMessageRequest, v1.StreamMessageResponse]
-	countTokens   *connect.Client[v1.CountTokensRequest, v1.CountTokensResponse]
+	listModels     *connect.Client[v1.ListModelsRequest, v1.ListModelsResponse]
+	streamMessage  *connect.Client[v1.StreamMessageRequest, v1.StreamMessageResponse]
+	countTokens    *connect.Client[v1.CountTokensRequest, v1.CountTokensResponse]
+	generateImages *connect.Client[v1.GenerateImagesRequest, v1.GenerateImagesResponse]
 }
 
 // ListModels calls harness.llm.v1.GatewayService.ListModels.
@@ -110,6 +123,11 @@ func (c *gatewayServiceClient) CountTokens(ctx context.Context, req *connect.Req
 	return c.countTokens.CallUnary(ctx, req)
 }
 
+// GenerateImages calls harness.llm.v1.GatewayService.GenerateImages.
+func (c *gatewayServiceClient) GenerateImages(ctx context.Context, req *connect.Request[v1.GenerateImagesRequest]) (*connect.Response[v1.GenerateImagesResponse], error) {
+	return c.generateImages.CallUnary(ctx, req)
+}
+
 // GatewayServiceHandler is an implementation of the harness.llm.v1.GatewayService service.
 type GatewayServiceHandler interface {
 	// Models available to the caller, plus their default slots.
@@ -120,6 +138,9 @@ type GatewayServiceHandler interface {
 	// Errors end the stream with a Connect error carrying harness.common.v1.ErrorInfo.
 	StreamMessage(context.Context, *connect.Request[v1.StreamMessageRequest], *connect.ServerStream[v1.StreamMessageResponse]) error
 	CountTokens(context.Context, *connect.Request[v1.CountTokensRequest]) (*connect.Response[v1.CountTokensResponse], error)
+	// Generates images with an image model (images.proto): text to image, or an edit of the input images. Checks the
+	// caller's spend limits first and records the usage (request class "image") like a message.
+	GenerateImages(context.Context, *connect.Request[v1.GenerateImagesRequest]) (*connect.Response[v1.GenerateImagesResponse], error)
 }
 
 // NewGatewayServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -147,6 +168,12 @@ func NewGatewayServiceHandler(svc GatewayServiceHandler, opts ...connect.Handler
 		connect.WithSchema(gatewayServiceMethods.ByName("CountTokens")),
 		connect.WithHandlerOptions(opts...),
 	)
+	gatewayServiceGenerateImagesHandler := connect.NewUnaryHandler(
+		GatewayServiceGenerateImagesProcedure,
+		svc.GenerateImages,
+		connect.WithSchema(gatewayServiceMethods.ByName("GenerateImages")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.llm.v1.GatewayService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case GatewayServiceListModelsProcedure:
@@ -155,6 +182,8 @@ func NewGatewayServiceHandler(svc GatewayServiceHandler, opts ...connect.Handler
 			gatewayServiceStreamMessageHandler.ServeHTTP(w, r)
 		case GatewayServiceCountTokensProcedure:
 			gatewayServiceCountTokensHandler.ServeHTTP(w, r)
+		case GatewayServiceGenerateImagesProcedure:
+			gatewayServiceGenerateImagesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -174,4 +203,8 @@ func (UnimplementedGatewayServiceHandler) StreamMessage(context.Context, *connec
 
 func (UnimplementedGatewayServiceHandler) CountTokens(context.Context, *connect.Request[v1.CountTokensRequest]) (*connect.Response[v1.CountTokensResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.GatewayService.CountTokens is not implemented"))
+}
+
+func (UnimplementedGatewayServiceHandler) GenerateImages(context.Context, *connect.Request[v1.GenerateImagesRequest]) (*connect.Response[v1.GenerateImagesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.llm.v1.GatewayService.GenerateImages is not implemented"))
 }

@@ -39,6 +39,7 @@ func (s *Settings) parse(src Source, data []byte) *layer {
 		l.cacheTTL = nil
 	}
 	l.advisorModel = s.str(src, raw, KeyAdvisorModel)
+	l.imageModel = s.str(src, raw, KeyImageModel)
 	l.outputStyle = s.str(src, raw, "outputStyle")
 	if l.claudeMdMode = s.str(src, raw, "claudeMdMode"); l.claudeMdMode != nil && !memory.ValidMode(*l.claudeMdMode) {
 		s.problem(src, "claudeMdMode", "unknown mode %q", *l.claudeMdMode)
@@ -309,6 +310,7 @@ func (s *Settings) merge(layers []*layer, cwd, home string) {
 		set(&s.SpeedTier, l.speedTier)
 		set(&s.CacheTTL, l.cacheTTL)
 		set(&s.AdvisorModel, l.advisorModel)
+		set(&s.ImageModel, l.imageModel)
 		set(&s.OutputStyle, l.outputStyle)
 		if l.claudeMdMode != nil {
 			s.ClaudeMdMode = memory.Mode(*l.claudeMdMode)

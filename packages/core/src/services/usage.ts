@@ -41,6 +41,7 @@ export async function listUsage(opts: { userId?: string; limit?: number }) {
       cache_read_input_tokens: r.cacheReadTokens,
       cache_creation_input_tokens: r.cacheWriteTokens,
       cost_usd: r.costUsd,
+      images: r.images,
       priced: r.priced,
       retries: r.retries,
       status: r.status,

@@ -114,9 +114,11 @@ func (*ListModelsRequest) Descriptor() ([]byte, []int) {
 }
 
 type ListModelsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Models        []*Model               `protobuf:"bytes,1,rep,name=models,proto3" json:"models,omitempty"`
-	Slots         *Slots                 `protobuf:"bytes,2,opt,name=slots,proto3" json:"slots,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Models []*Model               `protobuf:"bytes,1,rep,name=models,proto3" json:"models,omitempty"`
+	Slots  *Slots                 `protobuf:"bytes,2,opt,name=slots,proto3" json:"slots,omitempty"`
+	// The image models the caller may use (GenerateImages), never in `models`. Their capabilities and pricing are empty.
+	ImageModels   []*Model `protobuf:"bytes,3,rep,name=image_models,json=imageModels,proto3" json:"image_models,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -161,6 +163,13 @@ func (x *ListModelsResponse) GetModels() []*Model {
 func (x *ListModelsResponse) GetSlots() *Slots {
 	if x != nil {
 		return x.Slots
+	}
+	return nil
+}
+
+func (x *ListModelsResponse) GetImageModels() []*Model {
+	if x != nil {
+		return x.ImageModels
 	}
 	return nil
 }
@@ -468,7 +477,10 @@ type Slots struct {
 	Small string `protobuf:"bytes,2,opt,name=small,proto3" json:"small,omitempty"`
 	Plan  string `protobuf:"bytes,3,opt,name=plan,proto3" json:"plan,omitempty"`
 	// Session titles. In ListModels it falls back to `small` when the admin did not set it.
-	Title         string `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
+	Title string `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
+	// The server default image model (one of ListModelsResponse.image_models); empty: none, or the caller may not use it.
+	// It never falls back to another model. GetSlots / SetSlots leave it alone (ImageService.SetImageDefault sets it).
+	Image         string `protobuf:"bytes,5,opt,name=image,proto3" json:"image,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -527,6 +539,13 @@ func (x *Slots) GetPlan() string {
 func (x *Slots) GetTitle() string {
 	if x != nil {
 		return x.Title
+	}
+	return ""
+}
+
+func (x *Slots) GetImage() string {
+	if x != nil {
+		return x.Image
 	}
 	return ""
 }
@@ -1569,15 +1588,331 @@ func (x *CountTokensResponse) GetEstimated() bool {
 	return false
 }
 
+// GenerateImages: see images.proto for image models.
+type GenerateImagesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// An image model id (ListModelsResponse.image_models).
+	Model  string `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	Prompt string `protobuf:"bytes,2,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	// "WIDTHxHEIGHT" ("1024x1536") or "auto"/empty. APIs that take an aspect ratio get the nearest one they have.
+	Size string `protobuf:"bytes,3,opt,name=size,proto3" json:"size,omitempty"`
+	// 1 to 4. 0: 1.
+	Count int32 `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
+	// Images to edit or to take as reference, at most 8, 20 MiB each and 50 MiB together.
+	InputImages []*InputImage    `protobuf:"bytes,5,rep,name=input_images,json=inputImages,proto3" json:"input_images,omitempty"`
+	Metadata    *RequestMetadata `protobuf:"bytes,6,opt,name=metadata,proto3" json:"metadata,omitempty"`
+	// "low", "medium", "high" or empty, where the API has a quality setting.
+	Quality       string `protobuf:"bytes,7,opt,name=quality,proto3" json:"quality,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateImagesRequest) Reset() {
+	*x = GenerateImagesRequest{}
+	mi := &file_harness_llm_v1_gateway_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateImagesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateImagesRequest) ProtoMessage() {}
+
+func (x *GenerateImagesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_gateway_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateImagesRequest.ProtoReflect.Descriptor instead.
+func (*GenerateImagesRequest) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_gateway_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *GenerateImagesRequest) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *GenerateImagesRequest) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+func (x *GenerateImagesRequest) GetSize() string {
+	if x != nil {
+		return x.Size
+	}
+	return ""
+}
+
+func (x *GenerateImagesRequest) GetCount() int32 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+func (x *GenerateImagesRequest) GetInputImages() []*InputImage {
+	if x != nil {
+		return x.InputImages
+	}
+	return nil
+}
+
+func (x *GenerateImagesRequest) GetMetadata() *RequestMetadata {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
+}
+
+func (x *GenerateImagesRequest) GetQuality() string {
+	if x != nil {
+		return x.Quality
+	}
+	return ""
+}
+
+type InputImage struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Data  []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	// image/png, image/jpeg or image/webp.
+	MediaType string `protobuf:"bytes,2,opt,name=media_type,json=mediaType,proto3" json:"media_type,omitempty"`
+	// For the upstream's multipart upload.
+	Name          string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InputImage) Reset() {
+	*x = InputImage{}
+	mi := &file_harness_llm_v1_gateway_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InputImage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InputImage) ProtoMessage() {}
+
+func (x *InputImage) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_gateway_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InputImage.ProtoReflect.Descriptor instead.
+func (*InputImage) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_gateway_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *InputImage) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *InputImage) GetMediaType() string {
+	if x != nil {
+		return x.MediaType
+	}
+	return ""
+}
+
+func (x *InputImage) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type GeneratedImage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Data          []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	MediaType     string                 `protobuf:"bytes,2,opt,name=media_type,json=mediaType,proto3" json:"media_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GeneratedImage) Reset() {
+	*x = GeneratedImage{}
+	mi := &file_harness_llm_v1_gateway_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GeneratedImage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GeneratedImage) ProtoMessage() {}
+
+func (x *GeneratedImage) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_gateway_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GeneratedImage.ProtoReflect.Descriptor instead.
+func (*GeneratedImage) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_gateway_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *GeneratedImage) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *GeneratedImage) GetMediaType() string {
+	if x != nil {
+		return x.MediaType
+	}
+	return ""
+}
+
+type GenerateImagesResponse struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Images []*GeneratedImage      `protobuf:"bytes,1,rep,name=images,proto3" json:"images,omitempty"`
+	// The prompt the upstream rewrote and used, when it says so.
+	RevisedPrompt string `protobuf:"bytes,2,opt,name=revised_prompt,json=revisedPrompt,proto3" json:"revised_prompt,omitempty"`
+	// Text the model returned with the images (Gemini, OpenRouter).
+	Text    string  `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
+	CostUsd float64 `protobuf:"fixed64,4,opt,name=cost_usd,json=costUsd,proto3" json:"cost_usd,omitempty"`
+	// The cost is known (the model has a price, or the upstream reported one).
+	Priced        bool   `protobuf:"varint,5,opt,name=priced,proto3" json:"priced,omitempty"`
+	ServedModel   string `protobuf:"bytes,6,opt,name=served_model,json=servedModel,proto3" json:"served_model,omitempty"`
+	InputTokens   int64  `protobuf:"varint,7,opt,name=input_tokens,json=inputTokens,proto3" json:"input_tokens,omitempty"`
+	OutputTokens  int64  `protobuf:"varint,8,opt,name=output_tokens,json=outputTokens,proto3" json:"output_tokens,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateImagesResponse) Reset() {
+	*x = GenerateImagesResponse{}
+	mi := &file_harness_llm_v1_gateway_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateImagesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateImagesResponse) ProtoMessage() {}
+
+func (x *GenerateImagesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_llm_v1_gateway_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateImagesResponse.ProtoReflect.Descriptor instead.
+func (*GenerateImagesResponse) Descriptor() ([]byte, []int) {
+	return file_harness_llm_v1_gateway_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *GenerateImagesResponse) GetImages() []*GeneratedImage {
+	if x != nil {
+		return x.Images
+	}
+	return nil
+}
+
+func (x *GenerateImagesResponse) GetRevisedPrompt() string {
+	if x != nil {
+		return x.RevisedPrompt
+	}
+	return ""
+}
+
+func (x *GenerateImagesResponse) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *GenerateImagesResponse) GetCostUsd() float64 {
+	if x != nil {
+		return x.CostUsd
+	}
+	return 0
+}
+
+func (x *GenerateImagesResponse) GetPriced() bool {
+	if x != nil {
+		return x.Priced
+	}
+	return false
+}
+
+func (x *GenerateImagesResponse) GetServedModel() string {
+	if x != nil {
+		return x.ServedModel
+	}
+	return ""
+}
+
+func (x *GenerateImagesResponse) GetInputTokens() int64 {
+	if x != nil {
+		return x.InputTokens
+	}
+	return 0
+}
+
+func (x *GenerateImagesResponse) GetOutputTokens() int64 {
+	if x != nil {
+		return x.OutputTokens
+	}
+	return 0
+}
+
 var File_harness_llm_v1_gateway_proto protoreflect.FileDescriptor
 
 const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\n" +
 	"\x1charness/llm/v1/gateway.proto\x12\x0eharness.llm.v1\x1a\x1eharness/common/v1/errors.proto\x1a\x1charness/llm/v1/content.proto\"\x13\n" +
-	"\x11ListModelsRequest\"p\n" +
+	"\x11ListModelsRequest\"\xaa\x01\n" +
 	"\x12ListModelsResponse\x12-\n" +
 	"\x06models\x18\x01 \x03(\v2\x15.harness.llm.v1.ModelR\x06models\x12+\n" +
-	"\x05slots\x18\x02 \x01(\v2\x15.harness.llm.v1.SlotsR\x05slots\"\xf3\x02\n" +
+	"\x05slots\x18\x02 \x01(\v2\x15.harness.llm.v1.SlotsR\x05slots\x128\n" +
+	"\fimage_models\x18\x03 \x03(\v2\x15.harness.llm.v1.ModelR\vimageModels\"\xf3\x02\n" +
 	"\x05Model\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12\x1a\n" +
@@ -1609,12 +1944,13 @@ const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\n" +
 	"cache_read\x18\x03 \x01(\x01R\tcacheRead\x12\x1f\n" +
 	"\vcache_write\x18\x04 \x01(\x01R\n" +
-	"cacheWrite\"[\n" +
+	"cacheWrite\"q\n" +
 	"\x05Slots\x12\x12\n" +
 	"\x04main\x18\x01 \x01(\tR\x04main\x12\x14\n" +
 	"\x05small\x18\x02 \x01(\tR\x05small\x12\x12\n" +
 	"\x04plan\x18\x03 \x01(\tR\x04plan\x12\x14\n" +
-	"\x05title\x18\x04 \x01(\tR\x05title\"\xf0\x01\n" +
+	"\x05title\x18\x04 \x01(\tR\x05title\x12\x14\n" +
+	"\x05image\x18\x05 \x01(\tR\x05image\"\xf0\x01\n" +
 	"\x0fRequestMetadata\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12A\n" +
@@ -1691,18 +2027,46 @@ const file_harness_llm_v1_gateway_proto_rawDesc = "" +
 	"\x05tools\x18\x04 \x03(\v2\x14.harness.llm.v1.ToolR\x05tools\"V\n" +
 	"\x13CountTokensResponse\x12!\n" +
 	"\finput_tokens\x18\x01 \x01(\x03R\vinputTokens\x12\x1c\n" +
-	"\testimated\x18\x02 \x01(\bR\testimated*\x9c\x01\n" +
+	"\testimated\x18\x02 \x01(\bR\testimated\"\x85\x02\n" +
+	"\x15GenerateImagesRequest\x12\x14\n" +
+	"\x05model\x18\x01 \x01(\tR\x05model\x12\x16\n" +
+	"\x06prompt\x18\x02 \x01(\tR\x06prompt\x12\x12\n" +
+	"\x04size\x18\x03 \x01(\tR\x04size\x12\x14\n" +
+	"\x05count\x18\x04 \x01(\x05R\x05count\x12=\n" +
+	"\finput_images\x18\x05 \x03(\v2\x1a.harness.llm.v1.InputImageR\vinputImages\x12;\n" +
+	"\bmetadata\x18\x06 \x01(\v2\x1f.harness.llm.v1.RequestMetadataR\bmetadata\x12\x18\n" +
+	"\aquality\x18\a \x01(\tR\aquality\"S\n" +
+	"\n" +
+	"InputImage\x12\x12\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data\x12\x1d\n" +
+	"\n" +
+	"media_type\x18\x02 \x01(\tR\tmediaType\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\"C\n" +
+	"\x0eGeneratedImage\x12\x12\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data\x12\x1d\n" +
+	"\n" +
+	"media_type\x18\x02 \x01(\tR\tmediaType\"\xa9\x02\n" +
+	"\x16GenerateImagesResponse\x126\n" +
+	"\x06images\x18\x01 \x03(\v2\x1e.harness.llm.v1.GeneratedImageR\x06images\x12%\n" +
+	"\x0erevised_prompt\x18\x02 \x01(\tR\rrevisedPrompt\x12\x12\n" +
+	"\x04text\x18\x03 \x01(\tR\x04text\x12\x19\n" +
+	"\bcost_usd\x18\x04 \x01(\x01R\acostUsd\x12\x16\n" +
+	"\x06priced\x18\x05 \x01(\bR\x06priced\x12!\n" +
+	"\fserved_model\x18\x06 \x01(\tR\vservedModel\x12!\n" +
+	"\finput_tokens\x18\a \x01(\x03R\vinputTokens\x12#\n" +
+	"\routput_tokens\x18\b \x01(\x03R\foutputTokens*\x9c\x01\n" +
 	"\fRequestClass\x12\x1d\n" +
 	"\x19REQUEST_CLASS_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12REQUEST_CLASS_MAIN\x10\x01\x12\x1a\n" +
 	"\x16REQUEST_CLASS_SUBAGENT\x10\x02\x12\x1c\n" +
 	"\x18REQUEST_CLASS_COMPACTION\x10\x03\x12\x1b\n" +
-	"\x17REQUEST_CLASS_AUXILIARY\x10\x042\x9d\x02\n" +
+	"\x17REQUEST_CLASS_AUXILIARY\x10\x042\xfe\x02\n" +
 	"\x0eGatewayService\x12S\n" +
 	"\n" +
 	"ListModels\x12!.harness.llm.v1.ListModelsRequest\x1a\".harness.llm.v1.ListModelsResponse\x12^\n" +
 	"\rStreamMessage\x12$.harness.llm.v1.StreamMessageRequest\x1a%.harness.llm.v1.StreamMessageResponse0\x01\x12V\n" +
-	"\vCountTokens\x12\".harness.llm.v1.CountTokensRequest\x1a#.harness.llm.v1.CountTokensResponseB\xbf\x01\n" +
+	"\vCountTokens\x12\".harness.llm.v1.CountTokensRequest\x1a#.harness.llm.v1.CountTokensResponse\x12_\n" +
+	"\x0eGenerateImages\x12%.harness.llm.v1.GenerateImagesRequest\x1a&.harness.llm.v1.GenerateImagesResponseB\xbf\x01\n" +
 	"\x12com.harness.llm.v1B\fGatewayProtoP\x01ZAgithub.com/xlsft/harness/packages/client/gen/harness/llm/v1;llmv1\xa2\x02\x03HLX\xaa\x02\x0eHarness.Llm.V1\xca\x02\x0eHarness\\Llm\\V1\xe2\x02\x1aHarness\\Llm\\V1\\GPBMetadata\xea\x02\x10Harness::Llm::V1b\x06proto3"
 
 var (
@@ -1718,81 +2082,91 @@ func file_harness_llm_v1_gateway_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_llm_v1_gateway_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_harness_llm_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_harness_llm_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_harness_llm_v1_gateway_proto_goTypes = []any{
-	(RequestClass)(0),             // 0: harness.llm.v1.RequestClass
-	(*ListModelsRequest)(nil),     // 1: harness.llm.v1.ListModelsRequest
-	(*ListModelsResponse)(nil),    // 2: harness.llm.v1.ListModelsResponse
-	(*Model)(nil),                 // 3: harness.llm.v1.Model
-	(*Capabilities)(nil),          // 4: harness.llm.v1.Capabilities
-	(*Pricing)(nil),               // 5: harness.llm.v1.Pricing
-	(*Slots)(nil),                 // 6: harness.llm.v1.Slots
-	(*RequestMetadata)(nil),       // 7: harness.llm.v1.RequestMetadata
-	(*StreamMessageRequest)(nil),  // 8: harness.llm.v1.StreamMessageRequest
-	(*StreamMessageResponse)(nil), // 9: harness.llm.v1.StreamMessageResponse
-	(*MessageStart)(nil),          // 10: harness.llm.v1.MessageStart
-	(*ContentBlockStart)(nil),     // 11: harness.llm.v1.ContentBlockStart
-	(*ContentBlockDelta)(nil),     // 12: harness.llm.v1.ContentBlockDelta
-	(*ContentBlockStop)(nil),      // 13: harness.llm.v1.ContentBlockStop
-	(*MessageDelta)(nil),          // 14: harness.llm.v1.MessageDelta
-	(*MessageStop)(nil),           // 15: harness.llm.v1.MessageStop
-	(*Ping)(nil),                  // 16: harness.llm.v1.Ping
-	(*Retry)(nil),                 // 17: harness.llm.v1.Retry
-	(*CountTokensRequest)(nil),    // 18: harness.llm.v1.CountTokensRequest
-	(*CountTokensResponse)(nil),   // 19: harness.llm.v1.CountTokensResponse
-	(Effort)(0),                   // 20: harness.llm.v1.Effort
-	(*TextBlock)(nil),             // 21: harness.llm.v1.TextBlock
-	(*Message)(nil),               // 22: harness.llm.v1.Message
-	(*Tool)(nil),                  // 23: harness.llm.v1.Tool
-	(*ToolChoice)(nil),            // 24: harness.llm.v1.ToolChoice
-	(*Thinking)(nil),              // 25: harness.llm.v1.Thinking
-	(*Usage)(nil),                 // 26: harness.llm.v1.Usage
-	(*ContentBlock)(nil),          // 27: harness.llm.v1.ContentBlock
-	(StopReason)(0),               // 28: harness.llm.v1.StopReason
-	(*v1.ErrorInfo)(nil),          // 29: harness.common.v1.ErrorInfo
+	(RequestClass)(0),              // 0: harness.llm.v1.RequestClass
+	(*ListModelsRequest)(nil),      // 1: harness.llm.v1.ListModelsRequest
+	(*ListModelsResponse)(nil),     // 2: harness.llm.v1.ListModelsResponse
+	(*Model)(nil),                  // 3: harness.llm.v1.Model
+	(*Capabilities)(nil),           // 4: harness.llm.v1.Capabilities
+	(*Pricing)(nil),                // 5: harness.llm.v1.Pricing
+	(*Slots)(nil),                  // 6: harness.llm.v1.Slots
+	(*RequestMetadata)(nil),        // 7: harness.llm.v1.RequestMetadata
+	(*StreamMessageRequest)(nil),   // 8: harness.llm.v1.StreamMessageRequest
+	(*StreamMessageResponse)(nil),  // 9: harness.llm.v1.StreamMessageResponse
+	(*MessageStart)(nil),           // 10: harness.llm.v1.MessageStart
+	(*ContentBlockStart)(nil),      // 11: harness.llm.v1.ContentBlockStart
+	(*ContentBlockDelta)(nil),      // 12: harness.llm.v1.ContentBlockDelta
+	(*ContentBlockStop)(nil),       // 13: harness.llm.v1.ContentBlockStop
+	(*MessageDelta)(nil),           // 14: harness.llm.v1.MessageDelta
+	(*MessageStop)(nil),            // 15: harness.llm.v1.MessageStop
+	(*Ping)(nil),                   // 16: harness.llm.v1.Ping
+	(*Retry)(nil),                  // 17: harness.llm.v1.Retry
+	(*CountTokensRequest)(nil),     // 18: harness.llm.v1.CountTokensRequest
+	(*CountTokensResponse)(nil),    // 19: harness.llm.v1.CountTokensResponse
+	(*GenerateImagesRequest)(nil),  // 20: harness.llm.v1.GenerateImagesRequest
+	(*InputImage)(nil),             // 21: harness.llm.v1.InputImage
+	(*GeneratedImage)(nil),         // 22: harness.llm.v1.GeneratedImage
+	(*GenerateImagesResponse)(nil), // 23: harness.llm.v1.GenerateImagesResponse
+	(Effort)(0),                    // 24: harness.llm.v1.Effort
+	(*TextBlock)(nil),              // 25: harness.llm.v1.TextBlock
+	(*Message)(nil),                // 26: harness.llm.v1.Message
+	(*Tool)(nil),                   // 27: harness.llm.v1.Tool
+	(*ToolChoice)(nil),             // 28: harness.llm.v1.ToolChoice
+	(*Thinking)(nil),               // 29: harness.llm.v1.Thinking
+	(*Usage)(nil),                  // 30: harness.llm.v1.Usage
+	(*ContentBlock)(nil),           // 31: harness.llm.v1.ContentBlock
+	(StopReason)(0),                // 32: harness.llm.v1.StopReason
+	(*v1.ErrorInfo)(nil),           // 33: harness.common.v1.ErrorInfo
 }
 var file_harness_llm_v1_gateway_proto_depIdxs = []int32{
 	3,  // 0: harness.llm.v1.ListModelsResponse.models:type_name -> harness.llm.v1.Model
 	6,  // 1: harness.llm.v1.ListModelsResponse.slots:type_name -> harness.llm.v1.Slots
-	4,  // 2: harness.llm.v1.Model.capabilities:type_name -> harness.llm.v1.Capabilities
-	5,  // 3: harness.llm.v1.Model.pricing:type_name -> harness.llm.v1.Pricing
-	20, // 4: harness.llm.v1.Capabilities.effort:type_name -> harness.llm.v1.Effort
-	20, // 5: harness.llm.v1.Capabilities.default_effort:type_name -> harness.llm.v1.Effort
-	0,  // 6: harness.llm.v1.RequestMetadata.request_class:type_name -> harness.llm.v1.RequestClass
-	21, // 7: harness.llm.v1.StreamMessageRequest.system:type_name -> harness.llm.v1.TextBlock
-	22, // 8: harness.llm.v1.StreamMessageRequest.messages:type_name -> harness.llm.v1.Message
-	23, // 9: harness.llm.v1.StreamMessageRequest.tools:type_name -> harness.llm.v1.Tool
-	24, // 10: harness.llm.v1.StreamMessageRequest.tool_choice:type_name -> harness.llm.v1.ToolChoice
-	25, // 11: harness.llm.v1.StreamMessageRequest.thinking:type_name -> harness.llm.v1.Thinking
-	20, // 12: harness.llm.v1.StreamMessageRequest.effort:type_name -> harness.llm.v1.Effort
-	7,  // 13: harness.llm.v1.StreamMessageRequest.metadata:type_name -> harness.llm.v1.RequestMetadata
-	10, // 14: harness.llm.v1.StreamMessageResponse.message_start:type_name -> harness.llm.v1.MessageStart
-	11, // 15: harness.llm.v1.StreamMessageResponse.content_block_start:type_name -> harness.llm.v1.ContentBlockStart
-	12, // 16: harness.llm.v1.StreamMessageResponse.content_block_delta:type_name -> harness.llm.v1.ContentBlockDelta
-	13, // 17: harness.llm.v1.StreamMessageResponse.content_block_stop:type_name -> harness.llm.v1.ContentBlockStop
-	14, // 18: harness.llm.v1.StreamMessageResponse.message_delta:type_name -> harness.llm.v1.MessageDelta
-	15, // 19: harness.llm.v1.StreamMessageResponse.message_stop:type_name -> harness.llm.v1.MessageStop
-	16, // 20: harness.llm.v1.StreamMessageResponse.ping:type_name -> harness.llm.v1.Ping
-	17, // 21: harness.llm.v1.StreamMessageResponse.retry:type_name -> harness.llm.v1.Retry
-	26, // 22: harness.llm.v1.MessageStart.usage:type_name -> harness.llm.v1.Usage
-	27, // 23: harness.llm.v1.ContentBlockStart.block:type_name -> harness.llm.v1.ContentBlock
-	28, // 24: harness.llm.v1.MessageDelta.stop_reason:type_name -> harness.llm.v1.StopReason
-	26, // 25: harness.llm.v1.MessageDelta.usage:type_name -> harness.llm.v1.Usage
-	29, // 26: harness.llm.v1.Retry.error:type_name -> harness.common.v1.ErrorInfo
-	21, // 27: harness.llm.v1.CountTokensRequest.system:type_name -> harness.llm.v1.TextBlock
-	22, // 28: harness.llm.v1.CountTokensRequest.messages:type_name -> harness.llm.v1.Message
-	23, // 29: harness.llm.v1.CountTokensRequest.tools:type_name -> harness.llm.v1.Tool
-	1,  // 30: harness.llm.v1.GatewayService.ListModels:input_type -> harness.llm.v1.ListModelsRequest
-	8,  // 31: harness.llm.v1.GatewayService.StreamMessage:input_type -> harness.llm.v1.StreamMessageRequest
-	18, // 32: harness.llm.v1.GatewayService.CountTokens:input_type -> harness.llm.v1.CountTokensRequest
-	2,  // 33: harness.llm.v1.GatewayService.ListModels:output_type -> harness.llm.v1.ListModelsResponse
-	9,  // 34: harness.llm.v1.GatewayService.StreamMessage:output_type -> harness.llm.v1.StreamMessageResponse
-	19, // 35: harness.llm.v1.GatewayService.CountTokens:output_type -> harness.llm.v1.CountTokensResponse
-	33, // [33:36] is the sub-list for method output_type
-	30, // [30:33] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	3,  // 2: harness.llm.v1.ListModelsResponse.image_models:type_name -> harness.llm.v1.Model
+	4,  // 3: harness.llm.v1.Model.capabilities:type_name -> harness.llm.v1.Capabilities
+	5,  // 4: harness.llm.v1.Model.pricing:type_name -> harness.llm.v1.Pricing
+	24, // 5: harness.llm.v1.Capabilities.effort:type_name -> harness.llm.v1.Effort
+	24, // 6: harness.llm.v1.Capabilities.default_effort:type_name -> harness.llm.v1.Effort
+	0,  // 7: harness.llm.v1.RequestMetadata.request_class:type_name -> harness.llm.v1.RequestClass
+	25, // 8: harness.llm.v1.StreamMessageRequest.system:type_name -> harness.llm.v1.TextBlock
+	26, // 9: harness.llm.v1.StreamMessageRequest.messages:type_name -> harness.llm.v1.Message
+	27, // 10: harness.llm.v1.StreamMessageRequest.tools:type_name -> harness.llm.v1.Tool
+	28, // 11: harness.llm.v1.StreamMessageRequest.tool_choice:type_name -> harness.llm.v1.ToolChoice
+	29, // 12: harness.llm.v1.StreamMessageRequest.thinking:type_name -> harness.llm.v1.Thinking
+	24, // 13: harness.llm.v1.StreamMessageRequest.effort:type_name -> harness.llm.v1.Effort
+	7,  // 14: harness.llm.v1.StreamMessageRequest.metadata:type_name -> harness.llm.v1.RequestMetadata
+	10, // 15: harness.llm.v1.StreamMessageResponse.message_start:type_name -> harness.llm.v1.MessageStart
+	11, // 16: harness.llm.v1.StreamMessageResponse.content_block_start:type_name -> harness.llm.v1.ContentBlockStart
+	12, // 17: harness.llm.v1.StreamMessageResponse.content_block_delta:type_name -> harness.llm.v1.ContentBlockDelta
+	13, // 18: harness.llm.v1.StreamMessageResponse.content_block_stop:type_name -> harness.llm.v1.ContentBlockStop
+	14, // 19: harness.llm.v1.StreamMessageResponse.message_delta:type_name -> harness.llm.v1.MessageDelta
+	15, // 20: harness.llm.v1.StreamMessageResponse.message_stop:type_name -> harness.llm.v1.MessageStop
+	16, // 21: harness.llm.v1.StreamMessageResponse.ping:type_name -> harness.llm.v1.Ping
+	17, // 22: harness.llm.v1.StreamMessageResponse.retry:type_name -> harness.llm.v1.Retry
+	30, // 23: harness.llm.v1.MessageStart.usage:type_name -> harness.llm.v1.Usage
+	31, // 24: harness.llm.v1.ContentBlockStart.block:type_name -> harness.llm.v1.ContentBlock
+	32, // 25: harness.llm.v1.MessageDelta.stop_reason:type_name -> harness.llm.v1.StopReason
+	30, // 26: harness.llm.v1.MessageDelta.usage:type_name -> harness.llm.v1.Usage
+	33, // 27: harness.llm.v1.Retry.error:type_name -> harness.common.v1.ErrorInfo
+	25, // 28: harness.llm.v1.CountTokensRequest.system:type_name -> harness.llm.v1.TextBlock
+	26, // 29: harness.llm.v1.CountTokensRequest.messages:type_name -> harness.llm.v1.Message
+	27, // 30: harness.llm.v1.CountTokensRequest.tools:type_name -> harness.llm.v1.Tool
+	21, // 31: harness.llm.v1.GenerateImagesRequest.input_images:type_name -> harness.llm.v1.InputImage
+	7,  // 32: harness.llm.v1.GenerateImagesRequest.metadata:type_name -> harness.llm.v1.RequestMetadata
+	22, // 33: harness.llm.v1.GenerateImagesResponse.images:type_name -> harness.llm.v1.GeneratedImage
+	1,  // 34: harness.llm.v1.GatewayService.ListModels:input_type -> harness.llm.v1.ListModelsRequest
+	8,  // 35: harness.llm.v1.GatewayService.StreamMessage:input_type -> harness.llm.v1.StreamMessageRequest
+	18, // 36: harness.llm.v1.GatewayService.CountTokens:input_type -> harness.llm.v1.CountTokensRequest
+	20, // 37: harness.llm.v1.GatewayService.GenerateImages:input_type -> harness.llm.v1.GenerateImagesRequest
+	2,  // 38: harness.llm.v1.GatewayService.ListModels:output_type -> harness.llm.v1.ListModelsResponse
+	9,  // 39: harness.llm.v1.GatewayService.StreamMessage:output_type -> harness.llm.v1.StreamMessageResponse
+	19, // 40: harness.llm.v1.GatewayService.CountTokens:output_type -> harness.llm.v1.CountTokensResponse
+	23, // 41: harness.llm.v1.GatewayService.GenerateImages:output_type -> harness.llm.v1.GenerateImagesResponse
+	38, // [38:42] is the sub-list for method output_type
+	34, // [34:38] is the sub-list for method input_type
+	34, // [34:34] is the sub-list for extension type_name
+	34, // [34:34] is the sub-list for extension extendee
+	0,  // [0:34] is the sub-list for field type_name
 }
 
 func init() { file_harness_llm_v1_gateway_proto_init() }
@@ -1825,7 +2199,7 @@ func file_harness_llm_v1_gateway_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_llm_v1_gateway_proto_rawDesc), len(file_harness_llm_v1_gateway_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   19,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

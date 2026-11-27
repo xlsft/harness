@@ -162,9 +162,12 @@ type Settings struct {
 	EffortLevel string
 	// SpeedTier and CacheTTL are what requests ask of the model when it has them (speedTier, cacheTtl; "": the provider's
 	// default); AdvisorModel is the model behind the Advisor tool (advisorModel; "": no such tool).
-	SpeedTier              string
-	CacheTTL               string
-	AdvisorModel           string
+	SpeedTier    string
+	CacheTTL     string
+	AdvisorModel string
+	// ImageModel is the image model of the ImageGenerate tool (imageModel; "": the server default). A "local:" id here is
+	// ignored: device-local models are chosen per device (docs/design/images.md).
+	ImageModel             string
 	OutputStyle            string
 	AutoCompactWindow      int
 	CleanupPeriodDays      int
@@ -361,6 +364,7 @@ const (
 	KeySpeedTier    = "speedTier"
 	KeyCacheTTL     = "cacheTtl"
 	KeyAdvisorModel = "advisorModel"
+	KeyImageModel   = "imageModel"
 )
 
 // ValidSpeedTier reports whether s can be Settings.SpeedTier.
@@ -410,7 +414,7 @@ type layer struct {
 	subagentDepth, subagentRunning, workflowAgents, goalTurns *int
 	includeGit, interruptReply, compactIdle                   *bool
 	lspEnabled, lspDiagnostics, lspStartServer                *bool
-	speedTier, cacheTTL, advisorModel                         *string
+	speedTier, cacheTTL, advisorModel, imageModel             *string
 	autoMemory, deferTools                                    *bool
 	lspServers                                                map[string]LSPServer
 	attrCommit, attrPR                                        *string

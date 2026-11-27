@@ -317,9 +317,19 @@ export function eventToProto(ev: GatewayEvent): StreamMessageResponse | undefine
 
 export function modelsToProto(r: {
   models: Record<string, any>[];
+  image_models?: Record<string, any>[];
   slots: Record<string, string | undefined>;
 }): MessageInitShape<typeof ListModelsResponseSchema> {
   return {
+    imageModels: (r.image_models ?? []).map((m) => ({
+      id: m.id,
+      displayName: m.display_name,
+      provider: m.provider,
+      providerName: m.provider_name,
+      displayId: m.display_id,
+      contextWindow: 0n,
+      maxOutputTokens: 0n,
+    })),
     models: r.models.map((m) => ({
       id: m.id,
       displayName: m.display_name,
@@ -348,7 +358,7 @@ export function modelsToProto(r: {
           }
         : undefined,
     })),
-    slots: { main: r.slots.main ?? "", small: r.slots.small ?? "", plan: r.slots.plan ?? "", title: r.slots.title ?? "" },
+    slots: { main: r.slots.main ?? "", small: r.slots.small ?? "", plan: r.slots.plan ?? "", title: r.slots.title ?? "", image: r.slots.image ?? "" },
   };
 }
 

@@ -9257,8 +9257,12 @@ type UserPreferences struct {
 	BestOfNParallel int32 `protobuf:"varint,58,opt,name=best_of_n_parallel,json=bestOfNParallel,proto3" json:"best_of_n_parallel,omitempty"`
 	// Best-of-N: what one attempt may spend in USD (settings key bestOfNBudgetUsd). 0: no limit of the user's own.
 	BestOfNBudgetUsd float64 `protobuf:"fixed64,59,opt,name=best_of_n_budget_usd,json=bestOfNBudgetUsd,proto3" json:"best_of_n_budget_usd,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// The image model of the ImageGenerate tool (settings key imageModel): one of the server's image models
+	// (harness.llm.v1.ListModelsResponse.image_models). Empty: the server default (Slots.image). A device-local image
+	// model is chosen on the device instead (DeviceSettings.image_model) and wins there.
+	ImageModel    string `protobuf:"bytes,52,opt,name=image_model,json=imageModel,proto3" json:"image_model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UserPreferences) Reset() {
@@ -9429,6 +9433,13 @@ func (x *UserPreferences) GetBestOfNBudgetUsd() float64 {
 		return x.BestOfNBudgetUsd
 	}
 	return 0
+}
+
+func (x *UserPreferences) GetImageModel() string {
+	if x != nil {
+		return x.ImageModel
+	}
+	return ""
 }
 
 // Choices about how a user's requests run. Sessions opened from then on follow them.
@@ -9745,8 +9756,10 @@ type UpdateUserPreferencesRequest struct {
 	BestOfNParallel *int32 `protobuf:"varint,58,opt,name=best_of_n_parallel,json=bestOfNParallel,proto3,oneof" json:"best_of_n_parallel,omitempty"`
 	// INVALID_ARGUMENT below 0 or above 1000.
 	BestOfNBudgetUsd *float64 `protobuf:"fixed64,59,opt,name=best_of_n_budget_usd,json=bestOfNBudgetUsd,proto3,oneof" json:"best_of_n_budget_usd,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// "" follows the server default. INVALID_ARGUMENT for a device-local ("local:") id: those are chosen per device.
+	ImageModel    *string `protobuf:"bytes,52,opt,name=image_model,json=imageModel,proto3,oneof" json:"image_model,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateUserPreferencesRequest) Reset() {
@@ -9910,6 +9923,13 @@ func (x *UpdateUserPreferencesRequest) GetBestOfNBudgetUsd() float64 {
 		return *x.BestOfNBudgetUsd
 	}
 	return 0
+}
+
+func (x *UpdateUserPreferencesRequest) GetImageModel() string {
+	if x != nil && x.ImageModel != nil {
+		return *x.ImageModel
+	}
+	return ""
 }
 
 type UpdateUserPreferencesResponse struct {
@@ -12877,7 +12897,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x0fCATEGORY_SKILLS\x10\x05\x12$\n" +
 	" CATEGORY_MCP_SERVER_INSTRUCTIONS\x10\x06\x12\x1f\n" +
 	"\x1bCATEGORY_AUTOCOMPACT_BUFFER\x10\a\x12\x17\n" +
-	"\x13CATEGORY_FREE_SPACE\x10\b\"\x8b\b\n" +
+	"\x13CATEGORY_FREE_SPACE\x10\b\"\xac\b\n" +
 	"\x0fUserPreferences\x122\n" +
 	"\x15compact_idle_sessions\x18\x01 \x01(\bR\x13compactIdleSessions\x128\n" +
 	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05R\x15prMonitorWakesPerHour\x12,\n" +
@@ -12900,7 +12920,9 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x13defer_builtin_tools\x18< \x01(\bR\x11deferBuiltinTools\x12C\n" +
 	"\rchat_defaults\x18, \x01(\v2\x1e.harness.agent.v1.ChatDefaultsR\fchatDefaults\x12+\n" +
 	"\x12best_of_n_parallel\x18: \x01(\x05R\x0fbestOfNParallel\x12.\n" +
-	"\x14best_of_n_budget_usd\x18; \x01(\x01R\x10bestOfNBudgetUsd\"n\n" +
+	"\x14best_of_n_budget_usd\x18; \x01(\x01R\x10bestOfNBudgetUsd\x12\x1f\n" +
+	"\vimage_model\x184 \x01(\tR\n" +
+	"imageModel\"n\n" +
 	"\vModelTuning\x12\x1d\n" +
 	"\n" +
 	"speed_tier\x18\x01 \x01(\tR\tspeedTier\x12\x1b\n" +
@@ -12917,7 +12939,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x06folder\x18\x02 \x01(\tR\x06folder\x12'\n" +
 	"\x0fpermission_mode\x18\x03 \x01(\tR\x0epermissionMode\x12\"\n" +
 	"\ragent_host_id\x18\x04 \x01(\tR\vagentHostId\x12%\n" +
-	"\x0erepository_key\x18\x05 \x01(\tR\rrepositoryKey\"\xe4\v\n" +
+	"\x0erepository_key\x18\x05 \x01(\tR\rrepositoryKey\"\x9a\f\n" +
 	"\x1cUpdateUserPreferencesRequest\x127\n" +
 	"\x15compact_idle_sessions\x18\x01 \x01(\bH\x00R\x13compactIdleSessions\x88\x01\x01\x12=\n" +
 	"\x19pr_monitor_wakes_per_hour\x18\x02 \x01(\x05H\x01R\x15prMonitorWakesPerHour\x88\x01\x01\x121\n" +
@@ -12940,7 +12962,9 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x0egoal_max_turns\x18\x13 \x01(\x05H\x0fR\fgoalMaxTurns\x88\x01\x01\x123\n" +
 	"\x13defer_builtin_tools\x18< \x01(\bH\x10R\x11deferBuiltinTools\x88\x01\x01\x120\n" +
 	"\x12best_of_n_parallel\x18: \x01(\x05H\x11R\x0fbestOfNParallel\x88\x01\x01\x123\n" +
-	"\x14best_of_n_budget_usd\x18; \x01(\x01H\x12R\x10bestOfNBudgetUsd\x88\x01\x01B\x18\n" +
+	"\x14best_of_n_budget_usd\x18; \x01(\x01H\x12R\x10bestOfNBudgetUsd\x88\x01\x01\x12$\n" +
+	"\vimage_model\x184 \x01(\tH\x13R\n" +
+	"imageModel\x88\x01\x01B\x18\n" +
 	"\x16_compact_idle_sessionsB\x1c\n" +
 	"\x1a_pr_monitor_wakes_per_hourB\x15\n" +
 	"\x13_subagent_max_depthB\x17\n" +
@@ -12960,7 +12984,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x0f_goal_max_turnsB\x16\n" +
 	"\x14_defer_builtin_toolsB\x15\n" +
 	"\x13_best_of_n_parallelB\x17\n" +
-	"\x15_best_of_n_budget_usd\"d\n" +
+	"\x15_best_of_n_budget_usdB\x0e\n" +
+	"\f_image_model\"d\n" +
 	"\x1dUpdateUserPreferencesResponse\x12C\n" +
 	"\vpreferences\x18\x01 \x01(\v2!.harness.agent.v1.UserPreferencesR\vpreferences\"\xc9\x02\n" +
 	"\x0eBackgroundTask\x12\x17\n" +

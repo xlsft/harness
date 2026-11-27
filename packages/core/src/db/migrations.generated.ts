@@ -394,5 +394,12 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE UNIQUE INDEX \"cloud_session_work_idx\" ON \"cloud_session\" USING btree (\"work_id\");",
       "CREATE INDEX \"cloud_session_device_idx\" ON \"cloud_session\" USING btree (\"device_id\");"
     ]
+  },
+  {
+    "id": "0022_image_models",
+    "statements": [
+      "ALTER TABLE \"model\" ADD COLUMN \"kind\" text DEFAULT 'chat' NOT NULL;",
+      "ALTER TABLE \"usage_record\" ADD COLUMN \"images\" integer DEFAULT 0 NOT NULL;"
+    ]
   }
 ];

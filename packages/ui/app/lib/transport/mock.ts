@@ -51,6 +51,7 @@ import type { Effort } from '~/gen/harness/llm/v1/content_pb'
 import type { OutgoingAttachment } from '~/lib/session/attachments'
 import { runMockShell } from './mockShell'
 import { MockProvidersApi } from '~/lib/providers/mock'
+import { MockImagesApi } from '~/lib/images/mock'
 import { MockUsersApi } from '~/lib/users/mock'
 import { MockEnterpriseApi } from '~/lib/enterprise/mock'
 import { MockAccountApi } from '~/lib/account/mock'
@@ -181,9 +182,9 @@ export class MockTransport implements SessionTransport {
   private disabledSkills = new Set<string>()
   // Message tokens per session for the context breakdown (a compaction shrinks them).
   private messageTokens = new Map<string, number>()
-  private preferences: UserPreferences = { autoMemoryEnabled: true, compactIdleSessions: true, deferBuiltinTools: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: true, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20, bestOfNParallel: 0, bestOfNBudgetUsd: 0, modelTuning: { speedTier: '', cacheTtl: '', advisorModel: '' }, chatDefaults: { deviceId: '', folder: '', mode: '', agentHostId: '', repositoryKey: '' } }
+  private preferences: UserPreferences = { autoMemoryEnabled: true, compactIdleSessions: true, deferBuiltinTools: true, prMonitorWakesPerHour: 30, subagentMaxDepth: 2, subagentMaxRunning: 8, workflowMaxAgents: 30, lspEnabled: true, lspDiagnostics: true, lspDiagnosticsStartServer: false, sandbox: { enabled: true, allowedWritePaths: [], allowedHosts: [], allowLocalhost: true, autoAllowBash: false, outsideWithoutPrompt: false }, hooksEnabled: true, schedulesEnabled: true, goalMaxTurns: 20, bestOfNParallel: 0, bestOfNBudgetUsd: 0, modelTuning: { speedTier: '', cacheTtl: '', advisorModel: '' }, chatDefaults: { deviceId: '', folder: '', mode: '', agentHostId: '', repositoryKey: '' }, imageModel: '' }
   private hookTrusted = false
-  private deviceSettings: DeviceSettings = { theme: '', notifications: true, allowRemoteStarts: false }
+  private deviceSettings: DeviceSettings = { theme: '', notifications: true, imageModel: '', allowRemoteStarts: false }
   private tick: number
   private now: () => number
 
@@ -413,6 +414,11 @@ export class MockTransport implements SessionTransport {
 
   providers() {
     return this.providersApi
+  }
+
+  private imagesApi = new MockImagesApi()
+  images() {
+    return this.imagesApi
   }
 
   private enterpriseApi = new MockEnterpriseApi()

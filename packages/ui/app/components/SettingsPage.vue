@@ -33,6 +33,7 @@ const SECTIONS = [
   { key: 'classifiers', label: tt('Classifiers'), icon: 'filter', group: 'ai' },
   { key: 'search', label: tt('Search'), icon: 'search', group: 'ai' },
   { key: 'speech', label: tt('Speech'), icon: 'mic', group: 'ai' },
+  { key: 'images', label: tt('Images'), icon: 'image', group: 'ai' },
   { key: 'computer', label: tt('Computer use'), icon: 'monitor', group: 'ai' },
   { key: 'ssh', label: tt('SSH hosts'), icon: 'terminal', group: 'ai' },
   { key: 'users', label: tt('Users'), icon: 'list', group: 'server' },
@@ -62,7 +63,7 @@ onMounted(async () => {
     // Then it does not show here; the client enforces it all the same.
   }
 })
-const SERVER_ONLY: Section[] = ['account', 'usage', 'models', 'hosts', 'users', 'ldap', 'sso', 'provisioning', 'audit', 'policy']
+const SERVER_ONLY: Section[] = ['account', 'usage', 'models', 'images', 'hosts', 'users', 'ldap', 'sso', 'provisioning', 'audit', 'policy']
 // What each section holds, so the filter finds "theme" under Appearance and "LDAP" under Users.
 const KEYWORDS: Record<Section, string> = {
   usage: 'tokens cost spend money statistics chart',
@@ -81,6 +82,7 @@ const KEYWORDS: Record<Section, string> = {
   models: 'providers llm keys slots default model title effort',
   classifiers: 'classifier decision model rules',
   search: 'web search providers searxng brave tavily exa kagi perplexity',
+  images: 'image generation pictures picture model imagen gemini gpt-image dall-e openrouter draw icon illustration',
   speech: 'voice dictation microphone read aloud stt tts parakeet whisper piper elevenlabs openai deepgram minimax',
   computer: 'computer use desktop apps control screen recording accessibility permissions click type your chrome real browser sites',
   ssh: 'ssh hosts remote machine server tunnel known hosts key',
@@ -261,6 +263,10 @@ const notifications = computed({
 
       <SettingsSearch v-else-if="section === 'search'" />
       <SettingsSpeech v-else-if="section === 'speech'" />
+      <SettingsImages
+        v-else-if="section === 'images'"
+        :server-only="serverOnly"
+      />
       <SettingsComputerUse v-else-if="section === 'computer'" />
       <SettingsSshHosts v-else-if="section === 'ssh'" />
 
