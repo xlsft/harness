@@ -134,6 +134,13 @@ type Permission struct {
 	SettingsURL string
 }
 
+// PermissionRequester is a driver that can ask the OS for a permission. On macOS that puts the app in the permission's
+// list in System Settings (switched off) and shows the system's prompt the first time, so the user only has to turn
+// the switch on instead of adding the app by hand. Only the user's click in the settings asks for it.
+type PermissionRequester interface {
+	RequestPermission(ctx context.Context, id string) error
+}
+
 // Missing returns how to grant permission id, or "" when it is granted (or the platform has no such thing).
 func (p Permissions) Missing(id string) string {
 	for _, it := range p.Items {

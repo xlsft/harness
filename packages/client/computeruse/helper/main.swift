@@ -2,7 +2,9 @@
 // every decision is made by the client. It reads one JSON request per line on stdin and writes one JSON reply per line
 // on stdout: {"ok":true,"result":...} or {"ok":false,"code":"...","error":"..."}.
 //
-// It never prompts for a permission: AXIsProcessTrusted and CGPreflightScreenCaptureAccess only read the state. Without
+// It never prompts for a permission on its own: AXIsProcessTrusted and CGPreflightScreenCaptureAccess only read the
+// state. Only request_permission, sent when the user asks for it in the settings, asks the system, which puts the app in
+// that permission's list in System Settings and shows the system's prompt the first time. Without
 // Accessibility the input operations refuse, and without Screen Recording the window list simply has no titles.
 //
 // With --indicator it shows the panel "the agent is controlling this machine" with a Stop button instead: a click prints
@@ -604,6 +606,14 @@ func handle(_ req: [String: Any]) throws -> Any? {
     switch text("op") {
     case "ping": return ["pong": true]
     case "permissions": return ["screen_recording": CGPreflightScreenCaptureAccess(), "accessibility": AXIsProcessTrusted()]
+    case "request_permission":
+        switch text("permission") {
+        case "screen_recording": return ["granted": CGRequestScreenCaptureAccess()]
+        case "accessibility":
+            let opts = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            return ["granted": AXIsProcessTrustedWithOptions(opts)]
+        default: throw Refusal("bad_request", "unknown permission")
+        }
     case "apps": return listApps(installed: flag("installed"))
     case "frontmost": pump(0); return appObject(NSWorkspace.shared.frontmostApplication)
     case "app_at": return appAt(point())

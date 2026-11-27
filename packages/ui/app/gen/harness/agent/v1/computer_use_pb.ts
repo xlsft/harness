@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/computer_use.proto.
  */
 export const file_harness_agent_v1_computer_use: GenFile = /*@__PURE__*/
-  fileDesc("CiNoYXJuZXNzL2FnZW50L3YxL2NvbXB1dGVyX3VzZS5wcm90bxIQaGFybmVzcy5hZ2VudC52MSKDAQoVQ29tcHV0ZXJVc2VQZXJtaXNzaW9uEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDwoHZ3JhbnRlZBgDIAEoCBIUCgxob3dfdG9fZ3JhbnQYBCABKAkSEwoLZGVzY3JpcHRpb24YBSABKAkSFAoMc2V0dGluZ3NfdXJsGAYgASgJIrYCChFDb21wdXRlclVzZVN0YXR1cxIPCgdlbmFibGVkGAEgASgIEhEKCXN1cHBvcnRlZBgCIAEoCBIQCghwbGF0Zm9ybRgDIAEoCRIaChJ1bmF2YWlsYWJsZV9yZWFzb24YBCABKAkSPAoLcGVybWlzc2lvbnMYBSADKAsyJy5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyVXNlUGVybWlzc2lvbhIZChFhY3RpdmVfcHJvZmlsZV9pZBgGIAEoCRI2Cghwcm9maWxlcxgHIAMoCzIkLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VQcm9maWxlEj4KDWJsb2NrX2VudHJpZXMYCCADKAsyJy5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyVXNlQmxvY2tFbnRyeSKbAwoSQ29tcHV0ZXJVc2VQcm9maWxlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSNgoIYnJvd3NlcnMYAyABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyQWNjZXNzVGllchI3Cgl0ZXJtaW5hbHMYBCABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyQWNjZXNzVGllchIzCgVvdGhlchgFIAEoDjIkLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJBY2Nlc3NUaWVyEjcKCWFwcF90aWVycxgGIAMoCzIkLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VBcHBUaWVyEhUKDWxpZnRlZF9ibG9ja3MYByADKAkSGwoTYWxsb3dfc2VjdXJlX3R5cGluZxgIIAEoCBIbChNhbGxvd19yZW1vdGVfb3JpZ2luGAkgASgIEh4KFmFsbG93X3N5c3RlbV9zaG9ydGN1dHMYCiABKAgSGwoTYWxsb3dfc2V0dGluZ3NfZWRpdBgLIAEoCCJqChJDb21wdXRlclVzZUFwcFRpZXISDgoGYXBwX2lkGAEgASgJEhAKCGFwcF9uYW1lGAIgASgJEjIKBHRpZXIYAyABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyQWNjZXNzVGllciJDChVDb21wdXRlclVzZUJsb2NrRW50cnkSCgoCaWQYASABKAkSDQoFbGFiZWwYAiABKAkSDwoHd2FybmluZxgDIAEoCSJvChxTZXRDb21wdXRlclVzZVByb2ZpbGVSZXF1ZXN0EhkKEWFjdGl2ZV9wcm9maWxlX2lkGAEgASgJEjQKBmN1c3RvbRgCIAEoCzIkLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VQcm9maWxlIlQKHVNldENvbXB1dGVyVXNlUHJvZmlsZVJlc3BvbnNlEjMKBnN0YXR1cxgBIAEoCzIjLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VTdGF0dXMiHAoaTGlzdENvbXB1dGVyVXNlQXBwc1JlcXVlc3QiUAobTGlzdENvbXB1dGVyVXNlQXBwc1Jlc3BvbnNlEjEKBGFwcHMYASADKAsyIy5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyQWNjZXNzQXBwIh0KG0dldENvbXB1dGVyVXNlU3RhdHVzUmVxdWVzdCJTChxHZXRDb21wdXRlclVzZVN0YXR1c1Jlc3BvbnNlEjMKBnN0YXR1cxgBIAEoCzIjLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VTdGF0dXMiLwocU2V0Q29tcHV0ZXJVc2VFbmFibGVkUmVxdWVzdBIPCgdlbmFibGVkGAEgASgIIlQKHVNldENvbXB1dGVyVXNlRW5hYmxlZFJlc3BvbnNlEjMKBnN0YXR1cxgBIAEoCzIjLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VTdGF0dXMidAoRQ29tcHV0ZXJBY2Nlc3NBcHASCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIyCgR0aWVyGAMgASgOMiQuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlckFjY2Vzc1RpZXISEQoJdGllcl9ub3RlGAQgASgJIuEBChdDb21wdXRlckFjY2Vzc1JlcXVlc3RlZBISCgpyZXF1ZXN0X2lkGAEgASgJEhMKC3Rvb2xfdXNlX2lkGAIgASgJEg4KBnJlYXNvbhgDIAEoCRIxCgRhcHBzGAQgAygLMiMuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlckFjY2Vzc0FwcBJEChNtaXNzaW5nX3Blcm1pc3Npb25zGAUgAygLMicuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlclVzZVBlcm1pc3Npb24SFAoMcHJvZmlsZV9uYW1lGAYgASgJIlsKFkNvbXB1dGVyQWNjZXNzUmVzb2x2ZWQSEgoKcmVxdWVzdF9pZBgBIAEoCRIYChBhcHByb3ZlZF9hcHBfaWRzGAIgAygJEhMKC3Jlc29sdmVkX2J5GAMgASgJImgKEENvbXB1dGVyVXNlR3JhbnQSDgoGYXBwX2lkGAEgASgJEhAKCGFwcF9uYW1lGAIgASgJEjIKBHRpZXIYAyABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyQWNjZXNzVGllciJrChBDb21wdXRlclVzZVN0YXRlEhMKC2NvbnRyb2xsaW5nGAEgASgIEg4KBmFjdGlvbhgCIAEoCRIyCgZncmFudHMYAyADKAsyIi5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyVXNlR3JhbnQiYgoeUmVzcG9uZFRvQ29tcHV0ZXJBY2Nlc3NSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSEgoKcmVxdWVzdF9pZBgCIAEoCRIYChBhcHByb3ZlZF9hcHBfaWRzGAMgAygJIiEKH1Jlc3BvbmRUb0NvbXB1dGVyQWNjZXNzUmVzcG9uc2UiLAoWU3RvcENvbXB1dGVyVXNlUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJIhkKF1N0b3BDb21wdXRlclVzZVJlc3BvbnNlKroBChJDb21wdXRlckFjY2Vzc1RpZXISJAogQ09NUFVURVJfQUNDRVNTX1RJRVJfVU5TUEVDSUZJRUQQABIdChlDT01QVVRFUl9BQ0NFU1NfVElFUl9SRUFEEAESHgoaQ09NUFVURVJfQUNDRVNTX1RJRVJfQ0xJQ0sQAhIdChlDT01QVVRFUl9BQ0NFU1NfVElFUl9GVUxMEAMSIAocQ09NUFVURVJfQUNDRVNTX1RJRVJfQkxPQ0tFRBAEQtEBChRjb20uaGFybmVzcy5hZ2VudC52MUIQQ29tcHV0ZXJVc2VQcm90b1ABWkVnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2FnZW50L3YxO2FnZW50djGiAgNIQViqAhBIYXJuZXNzLkFnZW50LlYxygIQSGFybmVzc1xBZ2VudFxWMeICHEhhcm5lc3NcQWdlbnRcVjFcR1BCTWV0YWRhdGHqAhJIYXJuZXNzOjpBZ2VudDo6VjFiBnByb3RvMw");
+  fileDesc("CiNoYXJuZXNzL2FnZW50L3YxL2NvbXB1dGVyX3VzZS5wcm90bxIQaGFybmVzcy5hZ2VudC52MSKDAQoVQ29tcHV0ZXJVc2VQZXJtaXNzaW9uEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDwoHZ3JhbnRlZBgDIAEoCBIUCgxob3dfdG9fZ3JhbnQYBCABKAkSEwoLZGVzY3JpcHRpb24YBSABKAkSFAoMc2V0dGluZ3NfdXJsGAYgASgJIsgCChFDb21wdXRlclVzZVN0YXR1cxIPCgdlbmFibGVkGAEgASgIEhEKCXN1cHBvcnRlZBgCIAEoCBIQCghwbGF0Zm9ybRgDIAEoCRIaChJ1bmF2YWlsYWJsZV9yZWFzb24YBCABKAkSPAoLcGVybWlzc2lvbnMYBSADKAsyJy5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyVXNlUGVybWlzc2lvbhIZChFhY3RpdmVfcHJvZmlsZV9pZBgGIAEoCRI2Cghwcm9maWxlcxgHIAMoCzIkLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VQcm9maWxlEj4KDWJsb2NrX2VudHJpZXMYCCADKAsyJy5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyVXNlQmxvY2tFbnRyeRIQCghhcHBfcGF0aBgJIAEoCSKbAwoSQ29tcHV0ZXJVc2VQcm9maWxlEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSNgoIYnJvd3NlcnMYAyABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyQWNjZXNzVGllchI3Cgl0ZXJtaW5hbHMYBCABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyQWNjZXNzVGllchIzCgVvdGhlchgFIAEoDjIkLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJBY2Nlc3NUaWVyEjcKCWFwcF90aWVycxgGIAMoCzIkLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VBcHBUaWVyEhUKDWxpZnRlZF9ibG9ja3MYByADKAkSGwoTYWxsb3dfc2VjdXJlX3R5cGluZxgIIAEoCBIbChNhbGxvd19yZW1vdGVfb3JpZ2luGAkgASgIEh4KFmFsbG93X3N5c3RlbV9zaG9ydGN1dHMYCiABKAgSGwoTYWxsb3dfc2V0dGluZ3NfZWRpdBgLIAEoCCJqChJDb21wdXRlclVzZUFwcFRpZXISDgoGYXBwX2lkGAEgASgJEhAKCGFwcF9uYW1lGAIgASgJEjIKBHRpZXIYAyABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyQWNjZXNzVGllciJDChVDb21wdXRlclVzZUJsb2NrRW50cnkSCgoCaWQYASABKAkSDQoFbGFiZWwYAiABKAkSDwoHd2FybmluZxgDIAEoCSJvChxTZXRDb21wdXRlclVzZVByb2ZpbGVSZXF1ZXN0EhkKEWFjdGl2ZV9wcm9maWxlX2lkGAEgASgJEjQKBmN1c3RvbRgCIAEoCzIkLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VQcm9maWxlIlQKHVNldENvbXB1dGVyVXNlUHJvZmlsZVJlc3BvbnNlEjMKBnN0YXR1cxgBIAEoCzIjLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VTdGF0dXMiHAoaTGlzdENvbXB1dGVyVXNlQXBwc1JlcXVlc3QiUAobTGlzdENvbXB1dGVyVXNlQXBwc1Jlc3BvbnNlEjEKBGFwcHMYASADKAsyIy5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyQWNjZXNzQXBwIh0KG0dldENvbXB1dGVyVXNlU3RhdHVzUmVxdWVzdCJTChxHZXRDb21wdXRlclVzZVN0YXR1c1Jlc3BvbnNlEjMKBnN0YXR1cxgBIAEoCzIjLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VTdGF0dXMiMQojUmVxdWVzdENvbXB1dGVyVXNlUGVybWlzc2lvblJlcXVlc3QSCgoCaWQYASABKAkiWwokUmVxdWVzdENvbXB1dGVyVXNlUGVybWlzc2lvblJlc3BvbnNlEjMKBnN0YXR1cxgBIAEoCzIjLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VTdGF0dXMiLwocU2V0Q29tcHV0ZXJVc2VFbmFibGVkUmVxdWVzdBIPCgdlbmFibGVkGAEgASgIIlQKHVNldENvbXB1dGVyVXNlRW5hYmxlZFJlc3BvbnNlEjMKBnN0YXR1cxgBIAEoCzIjLmhhcm5lc3MuYWdlbnQudjEuQ29tcHV0ZXJVc2VTdGF0dXMidAoRQ29tcHV0ZXJBY2Nlc3NBcHASCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRIyCgR0aWVyGAMgASgOMiQuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlckFjY2Vzc1RpZXISEQoJdGllcl9ub3RlGAQgASgJIuEBChdDb21wdXRlckFjY2Vzc1JlcXVlc3RlZBISCgpyZXF1ZXN0X2lkGAEgASgJEhMKC3Rvb2xfdXNlX2lkGAIgASgJEg4KBnJlYXNvbhgDIAEoCRIxCgRhcHBzGAQgAygLMiMuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlckFjY2Vzc0FwcBJEChNtaXNzaW5nX3Blcm1pc3Npb25zGAUgAygLMicuaGFybmVzcy5hZ2VudC52MS5Db21wdXRlclVzZVBlcm1pc3Npb24SFAoMcHJvZmlsZV9uYW1lGAYgASgJIlsKFkNvbXB1dGVyQWNjZXNzUmVzb2x2ZWQSEgoKcmVxdWVzdF9pZBgBIAEoCRIYChBhcHByb3ZlZF9hcHBfaWRzGAIgAygJEhMKC3Jlc29sdmVkX2J5GAMgASgJImgKEENvbXB1dGVyVXNlR3JhbnQSDgoGYXBwX2lkGAEgASgJEhAKCGFwcF9uYW1lGAIgASgJEjIKBHRpZXIYAyABKA4yJC5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyQWNjZXNzVGllciJrChBDb21wdXRlclVzZVN0YXRlEhMKC2NvbnRyb2xsaW5nGAEgASgIEg4KBmFjdGlvbhgCIAEoCRIyCgZncmFudHMYAyADKAsyIi5oYXJuZXNzLmFnZW50LnYxLkNvbXB1dGVyVXNlR3JhbnQiYgoeUmVzcG9uZFRvQ29tcHV0ZXJBY2Nlc3NSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkSEgoKcmVxdWVzdF9pZBgCIAEoCRIYChBhcHByb3ZlZF9hcHBfaWRzGAMgAygJIiEKH1Jlc3BvbmRUb0NvbXB1dGVyQWNjZXNzUmVzcG9uc2UiLAoWU3RvcENvbXB1dGVyVXNlUmVxdWVzdBISCgpzZXNzaW9uX2lkGAEgASgJIhkKF1N0b3BDb21wdXRlclVzZVJlc3BvbnNlKroBChJDb21wdXRlckFjY2Vzc1RpZXISJAogQ09NUFVURVJfQUNDRVNTX1RJRVJfVU5TUEVDSUZJRUQQABIdChlDT01QVVRFUl9BQ0NFU1NfVElFUl9SRUFEEAESHgoaQ09NUFVURVJfQUNDRVNTX1RJRVJfQ0xJQ0sQAhIdChlDT01QVVRFUl9BQ0NFU1NfVElFUl9GVUxMEAMSIAocQ09NUFVURVJfQUNDRVNTX1RJRVJfQkxPQ0tFRBAEQtEBChRjb20uaGFybmVzcy5hZ2VudC52MUIQQ29tcHV0ZXJVc2VQcm90b1ABWkVnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2FnZW50L3YxO2FnZW50djGiAgNIQViqAhBIYXJuZXNzLkFnZW50LlYxygIQSGFybmVzc1xBZ2VudFxWMeICHEhhcm5lc3NcQWdlbnRcVjFcR1BCTWV0YWRhdGHqAhJIYXJuZXNzOjpBZ2VudDo6VjFiBnByb3RvMw");
 
 /**
  * A permission of the operating system (TCC on macOS) the driver needs.
@@ -120,6 +120,14 @@ export type ComputerUseStatus = Message<"harness.agent.v1.ComputerUseStatus"> & 
    * @generated from field: repeated harness.agent.v1.ComputerUseBlockEntry block_entries = 8;
    */
   blockEntries: ComputerUseBlockEntry[];
+
+  /**
+   * The app bundle the permissions belong to (on macOS the .app that runs the client), so the user can drag it into a
+   * permission's list in System Settings; empty when the client does not run from one (a terminal started it).
+   *
+   * @generated from field: string app_path = 9;
+   */
+  appPath: string;
 };
 
 /**
@@ -374,6 +382,42 @@ export const GetComputerUseStatusResponseSchema: GenMessage<GetComputerUseStatus
   messageDesc(file_harness_agent_v1_computer_use, 10);
 
 /**
+ * @generated from message harness.agent.v1.RequestComputerUsePermissionRequest
+ */
+export type RequestComputerUsePermissionRequest = Message<"harness.agent.v1.RequestComputerUsePermissionRequest"> & {
+  /**
+   * A ComputerUsePermission id.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.RequestComputerUsePermissionRequest.
+ * Use `create(RequestComputerUsePermissionRequestSchema)` to create a new message.
+ */
+export const RequestComputerUsePermissionRequestSchema: GenMessage<RequestComputerUsePermissionRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_computer_use, 11);
+
+/**
+ * @generated from message harness.agent.v1.RequestComputerUsePermissionResponse
+ */
+export type RequestComputerUsePermissionResponse = Message<"harness.agent.v1.RequestComputerUsePermissionResponse"> & {
+  /**
+   * @generated from field: harness.agent.v1.ComputerUseStatus status = 1;
+   */
+  status?: ComputerUseStatus | undefined;
+};
+
+/**
+ * Describes the message harness.agent.v1.RequestComputerUsePermissionResponse.
+ * Use `create(RequestComputerUsePermissionResponseSchema)` to create a new message.
+ */
+export const RequestComputerUsePermissionResponseSchema: GenMessage<RequestComputerUsePermissionResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_computer_use, 12);
+
+/**
  * @generated from message harness.agent.v1.SetComputerUseEnabledRequest
  */
 export type SetComputerUseEnabledRequest = Message<"harness.agent.v1.SetComputerUseEnabledRequest"> & {
@@ -388,7 +432,7 @@ export type SetComputerUseEnabledRequest = Message<"harness.agent.v1.SetComputer
  * Use `create(SetComputerUseEnabledRequestSchema)` to create a new message.
  */
 export const SetComputerUseEnabledRequestSchema: GenMessage<SetComputerUseEnabledRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 11);
+  messageDesc(file_harness_agent_v1_computer_use, 13);
 
 /**
  * @generated from message harness.agent.v1.SetComputerUseEnabledResponse
@@ -405,7 +449,7 @@ export type SetComputerUseEnabledResponse = Message<"harness.agent.v1.SetCompute
  * Use `create(SetComputerUseEnabledResponseSchema)` to create a new message.
  */
 export const SetComputerUseEnabledResponseSchema: GenMessage<SetComputerUseEnabledResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 12);
+  messageDesc(file_harness_agent_v1_computer_use, 14);
 
 /**
  * One app the model asks to use.
@@ -443,7 +487,7 @@ export type ComputerAccessApp = Message<"harness.agent.v1.ComputerAccessApp"> & 
  * Use `create(ComputerAccessAppSchema)` to create a new message.
  */
 export const ComputerAccessAppSchema: GenMessage<ComputerAccessApp> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 13);
+  messageDesc(file_harness_agent_v1_computer_use, 15);
 
 /**
  * The model called ComputerAccess. The turn waits for RespondToComputerAccess; Stop cancels it.
@@ -493,7 +537,7 @@ export type ComputerAccessRequested = Message<"harness.agent.v1.ComputerAccessRe
  * Use `create(ComputerAccessRequestedSchema)` to create a new message.
  */
 export const ComputerAccessRequestedSchema: GenMessage<ComputerAccessRequested> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 14);
+  messageDesc(file_harness_agent_v1_computer_use, 16);
 
 /**
  * @generated from message harness.agent.v1.ComputerAccessResolved
@@ -524,7 +568,7 @@ export type ComputerAccessResolved = Message<"harness.agent.v1.ComputerAccessRes
  * Use `create(ComputerAccessResolvedSchema)` to create a new message.
  */
 export const ComputerAccessResolvedSchema: GenMessage<ComputerAccessResolved> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 15);
+  messageDesc(file_harness_agent_v1_computer_use, 17);
 
 /**
  * An app the session may use, until the session ends or the user stops it.
@@ -553,7 +597,7 @@ export type ComputerUseGrant = Message<"harness.agent.v1.ComputerUseGrant"> & {
  * Use `create(ComputerUseGrantSchema)` to create a new message.
  */
 export const ComputerUseGrantSchema: GenMessage<ComputerUseGrant> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 16);
+  messageDesc(file_harness_agent_v1_computer_use, 18);
 
 /**
  * The current state of computer use in a session, in full: the indicator while the agent controls the machine.
@@ -586,7 +630,7 @@ export type ComputerUseState = Message<"harness.agent.v1.ComputerUseState"> & {
  * Use `create(ComputerUseStateSchema)` to create a new message.
  */
 export const ComputerUseStateSchema: GenMessage<ComputerUseState> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 17);
+  messageDesc(file_harness_agent_v1_computer_use, 19);
 
 /**
  * @generated from message harness.agent.v1.RespondToComputerAccessRequest
@@ -615,7 +659,7 @@ export type RespondToComputerAccessRequest = Message<"harness.agent.v1.RespondTo
  * Use `create(RespondToComputerAccessRequestSchema)` to create a new message.
  */
 export const RespondToComputerAccessRequestSchema: GenMessage<RespondToComputerAccessRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 18);
+  messageDesc(file_harness_agent_v1_computer_use, 20);
 
 /**
  * @generated from message harness.agent.v1.RespondToComputerAccessResponse
@@ -628,7 +672,7 @@ export type RespondToComputerAccessResponse = Message<"harness.agent.v1.RespondT
  * Use `create(RespondToComputerAccessResponseSchema)` to create a new message.
  */
 export const RespondToComputerAccessResponseSchema: GenMessage<RespondToComputerAccessResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 19);
+  messageDesc(file_harness_agent_v1_computer_use, 21);
 
 /**
  * Stops computer use in the session at once: cancels the action in flight, revokes the session's grants and interrupts
@@ -648,7 +692,7 @@ export type StopComputerUseRequest = Message<"harness.agent.v1.StopComputerUseRe
  * Use `create(StopComputerUseRequestSchema)` to create a new message.
  */
 export const StopComputerUseRequestSchema: GenMessage<StopComputerUseRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 20);
+  messageDesc(file_harness_agent_v1_computer_use, 22);
 
 /**
  * @generated from message harness.agent.v1.StopComputerUseResponse
@@ -661,7 +705,7 @@ export type StopComputerUseResponse = Message<"harness.agent.v1.StopComputerUseR
  * Use `create(StopComputerUseResponseSchema)` to create a new message.
  */
 export const StopComputerUseResponseSchema: GenMessage<StopComputerUseResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_computer_use, 21);
+  messageDesc(file_harness_agent_v1_computer_use, 23);
 
 /**
  * What the model may do in an app. Set by the client from what the app is and the user's active profile, never by the model.

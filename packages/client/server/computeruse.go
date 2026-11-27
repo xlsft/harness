@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"maps"
 	"net"
+	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"connectrpc.com/connect"
 
@@ -243,6 +245,9 @@ func (s *Server) computerStatus(ctx context.Context) *agentv1.ComputerUseStatus 
 	if !info.Supported {
 		return st
 	}
+	if exe, err := os.Executable(); err == nil {
+		st.AppPath = appBundleOf(exe)
+	}
 	perms, err := m.Permissions(ctx)
 	switch {
 	case err != nil:
@@ -258,6 +263,30 @@ func (s *Server) computerStatus(ctx context.Context) *agentv1.ComputerUseStatus 
 // GetComputerUseStatus reports the switch and what the OS allows. It never prompts.
 func (s *Server) GetComputerUseStatus(ctx context.Context, _ *connect.Request[agentv1.GetComputerUseStatusRequest]) (*connect.Response[agentv1.GetComputerUseStatusResponse], error) {
 	return connect.NewResponse(&agentv1.GetComputerUseStatusResponse{Status: s.computerStatus(ctx)}), nil
+}
+
+// RequestComputerUsePermission asks the OS for a permission on the user's click, so the app shows up in that
+// permission's list in System Settings.
+func (s *Server) RequestComputerUsePermission(ctx context.Context, req *connect.Request[agentv1.RequestComputerUsePermissionRequest]) (*connect.Response[agentv1.RequestComputerUsePermissionResponse], error) {
+	if err := refuseRemotePeer(req.Peer().Addr); err != nil {
+		return nil, err
+	}
+	if err := s.computerUse().RequestPermission(ctx, req.Msg.GetId()); err != nil {
+		if errors.Is(err, computeruse.ErrNotSupported) {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	return connect.NewResponse(&agentv1.RequestComputerUsePermissionResponse{Status: s.computerStatus(ctx)}), nil
+}
+
+// appBundleOf is the .app bundle an executable runs from ("" when it is not in one): the outermost, since a helper
+// app inside the bundle is not what System Settings lists.
+func appBundleOf(exe string) string {
+	if i := strings.Index(exe, ".app/"); i >= 0 {
+		return exe[:i+len(".app")]
+	}
+	return ""
 }
 
 // SetComputerUseEnabled changes the device-local switch. Turning it off stops every session's computer use.

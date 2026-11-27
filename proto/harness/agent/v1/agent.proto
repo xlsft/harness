@@ -362,6 +362,9 @@ service AgentService {
   // The device-local switch and what the operating system allows. Never prompts for a permission.
   rpc GetComputerUseStatus(GetComputerUseStatusRequest) returns (GetComputerUseStatusResponse);
   rpc SetComputerUseEnabled(SetComputerUseEnabledRequest) returns (SetComputerUseEnabledResponse);
+  // Asks the OS for a permission, which on macOS puts the app in that permission's list in System Settings and shows
+  // the system's prompt the first time. Only from this machine, on the user's click.
+  rpc RequestComputerUsePermission(RequestComputerUsePermissionRequest) returns (RequestComputerUsePermissionResponse);
   // The user's answer to ComputerAccessRequested.
   rpc RespondToComputerAccess(RespondToComputerAccessRequest) returns (RespondToComputerAccessResponse);
   rpc StopComputerUse(StopComputerUseRequest) returns (StopComputerUseResponse);

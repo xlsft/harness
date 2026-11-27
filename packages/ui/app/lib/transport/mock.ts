@@ -1173,6 +1173,7 @@ export class MockTransport implements SessionTransport {
         { ...this.computerCustom, id: 'full', name: 'Full', browsers: 'full', terminals: 'full', other: 'full', apps: [], lifted: [], allowSecureTyping: false, allowRemoteOrigin: false, allowSystemShortcuts: false, allowSettingsEdit: false },
         this.computerCustom
       ],
+      appPath: '/Applications/xlsft`s harness.app',
       blockEntries: [
         { id: '1password', label: '1Password', warning: 'The agent could read and use every password in it, and text it sees in other apps could steer it there.' },
         { id: 'system_settings', label: 'System Settings', warning: 'The agent could change security and privacy settings, and give itself more permissions.' }
@@ -1192,6 +1193,10 @@ export class MockTransport implements SessionTransport {
 
   async listComputerUseApps(): Promise<ComputerUseAppVM[]> {
     return [{ id: 'com.apple.Notes', name: 'Notes', tier: 'full' }, { id: 'com.apple.Safari', name: 'Safari', tier: 'read' }]
+  }
+
+  async requestComputerUsePermission(_id: string) {
+    return this.getComputerUseStatus()
   }
 
   async setComputerUseEnabled(enabled: boolean) {

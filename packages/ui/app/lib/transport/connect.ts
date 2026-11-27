@@ -87,7 +87,7 @@ const CONFIGURED_HOOK_STATUS: Partial<Record<ConfiguredHook_Status, ConfiguredHo
 function computerStatusVM(s: ComputerUseStatus | undefined): ComputerUseStatusVM {
   if (!s) throw new Error('the client returned no status')
   return { enabled: s.enabled, supported: s.supported, platform: s.platform, unavailableReason: s.unavailableReason, permissions: s.permissions.map(permissionVM),
-    activeProfileId: s.activeProfileId, profiles: s.profiles.map(profileVM), blockEntries: s.blockEntries.map(e => ({ id: e.id, label: e.label, warning: e.warning })) }
+    activeProfileId: s.activeProfileId, profiles: s.profiles.map(profileVM), blockEntries: s.blockEntries.map(e => ({ id: e.id, label: e.label, warning: e.warning })), appPath: s.appPath }
 }
 
 export class ConnectTransport implements SessionTransport {
@@ -365,6 +365,10 @@ export class ConnectTransport implements SessionTransport {
 
   async getComputerUseStatus() {
     return computerStatusVM((await this.client.getComputerUseStatus({})).status)
+  }
+
+  async requestComputerUsePermission(id: string) {
+    return computerStatusVM((await this.client.requestComputerUsePermission({ id })).status)
   }
 
   async setComputerUseEnabled(enabled: boolean) {

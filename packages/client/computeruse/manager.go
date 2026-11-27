@@ -79,6 +79,16 @@ func (m *Manager) log() *slog.Logger {
 	return slog.Default()
 }
 
+// RequestPermission asks the OS for permission id, which on macOS adds the app to that permission's list. A driver that
+// cannot ask returns ErrNotSupported.
+func (m *Manager) RequestPermission(ctx context.Context, id string) error {
+	r, ok := m.driver().(PermissionRequester)
+	if !ok || !m.driver().Info().Supported {
+		return ErrNotSupported
+	}
+	return r.RequestPermission(ctx, id)
+}
+
 // Info describes the driver of this platform.
 func (m *Manager) Info() Info { return m.driver().Info() }
 

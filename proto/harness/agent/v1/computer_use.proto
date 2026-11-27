@@ -48,6 +48,9 @@ message ComputerUseStatus {
   repeated ComputerUseProfile profiles = 7;
   // The blocklist, each entry a switch of the custom profile.
   repeated ComputerUseBlockEntry block_entries = 8;
+  // The app bundle the permissions belong to (on macOS the .app that runs the client), so the user can drag it into a
+  // permission's list in System Settings; empty when the client does not run from one (a terminal started it).
+  string app_path = 9;
 }
 
 // A named set of decisions on what computer use may do. Everything is blocked by default; only the user loosens it.
@@ -106,6 +109,15 @@ message ListComputerUseAppsResponse {
 message GetComputerUseStatusRequest {}
 
 message GetComputerUseStatusResponse {
+  ComputerUseStatus status = 1;
+}
+
+message RequestComputerUsePermissionRequest {
+  // A ComputerUsePermission id.
+  string id = 1;
+}
+
+message RequestComputerUsePermissionResponse {
   ComputerUseStatus status = 1;
 }
 

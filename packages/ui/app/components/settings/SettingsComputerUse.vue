@@ -5,7 +5,7 @@
 // system prompt; the user grants permissions in the system's settings.
 import type { HSelectOption } from '~/components/HSelect.vue'
 import { TIER_LABELS } from '~/lib/session/computer'
-import { isDesktop, openExternal } from '~/lib/desktop'
+import { isDesktop, openExternal, revealInFolder } from '~/lib/desktop'
 import type { ComputerProfileVM, ComputerTierName } from '~/lib/session/types'
 import type { ComputerUseAppVM, ComputerUseStatusVM } from '~/lib/transport/types'
 
@@ -29,7 +29,24 @@ async function load() {
     error.value = message(e)
   }
 }
-onMounted(load)
+// Back from System Settings, the switches may have changed.
+const reload = () => void load()
+onMounted(() => {
+  void load()
+  window.addEventListener('focus', reload)
+})
+onBeforeUnmount(() => window.removeEventListener('focus', reload))
+
+// Asking the system first puts the app in the permission's list (switched off), so the user only turns it on.
+async function allow(p: { id: string, settingsUrl: string }) {
+  try {
+    const s = await store.transport?.requestComputerUsePermission(p.id)
+    if (s) status.value = s
+  } catch {
+    // Opening the pane still lets the user add the app by hand.
+  }
+  await openExternal(p.settingsUrl)
+}
 
 async function run(f: () => Promise<ComputerUseStatusVM> | undefined) {
   if (saving.value) return
@@ -331,7 +348,7 @@ const desktop = isDesktop()
             <HBtn
               v-if="desktop && p.settingsUrl && !p.granted"
               size="sm"
-              @click="openExternal(p.settingsUrl)"
+              @click="allow(p)"
             >
               <HIcon
                 name="arrow-up-right"
@@ -339,12 +356,25 @@ const desktop = isDesktop()
               />{{ tt('Open Settings') }}
             </HBtn>
           </div>
-          <p
+          <div
             v-if="!p.granted && p.howToGrant"
-            class="m-0 border-t border-default bg-hover py-2 pr-3 pl-[52px] text-[11.5px] leading-relaxed text-toned"
+            class="flex flex-col items-start gap-2 border-t border-default bg-hover py-2 pr-3 pl-[52px] text-[11.5px] leading-relaxed text-toned"
           >
-            {{ p.howToGrant }}
-          </p>
+            <p class="m-0">
+              {{ p.howToGrant }}
+            </p>
+            <HBtn
+              v-if="desktop && status.appPath"
+              size="sm"
+              tone="muted"
+              @click="revealInFolder(status.appPath)"
+            >
+              <HIcon
+                name="folder"
+                :size="12"
+              />{{ tt('Show the app in Finder to drag it in') }}
+            </HBtn>
+          </div>
         </div>
       </div>
     </section>

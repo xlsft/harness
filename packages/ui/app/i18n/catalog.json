@@ -1929,6 +1929,7 @@
   "Show sidebar",
   "Show source",
   "Show the agent a workflow once; it drafts a skill from it for you to review. Pick the apps to record: nothing else is seen.",
+  "Show the app in Finder to drag it in",
   "Show whole file",
   "Showing the first {0} of {1}.",
   "Shown in pickers (optional)",

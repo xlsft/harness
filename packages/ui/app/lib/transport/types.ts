@@ -64,6 +64,8 @@ export interface ComputerUseStatusVM {
   activeProfileId: string
   profiles: ComputerProfileVM[]
   blockEntries: { id: string, label: string, warning: string }[]
+  // The .app the permissions belong to, to drag into System Settings' list; '' when a terminal started the client.
+  appPath: string
 }
 
 // An app a demo recording can watch (ListDemoRecordingApps): its tier in the active profile; blocked ones cannot be picked.
@@ -388,6 +390,8 @@ export interface SessionTransport {
   // Computer use (device-local). The status is only read, which never makes the system prompt.
   getComputerUseStatus(): Promise<ComputerUseStatusVM>
   setComputerUseEnabled(enabled: boolean): Promise<ComputerUseStatusVM>
+  // Asks the OS for a permission, which puts the app in its list in System Settings. On the user's click only.
+  requestComputerUsePermission(id: string): Promise<ComputerUseStatusVM>
   // Picks the security profile; with `custom`, replaces the custom profile too.
   setComputerUseProfile(activeProfileId: string, custom?: ComputerProfileVM): Promise<ComputerUseStatusVM>
   listComputerUseApps(): Promise<ComputerUseAppVM[]>
