@@ -37,13 +37,13 @@ Plan names in brackets are the lowest tier the vendor lists. Codex rows cover al
 | CLI on Linux | Partial: compiles in CI, no release | Yes (incl. Alpine) | Yes |
 | CLI on Windows native | Partial: compiles in CI, no release | Yes | Yes |
 | WSL | Partial: Linux build, no release | Yes (WSL 1, 2) | Yes (WSL2) |
-| Chat app surface (Slack etc.) | No | Yes (Slack) | Yes (Slack, Teams) |
+| Chat app surface (Slack etc.) | Partial: Slack and Telegram, tested against fake Slack and Bot APIs only; Teams not built ([design](design/chat.md)) | Yes (Slack) | Yes (Slack, Teams) |
 | Issue tracker surface | No | ? | Yes (Linear) |
 | Separate knowledge-work mode | No | Yes (Cowork) | Yes (Work mode) |
 | Deep links into the app | Partial: web `?session=<id>` | Yes (`claude-cli://`) | Yes |
 | Multi-agent inbox across sessions | Partial: sidebar and session tree | Yes (`claude agents`) | Yes (`codex agents`) |
 | Project coordinator over many cloud sessions | No | Yes, beta (Projects) | ? |
-| Message from phone that spawns a desktop session | No | Yes (Dispatch) | ? |
+| Message from phone that spawns a desktop session | Yes (Start on another machine; the machine opts in, recent folders only) | Yes (Dispatch) | ? |
 
 ## Install and updates
 
@@ -467,7 +467,7 @@ Plan names in brackets are the lowest tier the vendor lists. Codex rows cover al
 | MCP Apps UI | No | Partial: recognized | ? |
 | Agent exposed as an MCP server | No | Yes | No (removed) |
 | IDE MCP server | No | Yes | ? |
-| Channels inbound (Telegram etc.) | No | Yes, preview | ? |
+| Channels inbound (Telegram etc.) | Partial: Telegram private chats start and steer sessions, tested against a fake Bot API only ([design](design/chat.md)) | Yes, preview | ? |
 | MCP store or browser in UI | No | No | Partial: plugin directory |
 | MCP settings screen | No (import, RPC, files) | Yes (`/mcp`, Desktop) | Yes (`/mcp`) |
 | Audit of MCP calls | Partial: written to DB, no read UI or route | ? | ? |
@@ -621,7 +621,7 @@ Plan names in brackets are the lowest tier the vendor lists. Codex rows cover al
 | Continue another machine's session here | Yes (fork its transcript) | Yes (`/teleport`) | Partial: `codex apply`, `/app` |
 | Remote control of a live session | Yes (relay) | Yes | Yes |
 | Control from phone | Partial: browser only | Yes | Yes |
-| Spawn a session on a remote host | Partial: `Options.Daemon`, no command | Yes | Yes |
+| Spawn a session on a remote host | Partial: remote starts in a machine's recent folders; `Options.Daemon` has no command | Yes | Yes |
 | Remote hosts over SSH | No (menu says "soon") | Yes | Yes |
 | Remote approval of permissions | Yes | Yes | Yes |
 | Push notifications to phone | No | Yes | Yes |

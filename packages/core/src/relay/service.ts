@@ -40,6 +40,9 @@ import { AsyncQueue, Mutex } from "../lib/async.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId } from "../lib/ids.ts";
 import type { Principal } from "../services/devices.ts";
+import { record as recordAudit } from "../audit/log.ts";
+import { ListRecentFoldersRequestSchema, type RecentFolder } from "../gen/harness/agent/v1/agent_pb.ts";
+import { serverPolicyFor } from "../services/managed-policy.ts";
 import { relayBus, type HostFeedItem, type SessionFeedItem } from "./bus.ts";
 
 type Init<T extends Parameters<typeof create>[0]> = MessageInitShape<T>;
@@ -198,6 +201,7 @@ export interface RegisterHostInput {
   allowedRoots: string[];
   tunnels: boolean;
   pty: boolean;
+  remoteStarts?: boolean;
 }
 
 export async function registerHost(p: Principal, input: RegisterHostInput): Promise<{ hostId: string; heartbeatIntervalSeconds: number }> {
@@ -212,6 +216,7 @@ export async function registerHost(p: Principal, input: RegisterHostInput): Prom
     allowedRoots: roots,
     tunnels: input.tunnels,
     pty: input.pty,
+    remoteStarts: !!input.remoteStarts,
     lastSeenAt: now,
   };
   const db = getDb();
@@ -660,6 +665,7 @@ export async function listHosts(p: Principal): Promise<Init<typeof HostSchema>[]
       allowedRoots: Array.isArray(h.allowedRoots) ? (h.allowedRoots as string[]) : [],
       tunnels: h.tunnels,
       pty: h.pty,
+      remoteStarts: h.remoteStarts,
       sessions: own.map((s) => {
         const info = sessionInfoOf(s);
         info.status = online ? (s.status as SessionStatus) || info.status : SessionStatus.WAITING_FOR_CONNECTION;
@@ -995,25 +1001,97 @@ function isAbsolutePath(p: string): boolean {
   return posix.isAbsolute(p) || win32.isAbsolute(p);
 }
 
-/** SpawnSession: daemon hosts only, cwd under an allowed root; held until the host created the session. */
-export async function spawnSession(p: Principal, hostId: string, spawn: SpawnSessionCommand | undefined, opts: CommandOptions | undefined, frontend: string): Promise<SessionInfo> {
+/** Who asked for a remote start, for the audit log. */
+export interface SpawnOrigin {
+  /** "web", "mobile", "slack", ... */
+  frontend: string;
+  ip?: string;
+}
+
+async function auditSpawn(p: Principal, host: HostRow, cwd: string, origin: SpawnOrigin, outcome: "success" | "failure", extra: Record<string, unknown>): Promise<void> {
+  await recordAudit({
+    action: "relay.remote_start",
+    outcome,
+    actor: { id: p.user.id, label: p.user.email, ip: origin.ip },
+    target: { type: "device", id: host.deviceId, label: await deviceName(host.deviceId) },
+    details: { host_id: host.id, folder: cwd, frontend: origin.frontend, daemon: host.daemon, ...extra },
+  });
+}
+
+/** Refuses remote starts the organization's policy turns off. */
+export async function requireRemoteStartsAllowed(p: Principal): Promise<void> {
+  const policy = await serverPolicyFor({ role: p.user.role ?? "user" });
+  if (policy.remoteStartsDisabled) throw new ApiError("permission", "Your organization's policy turned remote starts off");
+}
+
+/**
+ * SpawnSession (a remote start): daemon hosts under an allowed root, or hosts that take remote starts (the host checks the
+ * folder is one of its recent ones); held until the host created the session. Every attempt on an existing host is audited.
+ */
+export async function spawnSession(
+  p: Principal,
+  hostId: string,
+  spawn: SpawnSessionCommand | undefined,
+  opts: CommandOptions | undefined,
+  frontend: string,
+  origin?: Partial<SpawnOrigin>,
+): Promise<SessionInfo> {
   if (!spawn?.create) throw new ApiError("invalid_request", "spawn.create is required");
   const payload: CommandPayload = { case: "spawnSession", value: spawn };
   checkPayload(payload);
   const host = await requireUserHost(p, hostId);
-  if (!host.daemon) throw new ApiError("failed_precondition", "This host does not accept new sessions (not a daemon)");
   const cwd = spawn.create.cwd;
-  if (!cwd || !isAbsolutePath(cwd)) throw new ApiError("invalid_request", "spawn.create.cwd must be an absolute path");
-  const roots = Array.isArray(host.allowedRoots) ? (host.allowedRoots as string[]) : [];
-  if (!roots.some((r) => isUnderRoot(cwd, r))) throw new ApiError("permission", `${cwd} is not under an allowed root of this host`);
+  const who: SpawnOrigin = { frontend: origin?.frontend || opts?.frontend || frontend, ip: origin?.ip };
+  try {
+    await requireRemoteStartsAllowed(p);
+    if (!host.daemon && !host.remoteStarts) throw new ApiError("failed_precondition", "This machine does not take remote starts (turn them on in its settings)");
+    if (!cwd || !isAbsolutePath(cwd)) throw new ApiError("invalid_request", "spawn.create.cwd must be an absolute path");
+    if (!host.remoteStarts) {
+      const roots = Array.isArray(host.allowedRoots) ? (host.allowedRoots as string[]) : [];
+      if (!roots.some((r) => isUnderRoot(cwd, r))) throw new ApiError("permission", `${cwd} is not under an allowed root of this host`);
+    }
+    if (!isOnline(host)) throw new ApiError("overloaded", "The host is offline");
+    const wait = spawnWaitMs();
+    const { row } = await enqueue(p, { hostId }, payload, opts, wait, frontend);
+    const r = await outcomeOf(row, Date.now() + wait);
+    if (r.delivery !== DeliveryState.ACKED || !r.ack) throw new ApiError("overloaded", "The host did not create the session in time");
+    throwOnFailedAck(r.ack);
+    if (r.ack.result.case !== "spawnSession" || !r.ack.result.value.session) throw new ApiError("internal", "The host acked without a session");
+    const session = r.ack.result.value.session;
+    await auditSpawn(p, host, cwd, who, "success", { session_id: session.id });
+    return session;
+  } catch (err) {
+    await auditSpawn(p, host, cwd, who, "failure", { error: err instanceof ApiError ? err.message : String(err) });
+    throw err;
+  }
+}
+
+/** The recent folders of a host that takes remote starts, asked live (a host-level query command). */
+export async function listHostFolders(p: Principal, hostId: string, limit: number, frontend: string): Promise<RecentFolder[]> {
+  const host = await requireUserHost(p, hostId);
+  await requireRemoteStartsAllowed(p);
+  if (!host.remoteStarts) throw new ApiError("failed_precondition", "This machine does not take remote starts");
   if (!isOnline(host)) throw new ApiError("overloaded", "The host is offline");
-  const wait = spawnWaitMs();
-  const { row } = await enqueue(p, { hostId }, payload, opts, wait, frontend);
+  const payload: CommandPayload = { case: "listRecentFolders", value: create(ListRecentFoldersRequestSchema, { limit: Math.max(0, Math.min(limit, 200)) }) };
+  const wait = ackWaitMs();
+  const { row } = await enqueue(p, { hostId }, payload, undefined, wait, frontend);
   const r = await outcomeOf(row, Date.now() + wait);
-  if (r.delivery !== DeliveryState.ACKED || !r.ack) throw new ApiError("overloaded", "The host did not create the session in time");
+  if (r.delivery !== DeliveryState.ACKED || !r.ack) throw new ApiError("overloaded", "The host did not answer in time (offline or busy)");
   throwOnFailedAck(r.ack);
-  if (r.ack.result.case !== "spawnSession" || !r.ack.result.value.session) throw new ApiError("internal", "The host acked without a session");
-  return r.ack.result.value.session;
+  if (r.ack.result.case !== "listRecentFolders") throw new ApiError("internal", "The host acked without folders");
+  return r.ack.result.value.folders;
+}
+
+/** Online hosts of the user that take remote starts (daemon hosts included), most recently seen first. */
+export async function remoteStartHosts(userId: string): Promise<(HostRow & { name: string })[]> {
+  const db = getDb();
+  const hosts = await db.select().from(schema.relayHost).where(eq(schema.relayHost.userId, userId));
+  const now = Date.now();
+  const out: (HostRow & { name: string })[] = [];
+  for (const h of hosts) {
+    if ((h.remoteStarts || h.daemon) && isOnline(h, now)) out.push({ ...h, name: await deviceName(h.deviceId) });
+  }
+  return out.sort((a, b) => b.lastSeenAt.getTime() - a.lastSeenAt.getTime());
 }
 
 /** Whether a session's machine is up: false for a session no machine mirrors, or one whose machine went away. */

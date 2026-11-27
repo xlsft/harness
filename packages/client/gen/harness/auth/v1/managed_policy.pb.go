@@ -71,8 +71,15 @@ type ManagedPolicy struct {
 	PluginUiDisabled bool `protobuf:"varint,400,opt,name=plugin_ui_disabled,json=pluginUiDisabled,proto3" json:"plugin_ui_disabled,omitempty"`
 	// disablePluginUiNetwork: plugin panes reach no network, whatever their manifest declares and devices approved.
 	PluginUiNetworkDisabled bool `protobuf:"varint,401,opt,name=plugin_ui_network_disabled,json=pluginUiNetworkDisabled,proto3" json:"plugin_ui_network_disabled,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// disableChatApps: chat apps (Slack) start and steer no sessions; inbound requests get a short notice.
+	ChatAppsDisabled bool `protobuf:"varint,280,opt,name=chat_apps_disabled,json=chatAppsDisabled,proto3" json:"chat_apps_disabled,omitempty"`
+	// disableRemoteStarts: no session starts through the relay (phone, chat apps, daemon hosts); the server refuses and
+	// clients stop offering it.
+	RemoteStartsDisabled bool `protobuf:"varint,281,opt,name=remote_starts_disabled,json=remoteStartsDisabled,proto3" json:"remote_starts_disabled,omitempty"`
+	// disablePersonalChatBots: nobody connects a chat bot of their own (Telegram); the organization's bot still works.
+	PersonalChatBotsDisabled bool `protobuf:"varint,380,opt,name=personal_chat_bots_disabled,json=personalChatBotsDisabled,proto3" json:"personal_chat_bots_disabled,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -276,6 +283,27 @@ func (x *ManagedPolicy) GetPluginUiDisabled() bool {
 func (x *ManagedPolicy) GetPluginUiNetworkDisabled() bool {
 	if x != nil {
 		return x.PluginUiNetworkDisabled
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetChatAppsDisabled() bool {
+	if x != nil {
+		return x.ChatAppsDisabled
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetRemoteStartsDisabled() bool {
+	if x != nil {
+		return x.RemoteStartsDisabled
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetPersonalChatBotsDisabled() bool {
+	if x != nil {
+		return x.PersonalChatBotsDisabled
 	}
 	return false
 }
@@ -538,7 +566,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xe4\t\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\x8a\v\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -567,7 +595,10 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\x17personal_hosts_disabled\x18\xe6\x01 \x01(\bR\x15personalHostsDisabled\x124\n" +
 	"\x13defer_builtin_tools\x18\xa4\x03 \x01(\bH\x00R\x11deferBuiltinTools\x88\x01\x01\x12-\n" +
 	"\x12plugin_ui_disabled\x18\x90\x03 \x01(\bR\x10pluginUiDisabled\x12<\n" +
-	"\x1aplugin_ui_network_disabled\x18\x91\x03 \x01(\bR\x17pluginUiNetworkDisabledB\x16\n" +
+	"\x1aplugin_ui_network_disabled\x18\x91\x03 \x01(\bR\x17pluginUiNetworkDisabled\x12-\n" +
+	"\x12chat_apps_disabled\x18\x98\x02 \x01(\bR\x10chatAppsDisabled\x125\n" +
+	"\x16remote_starts_disabled\x18\x99\x02 \x01(\bR\x14remoteStartsDisabled\x12>\n" +
+	"\x1bpersonal_chat_bots_disabled\x18\xfc\x02 \x01(\bR\x18personalChatBotsDisabledB\x16\n" +
 	"\x14_defer_builtin_tools\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +

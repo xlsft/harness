@@ -342,5 +342,28 @@ export const migrations: { id: string; statements: string[] }[] = [
       "-- Data: a company tracker connection that served Knowledge itself becomes a knowledge source connection borrowing its sign-in, keeping its query; migrated_from keeps old conn:<tracker id>:<article> ids readable. docs/design/tracker.md, section 6.\nINSERT INTO \"knowledge_connection\" (\"id\", \"provider\", \"name\", \"enabled\", \"query\", \"borrow_connection_id\", \"migrated_from\", \"created_at\", \"updated_at\", \"updated_by\") SELECT 'kc_' || substr(md5(random()::text || \"id\"), 1, 16), 'youtrack-kb', 'YouTrack Knowledge Base · ' || \"name\", \"enabled\", \"knowledge_query\", \"id\", \"id\", now(), now(), \"updated_by\" FROM \"tracker_connection\" WHERE \"knowledge_enabled\" AND \"provider\" = 'youtrack';",
       "UPDATE \"tracker_connection\" SET \"knowledge_enabled\" = false, \"knowledge_query\" = '' WHERE \"knowledge_enabled\" AND \"provider\" = 'youtrack';"
     ]
+  },
+  {
+    "id": "0019_chat_apps",
+    "statements": [
+      "CREATE TABLE \"chat_app\" (\n\t\"provider\" integer PRIMARY KEY NOT NULL,\n\t\"enabled\" boolean DEFAULT true NOT NULL,\n\t\"match_by_email\" boolean DEFAULT true NOT NULL,\n\t\"team_id\" text DEFAULT '' NOT NULL,\n\t\"team_name\" text DEFAULT '' NOT NULL,\n\t\"bot_user_id\" text DEFAULT '' NOT NULL,\n\t\"secrets_enc\" text DEFAULT '' NOT NULL,\n\t\"delivery\" integer DEFAULT 0 NOT NULL,\n\t\"last_event_at\" timestamp with time zone,\n\t\"last_error\" text DEFAULT '' NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL,\n\t\"updated_by\" text DEFAULT '' NOT NULL\n);",
+      "CREATE TABLE \"chat_bot\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"provider\" integer NOT NULL,\n\t\"enabled\" boolean DEFAULT true NOT NULL,\n\t\"bot_user_id\" text NOT NULL,\n\t\"bot_username\" text DEFAULT '' NOT NULL,\n\t\"delivery\" integer DEFAULT 0 NOT NULL,\n\t\"secrets_enc\" text NOT NULL,\n\t\"last_event_at\" timestamp with time zone,\n\t\"last_error\" text DEFAULT '' NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"chat_button\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"value\" text NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"chat_delivery\" (\n\t\"key\" text PRIMARY KEY NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"chat_identity\" (\n\t\"provider\" integer NOT NULL,\n\t\"team_id\" text NOT NULL,\n\t\"external_user_id\" text NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"display_name\" text DEFAULT '' NOT NULL,\n\t\"linked_via\" text NOT NULL,\n\t\"linked_at\" timestamp with time zone NOT NULL,\n\tCONSTRAINT \"chat_identity_provider_team_id_external_user_id_pk\" PRIMARY KEY(\"provider\",\"team_id\",\"external_user_id\")\n);",
+      "CREATE TABLE \"chat_link_code\" (\n\t\"code_hash\" text PRIMARY KEY NOT NULL,\n\t\"provider\" integer NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"expires_at\" timestamp with time zone NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL\n);",
+      "CREATE TABLE \"chat_thread\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"provider\" integer NOT NULL,\n\t\"team_id\" text NOT NULL,\n\t\"channel\" text NOT NULL,\n\t\"thread_id\" text NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"session_id\" text DEFAULT '' NOT NULL,\n\t\"host_id\" text DEFAULT '' NOT NULL,\n\t\"status\" text NOT NULL,\n\t\"last_seq\" bigint DEFAULT 0 NOT NULL,\n\t\"progress_id\" text DEFAULT '' NOT NULL,\n\t\"app_key\" text DEFAULT '' NOT NULL,\n\t\"host_work_id\" text DEFAULT '' NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "ALTER TABLE \"relay_host\" ADD COLUMN \"remote_starts\" boolean DEFAULT false NOT NULL;",
+      "ALTER TABLE \"chat_bot\" ADD CONSTRAINT \"chat_bot_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"chat_identity\" ADD CONSTRAINT \"chat_identity_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"chat_link_code\" ADD CONSTRAINT \"chat_link_code_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"chat_thread\" ADD CONSTRAINT \"chat_thread_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "CREATE UNIQUE INDEX \"chat_bot_user_idx\" ON \"chat_bot\" USING btree (\"user_id\",\"provider\");",
+      "CREATE UNIQUE INDEX \"chat_bot_bot_idx\" ON \"chat_bot\" USING btree (\"provider\",\"bot_user_id\");",
+      "CREATE INDEX \"chat_button_created_idx\" ON \"chat_button\" USING btree (\"created_at\");",
+      "CREATE INDEX \"chat_identity_user_idx\" ON \"chat_identity\" USING btree (\"user_id\");",
+      "CREATE UNIQUE INDEX \"chat_thread_ref_idx\" ON \"chat_thread\" USING btree (\"provider\",\"team_id\",\"channel\",\"thread_id\");",
+      "CREATE INDEX \"chat_thread_session_idx\" ON \"chat_thread\" USING btree (\"session_id\");"
+    ]
   }
 ];

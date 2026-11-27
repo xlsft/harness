@@ -1638,6 +1638,8 @@ message UserPreferences {
   // step. Applies to sessions opened from then on. managed_policy.defer_builtin_tools, when set, overrides it and is
   // what this field reports.
   bool defer_builtin_tools = 60;
+  // Where sessions started from a chat app run (docs/design/chat.md). Synced as chatDefaults in the user's settings.
+  ChatDefaults chat_defaults = 44;
 }
 
 // Choices about how a user's requests run. Sessions opened from then on follow them.
@@ -1665,6 +1667,20 @@ message GetUserPreferencesResponse {
 }
 
 // Unset fields stay as they are.
+// The machine, folder and mode for sessions a chat app starts. Empty fields: the server picks (the most recently seen
+// online machine that takes remote starts, its most recent folder, the default mode).
+message ChatDefaults {
+  // dev_... of the machine.
+  string device_id = 1;
+  string folder = 2;
+  // A permission mode name as in settings ("default", "acceptEdits", "plan", "auto", "dontAsk"); never bypassPermissions.
+  string permission_mode = 3;
+  // An always-on host (harness.relay.v1.AgentHost id) to run on instead of a machine; then repository_key
+  // ("host/owner/name") says what it checks out. Takes precedence over device_id.
+  string agent_host_id = 4;
+  string repository_key = 5;
+}
+
 message UpdateUserPreferencesRequest {
   optional bool compact_idle_sessions = 1;
   // INVALID_ARGUMENT outside 1 to 240.
@@ -1685,6 +1701,8 @@ message UpdateUserPreferencesRequest {
   optional SkillSwitch skill_switch = 12;
   // Replaces all three choices. INVALID_ARGUMENT for an unknown tier or lifetime.
   optional ModelTuning model_tuning = 26;
+  // Set replaces the defaults; an empty message clears them.
+  optional ChatDefaults chat_defaults = 44;
   optional bool auto_memory_enabled = 24;
   optional bool schedules_enabled = 18;
   optional int32 goal_max_turns = 19;

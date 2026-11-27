@@ -152,7 +152,7 @@ export const useSessionStore = defineStore('sessions', {
     drafts: {} as Record<string, string>,
     effort: {} as Record<string, EffortName>,
     // This device's preferences as the client has them (deviceSettingsLoaded: it answered once).
-    deviceSettings: { theme: '', notifications: true } as DeviceSettings,
+    deviceSettings: { theme: '', notifications: true, allowRemoteStarts: false } as DeviceSettings,
     deviceSettingsLoaded: false,
     // Remote sessions the user chose to drive from here ("Continue via remote control"): the composer replaces
     // the "Running on <device>" notice while the session stays remote-controllable.

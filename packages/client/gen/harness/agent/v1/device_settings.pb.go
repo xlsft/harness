@@ -27,8 +27,11 @@ type DeviceSettings struct {
 	Theme string `protobuf:"bytes,1,opt,name=theme,proto3" json:"theme,omitempty"`
 	// Whether frontends send system notifications when a session needs the user.
 	Notifications bool `protobuf:"varint,2,opt,name=notifications,proto3" json:"notifications,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Whether this machine takes remote starts: sessions started from the phone or a chat app through the relay, in one
+	// of its recent folders (docs/design/chat.md). Off by default. Never synced: it says nothing about other machines.
+	AllowRemoteStarts bool `protobuf:"varint,3,opt,name=allow_remote_starts,json=allowRemoteStarts,proto3" json:"allow_remote_starts,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *DeviceSettings) Reset() {
@@ -71,6 +74,13 @@ func (x *DeviceSettings) GetTheme() string {
 func (x *DeviceSettings) GetNotifications() bool {
 	if x != nil {
 		return x.Notifications
+	}
+	return false
+}
+
+func (x *DeviceSettings) GetAllowRemoteStarts() bool {
+	if x != nil {
+		return x.AllowRemoteStarts
 	}
 	return false
 }
@@ -157,11 +167,12 @@ func (x *GetDeviceSettingsResponse) GetSettings() *DeviceSettings {
 
 // An update changes only the fields it sets.
 type UpdateDeviceSettingsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Theme         *string                `protobuf:"bytes,1,opt,name=theme,proto3,oneof" json:"theme,omitempty"`
-	Notifications *bool                  `protobuf:"varint,2,opt,name=notifications,proto3,oneof" json:"notifications,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Theme             *string                `protobuf:"bytes,1,opt,name=theme,proto3,oneof" json:"theme,omitempty"`
+	Notifications     *bool                  `protobuf:"varint,2,opt,name=notifications,proto3,oneof" json:"notifications,omitempty"`
+	AllowRemoteStarts *bool                  `protobuf:"varint,3,opt,name=allow_remote_starts,json=allowRemoteStarts,proto3,oneof" json:"allow_remote_starts,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *UpdateDeviceSettingsRequest) Reset() {
@@ -204,6 +215,13 @@ func (x *UpdateDeviceSettingsRequest) GetTheme() string {
 func (x *UpdateDeviceSettingsRequest) GetNotifications() bool {
 	if x != nil && x.Notifications != nil {
 		return *x.Notifications
+	}
+	return false
+}
+
+func (x *UpdateDeviceSettingsRequest) GetAllowRemoteStarts() bool {
+	if x != nil && x.AllowRemoteStarts != nil {
+		return *x.AllowRemoteStarts
 	}
 	return false
 }
@@ -381,18 +399,21 @@ var File_harness_agent_v1_device_settings_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_device_settings_proto_rawDesc = "" +
 	"\n" +
-	"&harness/agent/v1/device_settings.proto\x12\x10harness.agent.v1\"L\n" +
+	"&harness/agent/v1/device_settings.proto\x12\x10harness.agent.v1\"|\n" +
 	"\x0eDeviceSettings\x12\x14\n" +
 	"\x05theme\x18\x01 \x01(\tR\x05theme\x12$\n" +
-	"\rnotifications\x18\x02 \x01(\bR\rnotifications\"\x1a\n" +
+	"\rnotifications\x18\x02 \x01(\bR\rnotifications\x12.\n" +
+	"\x13allow_remote_starts\x18\x03 \x01(\bR\x11allowRemoteStarts\"\x1a\n" +
 	"\x18GetDeviceSettingsRequest\"Y\n" +
 	"\x19GetDeviceSettingsResponse\x12<\n" +
-	"\bsettings\x18\x01 \x01(\v2 .harness.agent.v1.DeviceSettingsR\bsettings\"\x7f\n" +
+	"\bsettings\x18\x01 \x01(\v2 .harness.agent.v1.DeviceSettingsR\bsettings\"\xcc\x01\n" +
 	"\x1bUpdateDeviceSettingsRequest\x12\x19\n" +
 	"\x05theme\x18\x01 \x01(\tH\x00R\x05theme\x88\x01\x01\x12)\n" +
-	"\rnotifications\x18\x02 \x01(\bH\x01R\rnotifications\x88\x01\x01B\b\n" +
+	"\rnotifications\x18\x02 \x01(\bH\x01R\rnotifications\x88\x01\x01\x123\n" +
+	"\x13allow_remote_starts\x18\x03 \x01(\bH\x02R\x11allowRemoteStarts\x88\x01\x01B\b\n" +
 	"\x06_themeB\x10\n" +
-	"\x0e_notifications\"\\\n" +
+	"\x0e_notificationsB\x16\n" +
+	"\x14_allow_remote_starts\"\\\n" +
 	"\x1cUpdateDeviceSettingsResponse\x12<\n" +
 	"\bsettings\x18\x01 \x01(\v2 .harness.agent.v1.DeviceSettingsR\bsettings\"\x17\n" +
 	"\x15DeviceSettingsChanged\"N\n" +

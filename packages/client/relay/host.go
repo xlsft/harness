@@ -68,6 +68,10 @@ type Options struct {
 	// Daemon hosts accept SpawnSession under AllowedRoots.
 	Daemon       bool
 	AllowedRoots []string
+	// RemoteStarts reports whether the machine takes remote starts now (the device setting and the policy,
+	// server.RemoteStartsAllowed); nil: never. Spawns then run in one of its recent folders. RefreshHost tells the
+	// relay after a change.
+	RemoteStarts func() bool
 
 	// FlushInterval and MaxBatch bound event batching (default 100 ms / 64 events).
 	FlushInterval time.Duration
@@ -102,6 +106,8 @@ type Host struct {
 	running map[string]bool
 	acks    []*relayv1.CommandAck
 	ackKick chan struct{}
+	// runCtx is Run's context (RefreshHost registers again with it).
+	runCtx context.Context
 }
 
 const doneCap = 4096
@@ -225,14 +231,15 @@ func (h *Host) waitHost(ctx context.Context) (string, error) {
 // OpenHostStream (commands), heartbeats and ack delivery, reconnecting with
 // exponential backoff and jitter.
 func (h *Host) Run(ctx context.Context) error {
+	h.mu.Lock()
+	h.runCtx = ctx
+	h.mu.Unlock()
 	go h.ackLoop(ctx)
 	for attempt := 0; ctx.Err() == nil; attempt++ {
 		if attempt > 0 && !sleep(ctx, h.backoff(attempt-1)) {
 			break
 		}
-		reg, err := call(ctx, h, h.rpc.RegisterHost, &relayv1.RegisterHostRequest{
-			InstanceId: h.o.InstanceID, ClientVersion: config.Version, Daemon: h.o.Daemon, AllowedRoots: h.o.AllowedRoots,
-		})
+		reg, err := call(ctx, h, h.rpc.RegisterHost, h.registration())
 		if err != nil {
 			h.log.Debug("register host failed", "err", err)
 			continue
@@ -252,6 +259,32 @@ func (h *Host) Run(ctx context.Context) error {
 	h.hostID = ""
 	h.mu.Unlock()
 	return ctx.Err()
+}
+
+func (h *Host) registration() *relayv1.RegisterHostRequest {
+	return &relayv1.RegisterHostRequest{
+		InstanceId: h.o.InstanceID, ClientVersion: config.Version, Daemon: h.o.Daemon, AllowedRoots: h.o.AllowedRoots,
+		RemoteStarts: h.remoteStarts(),
+	}
+}
+
+func (h *Host) remoteStarts() bool { return h.o.RemoteStarts != nil && h.o.RemoteStarts() }
+
+// RefreshHost registers the host again with what it offers now (remote starts turned on or off). The same instance id
+// keeps the host id, so the host stream and sessions are untouched. A host that is not connected registers anyway at
+// its next connect.
+func (h *Host) RefreshHost() {
+	h.mu.Lock()
+	ctx, id := h.runCtx, h.hostID
+	h.mu.Unlock()
+	if ctx == nil || id == "" {
+		return
+	}
+	go func() {
+		if _, err := call(ctx, h, h.rpc.RegisterHost, h.registration()); err != nil {
+			h.log.Debug("re-register host failed", "err", err)
+		}
+	}()
 }
 
 // serve runs one host stream until it fails; it reports whether the stream

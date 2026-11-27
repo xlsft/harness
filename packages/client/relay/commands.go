@@ -356,16 +356,33 @@ func (h *Host) exec(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck
 func (h *Host) execHost(ctx context.Context, c *relayv1.Command) *relayv1.CommandAck {
 	ctx = server.WithRemoteOrigin(ctx)
 	id := c.GetCommandId()
+	if q := c.GetListRecentFolders(); q != nil {
+		if !h.remoteStarts() {
+			return outcome(id, relayv1.CommandAck_OUTCOME_REJECTED, "this machine does not take remote starts")
+		}
+		res, err := h.o.Backend.ListRecentFolders(ctx, connect.NewRequest(&agentv1.ListRecentFoldersRequest{Limit: q.GetLimit()}))
+		a := errAck(id, err, false)
+		if err == nil {
+			a.Result = &relayv1.CommandAck_ListRecentFolders{ListRecentFolders: res.Msg}
+		}
+		return a
+	}
 	sp := c.GetSpawnSession()
 	if sp == nil {
 		return outcome(id, relayv1.CommandAck_OUTCOME_REJECTED, "unsupported host command")
 	}
-	if !h.o.Daemon {
-		return outcome(id, relayv1.CommandAck_OUTCOME_REJECTED, "this client does not accept new sessions (not a daemon)")
-	}
 	cwd := sp.GetCreate().GetCwd()
-	if !UnderRoots(cwd, h.o.AllowedRoots) {
+	switch {
+	case h.o.Daemon && UnderRoots(cwd, h.o.AllowedRoots):
+	case h.remoteStarts():
+		// A remote start runs only in one of this machine's recent folders.
+		if !h.recentFolder(ctx, cwd) {
+			return outcome(id, relayv1.CommandAck_OUTCOME_REJECTED, cwd+" is not one of this machine's recent folders")
+		}
+	case h.o.Daemon:
 		return outcome(id, relayv1.CommandAck_OUTCOME_REJECTED, cwd+" is not under an allowed root")
+	default:
+		return outcome(id, relayv1.CommandAck_OUTCOME_REJECTED, "this machine does not take remote starts")
 	}
 	create := proto.Clone(sp.GetCreate()).(*agentv1.CreateSessionRequest)
 	if sp.GetWorktree() && create.Worktree == nil {
@@ -385,6 +402,28 @@ func (h *Host) execHost(ctx context.Context, c *relayv1.Command) *relayv1.Comman
 	a := outcome(id, relayv1.CommandAck_OUTCOME_OK, "")
 	a.Result = &relayv1.CommandAck_SpawnSession{SpawnSession: res.Msg}
 	return a
+}
+
+// recentFolder reports whether dir is one of the backend's recent folders (exactly, after cleaning).
+func (h *Host) recentFolder(ctx context.Context, dir string) bool {
+	if f, ok := h.o.Backend.(interface {
+		RemoteStartFolderAllowed(context.Context, string) bool
+	}); ok {
+		return f.RemoteStartFolderAllowed(ctx, dir)
+	}
+	if dir == "" || !filepath.IsAbs(dir) {
+		return false
+	}
+	res, err := h.o.Backend.ListRecentFolders(ctx, connect.NewRequest(&agentv1.ListRecentFoldersRequest{Limit: 200}))
+	if err != nil {
+		return false
+	}
+	for _, f := range res.Msg.GetFolders() {
+		if filepath.Clean(f.GetPath()) == filepath.Clean(dir) {
+			return true
+		}
+	}
+	return false
 }
 
 // UnderRoots reports whether dir (absolute) lies inside one of roots.

@@ -123,6 +123,9 @@ const (
 	// RelayServiceSpawnSessionProcedure is the fully-qualified name of the RelayService's SpawnSession
 	// RPC.
 	RelayServiceSpawnSessionProcedure = "/harness.relay.v1.RelayService/SpawnSession"
+	// RelayServiceListHostFoldersProcedure is the fully-qualified name of the RelayService's
+	// ListHostFolders RPC.
+	RelayServiceListHostFoldersProcedure = "/harness.relay.v1.RelayService/ListHostFolders"
 	// RelayServiceRequestTunnelProcedure is the fully-qualified name of the RelayService's
 	// RequestTunnel RPC.
 	RelayServiceRequestTunnelProcedure = "/harness.relay.v1.RelayService/RequestTunnel"
@@ -212,9 +215,14 @@ type RelayServiceClient interface {
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	ListOutputStyles(context.Context, *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error)
 	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
-	// "New session on machine X in folder Y". Only to daemon hosts, only under their allowed roots (checked by
-	// the server and again by the host). Held until the host acks with the created session (max ~30 s).
+	// "New session on machine X in folder Y" (a remote start, docs/design/chat.md). To daemon hosts under their allowed
+	// roots, and to hosts that take remote starts in one of their recent folders (checked by the host). The server checks
+	// what it can (roots, the host's switch, the managed policy) and audits every attempt. Held until the host acks with
+	// the created session (max ~30 s).
 	SpawnSession(context.Context, *connect.Request[v1.SpawnSessionRequest]) (*connect.Response[v1.SpawnSessionResponse], error)
+	// The recent folders of a host that takes remote starts, asked live (a query command, max ~10 s): where a remote start
+	// may run. FAILED_PRECONDITION when the host does not take remote starts, UNAVAILABLE when it is offline or slow.
+	ListHostFolders(context.Context, *connect.Request[v1.ListHostFoldersRequest]) (*connect.Response[v1.ListHostFoldersResponse], error)
 	// Tunnels from the viewer's side.
 	// Asks a host to open a tunnel (preview port or PTY); held until the host registered it (max ~10 s).
 	RequestTunnel(context.Context, *connect.Request[v1.RequestTunnelRequest]) (*connect.Response[v1.RequestTunnelResponse], error)
@@ -449,6 +457,12 @@ func NewRelayServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(relayServiceMethods.ByName("SpawnSession")),
 			connect.WithClientOptions(opts...),
 		),
+		listHostFolders: connect.NewClient[v1.ListHostFoldersRequest, v1.ListHostFoldersResponse](
+			httpClient,
+			baseURL+RelayServiceListHostFoldersProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("ListHostFolders")),
+			connect.WithClientOptions(opts...),
+		),
 		requestTunnel: connect.NewClient[v1.RequestTunnelRequest, v1.RequestTunnelResponse](
 			httpClient,
 			baseURL+RelayServiceRequestTunnelProcedure,
@@ -541,6 +555,7 @@ type relayServiceClient struct {
 	listOutputStyles       *connect.Client[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse]
 	listSlashCommands      *connect.Client[v1.ListSlashCommandsRequest, v1.ListSlashCommandsResponse]
 	spawnSession           *connect.Client[v1.SpawnSessionRequest, v1.SpawnSessionResponse]
+	listHostFolders        *connect.Client[v1.ListHostFoldersRequest, v1.ListHostFoldersResponse]
 	requestTunnel          *connect.Client[v1.RequestTunnelRequest, v1.RequestTunnelResponse]
 	listTunnels            *connect.Client[v1.ListTunnelsRequest, v1.ListTunnelsResponse]
 	authorizeTunnel        *connect.Client[v1.AuthorizeTunnelRequest, v1.AuthorizeTunnelResponse]
@@ -717,6 +732,11 @@ func (c *relayServiceClient) SpawnSession(ctx context.Context, req *connect.Requ
 	return c.spawnSession.CallUnary(ctx, req)
 }
 
+// ListHostFolders calls harness.relay.v1.RelayService.ListHostFolders.
+func (c *relayServiceClient) ListHostFolders(ctx context.Context, req *connect.Request[v1.ListHostFoldersRequest]) (*connect.Response[v1.ListHostFoldersResponse], error) {
+	return c.listHostFolders.CallUnary(ctx, req)
+}
+
 // RequestTunnel calls harness.relay.v1.RelayService.RequestTunnel.
 func (c *relayServiceClient) RequestTunnel(ctx context.Context, req *connect.Request[v1.RequestTunnelRequest]) (*connect.Response[v1.RequestTunnelResponse], error) {
 	return c.requestTunnel.CallUnary(ctx, req)
@@ -822,9 +842,14 @@ type RelayServiceHandler interface {
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	ListOutputStyles(context.Context, *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error)
 	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
-	// "New session on machine X in folder Y". Only to daemon hosts, only under their allowed roots (checked by
-	// the server and again by the host). Held until the host acks with the created session (max ~30 s).
+	// "New session on machine X in folder Y" (a remote start, docs/design/chat.md). To daemon hosts under their allowed
+	// roots, and to hosts that take remote starts in one of their recent folders (checked by the host). The server checks
+	// what it can (roots, the host's switch, the managed policy) and audits every attempt. Held until the host acks with
+	// the created session (max ~30 s).
 	SpawnSession(context.Context, *connect.Request[v1.SpawnSessionRequest]) (*connect.Response[v1.SpawnSessionResponse], error)
+	// The recent folders of a host that takes remote starts, asked live (a query command, max ~10 s): where a remote start
+	// may run. FAILED_PRECONDITION when the host does not take remote starts, UNAVAILABLE when it is offline or slow.
+	ListHostFolders(context.Context, *connect.Request[v1.ListHostFoldersRequest]) (*connect.Response[v1.ListHostFoldersResponse], error)
 	// Tunnels from the viewer's side.
 	// Asks a host to open a tunnel (preview port or PTY); held until the host registered it (max ~10 s).
 	RequestTunnel(context.Context, *connect.Request[v1.RequestTunnelRequest]) (*connect.Response[v1.RequestTunnelResponse], error)
@@ -1055,6 +1080,12 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(relayServiceMethods.ByName("SpawnSession")),
 		connect.WithHandlerOptions(opts...),
 	)
+	relayServiceListHostFoldersHandler := connect.NewUnaryHandler(
+		RelayServiceListHostFoldersProcedure,
+		svc.ListHostFolders,
+		connect.WithSchema(relayServiceMethods.ByName("ListHostFolders")),
+		connect.WithHandlerOptions(opts...),
+	)
 	relayServiceRequestTunnelHandler := connect.NewUnaryHandler(
 		RelayServiceRequestTunnelProcedure,
 		svc.RequestTunnel,
@@ -1177,6 +1208,8 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 			relayServiceListSlashCommandsHandler.ServeHTTP(w, r)
 		case RelayServiceSpawnSessionProcedure:
 			relayServiceSpawnSessionHandler.ServeHTTP(w, r)
+		case RelayServiceListHostFoldersProcedure:
+			relayServiceListHostFoldersHandler.ServeHTTP(w, r)
 		case RelayServiceRequestTunnelProcedure:
 			relayServiceRequestTunnelHandler.ServeHTTP(w, r)
 		case RelayServiceListTunnelsProcedure:
@@ -1334,6 +1367,10 @@ func (UnimplementedRelayServiceHandler) ListSlashCommands(context.Context, *conn
 
 func (UnimplementedRelayServiceHandler) SpawnSession(context.Context, *connect.Request[v1.SpawnSessionRequest]) (*connect.Response[v1.SpawnSessionResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.SpawnSession is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) ListHostFolders(context.Context, *connect.Request[v1.ListHostFoldersRequest]) (*connect.Response[v1.ListHostFoldersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.ListHostFolders is not implemented"))
 }
 
 func (UnimplementedRelayServiceHandler) RequestTunnel(context.Context, *connect.Request[v1.RequestTunnelRequest]) (*connect.Response[v1.RequestTunnelResponse], error) {

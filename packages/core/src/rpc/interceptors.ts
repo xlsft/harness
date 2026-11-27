@@ -43,6 +43,7 @@ const SYNC = "harness.sync.v1.SyncService";
 const DEVICE = "harness.auth.v1.DeviceAuthService";
 const HOSTS = "harness.relay.v1.HostsService";
 const HOST_AGENT = "harness.relay.v1.HostAgentService";
+const CHAT = "harness.chat.v1.ChatService";
 
 export const AUDITED: Record<string, Audited> = {
   [`${HOSTS}/CreateAgentHost`]: { action: "host.create", targetType: "host", target: "name", details: ["scope", "groupId", "maxSessions", "maxSessionsPerUser", "allowedRepositories"] },
@@ -96,6 +97,23 @@ export const AUDITED: Record<string, Audited> = {
   [`${BILLING}/SetSessionBudget`]: { action: "quota.set_session_budget", targetType: "quota", details: ["sessionUsd"] },
 
   [`${POLICY}/SetManagedPolicy`]: { action: "policy.managed_update", targetType: "policy", details: ["policy"] },
+
+  [`${CHAT}/PutChatApp`]: {
+    action: "chat.app_update",
+    targetType: "chat_app",
+    target: "provider",
+    extra: (r) => ({ enabled: r.enabled, match_by_email: r.matchByEmail, delivery: r.delivery, token_changed: has(r.botToken), signing_secret_changed: has(r.signingSecret) }),
+  },
+  [`${CHAT}/PutMyChatBot`]: {
+    action: "chat.bot_update",
+    targetType: "chat_bot",
+    target: "provider",
+    extra: (r) => ({ enabled: r.enabled, delivery: r.delivery, token_changed: has(r.botToken) }),
+  },
+  [`${CHAT}/DeleteMyChatBot`]: { action: "chat.bot_delete", targetType: "chat_bot", target: "provider" },
+  [`${CHAT}/DeleteChatApp`]: { action: "chat.app_delete", targetType: "chat_app", target: "provider" },
+  [`${CHAT}/StartChatLink`]: { action: "chat.link_start", targetType: "chat_app", target: "provider" },
+  [`${CHAT}/UnlinkChatIdentity`]: { action: "chat.unlink", targetType: "chat_identity", target: "externalUserId", details: ["teamId"] },
 
   [`${MFA}/ConfirmMfaEnrollment`]: { action: "mfa.enroll_confirm" },
   [`${MFA}/DisableMfa`]: { action: "mfa.disable" },

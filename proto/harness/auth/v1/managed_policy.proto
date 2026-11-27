@@ -62,6 +62,13 @@ message ManagedPolicy {
   bool plugin_ui_disabled = 400;
   // disablePluginUiNetwork: plugin panes reach no network, whatever their manifest declares and devices approved.
   bool plugin_ui_network_disabled = 401;
+  // disableChatApps: chat apps (Slack) start and steer no sessions; inbound requests get a short notice.
+  bool chat_apps_disabled = 280;
+  // disableRemoteStarts: no session starts through the relay (phone, chat apps, daemon hosts); the server refuses and
+  // clients stop offering it.
+  bool remote_starts_disabled = 281;
+  // disablePersonalChatBots: nobody connects a chat bot of their own (Telegram); the organization's bot still works.
+  bool personal_chat_bots_disabled = 380;
 }
 
 message GetManagedPolicyRequest {}

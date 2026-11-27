@@ -102,7 +102,10 @@ export function policyView(p: ManagedPolicyPb | undefined): ManagedPolicy {
     externalSkillSearchDisabled: p?.externalSkillSearchDisabled ?? false,
     deferBuiltinTools: p?.deferBuiltinTools ?? null,
     pluginUiDisabled: p?.pluginUiDisabled ?? false,
-    pluginUiNetworkDisabled: p?.pluginUiNetworkDisabled ?? false
+    pluginUiNetworkDisabled: p?.pluginUiNetworkDisabled ?? false,
+    chatAppsDisabled: p?.chatAppsDisabled ?? false,
+    remoteStartsDisabled: p?.remoteStartsDisabled ?? false,
+    personalChatBotsDisabled: p?.personalChatBotsDisabled ?? false
   }
 }
 

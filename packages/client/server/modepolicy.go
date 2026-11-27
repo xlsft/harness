@@ -17,6 +17,7 @@ func (s *Server) SetModePolicy(p *permissions.ModePolicy) {
 	s.Base.ModePolicy = p
 	if p != nil {
 		p.OnChange(s.applyModePolicy)
+		s.watchRemoteStartPolicy(p)
 	}
 }
 

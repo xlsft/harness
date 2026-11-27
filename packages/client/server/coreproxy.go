@@ -10,6 +10,7 @@ import (
 
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/gen/harness/auth/v1/authv1connect"
+	"github.com/xlsft/harness/packages/client/gen/harness/chat/v1/chatv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/library/v1/libraryv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/llm/v1/llmv1connect"
 	"github.com/xlsft/harness/packages/client/gen/harness/mcp/v1/mcpv1connect"
@@ -53,6 +54,8 @@ var coreProxyServices = []string{
 	libraryv1connect.KnowledgeConnectionServiceName,
 	// Always-on hosts, what people do with them. Never HostAgentService: that one hands out credentials.
 	relayv1connect.HostsServiceName,
+	// Settings > Chat apps: the app (admin-only on the server, secrets write-only) and the user's own linked identities.
+	chatv1connect.ChatServiceName,
 }
 
 // coreProxyProcedures are single methods of other server services frontends may
@@ -84,12 +87,17 @@ var coreProxyProcedures = []string{
 	vcsv1connect.VcsServiceGetUserAuthStatusProcedure,
 	vcsv1connect.VcsServiceRevokeUserAuthProcedure,
 	vcsv1connect.VcsServiceListUserConnectionsProcedure,
+	// Start on a machine (phone dispatch, docs/design/chat.md): the user's machines, a machine's recent folders and the
+	// remote start itself. The server and the target machine decide; the rest of RelayService is the relay host's.
+	relayv1connect.RelayServiceListHostsProcedure,
+	relayv1connect.RelayServiceListHostFoldersProcedure,
+	relayv1connect.RelayServiceSpawnSessionProcedure,
 }
 
 const coreProxyMaxBody = 1 << 20
 
 // forwardedRequestHeaders are copied from the frontend's request.
-var forwardedRequestHeaders = []string{"Content-Type", "Connect-Protocol-Version", "Connect-Timeout-Ms"}
+var forwardedRequestHeaders = []string{"Content-Type", "Connect-Protocol-Version", "Connect-Timeout-Ms", "X-Harness-Frontend"}
 
 func (p *CoreProxy) register(mux *http.ServeMux) {
 	for _, s := range coreProxyServices {

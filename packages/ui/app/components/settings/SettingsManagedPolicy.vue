@@ -414,6 +414,39 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
       </div>
       <div class="flex items-center justify-between gap-4">
         <div class="set-label">
+          <span>{{ tt('Turn off remote starts') }}</span>
+          <span class="set-desc">{{ tt('No session starts on a machine from the phone, a chat app or another device, even where its owner allows it. Sessions already running stay.') }}</span>
+        </div>
+        <HToggle
+          v-model="policy.remoteStartsDisabled"
+          :disabled="!writable"
+          :label="tt('Turn off remote starts')"
+        />
+      </div>
+      <div class="flex items-center justify-between gap-4">
+        <div class="set-label">
+          <span>{{ tt('Turn off chat apps') }}</span>
+          <span class="set-desc">{{ tt('Mentions and messages to the Slack app or the Telegram bots start and steer nothing; people get a short notice.') }}</span>
+        </div>
+        <HToggle
+          v-model="policy.chatAppsDisabled"
+          :disabled="!writable"
+          :label="tt('Turn off chat apps')"
+        />
+      </div>
+      <div class="flex items-center justify-between gap-4">
+        <div class="set-label">
+          <span>{{ tt('Turn off personal chat bots') }}</span>
+          <span class="set-desc">{{ tt('Nobody connects a Telegram bot of their own; the organization\'s bot still works.') }}</span>
+        </div>
+        <HToggle
+          v-model="policy.personalChatBotsDisabled"
+          :disabled="!writable"
+          :label="tt('Turn off personal chat bots')"
+        />
+      </div>
+      <div class="flex items-center justify-between gap-4">
+        <div class="set-label">
           <span>{{ tt('Keep plugin panes offline') }}</span>
           <span class="set-desc">{{ tt('Plugin panes reach no network, whatever their manifest declares and devices allowed.') }}</span>
         </div>

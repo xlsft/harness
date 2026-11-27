@@ -4,6 +4,7 @@
 import type { HostsApi } from '~/lib/hosts/types'
 import type { SshApi } from '~/lib/ssh'
 import type { VcsApi } from '~/lib/vcs/types'
+import type { RemoteApi } from '~/lib/remote/types'
 import type { OutgoingAttachment } from '~/lib/session/attachments'
 import type { ObjectTicket } from '~/lib/session/objects'
 import type { ComputerPermissionVM, ComputerProfileVM, ComputerTierName, EffortName, QuestionReply } from '~/lib/session/types'
@@ -174,6 +175,9 @@ export interface ManagedPolicyView {
   // Plugins' panes and status-bar items are off; plugin panes reach no network.
   pluginUiDisabled: boolean
   pluginUiNetworkDisabled: boolean
+  // Chat apps start no sessions, and no session starts through the relay (phone, chat apps).
+  chatAppsDisabled: boolean
+  remoteStartsDisabled: boolean
 }
 
 export interface UserPreferences {
@@ -207,6 +211,17 @@ export interface UserPreferences {
   goalMaxTurns: number
   // How requests use the models; sessions opened from then on follow it. An update replaces it whole.
   modelTuning: ModelTuningPreferences
+  // Where sessions a chat app starts run (synced; the server reads it). Empty fields: the server picks.
+  chatDefaults: ChatDefaults
+}
+
+export interface ChatDefaults {
+  deviceId: string
+  folder: string
+  mode: string
+  // An always-on host (its id) instead of a machine, and the repository it checks out (host/owner/name).
+  agentHostId?: string
+  repositoryKey?: string
 }
 
 export interface ModelTuningPreferences {
@@ -260,6 +275,8 @@ export interface DeviceSettings {
   // 'system', 'light' or 'dark'; empty until something chose on this device.
   theme: string
   notifications: boolean
+  // This machine takes sessions started from the phone or a chat app, in its recent folders. Off by default.
+  allowRemoteStarts: boolean
 }
 
 // Per-user session state kept on the harness server; unset fields stay as they are.
@@ -453,6 +470,8 @@ export interface SessionTransport {
   users(): UsersApi
   // Settings > Code hosts.
   vcs(): VcsApi
+  // Start on a machine (phone), Settings > Remote and Chat apps.
+  remote(): RemoteApi
   enterprise(): EnterpriseApi
   hosts(): HostsApi
 

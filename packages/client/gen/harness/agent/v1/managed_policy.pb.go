@@ -55,8 +55,13 @@ type ManagedPolicyView struct {
 	PluginUiDisabled bool `protobuf:"varint,400,opt,name=plugin_ui_disabled,json=pluginUiDisabled,proto3" json:"plugin_ui_disabled,omitempty"`
 	// Plugin panes reach no network.
 	PluginUiNetworkDisabled bool `protobuf:"varint,401,opt,name=plugin_ui_network_disabled,json=pluginUiNetworkDisabled,proto3" json:"plugin_ui_network_disabled,omitempty"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	// disableChatApps: chat apps (Slack) start and steer no sessions; inbound requests get a short notice.
+	ChatAppsDisabled bool `protobuf:"varint,280,opt,name=chat_apps_disabled,json=chatAppsDisabled,proto3" json:"chat_apps_disabled,omitempty"`
+	// disableRemoteStarts: no session starts through the relay (phone, chat apps, daemon hosts); the server refuses and
+	// clients stop offering it.
+	RemoteStartsDisabled bool `protobuf:"varint,281,opt,name=remote_starts_disabled,json=remoteStartsDisabled,proto3" json:"remote_starts_disabled,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *ManagedPolicyView) Reset() {
@@ -236,11 +241,25 @@ func (x *ManagedPolicyView) GetPluginUiNetworkDisabled() bool {
 	return false
 }
 
+func (x *ManagedPolicyView) GetChatAppsDisabled() bool {
+	if x != nil {
+		return x.ChatAppsDisabled
+	}
+	return false
+}
+
+func (x *ManagedPolicyView) GetRemoteStartsDisabled() bool {
+	if x != nil {
+		return x.RemoteStartsDisabled
+	}
+	return false
+}
+
 var File_harness_agent_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"%harness/agent/v1/managed_policy.proto\x12\x10harness.agent.v1\"\xe9\a\n" +
+	"%harness/agent/v1/managed_policy.proto\x12\x10harness.agent.v1\"\xcf\b\n" +
 	"\x11ManagedPolicyView\x12\x16\n" +
 	"\x06active\x18\x01 \x01(\bR\x06active\x12\x1f\n" +
 	"\vallow_rules\x18\x02 \x03(\tR\n" +
@@ -265,7 +284,9 @@ const file_harness_agent_v1_managed_policy_proto_rawDesc = "" +
 	"\x1eexternal_skill_search_disabled\x18\x12 \x01(\bR\x1bexternalSkillSearchDisabled\x124\n" +
 	"\x13defer_builtin_tools\x18\xa4\x03 \x01(\bH\x00R\x11deferBuiltinTools\x88\x01\x01\x12-\n" +
 	"\x12plugin_ui_disabled\x18\x90\x03 \x01(\bR\x10pluginUiDisabled\x12<\n" +
-	"\x1aplugin_ui_network_disabled\x18\x91\x03 \x01(\bR\x17pluginUiNetworkDisabledB\x16\n" +
+	"\x1aplugin_ui_network_disabled\x18\x91\x03 \x01(\bR\x17pluginUiNetworkDisabled\x12-\n" +
+	"\x12chat_apps_disabled\x18\x98\x02 \x01(\bR\x10chatAppsDisabled\x125\n" +
+	"\x16remote_starts_disabled\x18\x99\x02 \x01(\bR\x14remoteStartsDisabledB\x16\n" +
 	"\x14_defer_builtin_toolsB\xd3\x01\n" +
 	"\x14com.harness.agent.v1B\x12ManagedPolicyProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 

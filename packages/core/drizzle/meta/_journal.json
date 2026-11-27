@@ -134,6 +134,13 @@
       "when": 1795744816859,
       "tag": "0018_knowledge_connections",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795772071064,
+      "tag": "0019_chat_apps",
+      "breakpoints": true
     }
   ]
 }

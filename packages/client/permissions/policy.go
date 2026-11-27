@@ -101,6 +101,7 @@ type ModePolicy struct {
 	// The same documents can require the command sandbox and refuse running outside it (settings.PolicySandbox).
 	sandboxRequired, outsideRefused bool
 	managed                         ManagedPolicy
+	managedSubs                     map[int]func()
 }
 
 // SetSandbox records what the policy documents say of the command sandbox.

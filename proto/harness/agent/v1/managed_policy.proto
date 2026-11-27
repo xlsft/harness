@@ -35,4 +35,9 @@ message ManagedPolicyView {
   bool plugin_ui_disabled = 400;
   // Plugin panes reach no network.
   bool plugin_ui_network_disabled = 401;
+  // disableChatApps: chat apps (Slack) start and steer no sessions; inbound requests get a short notice.
+  bool chat_apps_disabled = 280;
+  // disableRemoteStarts: no session starts through the relay (phone, chat apps, daemon hosts); the server refuses and
+  // clients stop offering it.
+  bool remote_starts_disabled = 281;
 }

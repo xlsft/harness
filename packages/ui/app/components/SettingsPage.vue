@@ -27,6 +27,7 @@ const SECTIONS = [
   { key: 'trackers', label: tt('Issue trackers'), icon: 'tasks', group: 'app' },
   { key: 'knowledge', label: tt('Knowledge sources'), icon: 'page', group: 'app' },
   { key: 'hosts', label: tt('Always-on hosts'), icon: 'box', group: 'app' },
+  { key: 'remote', label: tt('Remote'), icon: 'relay', group: 'app' },
   { key: 'import', label: tt('Import'), icon: 'download', group: 'app' },
   { key: 'models', label: tt('Models'), icon: 'ai', group: 'ai' },
   { key: 'classifiers', label: tt('Classifiers'), icon: 'filter', group: 'ai' },
@@ -40,12 +41,13 @@ const SECTIONS = [
   { key: 'provisioning', label: tt('Provisioning'), icon: 'refresh', group: 'server' },
   { key: 'audit', label: tt('Audit log'), icon: 'history', group: 'server' },
   { key: 'policy', label: tt('Managed policy'), icon: 'flag', group: 'server' },
+  { key: 'chat', label: tt('Chat apps'), icon: 'chat', group: 'server' },
   { key: 'about', label: tt('About'), icon: 'info', group: 'product' }
 ] as const
 type Section = typeof SECTIONS[number]['key']
 
 // Server sections follow what the user's role allows (the server enforces it too).
-const CAPABILITY: Partial<Record<Section, string>> = { users: 'users.read', ldap: 'sign_in.read', sso: 'sign_in.read', provisioning: 'sign_in.read', audit: 'audit.read', policy: 'policy.read' }
+const CAPABILITY: Partial<Record<Section, string>> = { users: 'users.read', ldap: 'sign_in.read', sso: 'sign_in.read', provisioning: 'sign_in.read', audit: 'audit.read', policy: 'policy.read', chat: 'policy.write' }
 // Without the right to read it, the managed policy still shows when it imposes something on this user.
 const policyApplies = ref(false)
 const managed = ref<ManagedPolicyView | null>(null)
@@ -71,6 +73,8 @@ const KEYWORDS: Record<Section, string> = {
   trackers: 'youtrack jira linear github gitlab yandex kaiten issues issue tracker provider connection token oauth board',
   knowledge: 'knowledge sources wiki confluence yandex wiki youtrack knowledge base articles documents linear github gitlab kaiten docs connection sign-in borrow',
   hosts: 'always-on host daemon server container cloud remote capacity load workers team isolation',
+  remote: 'remote start phone mobile dispatch machine slack telegram chat link account defaults relay bot always-on host',
+  chat: 'slack telegram chat app bot token signing secret teams mention thread webhook polling botfather',
   hooks: 'hooks pretooluse posttooluse stop sessionstart scripts automation disable trust',
   memory: 'memory auto notes remember forget index project MEMORY.md',
   import: 'import bring claude code migrate memory skills agents commands output styles mcp sessions history',
@@ -177,6 +181,9 @@ const notifications = computed({
 
       <SettingsTrackers v-else-if="section === 'trackers'" />
       <SettingsKnowledgeSources v-else-if="section === 'knowledge'" />
+      <SettingsRemote v-else-if="section === 'remote'" />
+
+      <SettingsChatApps v-else-if="section === 'chat'" />
 
       <template v-else-if="section === 'sessions'">
         <template v-if="managed?.active">

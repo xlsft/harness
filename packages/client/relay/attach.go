@@ -52,12 +52,18 @@ func (s hostSwitch) SetSessionRelay(sessionID string, enabled bool) {
 	s.h.SetSessionMirrored(s.ctx, sessionID, enabled)
 }
 
+// RefreshHost re-registers the host (server.relayRefresher): remote starts were turned on or off.
+func (s hostSwitch) RefreshHost() { s.h.RefreshHost() }
+
 // Attach mirrors every session of srv (already open and opened later) through
 // a relay host and starts it; it runs until ctx ends. o.Backend is set to srv.
 // Sessions with remote control off (settings "remoteControl": false, or the
 // per-session switch, SetSessionRelay) are skipped until it is turned on.
 func Attach(ctx context.Context, srv *server.Server, o Options) *Host {
 	o.Backend = serverBackend{srv}
+	if o.RemoteStarts == nil {
+		o.RemoteStarts = srv.RemoteStartsAllowed
+	}
 	h := New(o)
 	srv.SetRelayHost(hostSwitch{ctx: ctx, h: h})
 	srv.SetSessionObserver(func(id string) { h.AddSession(ctx, id) })
