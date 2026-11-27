@@ -58,7 +58,7 @@ export function profileMessage(p: ComputerProfileVM) {
 export const TIER_LABELS: Record<ComputerTierName, string> = { blocked: 'Blocked', read: 'Read only', click: 'Click only', full: 'Full control' }
 
 export function permissionVM(p: ComputerUsePermission): ComputerPermissionVM {
-  return { id: p.id, name: p.name, granted: p.granted, howToGrant: p.howToGrant }
+  return { id: p.id, name: p.name, granted: p.granted, howToGrant: p.howToGrant, description: p.description, settingsUrl: p.settingsUrl }
 }
 
 export function accessItem(r: ComputerAccessRequested): ComputerAccessItem {

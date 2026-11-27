@@ -392,6 +392,12 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           :aria-expanded="open === u.id"
           @click="toggle(u)"
         >
+          <HAvatar
+            :src="u.image"
+            :name="u.name"
+            :seed="u.username || u.email || u.id"
+            :size="28"
+          />
           <span class="flex min-w-[220px] flex-1 flex-col gap-0.5">
             <span class="flex items-center gap-2 truncate text-strong">
               {{ u.name }}

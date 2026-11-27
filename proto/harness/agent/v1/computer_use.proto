@@ -26,6 +26,11 @@ message ComputerUsePermission {
   bool granted = 3;
   // How the user grants it, for when it is missing.
   string how_to_grant = 4;
+  // What the agent needs it for, shown whether or not it is granted.
+  string description = 5;
+  // Opens the system's settings pane where it is turned on (on macOS an x-apple.systempreferences: link); empty when
+  // there is none.
+  string settings_url = 6;
 }
 
 message ComputerUseStatus {

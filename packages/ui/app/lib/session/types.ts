@@ -220,6 +220,10 @@ export interface ComputerPermissionVM {
   name: string
   granted: boolean
   howToGrant: string
+  // What the agent needs it for.
+  description: string
+  // Opens the system settings pane where it is turned on; '' when there is none.
+  settingsUrl: string
 }
 
 // The access card of computer use (ComputerAccessRequested).

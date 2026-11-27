@@ -1170,7 +1170,9 @@ type User struct {
 	LastSignInAt string `protobuf:"bytes,9,opt,name=last_sign_in_at,json=lastSignInAt,proto3" json:"last_sign_in_at,omitempty"`
 	// The avatar in the object store, set with image once it has moved there: a frontend reads it through the object
 	// route. image stays for frontends older than the store.
-	ImageObject   *v1.ObjectRef `protobuf:"bytes,10,opt,name=image_object,json=imageObject,proto3" json:"image_object,omitempty"`
+	ImageObject *v1.ObjectRef `protobuf:"bytes,10,opt,name=image_object,json=imageObject,proto3" json:"image_object,omitempty"`
+	// Names of the groups the user belongs to (directory.proto), set by GetMe.
+	Groups        []string `protobuf:"bytes,11,rep,name=groups,proto3" json:"groups,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1271,6 +1273,13 @@ func (x *User) GetLastSignInAt() string {
 func (x *User) GetImageObject() *v1.ObjectRef {
 	if x != nil {
 		return x.ImageObject
+	}
+	return nil
+}
+
+func (x *User) GetGroups() []string {
+	if x != nil {
+		return x.Groups
 	}
 	return nil
 }
@@ -1447,7 +1456,7 @@ const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"\x15revoke_other_sessions\x18\x03 \x01(\bR\x13revokeOtherSessions\"\x18\n" +
 	"\x16ChangePasswordResponse\"\x0f\n" +
 	"\rLogoutRequest\"\x10\n" +
-	"\x0eLogoutResponse\"\xbf\x03\n" +
+	"\x0eLogoutResponse\"\xd7\x03\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
@@ -1460,7 +1469,8 @@ const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"created_at\x18\b \x01(\tR\tcreatedAt\x12%\n" +
 	"\x0flast_sign_in_at\x18\t \x01(\tR\flastSignInAt\x12?\n" +
 	"\fimage_object\x18\n" +
-	" \x01(\v2\x1c.harness.common.v1.ObjectRefR\vimageObject\"_\n" +
+	" \x01(\v2\x1c.harness.common.v1.ObjectRefR\vimageObject\x12\x16\n" +
+	"\x06groups\x18\v \x03(\tR\x06groups\"_\n" +
 	"\x04Role\x12\x14\n" +
 	"\x10ROLE_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tROLE_USER\x10\x01\x12\x0e\n" +

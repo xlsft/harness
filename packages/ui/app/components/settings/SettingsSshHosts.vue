@@ -57,103 +57,135 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
     <h2 class="set-h">
       {{ tt('SSH hosts') }}
     </h2>
-    <p class="text-[12px] text-muted">
+    <p class="set-sub">
       {{ tt('A window can run on another machine: its sessions, files and terminals are that machine\'s. Sign-in is your own ssh setup, with your agent and ~/.ssh/config. Nothing here is synced to your other devices.') }}
     </p>
-    <ul
-      v-if="hosts.length"
-      class="mt-2 flex flex-col"
+    <p
+      v-if="error"
+      role="alert"
+      class="m-0 mb-3 border border-bad px-3 py-2 text-[12px] text-bad"
     >
-      <li
+      {{ error }}
+    </p>
+
+    <div class="mb-8 overflow-hidden border border-default text-[12.5px]">
+      <div
         v-for="h in hosts"
         :key="h.id"
-        class="flex items-center gap-2 border-b border-line py-1.5 text-[12.5px]"
+        class="flex items-center gap-3 border-b border-default px-3 py-2.5"
       >
-        <span class="min-w-0 flex-1 truncate text-strong">{{ h.name || h.destination }}</span>
-        <span class="truncate text-muted">{{ h.destination }}{{ h.port ? `:${h.port}` : '' }}</span>
+        <SettingsMonogram
+          icon="terminal"
+          :dim="store.sshHost?.hostId !== h.id"
+        />
+        <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span class="flex items-center gap-2 text-[12.5px] text-strong">
+            {{ h.name || h.destination }}
+            <span
+              v-if="store.sshHost?.hostId === h.id"
+              class="text-[11px] text-ok"
+            >{{ tt('connected') }}</span>
+          </span>
+          <span class="truncate text-[11.5px] text-muted">{{ h.destination }}{{ h.port ? `:${h.port}` : '' }}</span>
+        </span>
         <HBtn
+          size="sm"
           :disabled="store.sshHost?.hostId === h.id"
           @click="connecting = h"
         >
           {{ tt('Connect') }}
         </HBtn>
         <HBtn
+          size="sm"
           tone="danger"
+          :aria-label="tt('Remove {0}', [h.name || h.destination])"
           @click="remove(h.id)"
         >
           {{ tt('Remove') }}
         </HBtn>
-      </li>
-    </ul>
-    <form
-      v-if="adding"
-      class="mt-3 grid gap-2 sm:grid-cols-2"
-      :aria-label="tt('Add an SSH host')"
-      @submit.prevent="add"
-    >
-      <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-        {{ tt('Host') }}
-        <input
-          v-model="destination"
-          required
-          spellcheck="false"
-          autocomplete="off"
-          placeholder="alias or user@host"
-          :class="input"
-        >
-      </label>
-      <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-        {{ tt('Name (optional)') }}
-        <input
-          v-model="name"
-          :class="input"
-        >
-      </label>
-      <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-        {{ tt('Port (optional)') }}
-        <input
-          v-model="port"
-          inputmode="numeric"
-          :class="input"
-        >
-      </label>
-      <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-        {{ tt('Key file path (optional)') }}
-        <input
-          v-model="identityFile"
-          spellcheck="false"
-          placeholder="~/.ssh/id_ed25519"
-          :class="input"
-        >
-      </label>
-      <div class="flex gap-2 sm:col-span-2">
-        <HBtn
-          variant="primary"
-          type="submit"
-          :disabled="!destination.trim()"
-        >
-          {{ tt('Save') }}
-        </HBtn>
-        <HBtn @click="adding = false">
-          {{ tt('Cancel') }}
-        </HBtn>
       </div>
-    </form>
-    <div
-      v-else
-      class="mt-3"
-    >
-      <HBtn @click="adding = true">
-        {{ tt('Add a host') }}
-      </HBtn>
+
+      <div class="flex flex-col">
+        <div class="flex items-center gap-3 px-3 py-2.5">
+          <SettingsMonogram
+            icon="plus"
+            :dim="!hosts.length"
+          />
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[12.5px] text-strong">{{ tt('Add a host') }}</span>
+            <span class="truncate text-[11.5px] text-muted">{{ tt('An alias from ~/.ssh/config or user@host, signed in with your own ssh setup.') }}</span>
+          </span>
+          <HBtn
+            v-if="!adding"
+            size="sm"
+            @click="adding = true"
+          >
+            <HIcon
+              name="plus"
+              :size="12"
+            />{{ tt('Add') }}
+          </HBtn>
+        </div>
+        <form
+          v-if="adding"
+          class="grid gap-2 border-t border-default py-3 pr-3 pl-[52px] sm:grid-cols-2"
+          :aria-label="tt('Add an SSH host')"
+          @submit.prevent="add"
+        >
+          <label class="flex flex-col gap-1 text-[11.5px] text-muted">
+            {{ tt('Host') }}
+            <input
+              v-model="destination"
+              required
+              spellcheck="false"
+              autocomplete="off"
+              placeholder="alias or user@host"
+              :class="input"
+            >
+          </label>
+          <label class="flex flex-col gap-1 text-[11.5px] text-muted">
+            {{ tt('Name (optional)') }}
+            <input
+              v-model="name"
+              :class="input"
+            >
+          </label>
+          <label class="flex flex-col gap-1 text-[11.5px] text-muted">
+            {{ tt('Port (optional)') }}
+            <input
+              v-model="port"
+              inputmode="numeric"
+              :class="input"
+            >
+          </label>
+          <label class="flex flex-col gap-1 text-[11.5px] text-muted">
+            {{ tt('Key file path (optional)') }}
+            <input
+              v-model="identityFile"
+              spellcheck="false"
+              placeholder="~/.ssh/id_ed25519"
+              :class="input"
+            >
+          </label>
+          <div class="flex gap-2 sm:col-span-2">
+            <HBtn
+              variant="primary"
+              size="sm"
+              type="submit"
+              :disabled="!destination.trim()"
+            >
+              {{ tt('Save') }}
+            </HBtn>
+            <HBtn
+              size="sm"
+              @click="adding = false"
+            >
+              {{ tt('Cancel') }}
+            </HBtn>
+          </div>
+        </form>
+      </div>
     </div>
-    <p
-      v-if="error"
-      role="alert"
-      class="mt-2 text-[12px] text-bad"
-    >
-      {{ error }}
-    </p>
     <SshConnectModal
       v-if="connecting"
       :host="connecting"

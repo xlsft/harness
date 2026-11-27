@@ -23,6 +23,8 @@ export interface AccountProfile {
   // RFC 3339; '' when unknown or never.
   createdAt: string
   lastSignInAt: string
+  // Names of the user's groups, sorted.
+  groups: string[]
 }
 
 export interface AccountDevice {

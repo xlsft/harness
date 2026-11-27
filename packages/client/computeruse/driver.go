@@ -128,6 +128,10 @@ type Permission struct {
 	Granted bool
 	// HowToGrant tells the user where to turn it on.
 	HowToGrant string
+	// Description says what the agent needs it for.
+	Description string
+	// SettingsURL opens the system settings pane where it is turned on; "" when there is none.
+	SettingsURL string
 }
 
 // Missing returns how to grant permission id, or "" when it is granted (or the platform has no such thing).

@@ -166,6 +166,8 @@ message User {
   // The avatar in the object store, set with image once it has moved there: a frontend reads it through the object
   // route. image stays for frontends older than the store.
   harness.common.v1.ObjectRef image_object = 10;
+  // Names of the groups the user belongs to (directory.proto), set by GetMe.
+  repeated string groups = 11;
 }
 
 enum UserSource {
