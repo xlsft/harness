@@ -69,7 +69,7 @@ const onSettings = settings.isOpen
 // A page other than the session view is open (or the new-session screen): no session row is current.
 const onExtensions = computed(() => route.path.startsWith('/extensions'))
 const onScheduled = computed(() => route.path.startsWith('/scheduled'))
-const onPage = computed(() => onArtifacts.value || onExtensions.value || onScheduled.value || route.path.startsWith('/inbox') || route.path.startsWith('/projects') || route.path.startsWith('/knowledge') || route.path.startsWith('/issues') || !!route.query.new)
+const onPage = computed(() => onArtifacts.value || onExtensions.value || onScheduled.value || route.path.startsWith('/inbox') || route.path.startsWith('/knowledge') || route.path.startsWith('/issues') || !!route.query.new)
 
 function mark(s: SessionState) {
   if (s.meta.status === 'error') return { text: 'fail', cls: 'text-bad' }
@@ -121,7 +121,6 @@ const nav = [
 // Under More, a dropdown: pages people open less often. The row reads as current while one of them is open.
 const more = [
   { label: tt('Inbox'), icon: 'chat' as const, to: '/inbox' },
-  { label: tt('Projects'), icon: 'layout' as const, to: '/projects' },
   { label: tt('Issues'), icon: 'tasks' as const, to: '/issues' },
   { label: tt('Knowledge'), icon: 'page' as const, to: '/knowledge' }
 ]

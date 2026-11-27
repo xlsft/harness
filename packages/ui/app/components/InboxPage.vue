@@ -326,7 +326,7 @@ const tone = (g: InboxGroup) => g === InboxGroup.NEEDS_INPUT ? 'border-l-accent'
               size="sm"
               @click="resumeRun(row.item)"
             >
-              {{ tt('Resume run') }}
+              {{ tt('Resume the helpers') }}
             </HBtn>
           </template>
           <span class="flex-1" />

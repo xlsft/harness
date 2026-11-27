@@ -5,6 +5,7 @@ import type { SlashActionVM } from './slashCommands'
 import type { ObjectRef } from './objects'
 import type { BrowserActionVM } from '~/lib/browser/types'
 import type { AcpSessionState } from '~/gen/harness/agent/v1/acp_pb'
+import type { ProjectRun } from '~/gen/harness/agent/v1/project_runs_pb'
 
 export type Status = 'idle' | 'working' | 'needs_input' | 'waiting_for_connection' | 'error' | 'ended'
 
@@ -675,6 +676,8 @@ export interface SessionState {
   // The session's goal (GoalUpdated) and its task graph (TaskGraphUpdated).
   goal: GoalVM | null
   taskGraph: TaskNodeVM[]
+  // The work this session delegated to helpers (/delegate; ProjectRunUpdated), with its tasks.
+  delegation: ProjectRun | null
   // What an always-on host did with the session's work (HostWorkUpdated).
   hostWork: { branch: string, pullRequestUrl: string, error: string } | null
   // The last run of the test command of a best-of-N attempt (AttemptChecked).

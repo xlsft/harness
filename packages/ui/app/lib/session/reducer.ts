@@ -137,6 +137,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     workflowOrder: [],
     todos: [],
     goal: null,
+    delegation: null,
     hostWork: null,
     attemptCheck: null,
     taskGraph: [],
@@ -946,6 +947,11 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
 
     case 'goalUpdated': {
       s.goal = e.value.goal ? goalVM(e.value.goal) : null
+      break
+    }
+
+    case 'projectRunUpdated': {
+      s.delegation = e.value.run ?? null
       break
     }
 

@@ -103,6 +103,13 @@ describe('session events', () => {
     expect(s.goal?.state).toBe('cap_reached')
   })
 
+  it('keeps what the session delegated', () => {
+    let s = createSessionState('s1')
+    expect(s.delegation).toBeNull()
+    s = reduce(s, ev({ case: 'projectRunUpdated', value: { run: { id: 'prun_1', title: 'API', workers: [], tasks: [] } as never } }))
+    expect(s.delegation?.id).toBe('prun_1')
+  })
+
   it('replaces the task graph as a whole', () => {
     let s = createSessionState('s1')
     const node = (id: string, status: TaskNodeStatus, extra = {}) => ({ id, title: id, status, blockedBy: [], waitingFor: [], ...extra }) as never

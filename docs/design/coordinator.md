@@ -106,10 +106,25 @@ The record is written on every change. At start the client reads the records: a 
 
 `SessionEvent.project_run_updated` (310) carries the run on the coordinator session, so a viewer through the relay sees it like a local one. `Command.project_run_control` (relay 310) pauses, resumes, stops and changes limits from another device; like every relay command it cannot widen permissions.
 
+### `/delegate`: how people start one
+
+A run is started from the conversation, not from a form. The user agrees on the work with the agent, then types
+`/delegate [--workers N] [--budget USD] [what to add]`, and **this session** becomes the coordinator (`beginRun` in
+`server/projectruns.go`, `server/delegate.go`). The conversation is the brief: the `delegate_started` reminder tells the
+agent to split what was agreed into tasks and to give each helper a self-contained prompt, since helpers don't see the
+conversation. The user goes on with something else; the helpers work in the background and report to this session.
+`/delegate status|pause|resume|stop` steer it; a helper session can't delegate further.
+
+**Decision: a command, not a page.** A separate "project run" form made people restate a goal the agent already
+understood, and its words (coordinator, worker, target) described the machinery. In the UI it is "delegating" to
+"helpers".
+
 ### UI
 
 - `/inbox`: groups, virtualised list, answer permission (allow, deny), answer a question (option buttons), approve a plan, open, stop, mark read. Live.
-- `/projects`: runs with state, workers, budget bar and the graph, a form for a new run, pause, resume, stop, limits.
+- Above the composer of the delegating session (`DelegateBanner.vue`): what stage it is at, tasks done, helpers working,
+  the spending against the budget, Pause/Resume and Stop (they send `/delegate …`), and the tasks with each helper's
+  state and a way to open its session. `CreateProjectRun` stays for other clients; the Projects page is gone.
 
 All logic is in the client and the server; the screens show and send.
 

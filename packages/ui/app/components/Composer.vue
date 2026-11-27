@@ -246,6 +246,7 @@ function retry() {
     <template #top>
       <UsageLimitBanner :session="session" />
       <GoalBanner :session="session" />
+      <DelegateBanner :session="session" />
       <ComputerUseBar :session="session" />
       <DemoRecordingBar :session="session" />
 
