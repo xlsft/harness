@@ -114,15 +114,36 @@ const NuxtLink = resolveComponent('NuxtLink')
 
 // `soon`: not built yet; the row shows a badge and does nothing.
 const nav = [
-  { label: tt('Inbox'), icon: 'chat' as const, to: '/inbox' },
-  { label: tt('Projects'), icon: 'layout' as const, to: '/projects' },
   { label: tt('Artifacts'), icon: 'copy' as const, to: '/artifacts' },
   { label: tt('Scheduled'), icon: 'clock' as const, to: '/scheduled' },
-  { label: tt('Extensions'), icon: 'sliders' as const, to: '/extensions' },
-  { label: tt('Knowledge'), icon: 'page' as const, to: '/knowledge' },
-  { label: tt('Issues'), icon: 'tasks' as const, to: '/issues' }
+  { label: tt('Extensions'), icon: 'sliders' as const, to: '/extensions' }
+]
+// Under More: pages people open less often. More opens by itself while one of them is the current page.
+const more = [
+  { label: tt('Inbox'), icon: 'chat' as const, to: '/inbox' },
+  { label: tt('Projects'), icon: 'layout' as const, to: '/projects' },
+  { label: tt('Issues'), icon: 'tasks' as const, to: '/issues' },
+  { label: tt('Knowledge'), icon: 'page' as const, to: '/knowledge' }
 ]
 const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
+const MORE_KEY = 'harness-sidebar-more'
+const moreOpen = ref(false)
+onMounted(() => {
+  try {
+    moreOpen.value = localStorage.getItem(MORE_KEY) === '1'
+  } catch {
+    // Closed.
+  }
+})
+const moreShown = computed(() => moreOpen.value || more.some(i => isCurrent(i.to)))
+function toggleMore() {
+  moreOpen.value = !moreShown.value
+  try {
+    localStorage.setItem(MORE_KEY, moreOpen.value ? '1' : '0')
+  } catch {
+    // Not remembered.
+  }
+}
 </script>
 
 <template>
@@ -195,6 +216,33 @@ const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
       >
         <HIcon :name="item.icon" />{{ item.label }}
       </component>
+      <button
+        type="button"
+        class="nav-row px-[9px] text-left text-muted hover:bg-hover"
+        :aria-expanded="moreShown"
+        data-sidebar-more
+        @click="toggleMore"
+      >
+        <HIcon name="more" />{{ tt('More') }}<span class="flex-1" /><HIcon
+          name="down"
+          :size="11"
+          class="transition-transform"
+          :class="moreShown ? 'rotate-180' : ''"
+        />
+      </button>
+      <template v-if="moreShown">
+        <component
+          :is="NuxtLink"
+          v-for="item in more"
+          :key="item.label"
+          :to="item.to"
+          class="nav-row px-[9px] hover:bg-hover"
+          :class="isCurrent(item.to) ? 'nav-row-current' : ''"
+          :aria-current="isCurrent(item.to) ? 'page' : undefined"
+        >
+          <HIcon :name="item.icon" />{{ item.label }}
+        </component>
+      </template>
     </div>
 
     <div class="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-[5px] py-[11px]">

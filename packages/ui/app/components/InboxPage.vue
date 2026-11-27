@@ -166,25 +166,11 @@ const tone = (g: InboxGroup) => g === InboxGroup.NEEDS_INPUT ? 'border-l-accent'
 </script>
 
 <template>
-  <section
-    :aria-label="tt('Inbox')"
-    class="flex h-full flex-col bg-default"
+  <PageShell
+    :title="tt('Inbox')"
+    :scroll="false"
   >
-    <div class="mx-auto flex w-full max-w-[920px] flex-1 flex-col gap-4 px-10 pt-[52px] pb-6 max-sm:px-4">
-      <div class="flex items-center gap-3">
-        <h1 class="m-0 flex-1 font-display text-[26px] font-bold text-strong">
-          {{ tt('Inbox') }}
-        </h1>
-        <HBtn
-          size="md"
-          @click="loadAll"
-        >
-          {{ tt('Refresh') }}
-        </HBtn>
-      </div>
-      <p class="m-0 text-[12.5px] text-muted">
-        {{ tt('Sessions and agents on all your machines and always-on hosts, by what they need from you. Answer here, or open the session.') }}
-      </p>
+    <div class="flex flex-wrap items-center gap-2">
       <div
         role="tablist"
         :aria-label="tt('Groups')"
@@ -205,161 +191,171 @@ const tone = (g: InboxGroup) => g === InboxGroup.NEEDS_INPUT ? 'border-l-accent'
           >{{ f.count }}</span>
         </button>
       </div>
+      <span class="flex-1" />
+      <HBtn
+        size="md"
+        @click="loadAll"
+      >
+        {{ tt('Refresh') }}
+      </HBtn>
+    </div>
+    <p class="m-0 text-[12.5px] text-muted">
+      {{ tt('Sessions and agents on all your machines and always-on hosts, by what they need from you. Answer here, or open the session.') }}
+    </p>
+    <p
+      v-if="error"
+      role="alert"
+      class="m-0 border border-l-2 border-default border-l-bad px-2.5 py-1.5 text-[12.5px] text-toned"
+    >
+      {{ error }}
+    </p>
+    <VList
+      ref="list"
+      v-slot="{ item: row }"
+      :data="rows"
+      class="min-h-0 flex-1"
+      @scroll="onScroll"
+    >
+      <div
+        v-if="row.kind === 'group'"
+        :key="row.key"
+        class="flex items-baseline gap-2 pt-4 pb-1.5 text-[12px] font-semibold text-strong"
+      >
+        {{ groupTitle(row.group) }}
+        <span class="font-normal text-muted">{{ row.total }}</span>
+        <span
+          v-if="row.unread"
+          class="font-normal text-accent"
+        >{{ tt('{0} new', [row.unread]) }}</span>
+      </div>
       <p
-        v-if="error"
-        role="alert"
-        class="m-0 border border-l-2 border-default border-l-bad px-2.5 py-1.5 text-[12.5px] text-toned"
+        v-else-if="row.kind === 'empty'"
+        :key="row.key"
+        class="m-0 py-1 text-[12px] text-muted"
       >
-        {{ error }}
+        {{ tt('Nothing here.') }}
       </p>
-      <VList
-        ref="list"
-        v-slot="{ item: row }"
-        :data="rows"
-        class="min-h-0 flex-1"
-        @scroll="onScroll"
+      <article
+        v-else
+        :key="row.key"
+        :aria-label="row.item.title"
+        class="mb-1.5 flex flex-col gap-1.5 border border-l-2 border-default px-3 py-2 text-[12.5px]"
+        :class="tone(row.item.group)"
       >
-        <div
-          v-if="row.kind === 'group'"
-          :key="row.key"
-          class="flex items-baseline gap-2 pt-4 pb-1.5 text-[12px] font-semibold text-strong"
-        >
-          {{ groupTitle(row.group) }}
-          <span class="font-normal text-muted">{{ row.total }}</span>
+        <div class="flex items-center gap-2">
           <span
-            v-if="row.unread"
-            class="font-normal text-accent"
-          >{{ tt('{0} new', [row.unread]) }}</span>
-        </div>
-        <p
-          v-else-if="row.kind === 'empty'"
-          :key="row.key"
-          class="m-0 py-1 text-[12px] text-muted"
-        >
-          {{ tt('Nothing here.') }}
-        </p>
-        <article
-          v-else
-          :key="row.key"
-          :aria-label="row.item.title"
-          class="mb-1.5 flex flex-col gap-1.5 border border-l-2 border-default px-3 py-2 text-[12.5px]"
-          :class="tone(row.item.group)"
-        >
-          <div class="flex items-center gap-2">
-            <span
-              v-if="row.item.unread"
-              class="size-1.5 shrink-0 bg-accent"
-              :aria-label="tt('Unread')"
-            />
-            <button
-              class="min-w-0 flex-1 truncate text-left font-medium text-strong hover:underline"
-              @click="openSession(row.item)"
-            >
-              {{ row.item.title || row.item.sessionId }}
-            </button>
-            <span class="shrink-0 text-[11.5px] text-muted">{{ deviceText(row.item) }}</span>
-          </div>
-          <p class="m-0 line-clamp-2 text-toned">
-            {{ itemLine(row.item) }}
-          </p>
-          <div
-            v-if="row.item.agents.length"
-            class="flex flex-wrap gap-1.5 text-[11px] text-muted"
+            v-if="row.item.unread"
+            class="size-1.5 shrink-0 bg-accent"
+            :aria-label="tt('Unread')"
+          />
+          <button
+            class="min-w-0 flex-1 truncate text-left font-medium text-strong hover:underline"
+            @click="openSession(row.item)"
           >
-            <span
-              v-for="a in row.item.agents.slice(-4)"
-              :key="a.id"
-              class="border border-line px-1.5"
-            >{{ a.name }}</span>
-          </div>
-          <div class="flex flex-wrap items-center gap-1.5">
-            <template
-              v-for="r in row.item.requests.slice(0, 1)"
-              :key="r.requestId"
-            >
-              <template v-if="r.kind === InboxRequest_Kind.PERMISSION && row.item.open">
-                <HBtn
-                  variant="primary"
-                  size="sm"
-                  :disabled="busy === `${row.item.sessionId}:${r.requestId}`"
-                  @click="allow(row.item, r)"
-                >
-                  {{ tt('Allow') }}
-                </HBtn>
-                <HBtn
-                  v-if="r.suggestedRules.length && !r.oneTimeOnly"
-                  size="sm"
-                  :disabled="busy === `${row.item.sessionId}:${r.requestId}`"
-                  :title="r.suggestedRules[0]"
-                  @click="allow(row.item, r, true)"
-                >
-                  {{ tt('Always allow') }}
-                </HBtn>
-                <HBtn
-                  size="sm"
-                  tone="danger"
-                  :disabled="busy === `${row.item.sessionId}:${r.requestId}`"
-                  @click="deny(row.item, r)"
-                >
-                  {{ tt('Deny') }}
-                </HBtn>
-              </template>
-              <template v-else-if="quickQuestion(r) && row.item.open">
-                <HBtn
-                  v-for="o in r.questions[0]!.options"
-                  :key="o"
-                  size="sm"
-                  :disabled="busy === `${row.item.sessionId}:${r.requestId}`"
-                  @click="answer(row.item, r, o)"
-                >
-                  {{ o }}
-                </HBtn>
-              </template>
+            {{ row.item.title || row.item.sessionId }}
+          </button>
+          <span class="shrink-0 text-[11.5px] text-muted">{{ deviceText(row.item) }}</span>
+        </div>
+        <p class="m-0 line-clamp-2 text-toned">
+          {{ itemLine(row.item) }}
+        </p>
+        <div
+          v-if="row.item.agents.length"
+          class="flex flex-wrap gap-1.5 text-[11px] text-muted"
+        >
+          <span
+            v-for="a in row.item.agents.slice(-4)"
+            :key="a.id"
+            class="border border-line px-1.5"
+          >{{ a.name }}</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <template
+            v-for="r in row.item.requests.slice(0, 1)"
+            :key="r.requestId"
+          >
+            <template v-if="r.kind === InboxRequest_Kind.PERMISSION && row.item.open">
               <HBtn
-                v-else-if="r.kind === InboxRequest_Kind.PLAN && row.item.open"
                 variant="primary"
                 size="sm"
-                @click="approvePlan(row.item, r)"
+                :disabled="busy === `${row.item.sessionId}:${r.requestId}`"
+                @click="allow(row.item, r)"
               >
-                {{ tt('Approve plan') }}
+                {{ tt('Allow') }}
               </HBtn>
               <HBtn
-                v-else-if="r.kind === InboxRequest_Kind.PROJECT_RUN"
-                variant="primary"
+                v-if="r.suggestedRules.length && !r.oneTimeOnly"
                 size="sm"
-                @click="resumeRun(row.item)"
+                :disabled="busy === `${row.item.sessionId}:${r.requestId}`"
+                :title="r.suggestedRules[0]"
+                @click="allow(row.item, r, true)"
               >
-                {{ tt('Resume run') }}
+                {{ tt('Always allow') }}
+              </HBtn>
+              <HBtn
+                size="sm"
+                tone="danger"
+                :disabled="busy === `${row.item.sessionId}:${r.requestId}`"
+                @click="deny(row.item, r)"
+              >
+                {{ tt('Deny') }}
               </HBtn>
             </template>
-            <span class="flex-1" />
+            <template v-else-if="quickQuestion(r) && row.item.open">
+              <HBtn
+                v-for="o in r.questions[0]!.options"
+                :key="o"
+                size="sm"
+                :disabled="busy === `${row.item.sessionId}:${r.requestId}`"
+                @click="answer(row.item, r, o)"
+              >
+                {{ o }}
+              </HBtn>
+            </template>
             <HBtn
+              v-else-if="r.kind === InboxRequest_Kind.PLAN && row.item.open"
+              variant="primary"
               size="sm"
-              variant="ghost"
-              @click="openSession(row.item)"
+              @click="approvePlan(row.item, r)"
             >
-              {{ tt('Open') }}
+              {{ tt('Approve plan') }}
             </HBtn>
             <HBtn
-              v-if="row.item.open && (row.item.working || row.item.requests.length)"
+              v-else-if="r.kind === InboxRequest_Kind.PROJECT_RUN"
+              variant="primary"
               size="sm"
-              variant="ghost"
-              tone="danger"
-              @click="stop(row.item)"
+              @click="resumeRun(row.item)"
             >
-              {{ tt('Stop') }}
+              {{ tt('Resume run') }}
             </HBtn>
-            <HBtn
-              size="sm"
-              variant="ghost"
-              tone="muted"
-              @click="markRead(row.item, !row.item.unread)"
-            >
-              {{ row.item.unread ? tt('Mark read') : tt('Mark unread') }}
-            </HBtn>
-          </div>
-        </article>
-      </VList>
-    </div>
-  </section>
+          </template>
+          <span class="flex-1" />
+          <HBtn
+            size="sm"
+            variant="ghost"
+            @click="openSession(row.item)"
+          >
+            {{ tt('Open') }}
+          </HBtn>
+          <HBtn
+            v-if="row.item.open && (row.item.working || row.item.requests.length)"
+            size="sm"
+            variant="ghost"
+            tone="danger"
+            @click="stop(row.item)"
+          >
+            {{ tt('Stop') }}
+          </HBtn>
+          <HBtn
+            size="sm"
+            variant="ghost"
+            tone="muted"
+            @click="markRead(row.item, !row.item.unread)"
+          >
+            {{ row.item.unread ? tt('Mark read') : tt('Mark unread') }}
+          </HBtn>
+        </div>
+      </article>
+    </VList>
+  </PageShell>
 </template>
