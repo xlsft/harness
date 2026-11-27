@@ -2,6 +2,7 @@
 // Settings > Trackers: external trackers as providers. Personal connections stay on this device, with their credentials in the
 // system keychain; company ones are the server's, for admins to manage. Secrets are write-only and never come back here.
 import { openExternal } from '~/lib/desktop'
+import { PROVIDER_LOGOS } from '~/utils/providerLogos'
 import { errorText } from '~/lib/library/types'
 import { AUTH_LABELS, TrackerAuthMethod, TrackerConnectionScope, type TrackerCapabilities, type TrackerConnection } from '~/lib/issues/types'
 
@@ -36,9 +37,10 @@ const device = computed(() => connections.value.filter(c => c.scope === TrackerC
 const company = computed(() => connections.value.filter(c => c.scope === TrackerConnectionScope.ADMIN))
 const capability = computed(() => providers.value.find(p => p.provider === form.provider))
 const authOptions = computed(() => (capability.value?.authMethods ?? []).map(m => ({ value: String(m), label: AUTH_LABELS[m] ?? '' })))
-// Two-letter tile of a tracker, like the provider tiles in Settings > Models.
+// Tile of a tracker, like the provider tiles in Settings > Models: its logo when one is bundled, else two letters.
 const monogram = (provider: unknown) => {
   const name = providers.value.find(p => p.provider === provider)?.displayName ?? String(provider)
+  if (PROVIDER_LOGOS[name.toLowerCase()]) return name.toLowerCase()
   const caps = name.match(/[A-Z]/g)?.join('') ?? ''
   return (caps.length >= 2 ? caps : name.replace(/[^A-Za-z]/g, '')).slice(0, 2).toUpperCase() || 'TR'
 }
