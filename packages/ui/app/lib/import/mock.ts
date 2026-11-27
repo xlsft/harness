@@ -42,8 +42,9 @@ const CONFIG: ImportItem[] = [
   { section: 'agents', kind: 'agent', name: 'planner', status: 'new', note: '' },
   { section: 'commands', kind: 'command', name: 'deploy', status: 'new', note: '' },
   { section: 'commands', kind: 'command', name: 'git:commit', status: 'new', note: '' },
-  { section: 'mcp', kind: 'mcp', name: 'github', status: 'manual', note: 'http https://api.example.com/mcp; 1 env/header values not imported' },
-  { section: 'mcp', kind: 'mcp', name: 'filesystem', status: 'manual', note: 'stdio npx; add it on the server' }
+  { section: 'mcp', kind: 'mcp', name: 'github', status: 'new', note: 'http https://api.example.com/mcp; secret values left empty: AUTHORIZATION (set them in Settings > MCP, or use Include secrets)' },
+  { section: 'mcp', kind: 'mcp', name: 'filesystem', status: 'new', note: 'stdio npx -y @modelcontextprotocol/server-filesystem' },
+  { section: 'mcp', kind: 'mcp', name: 'events', status: 'manual', note: 'a WebSocket server: add it to your account in Settings > MCP' }
 ]
 
 function projects(): ClaudeImportProject[] {

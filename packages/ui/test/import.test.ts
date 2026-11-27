@@ -19,7 +19,7 @@ import {
 } from '~/lib/import/claudeCode'
 import { importReportView, importScanView } from '~/lib/import/connect'
 import { MockClaudeImportApi } from '~/lib/import/mock'
-import { IDLE_RUN, IMPORT_SOURCES, importCounts, importErrors, reduceImportRun, type ImportItem, type ImportReport } from '~/lib/import/types'
+import { IDLE_RUN, importCounts, importErrors, reduceImportRun, type ImportItem, type ImportReport } from '~/lib/import/types'
 import { MockTransport } from '~/lib/transport/mock'
 
 function project(path: string, statuses: ('new' | 'exists' | 'skipped')[], size = 100): ClaudeImportProject {
@@ -48,12 +48,6 @@ function scan(over: Partial<ClaudeImportScan> = {}): ClaudeImportScan {
   }
 }
 
-describe('import sources', () => {
-  it('lists Claude Code, the one source for now', () => {
-    expect(IMPORT_SOURCES.map(s => s.id)).toEqual(['claude-code', 'claude-project'])
-  })
-})
-
 describe('Claude Code selection', () => {
   it('starts with nothing chosen and force and secrets off', () => {
     const s = scan()
@@ -63,9 +57,9 @@ describe('Claude Code selection', () => {
     expect(EMPTY_SELECTION.includeSecrets).toBe(false)
   })
 
-  it('groups items by kind, with MCP servers only listed', () => {
+  it('groups items by kind, with what cannot be imported listed', () => {
     const rows = sectionRows(scan())
-    expect(rows.map(r => r.key)).toEqual(['memory', 'settings', 'skills', 'agents', 'commands', 'output-styles', 'workflows'])
+    expect(rows.map(r => r.key)).toEqual(['memory', 'settings', 'skills', 'agents', 'commands', 'output-styles', 'workflows', 'mcp'])
     const skills = rows.find(r => r.key === 'skills')!
     expect([skills.fresh, skills.exists, skills.selectable]).toEqual([1, 1, true])
     // Nothing found, or nothing but skipped items, has nothing to choose.

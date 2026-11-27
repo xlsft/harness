@@ -1,31 +1,6 @@
-// Settings > Import: where a user can bring their work from, and what any import reports. Each source has its own piece
-// for what it finds and what can be chosen (./claudeCode.ts); following a run is the same for all of them. The client
-// decides what exists and what happened: this only renders it.
-
-import { tt } from '~/utils/i18n'
-import type { IconName } from '~/utils/icons'
-
-export interface ImportSource {
-  id: 'claude-code' | 'claude-project'
-  name: string
-  description: string
-  icon: IconName
-}
-
-export const IMPORT_SOURCES: ImportSource[] = [
-  {
-    id: 'claude-code',
-    name: 'Claude Code',
-    description: tt('Memory, rules, settings, skills, agents, commands, output styles, workflows and sessions on this computer.'),
-    icon: 'terminal'
-  },
-  {
-    id: 'claude-project',
-    name: 'A folder\'s Claude Code files',
-    description: tt('CLAUDE.md and what is under .claude, into the folder\'s AGENTS.md and .harness.'),
-    icon: 'folder'
-  }
-]
+// Settings > Import: what any import reports. The sources come from the client (./sources.ts); the Claude Code import
+// has its own piece for what it finds and what can be chosen (./claudeCode.ts); following a run is the same for all of
+// them. The client decides what exists and what happened: this only renders it.
 
 export type ImportStatus = 'new' | 'exists' | 'skipped' | 'manual' | 'imported' | 'queued' | 'error'
 
