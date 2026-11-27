@@ -1,0 +1,19 @@
+name: Feature request
+description: Something xlsft`s harness should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you're trying to do
+      description: The problem or workflow, more than the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How it could work
+  - type: textarea
+    id: today
+    attributes:
+      label: What you do today

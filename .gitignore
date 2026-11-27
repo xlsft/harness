@@ -36,3 +36,7 @@ __pycache__/
 # Local client builds
 /packages/client/harness-client
 /packages/client/harness-client.exe
+
+# Local harness settings and session worktrees
+.harness/settings.local.json
+.harness/worktrees/

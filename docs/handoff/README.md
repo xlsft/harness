@@ -3,6 +3,9 @@
 Four agents were stopped on 2026-11-27. Each left a note in this folder, named after its branch. This page says what is
 in `main`, what is on each branch, and how to continue. One task per agent, each in its own worktree.
 
+The earlier handoff of 2026-11-07, with the task briefs behind the branches still waiting to merge, is in
+[2026-11-07.md](2026-11-07.md).
+
 | Task | Branch | State | Note |
 |---|---|---|---|
 | Knowledge sources apart from issue trackers | `worktree-agent-a58b2378f3a1713cd` | **Merged into `main`** (408fd18b), all checks green | [note](worktree-agent-a58b2378f3a1713cd.md) |
