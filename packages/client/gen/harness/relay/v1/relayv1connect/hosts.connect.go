@@ -23,6 +23,8 @@ const _ = connect.IsAtLeastVersion1_13_0
 const (
 	// HostsServiceName is the fully-qualified name of the HostsService service.
 	HostsServiceName = "harness.relay.v1.HostsService"
+	// LocalAttemptsServiceName is the fully-qualified name of the LocalAttemptsService service.
+	LocalAttemptsServiceName = "harness.relay.v1.LocalAttemptsService"
 	// HostAgentServiceName is the fully-qualified name of the HostAgentService service.
 	HostAgentServiceName = "harness.relay.v1.HostAgentService"
 )
@@ -65,6 +67,30 @@ const (
 	// HostsServiceClaimScheduleRunProcedure is the fully-qualified name of the HostsService's
 	// ClaimScheduleRun RPC.
 	HostsServiceClaimScheduleRunProcedure = "/harness.relay.v1.HostsService/ClaimScheduleRun"
+	// HostsServiceStartAttemptsProcedure is the fully-qualified name of the HostsService's
+	// StartAttempts RPC.
+	HostsServiceStartAttemptsProcedure = "/harness.relay.v1.HostsService/StartAttempts"
+	// HostsServiceGetAttemptGroupProcedure is the fully-qualified name of the HostsService's
+	// GetAttemptGroup RPC.
+	HostsServiceGetAttemptGroupProcedure = "/harness.relay.v1.HostsService/GetAttemptGroup"
+	// HostsServiceListAttemptGroupsProcedure is the fully-qualified name of the HostsService's
+	// ListAttemptGroups RPC.
+	HostsServiceListAttemptGroupsProcedure = "/harness.relay.v1.HostsService/ListAttemptGroups"
+	// HostsServiceReportAttemptProcedure is the fully-qualified name of the HostsService's
+	// ReportAttempt RPC.
+	HostsServiceReportAttemptProcedure = "/harness.relay.v1.HostsService/ReportAttempt"
+	// HostsServiceKeepAttemptProcedure is the fully-qualified name of the HostsService's KeepAttempt
+	// RPC.
+	HostsServiceKeepAttemptProcedure = "/harness.relay.v1.HostsService/KeepAttempt"
+	// HostsServiceDiscardAttemptsProcedure is the fully-qualified name of the HostsService's
+	// DiscardAttempts RPC.
+	HostsServiceDiscardAttemptsProcedure = "/harness.relay.v1.HostsService/DiscardAttempts"
+	// LocalAttemptsServiceStartLocalAttemptsProcedure is the fully-qualified name of the
+	// LocalAttemptsService's StartLocalAttempts RPC.
+	LocalAttemptsServiceStartLocalAttemptsProcedure = "/harness.relay.v1.LocalAttemptsService/StartLocalAttempts"
+	// LocalAttemptsServiceDiscardLocalAttemptsProcedure is the fully-qualified name of the
+	// LocalAttemptsService's DiscardLocalAttempts RPC.
+	LocalAttemptsServiceDiscardLocalAttemptsProcedure = "/harness.relay.v1.LocalAttemptsService/DiscardLocalAttempts"
 	// HostAgentServiceRegisterAgentHostProcedure is the fully-qualified name of the HostAgentService's
 	// RegisterAgentHost RPC.
 	HostAgentServiceRegisterAgentHostProcedure = "/harness.relay.v1.HostAgentService/RegisterAgentHost"
@@ -89,6 +115,12 @@ const (
 	// HostAgentServiceIssueWorkerTokenProcedure is the fully-qualified name of the HostAgentService's
 	// IssueWorkerToken RPC.
 	HostAgentServiceIssueWorkerTokenProcedure = "/harness.relay.v1.HostAgentService/IssueWorkerToken"
+	// HostAgentServiceIssueMoveCredentialsProcedure is the fully-qualified name of the
+	// HostAgentService's IssueMoveCredentials RPC.
+	HostAgentServiceIssueMoveCredentialsProcedure = "/harness.relay.v1.HostAgentService/IssueMoveCredentials"
+	// HostAgentServiceQueueMovedWorkProcedure is the fully-qualified name of the HostAgentService's
+	// QueueMovedWork RPC.
+	HostAgentServiceQueueMovedWorkProcedure = "/harness.relay.v1.HostAgentService/QueueMovedWork"
 )
 
 // HostsServiceClient is a client for the harness.relay.v1.HostsService service.
@@ -112,6 +144,20 @@ type HostsServiceClient interface {
 	SetAwayHost(context.Context, *connect.Request[v1.SetAwayHostRequest]) (*connect.Response[v1.SetAwayHostResponse], error)
 	// First caller for a schedule and due time wins (docs/design/hosts.md, decision 19).
 	ClaimScheduleRun(context.Context, *connect.Request[v1.ClaimScheduleRunRequest]) (*connect.Response[v1.ClaimScheduleRunResponse], error)
+	// Best-of-N (decisions 28 to 33). Makes a group of attempts of one prompt: on a host, as queued work; locally, as rows the
+	// calling client fills in (LocalAttemptsService). The managed policy's limits apply here.
+	StartAttempts(context.Context, *connect.Request[v1.StartAttemptsRequest]) (*connect.Response[v1.StartAttemptsResponse], error)
+	// The caller's own groups only; anyone else's are NOT_FOUND.
+	GetAttemptGroup(context.Context, *connect.Request[v1.GetAttemptGroupRequest]) (*connect.Response[v1.GetAttemptGroupResponse], error)
+	ListAttemptGroups(context.Context, *connect.Request[v1.ListAttemptGroupsRequest]) (*connect.Response[v1.ListAttemptGroupsResponse], error)
+	// What became of one attempt: its session and branch, its state, its test result. From the client or the host that runs it.
+	ReportAttempt(context.Context, *connect.Request[v1.ReportAttemptRequest]) (*connect.Response[v1.ReportAttemptResponse], error)
+	// Marks the attempt the user keeps. Deletes nothing.
+	KeepAttempt(context.Context, *connect.Request[v1.KeepAttemptRequest]) (*connect.Response[v1.KeepAttemptResponse], error)
+	// After the user confirmed: the attempts other than the kept one go, with their checkouts and branches. A host's attempts
+	// are cancelled or handed to their daemon (ReportAgentHostResponse.discard_work_ids). A local group's are removed by its
+	// own client (LocalAttemptsService.DiscardAttempts), which reports them: here FAILED_PRECONDITION.
+	DiscardAttempts(context.Context, *connect.Request[v1.DiscardAttemptsRequest]) (*connect.Response[v1.DiscardAttemptsResponse], error)
 }
 
 // NewHostsServiceClient constructs a client for the harness.relay.v1.HostsService service. By
@@ -185,21 +231,63 @@ func NewHostsServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(hostsServiceMethods.ByName("ClaimScheduleRun")),
 			connect.WithClientOptions(opts...),
 		),
+		startAttempts: connect.NewClient[v1.StartAttemptsRequest, v1.StartAttemptsResponse](
+			httpClient,
+			baseURL+HostsServiceStartAttemptsProcedure,
+			connect.WithSchema(hostsServiceMethods.ByName("StartAttempts")),
+			connect.WithClientOptions(opts...),
+		),
+		getAttemptGroup: connect.NewClient[v1.GetAttemptGroupRequest, v1.GetAttemptGroupResponse](
+			httpClient,
+			baseURL+HostsServiceGetAttemptGroupProcedure,
+			connect.WithSchema(hostsServiceMethods.ByName("GetAttemptGroup")),
+			connect.WithClientOptions(opts...),
+		),
+		listAttemptGroups: connect.NewClient[v1.ListAttemptGroupsRequest, v1.ListAttemptGroupsResponse](
+			httpClient,
+			baseURL+HostsServiceListAttemptGroupsProcedure,
+			connect.WithSchema(hostsServiceMethods.ByName("ListAttemptGroups")),
+			connect.WithClientOptions(opts...),
+		),
+		reportAttempt: connect.NewClient[v1.ReportAttemptRequest, v1.ReportAttemptResponse](
+			httpClient,
+			baseURL+HostsServiceReportAttemptProcedure,
+			connect.WithSchema(hostsServiceMethods.ByName("ReportAttempt")),
+			connect.WithClientOptions(opts...),
+		),
+		keepAttempt: connect.NewClient[v1.KeepAttemptRequest, v1.KeepAttemptResponse](
+			httpClient,
+			baseURL+HostsServiceKeepAttemptProcedure,
+			connect.WithSchema(hostsServiceMethods.ByName("KeepAttempt")),
+			connect.WithClientOptions(opts...),
+		),
+		discardAttempts: connect.NewClient[v1.DiscardAttemptsRequest, v1.DiscardAttemptsResponse](
+			httpClient,
+			baseURL+HostsServiceDiscardAttemptsProcedure,
+			connect.WithSchema(hostsServiceMethods.ByName("DiscardAttempts")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // hostsServiceClient implements HostsServiceClient.
 type hostsServiceClient struct {
-	listAgentHosts   *connect.Client[v1.ListAgentHostsRequest, v1.ListAgentHostsResponse]
-	createAgentHost  *connect.Client[v1.CreateAgentHostRequest, v1.CreateAgentHostResponse]
-	updateAgentHost  *connect.Client[v1.UpdateAgentHostRequest, v1.UpdateAgentHostResponse]
-	deleteAgentHost  *connect.Client[v1.DeleteAgentHostRequest, v1.DeleteAgentHostResponse]
-	startHostWork    *connect.Client[v1.StartHostWorkRequest, v1.StartHostWorkResponse]
-	getHostWork      *connect.Client[v1.GetHostWorkRequest, v1.GetHostWorkResponse]
-	listHostWork     *connect.Client[v1.ListHostWorkRequest, v1.ListHostWorkResponse]
-	cancelHostWork   *connect.Client[v1.CancelHostWorkRequest, v1.CancelHostWorkResponse]
-	setAwayHost      *connect.Client[v1.SetAwayHostRequest, v1.SetAwayHostResponse]
-	claimScheduleRun *connect.Client[v1.ClaimScheduleRunRequest, v1.ClaimScheduleRunResponse]
+	listAgentHosts    *connect.Client[v1.ListAgentHostsRequest, v1.ListAgentHostsResponse]
+	createAgentHost   *connect.Client[v1.CreateAgentHostRequest, v1.CreateAgentHostResponse]
+	updateAgentHost   *connect.Client[v1.UpdateAgentHostRequest, v1.UpdateAgentHostResponse]
+	deleteAgentHost   *connect.Client[v1.DeleteAgentHostRequest, v1.DeleteAgentHostResponse]
+	startHostWork     *connect.Client[v1.StartHostWorkRequest, v1.StartHostWorkResponse]
+	getHostWork       *connect.Client[v1.GetHostWorkRequest, v1.GetHostWorkResponse]
+	listHostWork      *connect.Client[v1.ListHostWorkRequest, v1.ListHostWorkResponse]
+	cancelHostWork    *connect.Client[v1.CancelHostWorkRequest, v1.CancelHostWorkResponse]
+	setAwayHost       *connect.Client[v1.SetAwayHostRequest, v1.SetAwayHostResponse]
+	claimScheduleRun  *connect.Client[v1.ClaimScheduleRunRequest, v1.ClaimScheduleRunResponse]
+	startAttempts     *connect.Client[v1.StartAttemptsRequest, v1.StartAttemptsResponse]
+	getAttemptGroup   *connect.Client[v1.GetAttemptGroupRequest, v1.GetAttemptGroupResponse]
+	listAttemptGroups *connect.Client[v1.ListAttemptGroupsRequest, v1.ListAttemptGroupsResponse]
+	reportAttempt     *connect.Client[v1.ReportAttemptRequest, v1.ReportAttemptResponse]
+	keepAttempt       *connect.Client[v1.KeepAttemptRequest, v1.KeepAttemptResponse]
+	discardAttempts   *connect.Client[v1.DiscardAttemptsRequest, v1.DiscardAttemptsResponse]
 }
 
 // ListAgentHosts calls harness.relay.v1.HostsService.ListAgentHosts.
@@ -252,6 +340,36 @@ func (c *hostsServiceClient) ClaimScheduleRun(ctx context.Context, req *connect.
 	return c.claimScheduleRun.CallUnary(ctx, req)
 }
 
+// StartAttempts calls harness.relay.v1.HostsService.StartAttempts.
+func (c *hostsServiceClient) StartAttempts(ctx context.Context, req *connect.Request[v1.StartAttemptsRequest]) (*connect.Response[v1.StartAttemptsResponse], error) {
+	return c.startAttempts.CallUnary(ctx, req)
+}
+
+// GetAttemptGroup calls harness.relay.v1.HostsService.GetAttemptGroup.
+func (c *hostsServiceClient) GetAttemptGroup(ctx context.Context, req *connect.Request[v1.GetAttemptGroupRequest]) (*connect.Response[v1.GetAttemptGroupResponse], error) {
+	return c.getAttemptGroup.CallUnary(ctx, req)
+}
+
+// ListAttemptGroups calls harness.relay.v1.HostsService.ListAttemptGroups.
+func (c *hostsServiceClient) ListAttemptGroups(ctx context.Context, req *connect.Request[v1.ListAttemptGroupsRequest]) (*connect.Response[v1.ListAttemptGroupsResponse], error) {
+	return c.listAttemptGroups.CallUnary(ctx, req)
+}
+
+// ReportAttempt calls harness.relay.v1.HostsService.ReportAttempt.
+func (c *hostsServiceClient) ReportAttempt(ctx context.Context, req *connect.Request[v1.ReportAttemptRequest]) (*connect.Response[v1.ReportAttemptResponse], error) {
+	return c.reportAttempt.CallUnary(ctx, req)
+}
+
+// KeepAttempt calls harness.relay.v1.HostsService.KeepAttempt.
+func (c *hostsServiceClient) KeepAttempt(ctx context.Context, req *connect.Request[v1.KeepAttemptRequest]) (*connect.Response[v1.KeepAttemptResponse], error) {
+	return c.keepAttempt.CallUnary(ctx, req)
+}
+
+// DiscardAttempts calls harness.relay.v1.HostsService.DiscardAttempts.
+func (c *hostsServiceClient) DiscardAttempts(ctx context.Context, req *connect.Request[v1.DiscardAttemptsRequest]) (*connect.Response[v1.DiscardAttemptsResponse], error) {
+	return c.discardAttempts.CallUnary(ctx, req)
+}
+
 // HostsServiceHandler is an implementation of the harness.relay.v1.HostsService service.
 type HostsServiceHandler interface {
 	// The hosts the caller may use: their own and those of their teams. With all (roles that read users): every host, with
@@ -273,6 +391,20 @@ type HostsServiceHandler interface {
 	SetAwayHost(context.Context, *connect.Request[v1.SetAwayHostRequest]) (*connect.Response[v1.SetAwayHostResponse], error)
 	// First caller for a schedule and due time wins (docs/design/hosts.md, decision 19).
 	ClaimScheduleRun(context.Context, *connect.Request[v1.ClaimScheduleRunRequest]) (*connect.Response[v1.ClaimScheduleRunResponse], error)
+	// Best-of-N (decisions 28 to 33). Makes a group of attempts of one prompt: on a host, as queued work; locally, as rows the
+	// calling client fills in (LocalAttemptsService). The managed policy's limits apply here.
+	StartAttempts(context.Context, *connect.Request[v1.StartAttemptsRequest]) (*connect.Response[v1.StartAttemptsResponse], error)
+	// The caller's own groups only; anyone else's are NOT_FOUND.
+	GetAttemptGroup(context.Context, *connect.Request[v1.GetAttemptGroupRequest]) (*connect.Response[v1.GetAttemptGroupResponse], error)
+	ListAttemptGroups(context.Context, *connect.Request[v1.ListAttemptGroupsRequest]) (*connect.Response[v1.ListAttemptGroupsResponse], error)
+	// What became of one attempt: its session and branch, its state, its test result. From the client or the host that runs it.
+	ReportAttempt(context.Context, *connect.Request[v1.ReportAttemptRequest]) (*connect.Response[v1.ReportAttemptResponse], error)
+	// Marks the attempt the user keeps. Deletes nothing.
+	KeepAttempt(context.Context, *connect.Request[v1.KeepAttemptRequest]) (*connect.Response[v1.KeepAttemptResponse], error)
+	// After the user confirmed: the attempts other than the kept one go, with their checkouts and branches. A host's attempts
+	// are cancelled or handed to their daemon (ReportAgentHostResponse.discard_work_ids). A local group's are removed by its
+	// own client (LocalAttemptsService.DiscardAttempts), which reports them: here FAILED_PRECONDITION.
+	DiscardAttempts(context.Context, *connect.Request[v1.DiscardAttemptsRequest]) (*connect.Response[v1.DiscardAttemptsResponse], error)
 }
 
 // NewHostsServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -342,6 +474,42 @@ func NewHostsServiceHandler(svc HostsServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(hostsServiceMethods.ByName("ClaimScheduleRun")),
 		connect.WithHandlerOptions(opts...),
 	)
+	hostsServiceStartAttemptsHandler := connect.NewUnaryHandler(
+		HostsServiceStartAttemptsProcedure,
+		svc.StartAttempts,
+		connect.WithSchema(hostsServiceMethods.ByName("StartAttempts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	hostsServiceGetAttemptGroupHandler := connect.NewUnaryHandler(
+		HostsServiceGetAttemptGroupProcedure,
+		svc.GetAttemptGroup,
+		connect.WithSchema(hostsServiceMethods.ByName("GetAttemptGroup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	hostsServiceListAttemptGroupsHandler := connect.NewUnaryHandler(
+		HostsServiceListAttemptGroupsProcedure,
+		svc.ListAttemptGroups,
+		connect.WithSchema(hostsServiceMethods.ByName("ListAttemptGroups")),
+		connect.WithHandlerOptions(opts...),
+	)
+	hostsServiceReportAttemptHandler := connect.NewUnaryHandler(
+		HostsServiceReportAttemptProcedure,
+		svc.ReportAttempt,
+		connect.WithSchema(hostsServiceMethods.ByName("ReportAttempt")),
+		connect.WithHandlerOptions(opts...),
+	)
+	hostsServiceKeepAttemptHandler := connect.NewUnaryHandler(
+		HostsServiceKeepAttemptProcedure,
+		svc.KeepAttempt,
+		connect.WithSchema(hostsServiceMethods.ByName("KeepAttempt")),
+		connect.WithHandlerOptions(opts...),
+	)
+	hostsServiceDiscardAttemptsHandler := connect.NewUnaryHandler(
+		HostsServiceDiscardAttemptsProcedure,
+		svc.DiscardAttempts,
+		connect.WithSchema(hostsServiceMethods.ByName("DiscardAttempts")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.relay.v1.HostsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case HostsServiceListAgentHostsProcedure:
@@ -364,6 +532,18 @@ func NewHostsServiceHandler(svc HostsServiceHandler, opts ...connect.HandlerOpti
 			hostsServiceSetAwayHostHandler.ServeHTTP(w, r)
 		case HostsServiceClaimScheduleRunProcedure:
 			hostsServiceClaimScheduleRunHandler.ServeHTTP(w, r)
+		case HostsServiceStartAttemptsProcedure:
+			hostsServiceStartAttemptsHandler.ServeHTTP(w, r)
+		case HostsServiceGetAttemptGroupProcedure:
+			hostsServiceGetAttemptGroupHandler.ServeHTTP(w, r)
+		case HostsServiceListAttemptGroupsProcedure:
+			hostsServiceListAttemptGroupsHandler.ServeHTTP(w, r)
+		case HostsServiceReportAttemptProcedure:
+			hostsServiceReportAttemptHandler.ServeHTTP(w, r)
+		case HostsServiceKeepAttemptProcedure:
+			hostsServiceKeepAttemptHandler.ServeHTTP(w, r)
+		case HostsServiceDiscardAttemptsProcedure:
+			hostsServiceDiscardAttemptsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -413,6 +593,127 @@ func (UnimplementedHostsServiceHandler) ClaimScheduleRun(context.Context, *conne
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostsService.ClaimScheduleRun is not implemented"))
 }
 
+func (UnimplementedHostsServiceHandler) StartAttempts(context.Context, *connect.Request[v1.StartAttemptsRequest]) (*connect.Response[v1.StartAttemptsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostsService.StartAttempts is not implemented"))
+}
+
+func (UnimplementedHostsServiceHandler) GetAttemptGroup(context.Context, *connect.Request[v1.GetAttemptGroupRequest]) (*connect.Response[v1.GetAttemptGroupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostsService.GetAttemptGroup is not implemented"))
+}
+
+func (UnimplementedHostsServiceHandler) ListAttemptGroups(context.Context, *connect.Request[v1.ListAttemptGroupsRequest]) (*connect.Response[v1.ListAttemptGroupsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostsService.ListAttemptGroups is not implemented"))
+}
+
+func (UnimplementedHostsServiceHandler) ReportAttempt(context.Context, *connect.Request[v1.ReportAttemptRequest]) (*connect.Response[v1.ReportAttemptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostsService.ReportAttempt is not implemented"))
+}
+
+func (UnimplementedHostsServiceHandler) KeepAttempt(context.Context, *connect.Request[v1.KeepAttemptRequest]) (*connect.Response[v1.KeepAttemptResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostsService.KeepAttempt is not implemented"))
+}
+
+func (UnimplementedHostsServiceHandler) DiscardAttempts(context.Context, *connect.Request[v1.DiscardAttemptsRequest]) (*connect.Response[v1.DiscardAttemptsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostsService.DiscardAttempts is not implemented"))
+}
+
+// LocalAttemptsServiceClient is a client for the harness.relay.v1.LocalAttemptsService service.
+type LocalAttemptsServiceClient interface {
+	StartLocalAttempts(context.Context, *connect.Request[v1.StartLocalAttemptsRequest]) (*connect.Response[v1.StartLocalAttemptsResponse], error)
+	DiscardLocalAttempts(context.Context, *connect.Request[v1.DiscardLocalAttemptsRequest]) (*connect.Response[v1.DiscardLocalAttemptsResponse], error)
+}
+
+// NewLocalAttemptsServiceClient constructs a client for the harness.relay.v1.LocalAttemptsService
+// service. By default, it uses the Connect protocol with the binary Protobuf Codec, asks for
+// gzipped responses, and sends uncompressed requests. To use the gRPC or gRPC-Web protocols, supply
+// the connect.WithGRPC() or connect.WithGRPCWeb() options.
+//
+// The URL supplied here should be the base URL for the Connect or gRPC server (for example,
+// http://api.acme.com or https://acme.com/grpc).
+func NewLocalAttemptsServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) LocalAttemptsServiceClient {
+	baseURL = strings.TrimRight(baseURL, "/")
+	localAttemptsServiceMethods := v1.File_harness_relay_v1_hosts_proto.Services().ByName("LocalAttemptsService").Methods()
+	return &localAttemptsServiceClient{
+		startLocalAttempts: connect.NewClient[v1.StartLocalAttemptsRequest, v1.StartLocalAttemptsResponse](
+			httpClient,
+			baseURL+LocalAttemptsServiceStartLocalAttemptsProcedure,
+			connect.WithSchema(localAttemptsServiceMethods.ByName("StartLocalAttempts")),
+			connect.WithClientOptions(opts...),
+		),
+		discardLocalAttempts: connect.NewClient[v1.DiscardLocalAttemptsRequest, v1.DiscardLocalAttemptsResponse](
+			httpClient,
+			baseURL+LocalAttemptsServiceDiscardLocalAttemptsProcedure,
+			connect.WithSchema(localAttemptsServiceMethods.ByName("DiscardLocalAttempts")),
+			connect.WithClientOptions(opts...),
+		),
+	}
+}
+
+// localAttemptsServiceClient implements LocalAttemptsServiceClient.
+type localAttemptsServiceClient struct {
+	startLocalAttempts   *connect.Client[v1.StartLocalAttemptsRequest, v1.StartLocalAttemptsResponse]
+	discardLocalAttempts *connect.Client[v1.DiscardLocalAttemptsRequest, v1.DiscardLocalAttemptsResponse]
+}
+
+// StartLocalAttempts calls harness.relay.v1.LocalAttemptsService.StartLocalAttempts.
+func (c *localAttemptsServiceClient) StartLocalAttempts(ctx context.Context, req *connect.Request[v1.StartLocalAttemptsRequest]) (*connect.Response[v1.StartLocalAttemptsResponse], error) {
+	return c.startLocalAttempts.CallUnary(ctx, req)
+}
+
+// DiscardLocalAttempts calls harness.relay.v1.LocalAttemptsService.DiscardLocalAttempts.
+func (c *localAttemptsServiceClient) DiscardLocalAttempts(ctx context.Context, req *connect.Request[v1.DiscardLocalAttemptsRequest]) (*connect.Response[v1.DiscardLocalAttemptsResponse], error) {
+	return c.discardLocalAttempts.CallUnary(ctx, req)
+}
+
+// LocalAttemptsServiceHandler is an implementation of the harness.relay.v1.LocalAttemptsService
+// service.
+type LocalAttemptsServiceHandler interface {
+	StartLocalAttempts(context.Context, *connect.Request[v1.StartLocalAttemptsRequest]) (*connect.Response[v1.StartLocalAttemptsResponse], error)
+	DiscardLocalAttempts(context.Context, *connect.Request[v1.DiscardLocalAttemptsRequest]) (*connect.Response[v1.DiscardLocalAttemptsResponse], error)
+}
+
+// NewLocalAttemptsServiceHandler builds an HTTP handler from the service implementation. It returns
+// the path on which to mount the handler and the handler itself.
+//
+// By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
+// and JSON codecs. They also support gzip compression.
+func NewLocalAttemptsServiceHandler(svc LocalAttemptsServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	localAttemptsServiceMethods := v1.File_harness_relay_v1_hosts_proto.Services().ByName("LocalAttemptsService").Methods()
+	localAttemptsServiceStartLocalAttemptsHandler := connect.NewUnaryHandler(
+		LocalAttemptsServiceStartLocalAttemptsProcedure,
+		svc.StartLocalAttempts,
+		connect.WithSchema(localAttemptsServiceMethods.ByName("StartLocalAttempts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	localAttemptsServiceDiscardLocalAttemptsHandler := connect.NewUnaryHandler(
+		LocalAttemptsServiceDiscardLocalAttemptsProcedure,
+		svc.DiscardLocalAttempts,
+		connect.WithSchema(localAttemptsServiceMethods.ByName("DiscardLocalAttempts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	return "/harness.relay.v1.LocalAttemptsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case LocalAttemptsServiceStartLocalAttemptsProcedure:
+			localAttemptsServiceStartLocalAttemptsHandler.ServeHTTP(w, r)
+		case LocalAttemptsServiceDiscardLocalAttemptsProcedure:
+			localAttemptsServiceDiscardLocalAttemptsHandler.ServeHTTP(w, r)
+		default:
+			http.NotFound(w, r)
+		}
+	})
+}
+
+// UnimplementedLocalAttemptsServiceHandler returns CodeUnimplemented from all methods.
+type UnimplementedLocalAttemptsServiceHandler struct{}
+
+func (UnimplementedLocalAttemptsServiceHandler) StartLocalAttempts(context.Context, *connect.Request[v1.StartLocalAttemptsRequest]) (*connect.Response[v1.StartLocalAttemptsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.LocalAttemptsService.StartLocalAttempts is not implemented"))
+}
+
+func (UnimplementedLocalAttemptsServiceHandler) DiscardLocalAttempts(context.Context, *connect.Request[v1.DiscardLocalAttemptsRequest]) (*connect.Response[v1.DiscardLocalAttemptsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.LocalAttemptsService.DiscardLocalAttempts is not implemented"))
+}
+
 // HostAgentServiceClient is a client for the harness.relay.v1.HostAgentService service.
 type HostAgentServiceClient interface {
 	// Says what this daemon is. Creates the host on the first call of a token made by `harness-client daemon login`.
@@ -431,6 +732,11 @@ type HostAgentServiceClient interface {
 	ListWantedWorkers(context.Context, *connect.Request[v1.ListWantedWorkersRequest]) (*connect.Response[v1.ListWantedWorkersResponse], error)
 	// Supervisor of a team host: a fresh device token for a member's worker; the previous one stops working.
 	IssueWorkerToken(context.Context, *connect.Request[v1.IssueWorkerTokenRequest]) (*connect.Response[v1.IssueWorkerTokenResponse], error)
+	// The laptop moving a session (decision 22): push credentials for the repository of the caller's own MOVE work while it is
+	// AWAITING_PUSH, as the target host would get them. Any device of the user; not proxied to frontends.
+	IssueMoveCredentials(context.Context, *connect.Request[v1.IssueMoveCredentialsRequest]) (*connect.Response[v1.IssueMoveCredentialsResponse], error)
+	// The laptop pushed the branch: the MOVE work goes to the queue.
+	QueueMovedWork(context.Context, *connect.Request[v1.QueueMovedWorkRequest]) (*connect.Response[v1.QueueMovedWorkResponse], error)
 }
 
 // NewHostAgentServiceClient constructs a client for the harness.relay.v1.HostAgentService service.
@@ -492,19 +798,33 @@ func NewHostAgentServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(hostAgentServiceMethods.ByName("IssueWorkerToken")),
 			connect.WithClientOptions(opts...),
 		),
+		issueMoveCredentials: connect.NewClient[v1.IssueMoveCredentialsRequest, v1.IssueMoveCredentialsResponse](
+			httpClient,
+			baseURL+HostAgentServiceIssueMoveCredentialsProcedure,
+			connect.WithSchema(hostAgentServiceMethods.ByName("IssueMoveCredentials")),
+			connect.WithClientOptions(opts...),
+		),
+		queueMovedWork: connect.NewClient[v1.QueueMovedWorkRequest, v1.QueueMovedWorkResponse](
+			httpClient,
+			baseURL+HostAgentServiceQueueMovedWorkProcedure,
+			connect.WithSchema(hostAgentServiceMethods.ByName("QueueMovedWork")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // hostAgentServiceClient implements HostAgentServiceClient.
 type hostAgentServiceClient struct {
-	registerAgentHost   *connect.Client[v1.RegisterAgentHostRequest, v1.RegisterAgentHostResponse]
-	reportAgentHost     *connect.Client[v1.ReportAgentHostRequest, v1.ReportAgentHostResponse]
-	claimHostWork       *connect.Client[v1.ClaimHostWorkRequest, v1.ClaimHostWorkResponse]
-	updateHostWork      *connect.Client[v1.UpdateHostWorkRequest, v1.UpdateHostWorkResponse]
-	issueGitCredentials *connect.Client[v1.IssueGitCredentialsRequest, v1.IssueGitCredentialsResponse]
-	openHostPullRequest *connect.Client[v1.OpenHostPullRequestRequest, v1.OpenHostPullRequestResponse]
-	listWantedWorkers   *connect.Client[v1.ListWantedWorkersRequest, v1.ListWantedWorkersResponse]
-	issueWorkerToken    *connect.Client[v1.IssueWorkerTokenRequest, v1.IssueWorkerTokenResponse]
+	registerAgentHost    *connect.Client[v1.RegisterAgentHostRequest, v1.RegisterAgentHostResponse]
+	reportAgentHost      *connect.Client[v1.ReportAgentHostRequest, v1.ReportAgentHostResponse]
+	claimHostWork        *connect.Client[v1.ClaimHostWorkRequest, v1.ClaimHostWorkResponse]
+	updateHostWork       *connect.Client[v1.UpdateHostWorkRequest, v1.UpdateHostWorkResponse]
+	issueGitCredentials  *connect.Client[v1.IssueGitCredentialsRequest, v1.IssueGitCredentialsResponse]
+	openHostPullRequest  *connect.Client[v1.OpenHostPullRequestRequest, v1.OpenHostPullRequestResponse]
+	listWantedWorkers    *connect.Client[v1.ListWantedWorkersRequest, v1.ListWantedWorkersResponse]
+	issueWorkerToken     *connect.Client[v1.IssueWorkerTokenRequest, v1.IssueWorkerTokenResponse]
+	issueMoveCredentials *connect.Client[v1.IssueMoveCredentialsRequest, v1.IssueMoveCredentialsResponse]
+	queueMovedWork       *connect.Client[v1.QueueMovedWorkRequest, v1.QueueMovedWorkResponse]
 }
 
 // RegisterAgentHost calls harness.relay.v1.HostAgentService.RegisterAgentHost.
@@ -547,6 +867,16 @@ func (c *hostAgentServiceClient) IssueWorkerToken(ctx context.Context, req *conn
 	return c.issueWorkerToken.CallUnary(ctx, req)
 }
 
+// IssueMoveCredentials calls harness.relay.v1.HostAgentService.IssueMoveCredentials.
+func (c *hostAgentServiceClient) IssueMoveCredentials(ctx context.Context, req *connect.Request[v1.IssueMoveCredentialsRequest]) (*connect.Response[v1.IssueMoveCredentialsResponse], error) {
+	return c.issueMoveCredentials.CallUnary(ctx, req)
+}
+
+// QueueMovedWork calls harness.relay.v1.HostAgentService.QueueMovedWork.
+func (c *hostAgentServiceClient) QueueMovedWork(ctx context.Context, req *connect.Request[v1.QueueMovedWorkRequest]) (*connect.Response[v1.QueueMovedWorkResponse], error) {
+	return c.queueMovedWork.CallUnary(ctx, req)
+}
+
 // HostAgentServiceHandler is an implementation of the harness.relay.v1.HostAgentService service.
 type HostAgentServiceHandler interface {
 	// Says what this daemon is. Creates the host on the first call of a token made by `harness-client daemon login`.
@@ -565,6 +895,11 @@ type HostAgentServiceHandler interface {
 	ListWantedWorkers(context.Context, *connect.Request[v1.ListWantedWorkersRequest]) (*connect.Response[v1.ListWantedWorkersResponse], error)
 	// Supervisor of a team host: a fresh device token for a member's worker; the previous one stops working.
 	IssueWorkerToken(context.Context, *connect.Request[v1.IssueWorkerTokenRequest]) (*connect.Response[v1.IssueWorkerTokenResponse], error)
+	// The laptop moving a session (decision 22): push credentials for the repository of the caller's own MOVE work while it is
+	// AWAITING_PUSH, as the target host would get them. Any device of the user; not proxied to frontends.
+	IssueMoveCredentials(context.Context, *connect.Request[v1.IssueMoveCredentialsRequest]) (*connect.Response[v1.IssueMoveCredentialsResponse], error)
+	// The laptop pushed the branch: the MOVE work goes to the queue.
+	QueueMovedWork(context.Context, *connect.Request[v1.QueueMovedWorkRequest]) (*connect.Response[v1.QueueMovedWorkResponse], error)
 }
 
 // NewHostAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -622,6 +957,18 @@ func NewHostAgentServiceHandler(svc HostAgentServiceHandler, opts ...connect.Han
 		connect.WithSchema(hostAgentServiceMethods.ByName("IssueWorkerToken")),
 		connect.WithHandlerOptions(opts...),
 	)
+	hostAgentServiceIssueMoveCredentialsHandler := connect.NewUnaryHandler(
+		HostAgentServiceIssueMoveCredentialsProcedure,
+		svc.IssueMoveCredentials,
+		connect.WithSchema(hostAgentServiceMethods.ByName("IssueMoveCredentials")),
+		connect.WithHandlerOptions(opts...),
+	)
+	hostAgentServiceQueueMovedWorkHandler := connect.NewUnaryHandler(
+		HostAgentServiceQueueMovedWorkProcedure,
+		svc.QueueMovedWork,
+		connect.WithSchema(hostAgentServiceMethods.ByName("QueueMovedWork")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.relay.v1.HostAgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case HostAgentServiceRegisterAgentHostProcedure:
@@ -640,6 +987,10 @@ func NewHostAgentServiceHandler(svc HostAgentServiceHandler, opts ...connect.Han
 			hostAgentServiceListWantedWorkersHandler.ServeHTTP(w, r)
 		case HostAgentServiceIssueWorkerTokenProcedure:
 			hostAgentServiceIssueWorkerTokenHandler.ServeHTTP(w, r)
+		case HostAgentServiceIssueMoveCredentialsProcedure:
+			hostAgentServiceIssueMoveCredentialsHandler.ServeHTTP(w, r)
+		case HostAgentServiceQueueMovedWorkProcedure:
+			hostAgentServiceQueueMovedWorkHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -679,4 +1030,12 @@ func (UnimplementedHostAgentServiceHandler) ListWantedWorkers(context.Context, *
 
 func (UnimplementedHostAgentServiceHandler) IssueWorkerToken(context.Context, *connect.Request[v1.IssueWorkerTokenRequest]) (*connect.Response[v1.IssueWorkerTokenResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostAgentService.IssueWorkerToken is not implemented"))
+}
+
+func (UnimplementedHostAgentServiceHandler) IssueMoveCredentials(context.Context, *connect.Request[v1.IssueMoveCredentialsRequest]) (*connect.Response[v1.IssueMoveCredentialsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostAgentService.IssueMoveCredentials is not implemented"))
+}
+
+func (UnimplementedHostAgentServiceHandler) QueueMovedWork(context.Context, *connect.Request[v1.QueueMovedWorkRequest]) (*connect.Response[v1.QueueMovedWorkResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostAgentService.QueueMovedWork is not implemented"))
 }

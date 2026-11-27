@@ -209,6 +209,9 @@ export interface UserPreferences {
   schedulesEnabled: boolean
   // How many turns /goal may take when it names no cap (1 to 200).
   goalMaxTurns: number
+  // Best of N: attempts of a group that work at once (1 to 5; 0 when never set: all) and what one may spend (USD, 0: no limit).
+  bestOfNParallel: number
+  bestOfNBudgetUsd: number
   // How requests use the models; sessions opened from then on follow it. An update replaces it whole.
   modelTuning: ModelTuningPreferences
   // Where sessions a chat app starts run (synced; the server reads it). Empty fields: the server picks.

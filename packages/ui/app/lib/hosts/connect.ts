@@ -2,10 +2,12 @@
 // directly in the web console.
 
 import { createClient, type Client, type Transport } from '@connectrpc/connect'
-import { PermissionMode } from '~/gen/harness/agent/v1/agent_pb'
+import { AgentService, PermissionMode, type AttemptCheck } from '~/gen/harness/agent/v1/agent_pb'
 import { Effort } from '~/gen/harness/llm/v1/content_pb'
-import { AgentHostIsolation, AgentHostScope, HostsService, HostWorkLanding, HostWorkState, type AgentHost, type HostWork } from '~/gen/harness/relay/v1/hosts_pb'
-import type { HostChanges, HostsApi, HostView, HostWorkView, NewHost, StartWork, WorkLanding, WorkState } from './types'
+import { AgentHostIsolation, AgentHostScope, AttemptState as PbAttemptState, HostsService, HostWorkLanding, HostWorkState, LocalAttemptsService, type AgentHost, type AttemptGroup, type HostWork } from '~/gen/harness/relay/v1/hosts_pb'
+import { permissionModeName } from '~/lib/session/reducer'
+import type { AttemptCheckVM } from '~/lib/session/types'
+import type { AttemptGroupView, AttemptState, HostChanges, HostsApi, HostView, HostWorkView, MoveOptions, NewHost, StartAttempts, StartWork, WorkLanding, WorkState } from './types'
 
 export function hostView(h: AgentHost): HostView {
   return {
@@ -78,11 +80,107 @@ const MODE: Record<string, PermissionMode> = {
 
 const EFFORT: Record<string, Effort> = { low: Effort.LOW, medium: Effort.MEDIUM, high: Effort.HIGH, xhigh: Effort.XHIGH, max: Effort.MAX }
 
+const ATTEMPT_STATE: Partial<Record<PbAttemptState, AttemptState>> = {
+  [PbAttemptState.PENDING]: 'pending',
+  [PbAttemptState.RUNNING]: 'running',
+  [PbAttemptState.IDLE]: 'idle',
+  [PbAttemptState.FAILED]: 'failed',
+  [PbAttemptState.DISCARDING]: 'discarding',
+  [PbAttemptState.DISCARDED]: 'discarded'
+}
+
+function checkView(c: AttemptCheck | undefined): AttemptCheckVM | null {
+  return c ? { command: c.command, exitCode: c.exitCode, output: c.output, refused: c.refused, timedOut: c.timedOut, head: c.head, checkedAt: c.checkedAt } : null
+}
+
+export function groupView(g: AttemptGroup | undefined): AttemptGroupView {
+  return {
+    id: g?.id ?? '',
+    prompt: g?.prompt ?? '',
+    title: g?.title ?? '',
+    hostId: g?.hostId ?? '',
+    hostName: g?.hostName ?? '',
+    cwd: g?.cwd ?? '',
+    repositoryKey: g?.repositoryKey ?? '',
+    testCommand: g?.testCommand ?? '',
+    parallel: g?.parallel ?? 0,
+    budgetUsd: g?.budgetUsd ?? 0,
+    keptIndex: g?.keptIndex ?? -1,
+    attempts: (g?.attempts ?? []).map(a => ({ index: a.index, state: ATTEMPT_STATE[a.state] ?? 'pending', workId: a.workId, sessionId: a.sessionId, branch: a.branch, error: a.error, check: checkView(a.check), kept: a.kept })),
+    createdAt: g?.createdAt ?? ''
+  }
+}
+
 export class ConnectHostsApi implements HostsApi {
   private rpc: Client<typeof HostsService>
+  private agent: Client<typeof AgentService>
+  private local: Client<typeof LocalAttemptsService>
 
   constructor(transport: Transport) {
     this.rpc = createClient(HostsService, transport)
+    this.agent = createClient(AgentService, transport)
+    this.local = createClient(LocalAttemptsService, transport)
+  }
+
+  async checkMove(sessionId: string, hostId: string) {
+    const c = (await this.agent.checkSessionMove({ sessionId, hostId })).check
+    return {
+      ok: c?.ok ?? false,
+      problems: (c?.problems ?? []).map(p => ({ code: p.code, message: p.message, paths: p.paths })),
+      hostName: c?.hostName ?? '',
+      repositoryKey: c?.repositoryKey ?? '',
+      branch: c?.branch ?? '',
+      base: c?.base ?? '',
+      commits: c?.commits ?? 0,
+      uncommittedFiles: c?.uncommittedFiles ?? 0,
+      permissionMode: permissionModeName(c?.permissionMode ?? PermissionMode.UNSPECIFIED),
+      permissionNote: c?.permissionNote ?? '',
+      working: c?.working ?? false
+    }
+  }
+
+  async move(sessionId: string, hostId: string, o: MoveOptions) {
+    const m = (await this.agent.moveSession({ sessionId, hostId, stopTurn: o.stopTurn, message: o.message, openPullRequest: o.openPullRequest })).moved
+    return { hostId: m?.hostId ?? hostId, hostName: m?.hostName ?? '', workId: m?.workId ?? '', branch: m?.branch ?? '', movedAt: m?.movedAt ?? '' }
+  }
+
+  // Through the client: it runs a local group's attempts, and passes a host group to the server.
+  async startAttempts(a: StartAttempts) {
+    const res = await this.local.startLocalAttempts({
+      request: {
+        hostId: a.hostId,
+        count: a.count,
+        prompt: a.prompt,
+        title: a.title,
+        repositoryKey: a.repositoryKey,
+        baseRef: a.baseRef,
+        model: a.model,
+        effort: a.effort ? EFFORT[a.effort] : undefined,
+        permissionMode: a.permissionMode ? MODE[a.permissionMode] : undefined,
+        testCommand: a.testCommand,
+        parallel: a.parallel,
+        budgetUsd: a.budgetUsd,
+        cwd: a.cwd,
+        idempotencyKey: a.idempotencyKey
+      }
+    })
+    return groupView(res.group)
+  }
+
+  async getGroup(id: string) {
+    return groupView((await this.rpc.getAttemptGroup({ id })).group)
+  }
+
+  async listGroups() {
+    return (await this.rpc.listAttemptGroups({ limit: 20 })).groups.map(groupView)
+  }
+
+  async keepAttempt(groupId: string, index: number) {
+    return groupView((await this.rpc.keepAttempt({ groupId, index })).group)
+  }
+
+  async discardAttempts(groupId: string) {
+    return groupView((await this.local.discardLocalAttempts({ groupId })).group)
   }
 
   async list(all = false) {

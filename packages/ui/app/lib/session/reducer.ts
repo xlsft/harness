@@ -21,7 +21,7 @@ import { demoRecordingVM, demoReviewItem } from './demo'
 import type { ContentBlock, Usage as PbUsage } from '~/gen/harness/llm/v1/content_pb'
 import { SubagentState, SubagentStepStatus, type SubagentInfo } from '~/gen/harness/agent/v1/subagents_pb'
 import { WorkflowState, type WorkflowInfo } from '~/gen/harness/agent/v1/workflows_pb'
-import type { AssistantDelta, SessionEvent, SessionInfo, ShowRequested, UsageLimit, UserMessage } from '~/gen/harness/agent/v1/agent_pb'
+import type { AssistantDelta, AttemptCheck, SessionEvent, SessionInfo, SessionMoved, ShowRequested, UsageLimit, UserMessage } from '~/gen/harness/agent/v1/agent_pb'
 import {
   BackgroundReason,
   Compacted_Trigger,
@@ -39,6 +39,8 @@ import {
   UsageLimit_State
 } from '~/gen/harness/agent/v1/agent_pb'
 import type {
+  AttemptCheckVM,
+  SessionMovedVM,
   HookItem,
   SubagentStateName,
   SubagentStep,
@@ -115,6 +117,8 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
       engine: 'harness',
       unsupported: [],
       acp: null,
+      moved: null,
+      attempt: null,
       ...meta
     },
     logId: '',
@@ -130,6 +134,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     todos: [],
     goal: null,
     hostWork: null,
+    attemptCheck: null,
     taskGraph: [],
     proposals: {},
     queue: [],
@@ -265,8 +270,18 @@ export function sessionMeta(info: SessionInfo): SessionMeta {
     relayReason: info.relayUnavailableReason,
     engine: info.engine || 'harness',
     unsupported: info.unsupportedFeatures.map(f => SessionFeature[f]?.toLowerCase() ?? '').filter(Boolean),
-    acp: info.acp ?? null
+    acp: info.acp ?? null,
+    moved: info.moved ? movedVM(info.moved) : null,
+    attempt: info.attempt ? { groupId: info.attempt.groupId, index: info.attempt.index, count: info.attempt.count } : null
   }
+}
+
+function movedVM(m: SessionMoved): SessionMovedVM {
+  return { hostId: m.hostId, hostName: m.hostName, workId: m.workId, branch: m.branch, movedAt: m.movedAt }
+}
+
+function attemptCheckVM(c: AttemptCheck): AttemptCheckVM {
+  return { command: c.command, exitCode: c.exitCode, output: c.output, refused: c.refused, timedOut: c.timedOut, head: c.head, checkedAt: c.checkedAt }
 }
 
 const USAGE_LIMIT_STATE: Partial<Record<UsageLimit_State, UsageLimitStateName>> = {
@@ -925,6 +940,16 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
         noticeKind: 'vcs_hooks',
         text: tt('{0} is under {1}. Worktrees and the Changes pane use git; for {1} they need WorktreeCreate, WorktreeRemove, VcsStatus and VcsDiff hooks (docs/design/vcs-hooks.md has a Jujutsu example).', [v.root, name])
       })
+      break
+    }
+
+    case 'sessionMoved': {
+      s.meta = { ...s.meta, moved: movedVM(e.value) }
+      break
+    }
+
+    case 'attemptChecked': {
+      s.attemptCheck = attemptCheckVM(e.value)
       break
     }
 

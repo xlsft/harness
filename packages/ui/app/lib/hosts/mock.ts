@@ -1,6 +1,6 @@
 // HostsApi for the mock transport: no server behind it, the same rules for what the screens can see.
 
-import type { HostChanges, HostsApi, HostView, HostWorkView, NewHost, StartWork } from './types'
+import type { AttemptGroupView, HostChanges, HostsApi, HostView, HostWorkView, MoveOptions, NewHost, StartAttempts, StartWork } from './types'
 
 function sampleHost(over: Partial<HostView>): HostView {
   return {
@@ -88,5 +88,56 @@ export class MockHostsApi implements HostsApi {
 
   async setAway(hostId: string) {
     this.hosts = this.hosts.map(h => ({ ...h, awayHost: h.id === hostId }))
+  }
+
+  groups: AttemptGroupView[] = []
+
+  async checkMove(sessionId: string, hostId: string) {
+    const host = this.hosts.find(h => h.id === hostId)
+    const problems = host ? [] : [{ code: 'host', message: 'That host is not one of yours', paths: [] }]
+    return { ok: !problems.length, problems, hostName: host?.name ?? '', repositoryKey: 'github.com/demo/project', branch: `harness/${sessionId}`, base: 'main', commits: 2, uncommittedFiles: 3, permissionMode: 'default', permissionNote: '', working: false }
+  }
+
+  async move(sessionId: string, hostId: string, _o: MoveOptions) {
+    const host = this.hosts.find(h => h.id === hostId)
+    if (!host) throw new Error('[failed_precondition] That host is not one of yours')
+    const row = await this.start({ hostId, repositoryKey: 'github.com/demo/project', baseRef: 'main', prompt: '', model: '', landing: 'branch', freshClone: false, idempotencyKey: sessionId })
+    return { hostId, hostName: host.name, workId: row.id, branch: `harness/${sessionId}`, movedAt: new Date().toISOString() }
+  }
+
+  async startAttempts(a: StartAttempts) {
+    if (a.count < 2 || a.count > 5) throw new Error('[invalid_argument] A group has 2 to 5 attempts')
+    const id = `atg_${this.groups.length + 1}`
+    const g: AttemptGroupView = {
+      id, prompt: a.prompt, title: a.title, hostId: a.hostId, hostName: this.hosts.find(h => h.id === a.hostId)?.name ?? '', cwd: a.cwd, repositoryKey: a.repositoryKey,
+      testCommand: a.testCommand, parallel: a.parallel || a.count, budgetUsd: a.budgetUsd, keptIndex: -1, createdAt: new Date().toISOString(),
+      attempts: Array.from({ length: a.count }, (_, i) => ({ index: i, state: 'pending' as const, workId: '', sessionId: '', branch: `harness/attempt-${id}-${i + 1}`, error: '', check: null, kept: false }))
+    }
+    this.groups = [g, ...this.groups]
+    return g
+  }
+
+  async getGroup(id: string) {
+    const g = this.groups.find(x => x.id === id)
+    if (!g) throw new Error('[not_found] not found')
+    return g
+  }
+
+  async listGroups() {
+    return this.groups
+  }
+
+  async keepAttempt(groupId: string, index: number) {
+    const g = await this.getGroup(groupId)
+    g.keptIndex = index
+    g.attempts = g.attempts.map(a => ({ ...a, kept: a.index === index }))
+    return g
+  }
+
+  async discardAttempts(groupId: string) {
+    const g = await this.getGroup(groupId)
+    if (g.keptIndex < 0) throw new Error('[failed_precondition] Keep one attempt first')
+    g.attempts = g.attempts.map(a => (a.index === g.keptIndex ? a : { ...a, state: 'discarded' as const }))
+    return g
   }
 }

@@ -296,6 +296,12 @@ const (
 	// AgentServiceGetSessionDiffProcedure is the fully-qualified name of the AgentService's
 	// GetSessionDiff RPC.
 	AgentServiceGetSessionDiffProcedure = "/harness.agent.v1.AgentService/GetSessionDiff"
+	// AgentServiceCheckSessionMoveProcedure is the fully-qualified name of the AgentService's
+	// CheckSessionMove RPC.
+	AgentServiceCheckSessionMoveProcedure = "/harness.agent.v1.AgentService/CheckSessionMove"
+	// AgentServiceMoveSessionProcedure is the fully-qualified name of the AgentService's MoveSession
+	// RPC.
+	AgentServiceMoveSessionProcedure = "/harness.agent.v1.AgentService/MoveSession"
 	// AgentServiceStopSubagentProcedure is the fully-qualified name of the AgentService's StopSubagent
 	// RPC.
 	AgentServiceStopSubagentProcedure = "/harness.agent.v1.AgentService/StopSubagent"
@@ -725,6 +731,11 @@ type AgentServiceClient interface {
 	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	// Whether the session can move to the host, and what would go: for the confirmation. Changes nothing.
+	CheckSessionMove(context.Context, *connect.Request[v1.CheckSessionMoveRequest]) (*connect.Response[v1.CheckSessionMoveResponse], error)
+	// After the user confirmed: pushes the session's work to harness/<session id>, queues it for the host, and makes the session
+	// read-only here. FAILED_PRECONDITION with the reasons when it can't move.
+	MoveSession(context.Context, *connect.Request[v1.MoveSessionRequest]) (*connect.Response[v1.MoveSessionResponse], error)
 	// Stops a running or queued subagent of the session, with the agents it started. NOT_FOUND for an unknown agent.
 	// Nothing else from a frontend stops an agent but closing or deleting the session: Interrupt leaves them running.
 	StopSubagent(context.Context, *connect.Request[v1.StopSubagentRequest]) (*connect.Response[v1.StopSubagentResponse], error)
@@ -1415,6 +1426,18 @@ func NewAgentServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
 			connect.WithClientOptions(opts...),
 		),
+		checkSessionMove: connect.NewClient[v1.CheckSessionMoveRequest, v1.CheckSessionMoveResponse](
+			httpClient,
+			baseURL+AgentServiceCheckSessionMoveProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("CheckSessionMove")),
+			connect.WithClientOptions(opts...),
+		),
+		moveSession: connect.NewClient[v1.MoveSessionRequest, v1.MoveSessionResponse](
+			httpClient,
+			baseURL+AgentServiceMoveSessionProcedure,
+			connect.WithSchema(agentServiceMethods.ByName("MoveSession")),
+			connect.WithClientOptions(opts...),
+		),
 		stopSubagent: connect.NewClient[v1.StopSubagentRequest, v1.StopSubagentResponse](
 			httpClient,
 			baseURL+AgentServiceStopSubagentProcedure,
@@ -1890,6 +1913,8 @@ type agentServiceClient struct {
 	clearBrowserData         *connect.Client[v1.ClearBrowserDataRequest, v1.ClearBrowserDataResponse]
 	setAutoContinue          *connect.Client[v1.SetAutoContinueRequest, v1.SetAutoContinueResponse]
 	getSessionDiff           *connect.Client[v1.GetSessionDiffRequest, v1.GetSessionDiffResponse]
+	checkSessionMove         *connect.Client[v1.CheckSessionMoveRequest, v1.CheckSessionMoveResponse]
+	moveSession              *connect.Client[v1.MoveSessionRequest, v1.MoveSessionResponse]
 	stopSubagent             *connect.Client[v1.StopSubagentRequest, v1.StopSubagentResponse]
 	getSubagentTranscript    *connect.Client[v1.GetSubagentTranscriptRequest, v1.GetSubagentTranscriptResponse]
 	resolveSessionProposal   *connect.Client[v1.ResolveSessionProposalRequest, v1.ResolveSessionProposalResponse]
@@ -2413,6 +2438,16 @@ func (c *agentServiceClient) SetAutoContinue(ctx context.Context, req *connect.R
 // GetSessionDiff calls harness.agent.v1.AgentService.GetSessionDiff.
 func (c *agentServiceClient) GetSessionDiff(ctx context.Context, req *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error) {
 	return c.getSessionDiff.CallUnary(ctx, req)
+}
+
+// CheckSessionMove calls harness.agent.v1.AgentService.CheckSessionMove.
+func (c *agentServiceClient) CheckSessionMove(ctx context.Context, req *connect.Request[v1.CheckSessionMoveRequest]) (*connect.Response[v1.CheckSessionMoveResponse], error) {
+	return c.checkSessionMove.CallUnary(ctx, req)
+}
+
+// MoveSession calls harness.agent.v1.AgentService.MoveSession.
+func (c *agentServiceClient) MoveSession(ctx context.Context, req *connect.Request[v1.MoveSessionRequest]) (*connect.Response[v1.MoveSessionResponse], error) {
+	return c.moveSession.CallUnary(ctx, req)
 }
 
 // StopSubagent calls harness.agent.v1.AgentService.StopSubagent.
@@ -2968,6 +3003,11 @@ type AgentServiceHandler interface {
 	// What the session changed, measured on disk (session_diff.proto). NOT_FOUND for a closed session,
 	// FAILED_PRECONDITION for a session of another machine.
 	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	// Whether the session can move to the host, and what would go: for the confirmation. Changes nothing.
+	CheckSessionMove(context.Context, *connect.Request[v1.CheckSessionMoveRequest]) (*connect.Response[v1.CheckSessionMoveResponse], error)
+	// After the user confirmed: pushes the session's work to harness/<session id>, queues it for the host, and makes the session
+	// read-only here. FAILED_PRECONDITION with the reasons when it can't move.
+	MoveSession(context.Context, *connect.Request[v1.MoveSessionRequest]) (*connect.Response[v1.MoveSessionResponse], error)
 	// Stops a running or queued subagent of the session, with the agents it started. NOT_FOUND for an unknown agent.
 	// Nothing else from a frontend stops an agent but closing or deleting the session: Interrupt leaves them running.
 	StopSubagent(context.Context, *connect.Request[v1.StopSubagentRequest]) (*connect.Response[v1.StopSubagentResponse], error)
@@ -3654,6 +3694,18 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(agentServiceMethods.ByName("GetSessionDiff")),
 		connect.WithHandlerOptions(opts...),
 	)
+	agentServiceCheckSessionMoveHandler := connect.NewUnaryHandler(
+		AgentServiceCheckSessionMoveProcedure,
+		svc.CheckSessionMove,
+		connect.WithSchema(agentServiceMethods.ByName("CheckSessionMove")),
+		connect.WithHandlerOptions(opts...),
+	)
+	agentServiceMoveSessionHandler := connect.NewUnaryHandler(
+		AgentServiceMoveSessionProcedure,
+		svc.MoveSession,
+		connect.WithSchema(agentServiceMethods.ByName("MoveSession")),
+		connect.WithHandlerOptions(opts...),
+	)
 	agentServiceStopSubagentHandler := connect.NewUnaryHandler(
 		AgentServiceStopSubagentProcedure,
 		svc.StopSubagent,
@@ -4218,6 +4270,10 @@ func NewAgentServiceHandler(svc AgentServiceHandler, opts ...connect.HandlerOpti
 			agentServiceSetAutoContinueHandler.ServeHTTP(w, r)
 		case AgentServiceGetSessionDiffProcedure:
 			agentServiceGetSessionDiffHandler.ServeHTTP(w, r)
+		case AgentServiceCheckSessionMoveProcedure:
+			agentServiceCheckSessionMoveHandler.ServeHTTP(w, r)
+		case AgentServiceMoveSessionProcedure:
+			agentServiceMoveSessionHandler.ServeHTTP(w, r)
 		case AgentServiceStopSubagentProcedure:
 			agentServiceStopSubagentHandler.ServeHTTP(w, r)
 		case AgentServiceGetSubagentTranscriptProcedure:
@@ -4719,6 +4775,14 @@ func (UnimplementedAgentServiceHandler) SetAutoContinue(context.Context, *connec
 
 func (UnimplementedAgentServiceHandler) GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.GetSessionDiff is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) CheckSessionMove(context.Context, *connect.Request[v1.CheckSessionMoveRequest]) (*connect.Response[v1.CheckSessionMoveResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.CheckSessionMove is not implemented"))
+}
+
+func (UnimplementedAgentServiceHandler) MoveSession(context.Context, *connect.Request[v1.MoveSessionRequest]) (*connect.Response[v1.MoveSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.AgentService.MoveSession is not implemented"))
 }
 
 func (UnimplementedAgentServiceHandler) StopSubagent(context.Context, *connect.Request[v1.StopSubagentRequest]) (*connect.Response[v1.StopSubagentResponse], error) {

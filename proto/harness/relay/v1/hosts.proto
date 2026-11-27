@@ -32,6 +32,27 @@ service HostsService {
   rpc SetAwayHost(SetAwayHostRequest) returns (SetAwayHostResponse);
   // First caller for a schedule and due time wins (docs/design/hosts.md, decision 19).
   rpc ClaimScheduleRun(ClaimScheduleRunRequest) returns (ClaimScheduleRunResponse);
+  // Best-of-N (decisions 28 to 33). Makes a group of attempts of one prompt: on a host, as queued work; locally, as rows the
+  // calling client fills in (LocalAttemptsService). The managed policy's limits apply here.
+  rpc StartAttempts(StartAttemptsRequest) returns (StartAttemptsResponse);
+  // The caller's own groups only; anyone else's are NOT_FOUND.
+  rpc GetAttemptGroup(GetAttemptGroupRequest) returns (GetAttemptGroupResponse);
+  rpc ListAttemptGroups(ListAttemptGroupsRequest) returns (ListAttemptGroupsResponse);
+  // What became of one attempt: its session and branch, its state, its test result. From the client or the host that runs it.
+  rpc ReportAttempt(ReportAttemptRequest) returns (ReportAttemptResponse);
+  // Marks the attempt the user keeps. Deletes nothing.
+  rpc KeepAttempt(KeepAttemptRequest) returns (KeepAttemptResponse);
+  // After the user confirmed: the attempts other than the kept one go, with their checkouts and branches. A host's attempts
+  // are cancelled or handed to their daemon (ReportAgentHostResponse.discard_work_ids). A local group's are removed by its
+  // own client (LocalAttemptsService.DiscardAttempts), which reports them: here FAILED_PRECONDITION.
+  rpc DiscardAttempts(DiscardAttemptsRequest) returns (DiscardAttemptsResponse);
+}
+
+// Served by the client (harness-client) to its frontends, for what needs this machine: attempts in local worktrees, and the
+// removal of their worktrees and branches. Host groups go through it too, so that a frontend has one way to start one.
+service LocalAttemptsService {
+  rpc StartLocalAttempts(StartLocalAttemptsRequest) returns (StartLocalAttemptsResponse);
+  rpc DiscardLocalAttempts(DiscardLocalAttemptsRequest) returns (DiscardLocalAttemptsResponse);
 }
 
 service HostAgentService {
@@ -51,6 +72,11 @@ service HostAgentService {
   rpc ListWantedWorkers(ListWantedWorkersRequest) returns (ListWantedWorkersResponse);
   // Supervisor of a team host: a fresh device token for a member's worker; the previous one stops working.
   rpc IssueWorkerToken(IssueWorkerTokenRequest) returns (IssueWorkerTokenResponse);
+  // The laptop moving a session (decision 22): push credentials for the repository of the caller's own MOVE work while it is
+  // AWAITING_PUSH, as the target host would get them. Any device of the user; not proxied to frontends.
+  rpc IssueMoveCredentials(IssueMoveCredentialsRequest) returns (IssueMoveCredentialsResponse);
+  // The laptop pushed the branch: the MOVE work goes to the queue.
+  rpc QueueMovedWork(QueueMovedWorkRequest) returns (QueueMovedWorkResponse);
 }
 
 enum AgentHostScope {
@@ -76,6 +102,10 @@ enum HostWorkKind {
   HOST_WORK_KIND_AUTO_FIX = 2;
   // An @mention on a pull request with no session.
   HOST_WORK_KIND_MENTION = 3;
+  // A session the user moved here from another machine: its branch and its transcript (decisions 21 to 27).
+  HOST_WORK_KIND_MOVE = 4;
+  // One attempt of a best-of-N group.
+  HOST_WORK_KIND_ATTEMPT = 5;
 }
 
 enum HostWorkState {
@@ -90,6 +120,8 @@ enum HostWorkState {
   HOST_WORK_STATE_FAILED = 5;
   HOST_WORK_STATE_CANCELLED = 6;
   HOST_WORK_STATE_EXPIRED = 7;
+  // A move whose branch the other machine is still pushing; no daemon claims it yet.
+  HOST_WORK_STATE_AWAITING_PUSH = 8;
 }
 
 // How a session's work leaves the host.
@@ -231,6 +263,13 @@ message HostWork {
   // RFC 3339, UTC.
   string created_at = 23;
   string updated_at = 24;
+  // An attempt's group and its number in it, from 0.
+  string attempt_group_id = 25;
+  int32 attempt_index = 26;
+  // Attempts: what runs in the checkout when a turn ends. Empty in other people's listings.
+  string test_command = 27;
+  // Attempts: what the session may spend; 0, no limit.
+  double budget_usd = 28;
 }
 
 message StartHostWorkRequest {
@@ -247,6 +286,11 @@ message StartHostWorkRequest {
   bool fresh_clone = 10;
   // Retrying with the same key returns the same work.
   string idempotency_key = 11;
+  // NEW_SESSION (unspecified) or MOVE. A move needs branch (harness/...) and fork_session_id, a session of the caller's, and
+  // starts AWAITING_PUSH.
+  HostWorkKind kind = 12;
+  string branch = 13;
+  string fork_session_id = 14;
 }
 
 message StartHostWorkResponse {
@@ -321,6 +365,9 @@ message ReportAgentHostRequest {
 message ReportAgentHostResponse {
   bool draining = 1;
   int32 max_sessions = 2;
+  // Attempts the user discarded (decision 32): close the session, remove the checkout, delete the work's harness/ branch, then
+  // UpdateHostWork with discarded.
+  repeated string discard_work_ids = 3;
 }
 
 message ClaimHostWorkRequest {
@@ -344,6 +391,8 @@ message UpdateHostWorkRequest {
   string branch = 4;
   string pull_request_url = 5;
   string error = 6;
+  // The work was discarded as asked: its session, checkout and branch are gone.
+  bool discarded = 7;
 }
 
 message UpdateHostWorkResponse {
@@ -406,4 +455,170 @@ message IssueWorkerTokenRequest {
 message IssueWorkerTokenResponse {
   string device_id = 1;
   string device_token = 2;
+}
+
+message IssueMoveCredentialsRequest {
+  string work_id = 1;
+}
+
+message IssueMoveCredentialsResponse {
+  // As IssueGitCredentialsResponse.
+  IssueGitCredentialsResponse credentials = 1;
+}
+
+message QueueMovedWorkRequest {
+  string work_id = 1;
+  // The commit the branch is at now.
+  string head = 2;
+}
+
+message QueueMovedWorkResponse {
+  HostWork work = 1;
+}
+
+enum AttemptState {
+  ATTEMPT_STATE_UNSPECIFIED = 0;
+  // Not started: waiting for its place (parallelism) or its host.
+  ATTEMPT_STATE_PENDING = 1;
+  ATTEMPT_STATE_RUNNING = 2;
+  // Its turn ended; it waits for the user, like any session.
+  ATTEMPT_STATE_IDLE = 3;
+  ATTEMPT_STATE_FAILED = 4;
+  // The user discarded it; its checkout and branch are on their way out.
+  ATTEMPT_STATE_DISCARDING = 5;
+  ATTEMPT_STATE_DISCARDED = 6;
+}
+
+message Attempt {
+  // From 0.
+  int32 index = 1;
+  AttemptState state = 2;
+  // A host's attempts.
+  string work_id = 3;
+  string session_id = 4;
+  string branch = 5;
+  string error = 6;
+  // The last test result.
+  harness.agent.v1.AttemptCheck check = 7;
+  bool kept = 8;
+  // RFC 3339, UTC.
+  string updated_at = 9;
+}
+
+message AttemptGroup {
+  // atg_...
+  string id = 1;
+  string prompt = 2;
+  string title = 3;
+  // Empty: local worktrees of device_id.
+  string host_id = 4;
+  string host_name = 5;
+  string device_id = 6;
+  // Local groups: the folder the worktrees come from.
+  string cwd = 7;
+  string repository_key = 8;
+  string base_ref = 9;
+  string model = 10;
+  harness.llm.v1.Effort effort = 11;
+  harness.agent.v1.PermissionMode permission_mode = 12;
+  string test_command = 13;
+  // What applies, after the policy: how many work at once, and what one may spend (0: no limit).
+  int32 parallel = 14;
+  double budget_usd = 15;
+  // -1: none kept yet.
+  int32 kept_index = 16;
+  repeated Attempt attempts = 17;
+  // RFC 3339, UTC.
+  string created_at = 18;
+  string updated_at = 19;
+}
+
+message StartAttemptsRequest {
+  // Empty: local worktrees of the calling client.
+  string host_id = 1;
+  // 2 to 5, or less where the policy says so.
+  int32 count = 2;
+  string prompt = 3;
+  string title = 4;
+  // Host groups: host/owner/name. Local groups: the client fills it from cwd when it can.
+  string repository_key = 5;
+  string base_ref = 6;
+  string model = 7;
+  harness.llm.v1.Effort effort = 8;
+  // PERMISSION_MODE_BYPASS_PERMISSIONS is refused.
+  harness.agent.v1.PermissionMode permission_mode = 9;
+  string test_command = 10;
+  // The user's choices; the policy caps them. 0: the client's settings, else all at once and no budget.
+  int32 parallel = 11;
+  double budget_usd = 12;
+  // Local groups: the folder.
+  string cwd = 13;
+  string idempotency_key = 14;
+}
+
+message StartAttemptsResponse {
+  AttemptGroup group = 1;
+}
+
+message GetAttemptGroupRequest {
+  string id = 1;
+}
+
+message GetAttemptGroupResponse {
+  AttemptGroup group = 1;
+}
+
+message ListAttemptGroupsRequest {
+  int32 limit = 1;
+}
+
+message ListAttemptGroupsResponse {
+  // Newest first.
+  repeated AttemptGroup groups = 1;
+}
+
+message ReportAttemptRequest {
+  string group_id = 1;
+  int32 index = 2;
+  // UNSPECIFIED leaves it.
+  AttemptState state = 3;
+  string session_id = 4;
+  string branch = 5;
+  string error = 6;
+  harness.agent.v1.AttemptCheck check = 7;
+}
+
+message ReportAttemptResponse {}
+
+message KeepAttemptRequest {
+  string group_id = 1;
+  int32 index = 2;
+}
+
+message KeepAttemptResponse {
+  AttemptGroup group = 1;
+}
+
+message DiscardAttemptsRequest {
+  string group_id = 1;
+}
+
+message DiscardAttemptsResponse {
+  AttemptGroup group = 1;
+}
+
+message StartLocalAttemptsRequest {
+  StartAttemptsRequest request = 1;
+}
+
+message StartLocalAttemptsResponse {
+  AttemptGroup group = 1;
+}
+
+message DiscardLocalAttemptsRequest {
+  string group_id = 1;
+}
+
+message DiscardLocalAttemptsResponse {
+  AttemptGroup group = 1;
 }

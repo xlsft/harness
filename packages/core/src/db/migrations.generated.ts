@@ -365,5 +365,22 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE UNIQUE INDEX \"chat_thread_ref_idx\" ON \"chat_thread\" USING btree (\"provider\",\"team_id\",\"channel\",\"thread_id\");",
       "CREATE INDEX \"chat_thread_session_idx\" ON \"chat_thread\" USING btree (\"session_id\");"
     ]
+  },
+  {
+    "id": "0020_best_of_n",
+    "statements": [
+      "CREATE TABLE \"attempt\" (\n\t\"group_id\" text NOT NULL,\n\t\"index\" integer NOT NULL,\n\t\"state\" integer NOT NULL,\n\t\"work_id\" text DEFAULT '' NOT NULL,\n\t\"session_id\" text DEFAULT '' NOT NULL,\n\t\"branch\" text DEFAULT '' NOT NULL,\n\t\"error\" text DEFAULT '' NOT NULL,\n\t\"check\" text DEFAULT '' NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL,\n\tCONSTRAINT \"attempt_group_id_index_pk\" PRIMARY KEY(\"group_id\",\"index\")\n);",
+      "CREATE TABLE \"attempt_group\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"host_id\" text DEFAULT '' NOT NULL,\n\t\"device_id\" text DEFAULT '' NOT NULL,\n\t\"cwd\" text DEFAULT '' NOT NULL,\n\t\"prompt\" text NOT NULL,\n\t\"title\" text DEFAULT '' NOT NULL,\n\t\"repository_key\" text DEFAULT '' NOT NULL,\n\t\"base_ref\" text DEFAULT '' NOT NULL,\n\t\"model\" text DEFAULT '' NOT NULL,\n\t\"effort\" integer DEFAULT 0 NOT NULL,\n\t\"permission_mode\" integer DEFAULT 0 NOT NULL,\n\t\"test_command\" text DEFAULT '' NOT NULL,\n\t\"parallel\" integer NOT NULL,\n\t\"budget_usd\" double precision DEFAULT 0 NOT NULL,\n\t\"kept_index\" integer DEFAULT -1 NOT NULL,\n\t\"idempotency_key\" text,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "ALTER TABLE \"host_work\" ADD COLUMN \"attempt_group_id\" text DEFAULT '' NOT NULL;",
+      "ALTER TABLE \"host_work\" ADD COLUMN \"attempt_index\" integer DEFAULT 0 NOT NULL;",
+      "ALTER TABLE \"host_work\" ADD COLUMN \"test_command\" text DEFAULT '' NOT NULL;",
+      "ALTER TABLE \"host_work\" ADD COLUMN \"budget_usd\" double precision DEFAULT 0 NOT NULL;",
+      "ALTER TABLE \"host_work\" ADD COLUMN \"discard_requested\" boolean DEFAULT false NOT NULL;",
+      "ALTER TABLE \"attempt\" ADD CONSTRAINT \"attempt_group_id_attempt_group_id_fk\" FOREIGN KEY (\"group_id\") REFERENCES \"public\".\"attempt_group\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "ALTER TABLE \"attempt_group\" ADD CONSTRAINT \"attempt_group_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "CREATE INDEX \"attempt_group_user_idx\" ON \"attempt_group\" USING btree (\"user_id\",\"created_at\");",
+      "CREATE UNIQUE INDEX \"attempt_group_idem_idx\" ON \"attempt_group\" USING btree (\"user_id\",\"idempotency_key\");",
+      "CREATE INDEX \"host_work_group_idx\" ON \"host_work\" USING btree (\"attempt_group_id\");"
+    ]
   }
 ];

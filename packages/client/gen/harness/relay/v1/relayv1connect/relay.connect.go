@@ -120,6 +120,12 @@ const (
 	// RelayServiceListSlashCommandsProcedure is the fully-qualified name of the RelayService's
 	// ListSlashCommands RPC.
 	RelayServiceListSlashCommandsProcedure = "/harness.relay.v1.RelayService/ListSlashCommands"
+	// RelayServiceGetSessionDiffProcedure is the fully-qualified name of the RelayService's
+	// GetSessionDiff RPC.
+	RelayServiceGetSessionDiffProcedure = "/harness.relay.v1.RelayService/GetSessionDiff"
+	// RelayServiceGetSessionFileDiffProcedure is the fully-qualified name of the RelayService's
+	// GetSessionFileDiff RPC.
+	RelayServiceGetSessionFileDiffProcedure = "/harness.relay.v1.RelayService/GetSessionFileDiff"
 	// RelayServiceSpawnSessionProcedure is the fully-qualified name of the RelayService's SpawnSession
 	// RPC.
 	RelayServiceSpawnSessionProcedure = "/harness.relay.v1.RelayService/SpawnSession"
@@ -215,6 +221,9 @@ type RelayServiceClient interface {
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	ListOutputStyles(context.Context, *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error)
 	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
+	// The Changes pane of a session of another machine: what is on its disk (docs/design/hosts.md, decision 31).
+	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	GetSessionFileDiff(context.Context, *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error)
 	// "New session on machine X in folder Y" (a remote start, docs/design/chat.md). To daemon hosts under their allowed
 	// roots, and to hosts that take remote starts in one of their recent folders (checked by the host). The server checks
 	// what it can (roots, the host's switch, the managed policy) and audits every attempt. Held until the host acks with
@@ -451,6 +460,18 @@ func NewRelayServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(relayServiceMethods.ByName("ListSlashCommands")),
 			connect.WithClientOptions(opts...),
 		),
+		getSessionDiff: connect.NewClient[v1.GetSessionDiffRequest, v1.GetSessionDiffResponse](
+			httpClient,
+			baseURL+RelayServiceGetSessionDiffProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("GetSessionDiff")),
+			connect.WithClientOptions(opts...),
+		),
+		getSessionFileDiff: connect.NewClient[v1.GetSessionFileDiffRequest, v1.GetSessionFileDiffResponse](
+			httpClient,
+			baseURL+RelayServiceGetSessionFileDiffProcedure,
+			connect.WithSchema(relayServiceMethods.ByName("GetSessionFileDiff")),
+			connect.WithClientOptions(opts...),
+		),
 		spawnSession: connect.NewClient[v1.SpawnSessionRequest, v1.SpawnSessionResponse](
 			httpClient,
 			baseURL+RelayServiceSpawnSessionProcedure,
@@ -554,6 +575,8 @@ type relayServiceClient struct {
 	listTasks              *connect.Client[v1.ListTasksRequest, v1.ListTasksResponse]
 	listOutputStyles       *connect.Client[v1.ListOutputStylesRequest, v1.ListOutputStylesResponse]
 	listSlashCommands      *connect.Client[v1.ListSlashCommandsRequest, v1.ListSlashCommandsResponse]
+	getSessionDiff         *connect.Client[v1.GetSessionDiffRequest, v1.GetSessionDiffResponse]
+	getSessionFileDiff     *connect.Client[v1.GetSessionFileDiffRequest, v1.GetSessionFileDiffResponse]
 	spawnSession           *connect.Client[v1.SpawnSessionRequest, v1.SpawnSessionResponse]
 	listHostFolders        *connect.Client[v1.ListHostFoldersRequest, v1.ListHostFoldersResponse]
 	requestTunnel          *connect.Client[v1.RequestTunnelRequest, v1.RequestTunnelResponse]
@@ -727,6 +750,16 @@ func (c *relayServiceClient) ListSlashCommands(ctx context.Context, req *connect
 	return c.listSlashCommands.CallUnary(ctx, req)
 }
 
+// GetSessionDiff calls harness.relay.v1.RelayService.GetSessionDiff.
+func (c *relayServiceClient) GetSessionDiff(ctx context.Context, req *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error) {
+	return c.getSessionDiff.CallUnary(ctx, req)
+}
+
+// GetSessionFileDiff calls harness.relay.v1.RelayService.GetSessionFileDiff.
+func (c *relayServiceClient) GetSessionFileDiff(ctx context.Context, req *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error) {
+	return c.getSessionFileDiff.CallUnary(ctx, req)
+}
+
 // SpawnSession calls harness.relay.v1.RelayService.SpawnSession.
 func (c *relayServiceClient) SpawnSession(ctx context.Context, req *connect.Request[v1.SpawnSessionRequest]) (*connect.Response[v1.SpawnSessionResponse], error) {
 	return c.spawnSession.CallUnary(ctx, req)
@@ -842,6 +875,9 @@ type RelayServiceHandler interface {
 	ListTasks(context.Context, *connect.Request[v1.ListTasksRequest]) (*connect.Response[v1.ListTasksResponse], error)
 	ListOutputStyles(context.Context, *connect.Request[v1.ListOutputStylesRequest]) (*connect.Response[v1.ListOutputStylesResponse], error)
 	ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error)
+	// The Changes pane of a session of another machine: what is on its disk (docs/design/hosts.md, decision 31).
+	GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error)
+	GetSessionFileDiff(context.Context, *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error)
 	// "New session on machine X in folder Y" (a remote start, docs/design/chat.md). To daemon hosts under their allowed
 	// roots, and to hosts that take remote starts in one of their recent folders (checked by the host). The server checks
 	// what it can (roots, the host's switch, the managed policy) and audits every attempt. Held until the host acks with
@@ -1074,6 +1110,18 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(relayServiceMethods.ByName("ListSlashCommands")),
 		connect.WithHandlerOptions(opts...),
 	)
+	relayServiceGetSessionDiffHandler := connect.NewUnaryHandler(
+		RelayServiceGetSessionDiffProcedure,
+		svc.GetSessionDiff,
+		connect.WithSchema(relayServiceMethods.ByName("GetSessionDiff")),
+		connect.WithHandlerOptions(opts...),
+	)
+	relayServiceGetSessionFileDiffHandler := connect.NewUnaryHandler(
+		RelayServiceGetSessionFileDiffProcedure,
+		svc.GetSessionFileDiff,
+		connect.WithSchema(relayServiceMethods.ByName("GetSessionFileDiff")),
+		connect.WithHandlerOptions(opts...),
+	)
 	relayServiceSpawnSessionHandler := connect.NewUnaryHandler(
 		RelayServiceSpawnSessionProcedure,
 		svc.SpawnSession,
@@ -1206,6 +1254,10 @@ func NewRelayServiceHandler(svc RelayServiceHandler, opts ...connect.HandlerOpti
 			relayServiceListOutputStylesHandler.ServeHTTP(w, r)
 		case RelayServiceListSlashCommandsProcedure:
 			relayServiceListSlashCommandsHandler.ServeHTTP(w, r)
+		case RelayServiceGetSessionDiffProcedure:
+			relayServiceGetSessionDiffHandler.ServeHTTP(w, r)
+		case RelayServiceGetSessionFileDiffProcedure:
+			relayServiceGetSessionFileDiffHandler.ServeHTTP(w, r)
 		case RelayServiceSpawnSessionProcedure:
 			relayServiceSpawnSessionHandler.ServeHTTP(w, r)
 		case RelayServiceListHostFoldersProcedure:
@@ -1363,6 +1415,14 @@ func (UnimplementedRelayServiceHandler) ListOutputStyles(context.Context, *conne
 
 func (UnimplementedRelayServiceHandler) ListSlashCommands(context.Context, *connect.Request[v1.ListSlashCommandsRequest]) (*connect.Response[v1.ListSlashCommandsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.ListSlashCommands is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) GetSessionDiff(context.Context, *connect.Request[v1.GetSessionDiffRequest]) (*connect.Response[v1.GetSessionDiffResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.GetSessionDiff is not implemented"))
+}
+
+func (UnimplementedRelayServiceHandler) GetSessionFileDiff(context.Context, *connect.Request[v1.GetSessionFileDiffRequest]) (*connect.Response[v1.GetSessionFileDiffResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.RelayService.GetSessionFileDiff is not implemented"))
 }
 
 func (UnimplementedRelayServiceHandler) SpawnSession(context.Context, *connect.Request[v1.SpawnSessionRequest]) (*connect.Response[v1.SpawnSessionResponse], error) {

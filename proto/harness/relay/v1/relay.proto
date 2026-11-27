@@ -5,6 +5,7 @@ package harness.relay.v1;
 import "harness/agent/v1/agent.proto";
 import "harness/agent/v1/auto_fix.proto";
 import "harness/agent/v1/device_settings.proto";
+import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/session_links.proto";
 import "harness/agent/v1/slash_commands.proto";
 import "harness/agent/v1/subagents.proto";
@@ -126,6 +127,9 @@ service RelayService {
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
   rpc ListOutputStyles(ListOutputStylesRequest) returns (ListOutputStylesResponse);
   rpc ListSlashCommands(ListSlashCommandsRequest) returns (ListSlashCommandsResponse);
+  // The Changes pane of a session of another machine: what is on its disk (docs/design/hosts.md, decision 31).
+  rpc GetSessionDiff(GetSessionDiffRequest) returns (GetSessionDiffResponse);
+  rpc GetSessionFileDiff(GetSessionFileDiffRequest) returns (GetSessionFileDiffResponse);
   // "New session on machine X in folder Y" (a remote start, docs/design/chat.md). To daemon hosts under their allowed
   // roots, and to hosts that take remote starts in one of their recent folders (checked by the host). The server checks
   // what it can (roots, the host's switch, the managed policy) and audits every attempt. Held until the host acks with
@@ -251,6 +255,9 @@ message Command {
     // Host-level query (no session): the machine's recent folders, for a remote start. Answered only while the host
     // takes remote starts.
     harness.agent.v1.ListRecentFoldersRequest list_recent_folders = 280;
+    // Queries of the Changes pane.
+    harness.agent.v1.GetSessionDiffRequest get_session_diff = 360;
+    harness.agent.v1.GetSessionFileDiffRequest get_session_file_diff = 361;
   }
   // RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
   string expires_at = 7;
@@ -361,6 +368,8 @@ message CommandAck {
     harness.agent.v1.StopWorkflowResponse stop_workflow = 40;
     harness.agent.v1.ListSlashCommandsResponse list_slash_commands = 110;
     harness.agent.v1.ListRecentFoldersResponse list_recent_folders = 280;
+    harness.agent.v1.GetSessionDiffResponse get_session_diff = 360;
+    harness.agent.v1.GetSessionFileDiffResponse get_session_file_diff = 361;
   }
 }
 
@@ -745,6 +754,22 @@ message RewindRequest {
 
 message RewindResponse {
   CommandResult result = 1;
+}
+
+message GetSessionDiffRequest {
+  harness.agent.v1.GetSessionDiffRequest request = 1;
+}
+
+message GetSessionDiffResponse {
+  harness.agent.v1.GetSessionDiffResponse response = 1;
+}
+
+message GetSessionFileDiffRequest {
+  harness.agent.v1.GetSessionFileDiffRequest request = 1;
+}
+
+message GetSessionFileDiffResponse {
+  harness.agent.v1.GetSessionFileDiffResponse response = 1;
 }
 
 message ListCheckpointsRequest {

@@ -78,8 +78,14 @@ type ManagedPolicy struct {
 	RemoteStartsDisabled bool `protobuf:"varint,281,opt,name=remote_starts_disabled,json=remoteStartsDisabled,proto3" json:"remote_starts_disabled,omitempty"`
 	// disablePersonalChatBots: nobody connects a chat bot of their own (Telegram); the organization's bot still works.
 	PersonalChatBotsDisabled bool `protobuf:"varint,380,opt,name=personal_chat_bots_disabled,json=personalChatBotsDisabled,proto3" json:"personal_chat_bots_disabled,omitempty"`
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	// Best-of-N (docs/design/hosts.md, decision 29). maxAttempts: attempts in a group, 2 to 5; 0, the default of 5.
+	MaxAttempts int32 `protobuf:"varint,360,opt,name=max_attempts,json=maxAttempts,proto3" json:"max_attempts,omitempty"`
+	// maxParallelAttempts: attempts of a group that work at once; 0, no cap.
+	MaxParallelAttempts int32 `protobuf:"varint,361,opt,name=max_parallel_attempts,json=maxParallelAttempts,proto3" json:"max_parallel_attempts,omitempty"`
+	// attemptBudgetUsd: what one attempt may spend; 0, no cap.
+	AttemptBudgetUsd float64 `protobuf:"fixed64,362,opt,name=attempt_budget_usd,json=attemptBudgetUsd,proto3" json:"attempt_budget_usd,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -306,6 +312,27 @@ func (x *ManagedPolicy) GetPersonalChatBotsDisabled() bool {
 		return x.PersonalChatBotsDisabled
 	}
 	return false
+}
+
+func (x *ManagedPolicy) GetMaxAttempts() int32 {
+	if x != nil {
+		return x.MaxAttempts
+	}
+	return 0
+}
+
+func (x *ManagedPolicy) GetMaxParallelAttempts() int32 {
+	if x != nil {
+		return x.MaxParallelAttempts
+	}
+	return 0
+}
+
+func (x *ManagedPolicy) GetAttemptBudgetUsd() float64 {
+	if x != nil {
+		return x.AttemptBudgetUsd
+	}
+	return 0
 }
 
 type GetManagedPolicyRequest struct {
@@ -566,7 +593,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\x8a\v\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\x92\f\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -598,7 +625,10 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\x1aplugin_ui_network_disabled\x18\x91\x03 \x01(\bR\x17pluginUiNetworkDisabled\x12-\n" +
 	"\x12chat_apps_disabled\x18\x98\x02 \x01(\bR\x10chatAppsDisabled\x125\n" +
 	"\x16remote_starts_disabled\x18\x99\x02 \x01(\bR\x14remoteStartsDisabled\x12>\n" +
-	"\x1bpersonal_chat_bots_disabled\x18\xfc\x02 \x01(\bR\x18personalChatBotsDisabledB\x16\n" +
+	"\x1bpersonal_chat_bots_disabled\x18\xfc\x02 \x01(\bR\x18personalChatBotsDisabled\x12\"\n" +
+	"\fmax_attempts\x18\xe8\x02 \x01(\x05R\vmaxAttempts\x123\n" +
+	"\x15max_parallel_attempts\x18\xe9\x02 \x01(\x05R\x13maxParallelAttempts\x12-\n" +
+	"\x12attempt_budget_usd\x18\xea\x02 \x01(\x01R\x10attemptBudgetUsdB\x16\n" +
 	"\x14_defer_builtin_tools\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +

@@ -76,6 +76,7 @@ func builtinCommands() []builtinCommand {
 		{name: "goal", description: "Keep working until a condition holds, with a cap on the turns", hint: "[--max N] <condition> | stop | resume", needsSession: true, run: runGoal},
 		{name: "loop", description: "Repeat a prompt or command here, on an interval or at the model's pace", hint: "[interval] <prompt or /command> | stop | list", needsSession: true, run: runLoop},
 		{name: "schedule", description: "Open Scheduled: tasks that run by themselves", run: runScheduleCommand},
+		{name: "move", description: "Move this session to one of your always-on hosts (asks first)", needsSession: true, run: runMoveCommand},
 		{name: "context", description: "Show how much of the context window is in use", needsSession: true, run: runContext},
 		{name: "usage", description: "Show the tokens and cost of this session and its agents", needsSession: true, run: runUsageCommand},
 		{name: "insights", description: "Report how the agent was used on this machine", hint: "[days]", needsSession: true, run: runInsightsCommand},

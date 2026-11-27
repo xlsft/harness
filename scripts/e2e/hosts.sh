@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # End-to-end test of an always-on host (docs/design/hosts.md): the real core and the real `harness-client daemon`, with a
-# scripted model and a fake code host that serves real git over HTTP and checks credentials. No laptop in sight: the session
-# is started, watched and followed up through the server alone. A team host needs root on Linux, and is not covered here.
+# scripted model and a fake code host that serves real git over HTTP and checks credentials. First no laptop in sight: the
+# session is started, watched and followed up through the server alone. Then a laptop (`harness-client serve`) moves a live
+# session to the host, and a best-of-N group runs its attempts there, one is kept and the others are discarded. A team host
+# needs root on Linux, and is not covered here.
 #
 # Usage: scripts/e2e/hosts.sh          (needs node 24, pnpm, go, curl, jq, git)
 # Env:   E2E_KEEP=1 keeps the temp dir.
@@ -12,6 +14,7 @@ free_port() { node -e 'const s=require("net").createServer();s.listen(0,"127.0.0
 CORE_PORT="$(free_port)"
 UPSTREAM_PORT="$(free_port)"
 CODEHOST_PORT="$(free_port)"
+LAPTOP_PORT="$(free_port)"
 CORE_URL="http://localhost:${CORE_PORT}"
 ADMIN_EMAIL="admin@e2e.test"
 ADMIN_PASSWORD="e2e-password-$(date +%s)"
@@ -147,6 +150,86 @@ STEER="$(rpc relay.v1.RelayService/SendUserMessage "$(jq -n --arg s "$SESSION" -
 log "load and capacity show"
 SHOWN="$(rpc relay.v1.HostsService/ListAgentHosts '{"all":true}')" || fail "admin list"
 jq -e --arg id "$HOST_ID" '.hosts[] | select(.id==$id) | .maxSessions == 2 and .isolation == "AGENT_HOST_ISOLATION_NONE"' <<<"$SHOWN" >/dev/null || fail "admin view: $SHOWN"
+
+log "a laptop moves a live session to the host"
+LAPTOP="$WORK/laptop"
+git -c "http.extraHeader=Authorization: Basic $(printf 'oauth2:%s' "$GIT_TOKEN" | base64)" clone -q "http://127.0.0.1:${CODEHOST_PORT}/acme/widgets.git" "$LAPTOP" || fail "laptop clone"
+HARNESS_HOME="$WORK/admin-home" HARNESS_TMPDIR="$WORK/laptop-tmp" HARNESS_NO_SHELL_SNAPSHOT=1 \
+  "$WORK/harness-client" serve --listen "127.0.0.1:${LAPTOP_PORT}" --allowedTools Bash >"$WORK/laptop.log" 2>&1 &
+PIDS+=($!)
+for _ in $(seq 1 60); do grep -q 'serving AgentService on http' "$WORK/laptop.log" 2>/dev/null && break; sleep 0.25; done
+LAPTOP_TOKEN="$(tr -d '\n' <"$WORK/admin-home/agent-token")"
+[[ -n "$LAPTOP_TOKEN" ]] || fail "no laptop agent token"
+agent() { curl -sS -H 'content-type: application/json' -H 'connect-protocol-version: 1' -H "authorization: Bearer $LAPTOP_TOKEN" -d "$2" "http://127.0.0.1:${LAPTOP_PORT}/harness.agent.v1.AgentService/$1"; }
+lsession() { agent ListSessions '{}' | jq -c --arg s "$LSID" '.sessions[]? | select(.id==$s)'; }
+LSID="$(agent CreateSession "$(jq -n --arg c "$LAPTOP" '{cwd:$c,model:"mock-model"}')" | jq -r .session.id)"
+[[ -n "$LSID" && "$LSID" != "null" ]] || fail "laptop session"
+agent SendUserMessage "$(jq -n --arg s "$LSID" '{sessionId:$s,uuid:"move-1",content:[{text:{text:"create out.txt with a marker"}}]}')" >/dev/null
+for _ in $(seq 1 120); do
+  [[ -f "$LAPTOP/out.txt" && "$(lsession | jq -r .status)" == "SESSION_STATUS_IDLE" ]] && break
+  sleep 0.5
+done
+[[ -f "$LAPTOP/out.txt" ]] || fail "the laptop session did not write its file"
+echo "not committed" >"$LAPTOP/notes.txt"
+echo "SECRET=1" >"$LAPTOP/.env"
+CHECK="$(agent CheckSessionMove "$(jq -n --arg s "$LSID" --arg h "$HOST_ID" '{sessionId:$s,hostId:$h}')")"
+jq -e '.check.problems | map(.code) | index("secrets")' <<<"$CHECK" >/dev/null || fail "a .env file did not stop the move: $CHECK"
+rm "$LAPTOP/.env"
+for _ in $(seq 1 20); do
+  CHECK="$(agent CheckSessionMove "$(jq -n --arg s "$LSID" --arg h "$HOST_ID" '{sessionId:$s,hostId:$h}')")"
+  [[ "$(jq -r '.check.ok // false' <<<"$CHECK")" == "true" ]] && break
+  sleep 0.5
+done
+[[ "$(jq -r '.check.ok // false' <<<"$CHECK")" == "true" ]] || fail "the move check: $CHECK"
+HEAD_BEFORE="$(git -C "$LAPTOP" rev-parse HEAD)"
+MOVED="$(agent MoveSession "$(jq -n --arg s "$LSID" --arg h "$HOST_ID" '{sessionId:$s,hostId:$h}')")"
+MOVE_WORK="$(jq -r '.moved.workId // empty' <<<"$MOVED")"
+[[ -n "$MOVE_WORK" ]] || fail "move: $MOVED"
+[[ "$(git -C "$LAPTOP" rev-parse HEAD)" == "$HEAD_BEFORE" ]] || fail "the move changed the laptop's branch"
+[[ -f "$LAPTOP/notes.txt" && -z "$(git -C "$LAPTOP" diff --cached --name-only)" ]] || fail "the move changed the laptop's checkout"
+[[ "$(git --git-dir="$REPOS/acme/widgets.git" show "harness/$LSID:notes.txt")" == "not committed" ]] || fail "the moved branch lacks the uncommitted file"
+[[ "$(git --git-dir="$REPOS/acme/widgets.git" show "harness/$LSID:out.txt")" == "harness-e2e" ]] || fail "the moved branch lacks the session's file"
+for _ in $(seq 1 120); do
+  ROW="$(rpc relay.v1.HostsService/GetHostWork "$(jq -n --arg i "$MOVE_WORK" '{id:$i}')")"
+  [[ "$(jq -r '.work.state' <<<"$ROW")" == "HOST_WORK_STATE_RUNNING" && "$(jq -r '.work.sessionId // ""' <<<"$ROW")" != "" ]] && break
+  [[ "$(jq -r '.work.state' <<<"$ROW")" == "HOST_WORK_STATE_FAILED" ]] && fail "the move failed on the host: $(jq -r .work.error <<<"$ROW")"
+  sleep 0.5
+done
+[[ "$(jq -r '.work.sessionId // ""' <<<"$ROW")" != "" ]] || fail "the host did not take the move: $ROW"
+[[ "$(jq -r '.work.branch' <<<"$ROW")" == "harness/$LSID" ]] || fail "the host session is not on the moved branch: $ROW"
+REFUSED="$(agent SendUserMessage "$(jq -n --arg s "$LSID" '{sessionId:$s,uuid:"move-2",content:[{text:{text:"more"}}]}')")"
+[[ "$(jq -r '.code // ""' <<<"$REFUSED")" == "failed_precondition" ]] || fail "the laptop copy is not read-only: $REFUSED"
+[[ "$(lsession | jq -r '.moved.workId')" == "$MOVE_WORK" ]] || fail "the laptop copy does not say where it went"
+
+log "best of N on the host: two attempts, their tests, keep one, discard the other"
+GROUP="$(rpc relay.v1.HostsService/StartAttempts "$(jq -n --arg h "$HOST_ID" '{hostId:$h,count:2,prompt:"create out.txt with a marker",repositoryKey:"127.0.0.1/acme/widgets",model:"mock-model",testCommand:"test -f out.txt && echo tests-ok"}')")" || fail "start attempts"
+GROUP_ID="$(jq -r .group.id <<<"$GROUP")"
+for _ in $(seq 1 240); do
+  GROUP="$(rpc relay.v1.HostsService/GetAttemptGroup "$(jq -n --arg i "$GROUP_ID" '{id:$i}')")"
+  [[ "$(jq '[.group.attempts[] | select(.state == "ATTEMPT_STATE_IDLE" and (.check.output // "" | contains("tests-ok")))] | length' <<<"$GROUP")" == "2" ]] && break
+  sleep 0.5
+done
+echo "$GROUP" >"$WORK/group.json"
+[[ "$(jq '[.group.attempts[] | select(.state == "ATTEMPT_STATE_IDLE")] | length' <<<"$GROUP")" == "2" ]] || fail "the attempts did not finish: $GROUP"
+jq -e '[.group.attempts[] | .check.exitCode // 0] | all(. == 0)' <<<"$GROUP" >/dev/null || fail "an attempt's tests failed: $GROUP"
+KEEP_BRANCH="$(jq -r '.group.attempts[] | select((.index // 0) == 0) | .branch' <<<"$GROUP")"
+DROP_BRANCH="$(jq -r '.group.attempts[] | select(.index == 1) | .branch' <<<"$GROUP")"
+for _ in $(seq 1 40); do
+  git --git-dir="$REPOS/acme/widgets.git" rev-parse -q --verify "refs/heads/$DROP_BRANCH" >/dev/null && git --git-dir="$REPOS/acme/widgets.git" rev-parse -q --verify "refs/heads/$KEEP_BRANCH" >/dev/null && break
+  sleep 0.5
+done
+git --git-dir="$REPOS/acme/widgets.git" rev-parse -q --verify "refs/heads/$DROP_BRANCH" >/dev/null || fail "attempt 2 did not push $DROP_BRANCH"
+rpc relay.v1.HostsService/DiscardAttempts "$(jq -n --arg i "$GROUP_ID" '{groupId:$i}')" >/dev/null 2>&1 && fail "discarding before keeping one was accepted"
+rpc relay.v1.HostsService/KeepAttempt "$(jq -n --arg i "$GROUP_ID" '{groupId:$i,index:0}')" >/dev/null || fail "keep"
+rpc relay.v1.HostsService/DiscardAttempts "$(jq -n --arg i "$GROUP_ID" '{groupId:$i}')" >/dev/null || fail "discard"
+for _ in $(seq 1 120); do
+  GROUP="$(rpc relay.v1.HostsService/GetAttemptGroup "$(jq -n --arg i "$GROUP_ID" '{id:$i}')")"
+  [[ "$(jq -r '.group.attempts[] | select(.index == 1) | .state' <<<"$GROUP")" == "ATTEMPT_STATE_DISCARDED" ]] && break
+  sleep 0.5
+done
+[[ "$(jq -r '.group.attempts[] | select(.index == 1) | .state' <<<"$GROUP")" == "ATTEMPT_STATE_DISCARDED" ]] || fail "attempt 2 was not discarded: $GROUP"
+if git --git-dir="$REPOS/acme/widgets.git" rev-parse -q --verify "refs/heads/$DROP_BRANCH" >/dev/null; then fail "the discarded branch is still there"; fi
+git --git-dir="$REPOS/acme/widgets.git" rev-parse -q --verify "refs/heads/$KEEP_BRANCH" >/dev/null || fail "the kept branch went too"
 
 log "the daemon stops on SIGTERM"
 kill -TERM "$DAEMON"

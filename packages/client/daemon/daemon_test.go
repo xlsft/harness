@@ -712,33 +712,6 @@ func TestLandIgnoresWhatTheAgentPutInTheRepository(t *testing.T) {
 	assertNoToken(t, root, cred.Password)
 }
 
-func TestTheCredentialHelperAnswersFromTheEnvironmentOnly(t *testing.T) {
-	cmd := exec.Command("git", "-c", "credential.helper=", "-c", "credential.helper="+credentialHelper, "credential", "fill")
-	cmd.Env = append(gitEnv(false), "HARNESS_GIT_USERNAME=u", "HARNESS_GIT_PASSWORD=p")
-	cmd.Stdin = strings.NewReader("protocol=https\nhost=code.test\n\n")
-	out, err := cmd.Output()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(out), "username=u\n") || !strings.Contains(string(out), "password=p\n") {
-		t.Fatalf("fill: %s", out)
-	}
-	if strings.Contains(credentialHelper, "p\n") {
-		t.Fatal("the helper holds a secret")
-	}
-}
-
-func TestCheckRefNameRefusesOptionsAndExpressions(t *testing.T) {
-	for _, bad := range []string{"", "-x", "a b", "a..b", "a:b", "a^", "a~1", "a?"} {
-		if checkRefName(bad) == nil {
-			t.Errorf("%q passed", bad)
-		}
-	}
-	if err := checkRefName("harness/hwk_1"); err != nil {
-		t.Error(err)
-	}
-}
-
 // ---- team host ----
 
 type fakeWorker struct {

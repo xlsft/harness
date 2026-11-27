@@ -337,6 +337,16 @@ const (
 	MaxGoalMaxTurns     = 200
 )
 
+// KeyBestOfNParallel and KeyBestOfNBudgetUSD are the user's choices for best-of-N groups (UserPreferences): how many attempts
+// work at once (1 to MaxAttempts), and what one may spend (0 to MaxAttemptBudgetUSD; 0 is no limit of the user's own). The
+// managed policy caps both on the server.
+const (
+	KeyBestOfNParallel  = "bestOfNParallel"
+	KeyBestOfNBudgetUSD = "bestOfNBudgetUsd"
+	MaxAttempts         = 5
+	MaxAttemptBudgetUSD = 1000
+)
+
 // ValidGoalMaxTurns reports whether n can be the cap of a goal.
 func ValidGoalMaxTurns(n int) bool { return n >= 1 && n <= MaxGoalMaxTurns }
 

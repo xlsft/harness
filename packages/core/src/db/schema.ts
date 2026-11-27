@@ -1075,12 +1075,71 @@ export const hostWork = pgTable(
     expiresAt: ts("expires_at").notNull(),
     createdAt: ts("created_at").notNull(),
     updatedAt: ts("updated_at").notNull(),
+    /** Best-of-N (docs/design/hosts.md, decisions 28 to 33): the attempt this work is. */
+    attemptGroupId: text("attempt_group_id").notNull().default(""),
+    attemptIndex: integer("attempt_index").notNull().default(0),
+    testCommand: text("test_command").notNull().default(""),
+    budgetUsd: doublePrecision("budget_usd").notNull().default(0),
+    /** The user discarded it; the daemon is told on its next report. */
+    discardRequested: boolean("discard_requested").notNull().default(false),
   },
   (t) => [
     index("host_work_host_idx").on(t.hostId, t.state),
     index("host_work_user_idx").on(t.userId, t.createdAt),
     uniqueIndex("host_work_idem_idx").on(t.userId, t.idempotencyKey),
+    index("host_work_group_idx").on(t.attemptGroupId),
   ],
+);
+
+/** A best-of-N group: one prompt, N attempts, on one host or in local worktrees of one device. Its owner's alone. */
+export const attemptGroup = pgTable(
+  "attempt_group",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** "" for local worktrees of device_id. */
+    hostId: text("host_id").notNull().default(""),
+    deviceId: text("device_id").notNull().default(""),
+    cwd: text("cwd").notNull().default(""),
+    prompt: text("prompt").notNull(),
+    title: text("title").notNull().default(""),
+    repositoryKey: text("repository_key").notNull().default(""),
+    baseRef: text("base_ref").notNull().default(""),
+    model: text("model").notNull().default(""),
+    effort: integer("effort").notNull().default(0),
+    permissionMode: integer("permission_mode").notNull().default(0),
+    testCommand: text("test_command").notNull().default(""),
+    parallel: integer("parallel").notNull(),
+    budgetUsd: doublePrecision("budget_usd").notNull().default(0),
+    keptIndex: integer("kept_index").notNull().default(-1),
+    idempotencyKey: text("idempotency_key"),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [index("attempt_group_user_idx").on(t.userId, t.createdAt), uniqueIndex("attempt_group_idem_idx").on(t.userId, t.idempotencyKey)],
+);
+
+/** One attempt of a group. A host's attempt is also a host_work row (work_id), which holds its session and branch. */
+export const attempt = pgTable(
+  "attempt",
+  {
+    groupId: text("group_id")
+      .notNull()
+      .references(() => attemptGroup.id, { onDelete: "cascade" }),
+    index: integer("index").notNull(),
+    /** The AttemptState number. */
+    state: integer("state").notNull(),
+    workId: text("work_id").notNull().default(""),
+    sessionId: text("session_id").notNull().default(""),
+    branch: text("branch").notNull().default(""),
+    error: text("error").notNull().default(""),
+    /** The last AttemptCheck, base64 binary protobuf. */
+    check: text("check").notNull().default(""),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.index] })],
 );
 
 /** A user's choice of the host that takes their work while their machines are away; host_id "" means none. No row: their personal host. */

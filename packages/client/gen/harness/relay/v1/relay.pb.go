@@ -577,6 +577,8 @@ type Command struct {
 	//	*Command_ListSlashCommands
 	//	*Command_DeliverAutoFixJob
 	//	*Command_ListRecentFolders
+	//	*Command_GetSessionDiff
+	//	*Command_GetSessionFileDiff
 	Payload isCommand_Payload `protobuf_oneof:"payload"`
 	// RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
 	ExpiresAt     string `protobuf:"bytes,7,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
@@ -933,6 +935,24 @@ func (x *Command) GetListRecentFolders() *v1.ListRecentFoldersRequest {
 	return nil
 }
 
+func (x *Command) GetGetSessionDiff() *v1.GetSessionDiffRequest {
+	if x != nil {
+		if x, ok := x.Payload.(*Command_GetSessionDiff); ok {
+			return x.GetSessionDiff
+		}
+	}
+	return nil
+}
+
+func (x *Command) GetGetSessionFileDiff() *v1.GetSessionFileDiffRequest {
+	if x != nil {
+		if x, ok := x.Payload.(*Command_GetSessionFileDiff); ok {
+			return x.GetSessionFileDiff
+		}
+	}
+	return nil
+}
+
 func (x *Command) GetExpiresAt() string {
 	if x != nil {
 		return x.ExpiresAt
@@ -1068,6 +1088,15 @@ type Command_ListRecentFolders struct {
 	ListRecentFolders *v1.ListRecentFoldersRequest `protobuf:"bytes,280,opt,name=list_recent_folders,json=listRecentFolders,proto3,oneof"`
 }
 
+type Command_GetSessionDiff struct {
+	// Queries of the Changes pane.
+	GetSessionDiff *v1.GetSessionDiffRequest `protobuf:"bytes,360,opt,name=get_session_diff,json=getSessionDiff,proto3,oneof"`
+}
+
+type Command_GetSessionFileDiff struct {
+	GetSessionFileDiff *v1.GetSessionFileDiffRequest `protobuf:"bytes,361,opt,name=get_session_file_diff,json=getSessionFileDiff,proto3,oneof"`
+}
+
 func (*Command_SendUserMessage) isCommand_Payload() {}
 
 func (*Command_Interrupt) isCommand_Payload() {}
@@ -1127,6 +1156,10 @@ func (*Command_ListSlashCommands) isCommand_Payload() {}
 func (*Command_DeliverAutoFixJob) isCommand_Payload() {}
 
 func (*Command_ListRecentFolders) isCommand_Payload() {}
+
+func (*Command_GetSessionDiff) isCommand_Payload() {}
+
+func (*Command_GetSessionFileDiff) isCommand_Payload() {}
 
 type SpawnSessionCommand struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1787,6 +1820,8 @@ type CommandAck struct {
 	//	*CommandAck_StopWorkflow
 	//	*CommandAck_ListSlashCommands
 	//	*CommandAck_ListRecentFolders
+	//	*CommandAck_GetSessionDiff
+	//	*CommandAck_GetSessionFileDiff
 	Result        isCommandAck_Result `protobuf_oneof:"result"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1983,6 +2018,24 @@ func (x *CommandAck) GetListRecentFolders() *v1.ListRecentFoldersResponse {
 	return nil
 }
 
+func (x *CommandAck) GetGetSessionDiff() *v1.GetSessionDiffResponse {
+	if x != nil {
+		if x, ok := x.Result.(*CommandAck_GetSessionDiff); ok {
+			return x.GetSessionDiff
+		}
+	}
+	return nil
+}
+
+func (x *CommandAck) GetGetSessionFileDiff() *v1.GetSessionFileDiffResponse {
+	if x != nil {
+		if x, ok := x.Result.(*CommandAck_GetSessionFileDiff); ok {
+			return x.GetSessionFileDiff
+		}
+	}
+	return nil
+}
+
 type isCommandAck_Result interface {
 	isCommandAck_Result()
 }
@@ -2043,6 +2096,14 @@ type CommandAck_ListRecentFolders struct {
 	ListRecentFolders *v1.ListRecentFoldersResponse `protobuf:"bytes,280,opt,name=list_recent_folders,json=listRecentFolders,proto3,oneof"`
 }
 
+type CommandAck_GetSessionDiff struct {
+	GetSessionDiff *v1.GetSessionDiffResponse `protobuf:"bytes,360,opt,name=get_session_diff,json=getSessionDiff,proto3,oneof"`
+}
+
+type CommandAck_GetSessionFileDiff struct {
+	GetSessionFileDiff *v1.GetSessionFileDiffResponse `protobuf:"bytes,361,opt,name=get_session_file_diff,json=getSessionFileDiff,proto3,oneof"`
+}
+
 func (*CommandAck_SuggestFiles) isCommandAck_Result() {}
 
 func (*CommandAck_SpawnSession) isCommandAck_Result() {}
@@ -2070,6 +2131,10 @@ func (*CommandAck_StopWorkflow) isCommandAck_Result() {}
 func (*CommandAck_ListSlashCommands) isCommandAck_Result() {}
 
 func (*CommandAck_ListRecentFolders) isCommandAck_Result() {}
+
+func (*CommandAck_GetSessionDiff) isCommandAck_Result() {}
+
+func (*CommandAck_GetSessionFileDiff) isCommandAck_Result() {}
 
 type AckCommandsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -5511,6 +5576,182 @@ func (x *RewindResponse) GetResult() *CommandResult {
 	return nil
 }
 
+type GetSessionDiffRequest struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Request       *v1.GetSessionDiffRequest `protobuf:"bytes,1,opt,name=request,proto3" json:"request,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSessionDiffRequest) Reset() {
+	*x = GetSessionDiffRequest{}
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[82]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSessionDiffRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSessionDiffRequest) ProtoMessage() {}
+
+func (x *GetSessionDiffRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[82]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSessionDiffRequest.ProtoReflect.Descriptor instead.
+func (*GetSessionDiffRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{82}
+}
+
+func (x *GetSessionDiffRequest) GetRequest() *v1.GetSessionDiffRequest {
+	if x != nil {
+		return x.Request
+	}
+	return nil
+}
+
+type GetSessionDiffResponse struct {
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Response      *v1.GetSessionDiffResponse `protobuf:"bytes,1,opt,name=response,proto3" json:"response,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSessionDiffResponse) Reset() {
+	*x = GetSessionDiffResponse{}
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[83]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSessionDiffResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSessionDiffResponse) ProtoMessage() {}
+
+func (x *GetSessionDiffResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[83]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSessionDiffResponse.ProtoReflect.Descriptor instead.
+func (*GetSessionDiffResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{83}
+}
+
+func (x *GetSessionDiffResponse) GetResponse() *v1.GetSessionDiffResponse {
+	if x != nil {
+		return x.Response
+	}
+	return nil
+}
+
+type GetSessionFileDiffRequest struct {
+	state         protoimpl.MessageState        `protogen:"open.v1"`
+	Request       *v1.GetSessionFileDiffRequest `protobuf:"bytes,1,opt,name=request,proto3" json:"request,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSessionFileDiffRequest) Reset() {
+	*x = GetSessionFileDiffRequest{}
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[84]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSessionFileDiffRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSessionFileDiffRequest) ProtoMessage() {}
+
+func (x *GetSessionFileDiffRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[84]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSessionFileDiffRequest.ProtoReflect.Descriptor instead.
+func (*GetSessionFileDiffRequest) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{84}
+}
+
+func (x *GetSessionFileDiffRequest) GetRequest() *v1.GetSessionFileDiffRequest {
+	if x != nil {
+		return x.Request
+	}
+	return nil
+}
+
+type GetSessionFileDiffResponse struct {
+	state         protoimpl.MessageState         `protogen:"open.v1"`
+	Response      *v1.GetSessionFileDiffResponse `protobuf:"bytes,1,opt,name=response,proto3" json:"response,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSessionFileDiffResponse) Reset() {
+	*x = GetSessionFileDiffResponse{}
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[85]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSessionFileDiffResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSessionFileDiffResponse) ProtoMessage() {}
+
+func (x *GetSessionFileDiffResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[85]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSessionFileDiffResponse.ProtoReflect.Descriptor instead.
+func (*GetSessionFileDiffResponse) Descriptor() ([]byte, []int) {
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{85}
+}
+
+func (x *GetSessionFileDiffResponse) GetResponse() *v1.GetSessionFileDiffResponse {
+	if x != nil {
+		return x.Response
+	}
+	return nil
+}
+
 type ListCheckpointsRequest struct {
 	state         protoimpl.MessageState     `protogen:"open.v1"`
 	Request       *v1.ListCheckpointsRequest `protobuf:"bytes,1,opt,name=request,proto3" json:"request,omitempty"`
@@ -5520,7 +5761,7 @@ type ListCheckpointsRequest struct {
 
 func (x *ListCheckpointsRequest) Reset() {
 	*x = ListCheckpointsRequest{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[82]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5532,7 +5773,7 @@ func (x *ListCheckpointsRequest) String() string {
 func (*ListCheckpointsRequest) ProtoMessage() {}
 
 func (x *ListCheckpointsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[82]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5545,7 +5786,7 @@ func (x *ListCheckpointsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCheckpointsRequest.ProtoReflect.Descriptor instead.
 func (*ListCheckpointsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{82}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *ListCheckpointsRequest) GetRequest() *v1.ListCheckpointsRequest {
@@ -5564,7 +5805,7 @@ type ListCheckpointsResponse struct {
 
 func (x *ListCheckpointsResponse) Reset() {
 	*x = ListCheckpointsResponse{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[83]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5576,7 +5817,7 @@ func (x *ListCheckpointsResponse) String() string {
 func (*ListCheckpointsResponse) ProtoMessage() {}
 
 func (x *ListCheckpointsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[83]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5589,7 +5830,7 @@ func (x *ListCheckpointsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCheckpointsResponse.ProtoReflect.Descriptor instead.
 func (*ListCheckpointsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{83}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *ListCheckpointsResponse) GetResponse() *v1.ListCheckpointsResponse {
@@ -5608,7 +5849,7 @@ type ListTasksRequest struct {
 
 func (x *ListTasksRequest) Reset() {
 	*x = ListTasksRequest{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[84]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5620,7 +5861,7 @@ func (x *ListTasksRequest) String() string {
 func (*ListTasksRequest) ProtoMessage() {}
 
 func (x *ListTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[84]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5633,7 +5874,7 @@ func (x *ListTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTasksRequest.ProtoReflect.Descriptor instead.
 func (*ListTasksRequest) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{84}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *ListTasksRequest) GetRequest() *v1.ListTasksRequest {
@@ -5652,7 +5893,7 @@ type ListTasksResponse struct {
 
 func (x *ListTasksResponse) Reset() {
 	*x = ListTasksResponse{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[85]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5664,7 +5905,7 @@ func (x *ListTasksResponse) String() string {
 func (*ListTasksResponse) ProtoMessage() {}
 
 func (x *ListTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[85]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5677,7 +5918,7 @@ func (x *ListTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTasksResponse.ProtoReflect.Descriptor instead.
 func (*ListTasksResponse) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{85}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *ListTasksResponse) GetResponse() *v1.ListTasksResponse {
@@ -5696,7 +5937,7 @@ type ListOutputStylesRequest struct {
 
 func (x *ListOutputStylesRequest) Reset() {
 	*x = ListOutputStylesRequest{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[86]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5708,7 +5949,7 @@ func (x *ListOutputStylesRequest) String() string {
 func (*ListOutputStylesRequest) ProtoMessage() {}
 
 func (x *ListOutputStylesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[86]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5721,7 +5962,7 @@ func (x *ListOutputStylesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOutputStylesRequest.ProtoReflect.Descriptor instead.
 func (*ListOutputStylesRequest) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{86}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *ListOutputStylesRequest) GetRequest() *v1.ListOutputStylesRequest {
@@ -5740,7 +5981,7 @@ type ListOutputStylesResponse struct {
 
 func (x *ListOutputStylesResponse) Reset() {
 	*x = ListOutputStylesResponse{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[87]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5752,7 +5993,7 @@ func (x *ListOutputStylesResponse) String() string {
 func (*ListOutputStylesResponse) ProtoMessage() {}
 
 func (x *ListOutputStylesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[87]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5765,7 +6006,7 @@ func (x *ListOutputStylesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListOutputStylesResponse.ProtoReflect.Descriptor instead.
 func (*ListOutputStylesResponse) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{87}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *ListOutputStylesResponse) GetResponse() *v1.ListOutputStylesResponse {
@@ -5784,7 +6025,7 @@ type ListSlashCommandsRequest struct {
 
 func (x *ListSlashCommandsRequest) Reset() {
 	*x = ListSlashCommandsRequest{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[88]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5796,7 +6037,7 @@ func (x *ListSlashCommandsRequest) String() string {
 func (*ListSlashCommandsRequest) ProtoMessage() {}
 
 func (x *ListSlashCommandsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[88]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5809,7 +6050,7 @@ func (x *ListSlashCommandsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSlashCommandsRequest.ProtoReflect.Descriptor instead.
 func (*ListSlashCommandsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{88}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *ListSlashCommandsRequest) GetRequest() *v1.ListSlashCommandsRequest {
@@ -5828,7 +6069,7 @@ type ListSlashCommandsResponse struct {
 
 func (x *ListSlashCommandsResponse) Reset() {
 	*x = ListSlashCommandsResponse{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[89]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5840,7 +6081,7 @@ func (x *ListSlashCommandsResponse) String() string {
 func (*ListSlashCommandsResponse) ProtoMessage() {}
 
 func (x *ListSlashCommandsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[89]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5853,7 +6094,7 @@ func (x *ListSlashCommandsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSlashCommandsResponse.ProtoReflect.Descriptor instead.
 func (*ListSlashCommandsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{89}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *ListSlashCommandsResponse) GetResponse() *v1.ListSlashCommandsResponse {
@@ -5874,7 +6115,7 @@ type ListHostFoldersRequest struct {
 
 func (x *ListHostFoldersRequest) Reset() {
 	*x = ListHostFoldersRequest{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[90]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5886,7 +6127,7 @@ func (x *ListHostFoldersRequest) String() string {
 func (*ListHostFoldersRequest) ProtoMessage() {}
 
 func (x *ListHostFoldersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[90]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5899,7 +6140,7 @@ func (x *ListHostFoldersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListHostFoldersRequest.ProtoReflect.Descriptor instead.
 func (*ListHostFoldersRequest) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{90}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *ListHostFoldersRequest) GetHostId() string {
@@ -5925,7 +6166,7 @@ type ListHostFoldersResponse struct {
 
 func (x *ListHostFoldersResponse) Reset() {
 	*x = ListHostFoldersResponse{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[91]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5937,7 +6178,7 @@ func (x *ListHostFoldersResponse) String() string {
 func (*ListHostFoldersResponse) ProtoMessage() {}
 
 func (x *ListHostFoldersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[91]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5950,7 +6191,7 @@ func (x *ListHostFoldersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListHostFoldersResponse.ProtoReflect.Descriptor instead.
 func (*ListHostFoldersResponse) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{91}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *ListHostFoldersResponse) GetFolders() []*v1.RecentFolder {
@@ -5971,7 +6212,7 @@ type SpawnSessionRequest struct {
 
 func (x *SpawnSessionRequest) Reset() {
 	*x = SpawnSessionRequest{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[92]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5983,7 +6224,7 @@ func (x *SpawnSessionRequest) String() string {
 func (*SpawnSessionRequest) ProtoMessage() {}
 
 func (x *SpawnSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[92]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5996,7 +6237,7 @@ func (x *SpawnSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SpawnSessionRequest.ProtoReflect.Descriptor instead.
 func (*SpawnSessionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{92}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *SpawnSessionRequest) GetHostId() string {
@@ -6030,7 +6271,7 @@ type SpawnSessionResponse struct {
 
 func (x *SpawnSessionResponse) Reset() {
 	*x = SpawnSessionResponse{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[93]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6042,7 +6283,7 @@ func (x *SpawnSessionResponse) String() string {
 func (*SpawnSessionResponse) ProtoMessage() {}
 
 func (x *SpawnSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[93]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6055,7 +6296,7 @@ func (x *SpawnSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SpawnSessionResponse.ProtoReflect.Descriptor instead.
 func (*SpawnSessionResponse) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{93}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *SpawnSessionResponse) GetSession() *v1.SessionInfo {
@@ -6076,7 +6317,7 @@ type RequestTunnelRequest struct {
 
 func (x *RequestTunnelRequest) Reset() {
 	*x = RequestTunnelRequest{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[94]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6088,7 +6329,7 @@ func (x *RequestTunnelRequest) String() string {
 func (*RequestTunnelRequest) ProtoMessage() {}
 
 func (x *RequestTunnelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[94]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6101,7 +6342,7 @@ func (x *RequestTunnelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestTunnelRequest.ProtoReflect.Descriptor instead.
 func (*RequestTunnelRequest) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{94}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *RequestTunnelRequest) GetHostId() string {
@@ -6134,7 +6375,7 @@ type RequestTunnelResponse struct {
 
 func (x *RequestTunnelResponse) Reset() {
 	*x = RequestTunnelResponse{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[95]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6146,7 +6387,7 @@ func (x *RequestTunnelResponse) String() string {
 func (*RequestTunnelResponse) ProtoMessage() {}
 
 func (x *RequestTunnelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[95]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6159,7 +6400,7 @@ func (x *RequestTunnelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RequestTunnelResponse.ProtoReflect.Descriptor instead.
 func (*RequestTunnelResponse) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{95}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *RequestTunnelResponse) GetTunnel() *Tunnel {
@@ -6180,7 +6421,7 @@ type ListTunnelsRequest struct {
 
 func (x *ListTunnelsRequest) Reset() {
 	*x = ListTunnelsRequest{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[96]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6192,7 +6433,7 @@ func (x *ListTunnelsRequest) String() string {
 func (*ListTunnelsRequest) ProtoMessage() {}
 
 func (x *ListTunnelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[96]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6205,7 +6446,7 @@ func (x *ListTunnelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTunnelsRequest.ProtoReflect.Descriptor instead.
 func (*ListTunnelsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{96}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *ListTunnelsRequest) GetHostId() string {
@@ -6231,7 +6472,7 @@ type ListTunnelsResponse struct {
 
 func (x *ListTunnelsResponse) Reset() {
 	*x = ListTunnelsResponse{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[97]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6243,7 +6484,7 @@ func (x *ListTunnelsResponse) String() string {
 func (*ListTunnelsResponse) ProtoMessage() {}
 
 func (x *ListTunnelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[97]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6256,7 +6497,7 @@ func (x *ListTunnelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTunnelsResponse.ProtoReflect.Descriptor instead.
 func (*ListTunnelsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{97}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *ListTunnelsResponse) GetTunnels() []*Tunnel {
@@ -6275,7 +6516,7 @@ type AuthorizeTunnelRequest struct {
 
 func (x *AuthorizeTunnelRequest) Reset() {
 	*x = AuthorizeTunnelRequest{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[98]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6287,7 +6528,7 @@ func (x *AuthorizeTunnelRequest) String() string {
 func (*AuthorizeTunnelRequest) ProtoMessage() {}
 
 func (x *AuthorizeTunnelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[98]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6300,7 +6541,7 @@ func (x *AuthorizeTunnelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorizeTunnelRequest.ProtoReflect.Descriptor instead.
 func (*AuthorizeTunnelRequest) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{98}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *AuthorizeTunnelRequest) GetTunnelId() string {
@@ -6322,7 +6563,7 @@ type AuthorizeTunnelResponse struct {
 
 func (x *AuthorizeTunnelResponse) Reset() {
 	*x = AuthorizeTunnelResponse{}
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[99]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6334,7 +6575,7 @@ func (x *AuthorizeTunnelResponse) String() string {
 func (*AuthorizeTunnelResponse) ProtoMessage() {}
 
 func (x *AuthorizeTunnelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_relay_v1_relay_proto_msgTypes[99]
+	mi := &file_harness_relay_v1_relay_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6347,7 +6588,7 @@ func (x *AuthorizeTunnelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuthorizeTunnelResponse.ProtoReflect.Descriptor instead.
 func (*AuthorizeTunnelResponse) Descriptor() ([]byte, []int) {
-	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{99}
+	return file_harness_relay_v1_relay_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *AuthorizeTunnelResponse) GetAccessUrl() string {
@@ -6368,7 +6609,7 @@ var File_harness_relay_v1_relay_proto protoreflect.FileDescriptor
 
 const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\n" +
-	"\x1charness/relay/v1/relay.proto\x12\x10harness.relay.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1fharness/agent/v1/auto_fix.proto\x1a&harness/agent/v1/device_settings.proto\x1a$harness/agent/v1/session_links.proto\x1a%harness/agent/v1/slash_commands.proto\x1a harness/agent/v1/subagents.proto\x1a harness/agent/v1/workflows.proto\x1a\x1eharness/common/v1/errors.proto\x1a harness/relay/v1/workflows.proto\"\xec\x01\n" +
+	"\x1charness/relay/v1/relay.proto\x12\x10harness.relay.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1fharness/agent/v1/auto_fix.proto\x1a&harness/agent/v1/device_settings.proto\x1a#harness/agent/v1/session_diff.proto\x1a$harness/agent/v1/session_links.proto\x1a%harness/agent/v1/slash_commands.proto\x1a harness/agent/v1/subagents.proto\x1a harness/agent/v1/workflows.proto\x1a\x1eharness/common/v1/errors.proto\x1a harness/relay/v1/workflows.proto\"\xec\x01\n" +
 	"\x13RegisterHostRequest\x12\x1f\n" +
 	"\vinstance_id\x18\x01 \x01(\tR\n" +
 	"instanceId\x12%\n" +
@@ -6387,7 +6628,7 @@ const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\acommand\x18\x01 \x01(\v2\x19.harness.relay.v1.CommandH\x00R\acommand\x12T\n" +
 	"\x12session_superseded\x18\x02 \x01(\v2#.harness.relay.v1.SessionSupersededH\x00R\x11sessionSuperseded\x12;\n" +
 	"\theartbeat\x18\x03 \x01(\v2\x1b.harness.relay.v1.HeartbeatH\x00R\theartbeatB\a\n" +
-	"\x05event\"\xb5\x15\n" +
+	"\x05event\"\xee\x16\n" +
 	"\aCommand\x12\x1d\n" +
 	"\n" +
 	"command_id\x18\x01 \x01(\tR\tcommandId\x12\x1d\n" +
@@ -6431,7 +6672,9 @@ const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\rstop_workflow\x18Z \x01(\v2%.harness.agent.v1.StopWorkflowRequestH\x00R\fstopWorkflow\x12\\\n" +
 	"\x13list_slash_commands\x18n \x01(\v2*.harness.agent.v1.ListSlashCommandsRequestH\x00R\x11listSlashCommands\x12^\n" +
 	"\x14deliver_auto_fix_job\x18\x96\x01 \x01(\v2*.harness.agent.v1.DeliverAutoFixJobRequestH\x00R\x11deliverAutoFixJob\x12]\n" +
-	"\x13list_recent_folders\x18\x98\x02 \x01(\v2*.harness.agent.v1.ListRecentFoldersRequestH\x00R\x11listRecentFolders\x12\x1d\n" +
+	"\x13list_recent_folders\x18\x98\x02 \x01(\v2*.harness.agent.v1.ListRecentFoldersRequestH\x00R\x11listRecentFolders\x12T\n" +
+	"\x10get_session_diff\x18\xe8\x02 \x01(\v2'.harness.agent.v1.GetSessionDiffRequestH\x00R\x0egetSessionDiff\x12a\n" +
+	"\x15get_session_file_diff\x18\xe9\x02 \x01(\v2+.harness.agent.v1.GetSessionFileDiffRequestH\x00R\x12getSessionFileDiff\x12\x1d\n" +
 	"\n" +
 	"expires_at\x18\a \x01(\tR\texpiresAtB\t\n" +
 	"\apayload\"\xc4\x01\n" +
@@ -6479,7 +6722,7 @@ const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\tacked_seq\x18\x01 \x01(\x03R\backedSeq\x12\x1e\n" +
 	"\n" +
 	"duplicates\x18\x02 \x01(\x05R\n" +
-	"duplicates\"\xc8\v\n" +
+	"duplicates\"\x83\r\n" +
 	"\n" +
 	"CommandAck\x12\x1d\n" +
 	"\n" +
@@ -6503,7 +6746,9 @@ const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\x17get_subagent_transcript\x18\x1f \x01(\v2/.harness.agent.v1.GetSubagentTranscriptResponseH\x00R\x15getSubagentTranscript\x12M\n" +
 	"\rstop_workflow\x18( \x01(\v2&.harness.agent.v1.StopWorkflowResponseH\x00R\fstopWorkflow\x12]\n" +
 	"\x13list_slash_commands\x18n \x01(\v2+.harness.agent.v1.ListSlashCommandsResponseH\x00R\x11listSlashCommands\x12^\n" +
-	"\x13list_recent_folders\x18\x98\x02 \x01(\v2+.harness.agent.v1.ListRecentFoldersResponseH\x00R\x11listRecentFolders\"z\n" +
+	"\x13list_recent_folders\x18\x98\x02 \x01(\v2+.harness.agent.v1.ListRecentFoldersResponseH\x00R\x11listRecentFolders\x12U\n" +
+	"\x10get_session_diff\x18\xe8\x02 \x01(\v2(.harness.agent.v1.GetSessionDiffResponseH\x00R\x0egetSessionDiff\x12b\n" +
+	"\x15get_session_file_diff\x18\xe9\x02 \x01(\v2,.harness.agent.v1.GetSessionFileDiffResponseH\x00R\x12getSessionFileDiff\"z\n" +
 	"\aOutcome\x12\x17\n" +
 	"\x13OUTCOME_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
@@ -6723,7 +6968,15 @@ const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\arequest\x18\x01 \x01(\v2\x1f.harness.agent.v1.RewindRequestR\arequest\x12:\n" +
 	"\aoptions\x18\x02 \x01(\v2 .harness.relay.v1.CommandOptionsR\aoptions\"I\n" +
 	"\x0eRewindResponse\x127\n" +
-	"\x06result\x18\x01 \x01(\v2\x1f.harness.relay.v1.CommandResultR\x06result\"\\\n" +
+	"\x06result\x18\x01 \x01(\v2\x1f.harness.relay.v1.CommandResultR\x06result\"Z\n" +
+	"\x15GetSessionDiffRequest\x12A\n" +
+	"\arequest\x18\x01 \x01(\v2'.harness.agent.v1.GetSessionDiffRequestR\arequest\"^\n" +
+	"\x16GetSessionDiffResponse\x12D\n" +
+	"\bresponse\x18\x01 \x01(\v2(.harness.agent.v1.GetSessionDiffResponseR\bresponse\"b\n" +
+	"\x19GetSessionFileDiffRequest\x12E\n" +
+	"\arequest\x18\x01 \x01(\v2+.harness.agent.v1.GetSessionFileDiffRequestR\arequest\"f\n" +
+	"\x1aGetSessionFileDiffResponse\x12H\n" +
+	"\bresponse\x18\x01 \x01(\v2,.harness.agent.v1.GetSessionFileDiffResponseR\bresponse\"\\\n" +
 	"\x16ListCheckpointsRequest\x12B\n" +
 	"\arequest\x18\x01 \x01(\v2(.harness.agent.v1.ListCheckpointsRequestR\arequest\"`\n" +
 	"\x17ListCheckpointsResponse\x12E\n" +
@@ -6784,7 +7037,7 @@ const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\x1aDELIVERY_STATE_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15DELIVERY_STATE_QUEUED\x10\x01\x12\x18\n" +
 	"\x14DELIVERY_STATE_ACKED\x10\x02\x12\x1a\n" +
-	"\x16DELIVERY_STATE_EXPIRED\x10\x032\xa6!\n" +
+	"\x16DELIVERY_STATE_EXPIRED\x10\x032\xfc\"\n" +
 	"\fRelayService\x12]\n" +
 	"\fRegisterHost\x12%.harness.relay.v1.RegisterHostRequest\x1a&.harness.relay.v1.RegisterHostResponse\x12e\n" +
 	"\x0eOpenHostStream\x12'.harness.relay.v1.OpenHostStreamRequest\x1a(.harness.relay.v1.OpenHostStreamResponse0\x01\x12f\n" +
@@ -6817,7 +7070,9 @@ const file_harness_relay_v1_relay_proto_rawDesc = "" +
 	"\x0fListCheckpoints\x12(.harness.relay.v1.ListCheckpointsRequest\x1a).harness.relay.v1.ListCheckpointsResponse\x12T\n" +
 	"\tListTasks\x12\".harness.relay.v1.ListTasksRequest\x1a#.harness.relay.v1.ListTasksResponse\x12i\n" +
 	"\x10ListOutputStyles\x12).harness.relay.v1.ListOutputStylesRequest\x1a*.harness.relay.v1.ListOutputStylesResponse\x12l\n" +
-	"\x11ListSlashCommands\x12*.harness.relay.v1.ListSlashCommandsRequest\x1a+.harness.relay.v1.ListSlashCommandsResponse\x12]\n" +
+	"\x11ListSlashCommands\x12*.harness.relay.v1.ListSlashCommandsRequest\x1a+.harness.relay.v1.ListSlashCommandsResponse\x12c\n" +
+	"\x0eGetSessionDiff\x12'.harness.relay.v1.GetSessionDiffRequest\x1a(.harness.relay.v1.GetSessionDiffResponse\x12o\n" +
+	"\x12GetSessionFileDiff\x12+.harness.relay.v1.GetSessionFileDiffRequest\x1a,.harness.relay.v1.GetSessionFileDiffResponse\x12]\n" +
 	"\fSpawnSession\x12%.harness.relay.v1.SpawnSessionRequest\x1a&.harness.relay.v1.SpawnSessionResponse\x12f\n" +
 	"\x0fListHostFolders\x12(.harness.relay.v1.ListHostFoldersRequest\x1a).harness.relay.v1.ListHostFoldersResponse\x12`\n" +
 	"\rRequestTunnel\x12&.harness.relay.v1.RequestTunnelRequest\x1a'.harness.relay.v1.RequestTunnelResponse\x12Z\n" +
@@ -6845,7 +7100,7 @@ func file_harness_relay_v1_relay_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_relay_v1_relay_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_harness_relay_v1_relay_proto_msgTypes = make([]protoimpl.MessageInfo, 100)
+var file_harness_relay_v1_relay_proto_msgTypes = make([]protoimpl.MessageInfo, 104)
 var file_harness_relay_v1_relay_proto_goTypes = []any{
 	(TunnelKind)(0),                          // 0: harness.relay.v1.TunnelKind
 	(PresenceState)(0),                       // 1: harness.relay.v1.PresenceState
@@ -6933,315 +7188,335 @@ var file_harness_relay_v1_relay_proto_goTypes = []any{
 	(*CompactResponse)(nil),                  // 83: harness.relay.v1.CompactResponse
 	(*RewindRequest)(nil),                    // 84: harness.relay.v1.RewindRequest
 	(*RewindResponse)(nil),                   // 85: harness.relay.v1.RewindResponse
-	(*ListCheckpointsRequest)(nil),           // 86: harness.relay.v1.ListCheckpointsRequest
-	(*ListCheckpointsResponse)(nil),          // 87: harness.relay.v1.ListCheckpointsResponse
-	(*ListTasksRequest)(nil),                 // 88: harness.relay.v1.ListTasksRequest
-	(*ListTasksResponse)(nil),                // 89: harness.relay.v1.ListTasksResponse
-	(*ListOutputStylesRequest)(nil),          // 90: harness.relay.v1.ListOutputStylesRequest
-	(*ListOutputStylesResponse)(nil),         // 91: harness.relay.v1.ListOutputStylesResponse
-	(*ListSlashCommandsRequest)(nil),         // 92: harness.relay.v1.ListSlashCommandsRequest
-	(*ListSlashCommandsResponse)(nil),        // 93: harness.relay.v1.ListSlashCommandsResponse
-	(*ListHostFoldersRequest)(nil),           // 94: harness.relay.v1.ListHostFoldersRequest
-	(*ListHostFoldersResponse)(nil),          // 95: harness.relay.v1.ListHostFoldersResponse
-	(*SpawnSessionRequest)(nil),              // 96: harness.relay.v1.SpawnSessionRequest
-	(*SpawnSessionResponse)(nil),             // 97: harness.relay.v1.SpawnSessionResponse
-	(*RequestTunnelRequest)(nil),             // 98: harness.relay.v1.RequestTunnelRequest
-	(*RequestTunnelResponse)(nil),            // 99: harness.relay.v1.RequestTunnelResponse
-	(*ListTunnelsRequest)(nil),               // 100: harness.relay.v1.ListTunnelsRequest
-	(*ListTunnelsResponse)(nil),              // 101: harness.relay.v1.ListTunnelsResponse
-	(*AuthorizeTunnelRequest)(nil),           // 102: harness.relay.v1.AuthorizeTunnelRequest
-	(*AuthorizeTunnelResponse)(nil),          // 103: harness.relay.v1.AuthorizeTunnelResponse
-	(*v1.SendUserMessageRequest)(nil),        // 104: harness.agent.v1.SendUserMessageRequest
-	(*v1.InterruptRequest)(nil),              // 105: harness.agent.v1.InterruptRequest
-	(*v1.RespondToPermissionRequest)(nil),    // 106: harness.agent.v1.RespondToPermissionRequest
-	(*v1.AnswerQuestionRequest)(nil),         // 107: harness.agent.v1.AnswerQuestionRequest
-	(*v1.SetModelRequest)(nil),               // 108: harness.agent.v1.SetModelRequest
-	(*v1.SetEffortRequest)(nil),              // 109: harness.agent.v1.SetEffortRequest
-	(*v1.SetPermissionModeRequest)(nil),      // 110: harness.agent.v1.SetPermissionModeRequest
-	(*v1.SuggestFilesRequest)(nil),           // 111: harness.agent.v1.SuggestFilesRequest
-	(*v1.SetOutputStyleRequest)(nil),         // 112: harness.agent.v1.SetOutputStyleRequest
-	(*v1.RemoveQueuedMessageRequest)(nil),    // 113: harness.agent.v1.RemoveQueuedMessageRequest
-	(*v1.RespondToPlanRequest)(nil),          // 114: harness.agent.v1.RespondToPlanRequest
-	(*v1.StopTaskRequest)(nil),               // 115: harness.agent.v1.StopTaskRequest
-	(*v1.CloseSessionRequest)(nil),           // 116: harness.agent.v1.CloseSessionRequest
-	(*v1.CompactRequest)(nil),                // 117: harness.agent.v1.CompactRequest
-	(*v1.RewindRequest)(nil),                 // 118: harness.agent.v1.RewindRequest
-	(*v1.ListCheckpointsRequest)(nil),        // 119: harness.agent.v1.ListCheckpointsRequest
-	(*v1.ListTasksRequest)(nil),              // 120: harness.agent.v1.ListTasksRequest
-	(*v1.ListOutputStylesRequest)(nil),       // 121: harness.agent.v1.ListOutputStylesRequest
-	(*v1.SetAutoContinueRequest)(nil),        // 122: harness.agent.v1.SetAutoContinueRequest
-	(*v1.SetKeepAwakeRequest)(nil),           // 123: harness.agent.v1.SetKeepAwakeRequest
-	(*v1.StopSubagentRequest)(nil),           // 124: harness.agent.v1.StopSubagentRequest
-	(*v1.GetSubagentTranscriptRequest)(nil),  // 125: harness.agent.v1.GetSubagentTranscriptRequest
-	(*v1.DeliverSessionNoteRequest)(nil),     // 126: harness.agent.v1.DeliverSessionNoteRequest
-	(*v1.ResolveSessionProposalRequest)(nil), // 127: harness.agent.v1.ResolveSessionProposalRequest
-	(*v1.StopWorkflowRequest)(nil),           // 128: harness.agent.v1.StopWorkflowRequest
-	(*v1.ListSlashCommandsRequest)(nil),      // 129: harness.agent.v1.ListSlashCommandsRequest
-	(*v1.DeliverAutoFixJobRequest)(nil),      // 130: harness.agent.v1.DeliverAutoFixJobRequest
-	(*v1.ListRecentFoldersRequest)(nil),      // 131: harness.agent.v1.ListRecentFoldersRequest
-	(*v1.CreateSessionRequest)(nil),          // 132: harness.agent.v1.CreateSessionRequest
-	(*v1.SessionInfo)(nil),                   // 133: harness.agent.v1.SessionInfo
-	(*v1.SessionEvent)(nil),                  // 134: harness.agent.v1.SessionEvent
-	(*v11.ErrorInfo)(nil),                    // 135: harness.common.v1.ErrorInfo
-	(*v1.SuggestFilesResponse)(nil),          // 136: harness.agent.v1.SuggestFilesResponse
-	(*v1.CreateSessionResponse)(nil),         // 137: harness.agent.v1.CreateSessionResponse
-	(*v1.RemoveQueuedMessageResponse)(nil),   // 138: harness.agent.v1.RemoveQueuedMessageResponse
-	(*v1.CompactResponse)(nil),               // 139: harness.agent.v1.CompactResponse
-	(*v1.RewindResponse)(nil),                // 140: harness.agent.v1.RewindResponse
-	(*v1.ListCheckpointsResponse)(nil),       // 141: harness.agent.v1.ListCheckpointsResponse
-	(*v1.ListTasksResponse)(nil),             // 142: harness.agent.v1.ListTasksResponse
-	(*v1.ListOutputStylesResponse)(nil),      // 143: harness.agent.v1.ListOutputStylesResponse
-	(*v1.StopSubagentResponse)(nil),          // 144: harness.agent.v1.StopSubagentResponse
-	(*v1.GetSubagentTranscriptResponse)(nil), // 145: harness.agent.v1.GetSubagentTranscriptResponse
-	(*v1.StopWorkflowResponse)(nil),          // 146: harness.agent.v1.StopWorkflowResponse
-	(*v1.ListSlashCommandsResponse)(nil),     // 147: harness.agent.v1.ListSlashCommandsResponse
-	(*v1.ListRecentFoldersResponse)(nil),     // 148: harness.agent.v1.ListRecentFoldersResponse
-	(v1.SessionStatus)(0),                    // 149: harness.agent.v1.SessionStatus
-	(*v1.RecentFolder)(nil),                  // 150: harness.agent.v1.RecentFolder
-	(*StopWorkflowRequest)(nil),              // 151: harness.relay.v1.StopWorkflowRequest
-	(*StopWorkflowResponse)(nil),             // 152: harness.relay.v1.StopWorkflowResponse
+	(*GetSessionDiffRequest)(nil),            // 86: harness.relay.v1.GetSessionDiffRequest
+	(*GetSessionDiffResponse)(nil),           // 87: harness.relay.v1.GetSessionDiffResponse
+	(*GetSessionFileDiffRequest)(nil),        // 88: harness.relay.v1.GetSessionFileDiffRequest
+	(*GetSessionFileDiffResponse)(nil),       // 89: harness.relay.v1.GetSessionFileDiffResponse
+	(*ListCheckpointsRequest)(nil),           // 90: harness.relay.v1.ListCheckpointsRequest
+	(*ListCheckpointsResponse)(nil),          // 91: harness.relay.v1.ListCheckpointsResponse
+	(*ListTasksRequest)(nil),                 // 92: harness.relay.v1.ListTasksRequest
+	(*ListTasksResponse)(nil),                // 93: harness.relay.v1.ListTasksResponse
+	(*ListOutputStylesRequest)(nil),          // 94: harness.relay.v1.ListOutputStylesRequest
+	(*ListOutputStylesResponse)(nil),         // 95: harness.relay.v1.ListOutputStylesResponse
+	(*ListSlashCommandsRequest)(nil),         // 96: harness.relay.v1.ListSlashCommandsRequest
+	(*ListSlashCommandsResponse)(nil),        // 97: harness.relay.v1.ListSlashCommandsResponse
+	(*ListHostFoldersRequest)(nil),           // 98: harness.relay.v1.ListHostFoldersRequest
+	(*ListHostFoldersResponse)(nil),          // 99: harness.relay.v1.ListHostFoldersResponse
+	(*SpawnSessionRequest)(nil),              // 100: harness.relay.v1.SpawnSessionRequest
+	(*SpawnSessionResponse)(nil),             // 101: harness.relay.v1.SpawnSessionResponse
+	(*RequestTunnelRequest)(nil),             // 102: harness.relay.v1.RequestTunnelRequest
+	(*RequestTunnelResponse)(nil),            // 103: harness.relay.v1.RequestTunnelResponse
+	(*ListTunnelsRequest)(nil),               // 104: harness.relay.v1.ListTunnelsRequest
+	(*ListTunnelsResponse)(nil),              // 105: harness.relay.v1.ListTunnelsResponse
+	(*AuthorizeTunnelRequest)(nil),           // 106: harness.relay.v1.AuthorizeTunnelRequest
+	(*AuthorizeTunnelResponse)(nil),          // 107: harness.relay.v1.AuthorizeTunnelResponse
+	(*v1.SendUserMessageRequest)(nil),        // 108: harness.agent.v1.SendUserMessageRequest
+	(*v1.InterruptRequest)(nil),              // 109: harness.agent.v1.InterruptRequest
+	(*v1.RespondToPermissionRequest)(nil),    // 110: harness.agent.v1.RespondToPermissionRequest
+	(*v1.AnswerQuestionRequest)(nil),         // 111: harness.agent.v1.AnswerQuestionRequest
+	(*v1.SetModelRequest)(nil),               // 112: harness.agent.v1.SetModelRequest
+	(*v1.SetEffortRequest)(nil),              // 113: harness.agent.v1.SetEffortRequest
+	(*v1.SetPermissionModeRequest)(nil),      // 114: harness.agent.v1.SetPermissionModeRequest
+	(*v1.SuggestFilesRequest)(nil),           // 115: harness.agent.v1.SuggestFilesRequest
+	(*v1.SetOutputStyleRequest)(nil),         // 116: harness.agent.v1.SetOutputStyleRequest
+	(*v1.RemoveQueuedMessageRequest)(nil),    // 117: harness.agent.v1.RemoveQueuedMessageRequest
+	(*v1.RespondToPlanRequest)(nil),          // 118: harness.agent.v1.RespondToPlanRequest
+	(*v1.StopTaskRequest)(nil),               // 119: harness.agent.v1.StopTaskRequest
+	(*v1.CloseSessionRequest)(nil),           // 120: harness.agent.v1.CloseSessionRequest
+	(*v1.CompactRequest)(nil),                // 121: harness.agent.v1.CompactRequest
+	(*v1.RewindRequest)(nil),                 // 122: harness.agent.v1.RewindRequest
+	(*v1.ListCheckpointsRequest)(nil),        // 123: harness.agent.v1.ListCheckpointsRequest
+	(*v1.ListTasksRequest)(nil),              // 124: harness.agent.v1.ListTasksRequest
+	(*v1.ListOutputStylesRequest)(nil),       // 125: harness.agent.v1.ListOutputStylesRequest
+	(*v1.SetAutoContinueRequest)(nil),        // 126: harness.agent.v1.SetAutoContinueRequest
+	(*v1.SetKeepAwakeRequest)(nil),           // 127: harness.agent.v1.SetKeepAwakeRequest
+	(*v1.StopSubagentRequest)(nil),           // 128: harness.agent.v1.StopSubagentRequest
+	(*v1.GetSubagentTranscriptRequest)(nil),  // 129: harness.agent.v1.GetSubagentTranscriptRequest
+	(*v1.DeliverSessionNoteRequest)(nil),     // 130: harness.agent.v1.DeliverSessionNoteRequest
+	(*v1.ResolveSessionProposalRequest)(nil), // 131: harness.agent.v1.ResolveSessionProposalRequest
+	(*v1.StopWorkflowRequest)(nil),           // 132: harness.agent.v1.StopWorkflowRequest
+	(*v1.ListSlashCommandsRequest)(nil),      // 133: harness.agent.v1.ListSlashCommandsRequest
+	(*v1.DeliverAutoFixJobRequest)(nil),      // 134: harness.agent.v1.DeliverAutoFixJobRequest
+	(*v1.ListRecentFoldersRequest)(nil),      // 135: harness.agent.v1.ListRecentFoldersRequest
+	(*v1.GetSessionDiffRequest)(nil),         // 136: harness.agent.v1.GetSessionDiffRequest
+	(*v1.GetSessionFileDiffRequest)(nil),     // 137: harness.agent.v1.GetSessionFileDiffRequest
+	(*v1.CreateSessionRequest)(nil),          // 138: harness.agent.v1.CreateSessionRequest
+	(*v1.SessionInfo)(nil),                   // 139: harness.agent.v1.SessionInfo
+	(*v1.SessionEvent)(nil),                  // 140: harness.agent.v1.SessionEvent
+	(*v11.ErrorInfo)(nil),                    // 141: harness.common.v1.ErrorInfo
+	(*v1.SuggestFilesResponse)(nil),          // 142: harness.agent.v1.SuggestFilesResponse
+	(*v1.CreateSessionResponse)(nil),         // 143: harness.agent.v1.CreateSessionResponse
+	(*v1.RemoveQueuedMessageResponse)(nil),   // 144: harness.agent.v1.RemoveQueuedMessageResponse
+	(*v1.CompactResponse)(nil),               // 145: harness.agent.v1.CompactResponse
+	(*v1.RewindResponse)(nil),                // 146: harness.agent.v1.RewindResponse
+	(*v1.ListCheckpointsResponse)(nil),       // 147: harness.agent.v1.ListCheckpointsResponse
+	(*v1.ListTasksResponse)(nil),             // 148: harness.agent.v1.ListTasksResponse
+	(*v1.ListOutputStylesResponse)(nil),      // 149: harness.agent.v1.ListOutputStylesResponse
+	(*v1.StopSubagentResponse)(nil),          // 150: harness.agent.v1.StopSubagentResponse
+	(*v1.GetSubagentTranscriptResponse)(nil), // 151: harness.agent.v1.GetSubagentTranscriptResponse
+	(*v1.StopWorkflowResponse)(nil),          // 152: harness.agent.v1.StopWorkflowResponse
+	(*v1.ListSlashCommandsResponse)(nil),     // 153: harness.agent.v1.ListSlashCommandsResponse
+	(*v1.ListRecentFoldersResponse)(nil),     // 154: harness.agent.v1.ListRecentFoldersResponse
+	(*v1.GetSessionDiffResponse)(nil),        // 155: harness.agent.v1.GetSessionDiffResponse
+	(*v1.GetSessionFileDiffResponse)(nil),    // 156: harness.agent.v1.GetSessionFileDiffResponse
+	(v1.SessionStatus)(0),                    // 157: harness.agent.v1.SessionStatus
+	(*v1.RecentFolder)(nil),                  // 158: harness.agent.v1.RecentFolder
+	(*StopWorkflowRequest)(nil),              // 159: harness.relay.v1.StopWorkflowRequest
+	(*StopWorkflowResponse)(nil),             // 160: harness.relay.v1.StopWorkflowResponse
 }
 var file_harness_relay_v1_relay_proto_depIdxs = []int32{
 	8,   // 0: harness.relay.v1.OpenHostStreamResponse.command:type_name -> harness.relay.v1.Command
 	11,  // 1: harness.relay.v1.OpenHostStreamResponse.session_superseded:type_name -> harness.relay.v1.SessionSuperseded
 	12,  // 2: harness.relay.v1.OpenHostStreamResponse.heartbeat:type_name -> harness.relay.v1.Heartbeat
-	104, // 3: harness.relay.v1.Command.send_user_message:type_name -> harness.agent.v1.SendUserMessageRequest
-	105, // 4: harness.relay.v1.Command.interrupt:type_name -> harness.agent.v1.InterruptRequest
-	106, // 5: harness.relay.v1.Command.respond_to_permission:type_name -> harness.agent.v1.RespondToPermissionRequest
-	107, // 6: harness.relay.v1.Command.answer_question:type_name -> harness.agent.v1.AnswerQuestionRequest
-	108, // 7: harness.relay.v1.Command.set_model:type_name -> harness.agent.v1.SetModelRequest
-	109, // 8: harness.relay.v1.Command.set_effort:type_name -> harness.agent.v1.SetEffortRequest
-	110, // 9: harness.relay.v1.Command.set_permission_mode:type_name -> harness.agent.v1.SetPermissionModeRequest
-	111, // 10: harness.relay.v1.Command.suggest_files:type_name -> harness.agent.v1.SuggestFilesRequest
+	108, // 3: harness.relay.v1.Command.send_user_message:type_name -> harness.agent.v1.SendUserMessageRequest
+	109, // 4: harness.relay.v1.Command.interrupt:type_name -> harness.agent.v1.InterruptRequest
+	110, // 5: harness.relay.v1.Command.respond_to_permission:type_name -> harness.agent.v1.RespondToPermissionRequest
+	111, // 6: harness.relay.v1.Command.answer_question:type_name -> harness.agent.v1.AnswerQuestionRequest
+	112, // 7: harness.relay.v1.Command.set_model:type_name -> harness.agent.v1.SetModelRequest
+	113, // 8: harness.relay.v1.Command.set_effort:type_name -> harness.agent.v1.SetEffortRequest
+	114, // 9: harness.relay.v1.Command.set_permission_mode:type_name -> harness.agent.v1.SetPermissionModeRequest
+	115, // 10: harness.relay.v1.Command.suggest_files:type_name -> harness.agent.v1.SuggestFilesRequest
 	9,   // 11: harness.relay.v1.Command.spawn_session:type_name -> harness.relay.v1.SpawnSessionCommand
 	10,  // 12: harness.relay.v1.Command.open_tunnel:type_name -> harness.relay.v1.OpenTunnelCommand
-	112, // 13: harness.relay.v1.Command.set_output_style:type_name -> harness.agent.v1.SetOutputStyleRequest
-	113, // 14: harness.relay.v1.Command.remove_queued_message:type_name -> harness.agent.v1.RemoveQueuedMessageRequest
-	114, // 15: harness.relay.v1.Command.respond_to_plan:type_name -> harness.agent.v1.RespondToPlanRequest
-	115, // 16: harness.relay.v1.Command.stop_task:type_name -> harness.agent.v1.StopTaskRequest
-	116, // 17: harness.relay.v1.Command.close_session:type_name -> harness.agent.v1.CloseSessionRequest
-	117, // 18: harness.relay.v1.Command.compact:type_name -> harness.agent.v1.CompactRequest
-	118, // 19: harness.relay.v1.Command.rewind:type_name -> harness.agent.v1.RewindRequest
-	119, // 20: harness.relay.v1.Command.list_checkpoints:type_name -> harness.agent.v1.ListCheckpointsRequest
-	120, // 21: harness.relay.v1.Command.list_tasks:type_name -> harness.agent.v1.ListTasksRequest
-	121, // 22: harness.relay.v1.Command.list_output_styles:type_name -> harness.agent.v1.ListOutputStylesRequest
-	122, // 23: harness.relay.v1.Command.set_auto_continue:type_name -> harness.agent.v1.SetAutoContinueRequest
-	123, // 24: harness.relay.v1.Command.set_keep_awake:type_name -> harness.agent.v1.SetKeepAwakeRequest
-	124, // 25: harness.relay.v1.Command.stop_subagent:type_name -> harness.agent.v1.StopSubagentRequest
-	125, // 26: harness.relay.v1.Command.get_subagent_transcript:type_name -> harness.agent.v1.GetSubagentTranscriptRequest
-	126, // 27: harness.relay.v1.Command.deliver_session_note:type_name -> harness.agent.v1.DeliverSessionNoteRequest
-	127, // 28: harness.relay.v1.Command.resolve_session_proposal:type_name -> harness.agent.v1.ResolveSessionProposalRequest
-	128, // 29: harness.relay.v1.Command.stop_workflow:type_name -> harness.agent.v1.StopWorkflowRequest
-	129, // 30: harness.relay.v1.Command.list_slash_commands:type_name -> harness.agent.v1.ListSlashCommandsRequest
-	130, // 31: harness.relay.v1.Command.deliver_auto_fix_job:type_name -> harness.agent.v1.DeliverAutoFixJobRequest
-	131, // 32: harness.relay.v1.Command.list_recent_folders:type_name -> harness.agent.v1.ListRecentFoldersRequest
-	132, // 33: harness.relay.v1.SpawnSessionCommand.create:type_name -> harness.agent.v1.CreateSessionRequest
-	104, // 34: harness.relay.v1.SpawnSessionCommand.initial_message:type_name -> harness.agent.v1.SendUserMessageRequest
-	0,   // 35: harness.relay.v1.OpenTunnelCommand.kind:type_name -> harness.relay.v1.TunnelKind
-	133, // 36: harness.relay.v1.RegisterSessionRequest.session:type_name -> harness.agent.v1.SessionInfo
-	134, // 37: harness.relay.v1.EventEnvelope.event:type_name -> harness.agent.v1.SessionEvent
-	17,  // 38: harness.relay.v1.PublishEventsRequest.events:type_name -> harness.relay.v1.EventEnvelope
-	3,   // 39: harness.relay.v1.CommandAck.outcome:type_name -> harness.relay.v1.CommandAck.Outcome
-	135, // 40: harness.relay.v1.CommandAck.error:type_name -> harness.common.v1.ErrorInfo
-	136, // 41: harness.relay.v1.CommandAck.suggest_files:type_name -> harness.agent.v1.SuggestFilesResponse
-	137, // 42: harness.relay.v1.CommandAck.spawn_session:type_name -> harness.agent.v1.CreateSessionResponse
-	26,  // 43: harness.relay.v1.CommandAck.open_tunnel:type_name -> harness.relay.v1.Tunnel
-	138, // 44: harness.relay.v1.CommandAck.remove_queued_message:type_name -> harness.agent.v1.RemoveQueuedMessageResponse
-	139, // 45: harness.relay.v1.CommandAck.compact:type_name -> harness.agent.v1.CompactResponse
-	140, // 46: harness.relay.v1.CommandAck.rewind:type_name -> harness.agent.v1.RewindResponse
-	141, // 47: harness.relay.v1.CommandAck.list_checkpoints:type_name -> harness.agent.v1.ListCheckpointsResponse
-	142, // 48: harness.relay.v1.CommandAck.list_tasks:type_name -> harness.agent.v1.ListTasksResponse
-	143, // 49: harness.relay.v1.CommandAck.list_output_styles:type_name -> harness.agent.v1.ListOutputStylesResponse
-	144, // 50: harness.relay.v1.CommandAck.stop_subagent:type_name -> harness.agent.v1.StopSubagentResponse
-	145, // 51: harness.relay.v1.CommandAck.get_subagent_transcript:type_name -> harness.agent.v1.GetSubagentTranscriptResponse
-	146, // 52: harness.relay.v1.CommandAck.stop_workflow:type_name -> harness.agent.v1.StopWorkflowResponse
-	147, // 53: harness.relay.v1.CommandAck.list_slash_commands:type_name -> harness.agent.v1.ListSlashCommandsResponse
-	148, // 54: harness.relay.v1.CommandAck.list_recent_folders:type_name -> harness.agent.v1.ListRecentFoldersResponse
-	20,  // 55: harness.relay.v1.AckCommandsRequest.acks:type_name -> harness.relay.v1.CommandAck
-	24,  // 56: harness.relay.v1.HeartbeatRequest.sessions:type_name -> harness.relay.v1.HostSessionState
-	149, // 57: harness.relay.v1.HostSessionState.status:type_name -> harness.agent.v1.SessionStatus
-	11,  // 58: harness.relay.v1.HeartbeatResponse.superseded:type_name -> harness.relay.v1.SessionSuperseded
-	0,   // 59: harness.relay.v1.Tunnel.kind:type_name -> harness.relay.v1.TunnelKind
-	0,   // 60: harness.relay.v1.RegisterTunnelRequest.kind:type_name -> harness.relay.v1.TunnelKind
-	26,  // 61: harness.relay.v1.RegisterTunnelResponse.tunnel:type_name -> harness.relay.v1.Tunnel
-	33,  // 62: harness.relay.v1.ListHostsResponse.hosts:type_name -> harness.relay.v1.Host
-	133, // 63: harness.relay.v1.Host.sessions:type_name -> harness.agent.v1.SessionInfo
-	134, // 64: harness.relay.v1.SubscribeSessionResponse.session_event:type_name -> harness.agent.v1.SessionEvent
-	36,  // 65: harness.relay.v1.SubscribeSessionResponse.flush_complete:type_name -> harness.relay.v1.FlushComplete
-	37,  // 66: harness.relay.v1.SubscribeSessionResponse.host_state:type_name -> harness.relay.v1.HostState
-	38,  // 67: harness.relay.v1.SubscribeSessionResponse.presence:type_name -> harness.relay.v1.Presence
-	12,  // 68: harness.relay.v1.SubscribeSessionResponse.heartbeat:type_name -> harness.relay.v1.Heartbeat
-	39,  // 69: harness.relay.v1.Presence.viewers:type_name -> harness.relay.v1.Viewer
-	1,   // 70: harness.relay.v1.Viewer.state:type_name -> harness.relay.v1.PresenceState
-	1,   // 71: harness.relay.v1.UpdatePresenceRequest.state:type_name -> harness.relay.v1.PresenceState
-	2,   // 72: harness.relay.v1.CommandResult.delivery:type_name -> harness.relay.v1.DeliveryState
-	20,  // 73: harness.relay.v1.CommandResult.ack:type_name -> harness.relay.v1.CommandAck
-	104, // 74: harness.relay.v1.SendUserMessageRequest.request:type_name -> harness.agent.v1.SendUserMessageRequest
-	42,  // 75: harness.relay.v1.SendUserMessageRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 76: harness.relay.v1.SendUserMessageResponse.result:type_name -> harness.relay.v1.CommandResult
-	105, // 77: harness.relay.v1.InterruptRequest.request:type_name -> harness.agent.v1.InterruptRequest
-	42,  // 78: harness.relay.v1.InterruptRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 79: harness.relay.v1.InterruptResponse.result:type_name -> harness.relay.v1.CommandResult
-	106, // 80: harness.relay.v1.RespondToPermissionRequest.request:type_name -> harness.agent.v1.RespondToPermissionRequest
-	42,  // 81: harness.relay.v1.RespondToPermissionRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 82: harness.relay.v1.RespondToPermissionResponse.result:type_name -> harness.relay.v1.CommandResult
-	107, // 83: harness.relay.v1.AnswerQuestionRequest.request:type_name -> harness.agent.v1.AnswerQuestionRequest
-	42,  // 84: harness.relay.v1.AnswerQuestionRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 85: harness.relay.v1.AnswerQuestionResponse.result:type_name -> harness.relay.v1.CommandResult
-	108, // 86: harness.relay.v1.SetModelRequest.request:type_name -> harness.agent.v1.SetModelRequest
-	42,  // 87: harness.relay.v1.SetModelRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 88: harness.relay.v1.SetModelResponse.result:type_name -> harness.relay.v1.CommandResult
-	109, // 89: harness.relay.v1.SetEffortRequest.request:type_name -> harness.agent.v1.SetEffortRequest
-	42,  // 90: harness.relay.v1.SetEffortRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 91: harness.relay.v1.SetEffortResponse.result:type_name -> harness.relay.v1.CommandResult
-	110, // 92: harness.relay.v1.SetPermissionModeRequest.request:type_name -> harness.agent.v1.SetPermissionModeRequest
-	42,  // 93: harness.relay.v1.SetPermissionModeRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 94: harness.relay.v1.SetPermissionModeResponse.result:type_name -> harness.relay.v1.CommandResult
-	111, // 95: harness.relay.v1.SuggestFilesRequest.request:type_name -> harness.agent.v1.SuggestFilesRequest
-	136, // 96: harness.relay.v1.SuggestFilesResponse.response:type_name -> harness.agent.v1.SuggestFilesResponse
-	112, // 97: harness.relay.v1.SetOutputStyleRequest.request:type_name -> harness.agent.v1.SetOutputStyleRequest
-	42,  // 98: harness.relay.v1.SetOutputStyleRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 99: harness.relay.v1.SetOutputStyleResponse.result:type_name -> harness.relay.v1.CommandResult
-	122, // 100: harness.relay.v1.SetAutoContinueRequest.request:type_name -> harness.agent.v1.SetAutoContinueRequest
-	42,  // 101: harness.relay.v1.SetAutoContinueRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 102: harness.relay.v1.SetAutoContinueResponse.result:type_name -> harness.relay.v1.CommandResult
-	124, // 103: harness.relay.v1.StopSubagentRequest.request:type_name -> harness.agent.v1.StopSubagentRequest
-	144, // 104: harness.relay.v1.StopSubagentResponse.response:type_name -> harness.agent.v1.StopSubagentResponse
-	125, // 105: harness.relay.v1.GetSubagentTranscriptRequest.request:type_name -> harness.agent.v1.GetSubagentTranscriptRequest
-	145, // 106: harness.relay.v1.GetSubagentTranscriptResponse.response:type_name -> harness.agent.v1.GetSubagentTranscriptResponse
-	123, // 107: harness.relay.v1.SetKeepAwakeRequest.request:type_name -> harness.agent.v1.SetKeepAwakeRequest
-	42,  // 108: harness.relay.v1.SetKeepAwakeRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 109: harness.relay.v1.SetKeepAwakeResponse.result:type_name -> harness.relay.v1.CommandResult
-	126, // 110: harness.relay.v1.SendSessionNoteRequest.request:type_name -> harness.agent.v1.DeliverSessionNoteRequest
-	42,  // 111: harness.relay.v1.SendSessionNoteRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 112: harness.relay.v1.SendSessionNoteResponse.result:type_name -> harness.relay.v1.CommandResult
-	127, // 113: harness.relay.v1.ResolveSessionProposalRequest.request:type_name -> harness.agent.v1.ResolveSessionProposalRequest
-	42,  // 114: harness.relay.v1.ResolveSessionProposalRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 115: harness.relay.v1.ResolveSessionProposalResponse.result:type_name -> harness.relay.v1.CommandResult
-	113, // 116: harness.relay.v1.RemoveQueuedMessageRequest.request:type_name -> harness.agent.v1.RemoveQueuedMessageRequest
-	42,  // 117: harness.relay.v1.RemoveQueuedMessageRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 118: harness.relay.v1.RemoveQueuedMessageResponse.result:type_name -> harness.relay.v1.CommandResult
-	114, // 119: harness.relay.v1.RespondToPlanRequest.request:type_name -> harness.agent.v1.RespondToPlanRequest
-	42,  // 120: harness.relay.v1.RespondToPlanRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 121: harness.relay.v1.RespondToPlanResponse.result:type_name -> harness.relay.v1.CommandResult
-	115, // 122: harness.relay.v1.StopTaskRequest.request:type_name -> harness.agent.v1.StopTaskRequest
-	42,  // 123: harness.relay.v1.StopTaskRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 124: harness.relay.v1.StopTaskResponse.result:type_name -> harness.relay.v1.CommandResult
-	116, // 125: harness.relay.v1.CloseSessionRequest.request:type_name -> harness.agent.v1.CloseSessionRequest
-	42,  // 126: harness.relay.v1.CloseSessionRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 127: harness.relay.v1.CloseSessionResponse.result:type_name -> harness.relay.v1.CommandResult
-	117, // 128: harness.relay.v1.CompactRequest.request:type_name -> harness.agent.v1.CompactRequest
-	42,  // 129: harness.relay.v1.CompactRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 130: harness.relay.v1.CompactResponse.result:type_name -> harness.relay.v1.CommandResult
-	118, // 131: harness.relay.v1.RewindRequest.request:type_name -> harness.agent.v1.RewindRequest
-	42,  // 132: harness.relay.v1.RewindRequest.options:type_name -> harness.relay.v1.CommandOptions
-	43,  // 133: harness.relay.v1.RewindResponse.result:type_name -> harness.relay.v1.CommandResult
-	119, // 134: harness.relay.v1.ListCheckpointsRequest.request:type_name -> harness.agent.v1.ListCheckpointsRequest
-	141, // 135: harness.relay.v1.ListCheckpointsResponse.response:type_name -> harness.agent.v1.ListCheckpointsResponse
-	120, // 136: harness.relay.v1.ListTasksRequest.request:type_name -> harness.agent.v1.ListTasksRequest
-	142, // 137: harness.relay.v1.ListTasksResponse.response:type_name -> harness.agent.v1.ListTasksResponse
-	121, // 138: harness.relay.v1.ListOutputStylesRequest.request:type_name -> harness.agent.v1.ListOutputStylesRequest
-	143, // 139: harness.relay.v1.ListOutputStylesResponse.response:type_name -> harness.agent.v1.ListOutputStylesResponse
-	129, // 140: harness.relay.v1.ListSlashCommandsRequest.request:type_name -> harness.agent.v1.ListSlashCommandsRequest
-	147, // 141: harness.relay.v1.ListSlashCommandsResponse.response:type_name -> harness.agent.v1.ListSlashCommandsResponse
-	150, // 142: harness.relay.v1.ListHostFoldersResponse.folders:type_name -> harness.agent.v1.RecentFolder
-	9,   // 143: harness.relay.v1.SpawnSessionRequest.spawn:type_name -> harness.relay.v1.SpawnSessionCommand
-	42,  // 144: harness.relay.v1.SpawnSessionRequest.options:type_name -> harness.relay.v1.CommandOptions
-	133, // 145: harness.relay.v1.SpawnSessionResponse.session:type_name -> harness.agent.v1.SessionInfo
-	10,  // 146: harness.relay.v1.RequestTunnelRequest.open:type_name -> harness.relay.v1.OpenTunnelCommand
-	26,  // 147: harness.relay.v1.RequestTunnelResponse.tunnel:type_name -> harness.relay.v1.Tunnel
-	26,  // 148: harness.relay.v1.ListTunnelsResponse.tunnels:type_name -> harness.relay.v1.Tunnel
-	4,   // 149: harness.relay.v1.RelayService.RegisterHost:input_type -> harness.relay.v1.RegisterHostRequest
-	6,   // 150: harness.relay.v1.RelayService.OpenHostStream:input_type -> harness.relay.v1.OpenHostStreamRequest
-	13,  // 151: harness.relay.v1.RelayService.RegisterSession:input_type -> harness.relay.v1.RegisterSessionRequest
-	15,  // 152: harness.relay.v1.RelayService.UnregisterSession:input_type -> harness.relay.v1.UnregisterSessionRequest
-	18,  // 153: harness.relay.v1.RelayService.PublishEvents:input_type -> harness.relay.v1.PublishEventsRequest
-	21,  // 154: harness.relay.v1.RelayService.AckCommands:input_type -> harness.relay.v1.AckCommandsRequest
-	23,  // 155: harness.relay.v1.RelayService.Heartbeat:input_type -> harness.relay.v1.HeartbeatRequest
-	27,  // 156: harness.relay.v1.RelayService.RegisterTunnel:input_type -> harness.relay.v1.RegisterTunnelRequest
-	29,  // 157: harness.relay.v1.RelayService.CloseTunnel:input_type -> harness.relay.v1.CloseTunnelRequest
-	31,  // 158: harness.relay.v1.RelayService.ListHosts:input_type -> harness.relay.v1.ListHostsRequest
-	34,  // 159: harness.relay.v1.RelayService.SubscribeSession:input_type -> harness.relay.v1.SubscribeSessionRequest
-	40,  // 160: harness.relay.v1.RelayService.UpdatePresence:input_type -> harness.relay.v1.UpdatePresenceRequest
-	44,  // 161: harness.relay.v1.RelayService.SendUserMessage:input_type -> harness.relay.v1.SendUserMessageRequest
-	46,  // 162: harness.relay.v1.RelayService.Interrupt:input_type -> harness.relay.v1.InterruptRequest
-	48,  // 163: harness.relay.v1.RelayService.RespondToPermission:input_type -> harness.relay.v1.RespondToPermissionRequest
-	50,  // 164: harness.relay.v1.RelayService.AnswerQuestion:input_type -> harness.relay.v1.AnswerQuestionRequest
-	52,  // 165: harness.relay.v1.RelayService.SetModel:input_type -> harness.relay.v1.SetModelRequest
-	54,  // 166: harness.relay.v1.RelayService.SetEffort:input_type -> harness.relay.v1.SetEffortRequest
-	56,  // 167: harness.relay.v1.RelayService.SetPermissionMode:input_type -> harness.relay.v1.SetPermissionModeRequest
-	60,  // 168: harness.relay.v1.RelayService.SetOutputStyle:input_type -> harness.relay.v1.SetOutputStyleRequest
-	62,  // 169: harness.relay.v1.RelayService.SetAutoContinue:input_type -> harness.relay.v1.SetAutoContinueRequest
-	74,  // 170: harness.relay.v1.RelayService.RemoveQueuedMessage:input_type -> harness.relay.v1.RemoveQueuedMessageRequest
-	76,  // 171: harness.relay.v1.RelayService.RespondToPlan:input_type -> harness.relay.v1.RespondToPlanRequest
-	78,  // 172: harness.relay.v1.RelayService.StopTask:input_type -> harness.relay.v1.StopTaskRequest
-	80,  // 173: harness.relay.v1.RelayService.CloseSession:input_type -> harness.relay.v1.CloseSessionRequest
-	82,  // 174: harness.relay.v1.RelayService.Compact:input_type -> harness.relay.v1.CompactRequest
-	84,  // 175: harness.relay.v1.RelayService.Rewind:input_type -> harness.relay.v1.RewindRequest
-	58,  // 176: harness.relay.v1.RelayService.SuggestFiles:input_type -> harness.relay.v1.SuggestFilesRequest
-	86,  // 177: harness.relay.v1.RelayService.ListCheckpoints:input_type -> harness.relay.v1.ListCheckpointsRequest
-	88,  // 178: harness.relay.v1.RelayService.ListTasks:input_type -> harness.relay.v1.ListTasksRequest
-	90,  // 179: harness.relay.v1.RelayService.ListOutputStyles:input_type -> harness.relay.v1.ListOutputStylesRequest
-	92,  // 180: harness.relay.v1.RelayService.ListSlashCommands:input_type -> harness.relay.v1.ListSlashCommandsRequest
-	96,  // 181: harness.relay.v1.RelayService.SpawnSession:input_type -> harness.relay.v1.SpawnSessionRequest
-	94,  // 182: harness.relay.v1.RelayService.ListHostFolders:input_type -> harness.relay.v1.ListHostFoldersRequest
-	98,  // 183: harness.relay.v1.RelayService.RequestTunnel:input_type -> harness.relay.v1.RequestTunnelRequest
-	100, // 184: harness.relay.v1.RelayService.ListTunnels:input_type -> harness.relay.v1.ListTunnelsRequest
-	102, // 185: harness.relay.v1.RelayService.AuthorizeTunnel:input_type -> harness.relay.v1.AuthorizeTunnelRequest
-	68,  // 186: harness.relay.v1.RelayService.SetKeepAwake:input_type -> harness.relay.v1.SetKeepAwakeRequest
-	64,  // 187: harness.relay.v1.RelayService.StopSubagent:input_type -> harness.relay.v1.StopSubagentRequest
-	66,  // 188: harness.relay.v1.RelayService.GetSubagentTranscript:input_type -> harness.relay.v1.GetSubagentTranscriptRequest
-	70,  // 189: harness.relay.v1.RelayService.SendSessionNote:input_type -> harness.relay.v1.SendSessionNoteRequest
-	72,  // 190: harness.relay.v1.RelayService.ResolveSessionProposal:input_type -> harness.relay.v1.ResolveSessionProposalRequest
-	151, // 191: harness.relay.v1.RelayService.StopWorkflow:input_type -> harness.relay.v1.StopWorkflowRequest
-	5,   // 192: harness.relay.v1.RelayService.RegisterHost:output_type -> harness.relay.v1.RegisterHostResponse
-	7,   // 193: harness.relay.v1.RelayService.OpenHostStream:output_type -> harness.relay.v1.OpenHostStreamResponse
-	14,  // 194: harness.relay.v1.RelayService.RegisterSession:output_type -> harness.relay.v1.RegisterSessionResponse
-	16,  // 195: harness.relay.v1.RelayService.UnregisterSession:output_type -> harness.relay.v1.UnregisterSessionResponse
-	19,  // 196: harness.relay.v1.RelayService.PublishEvents:output_type -> harness.relay.v1.PublishEventsResponse
-	22,  // 197: harness.relay.v1.RelayService.AckCommands:output_type -> harness.relay.v1.AckCommandsResponse
-	25,  // 198: harness.relay.v1.RelayService.Heartbeat:output_type -> harness.relay.v1.HeartbeatResponse
-	28,  // 199: harness.relay.v1.RelayService.RegisterTunnel:output_type -> harness.relay.v1.RegisterTunnelResponse
-	30,  // 200: harness.relay.v1.RelayService.CloseTunnel:output_type -> harness.relay.v1.CloseTunnelResponse
-	32,  // 201: harness.relay.v1.RelayService.ListHosts:output_type -> harness.relay.v1.ListHostsResponse
-	35,  // 202: harness.relay.v1.RelayService.SubscribeSession:output_type -> harness.relay.v1.SubscribeSessionResponse
-	41,  // 203: harness.relay.v1.RelayService.UpdatePresence:output_type -> harness.relay.v1.UpdatePresenceResponse
-	45,  // 204: harness.relay.v1.RelayService.SendUserMessage:output_type -> harness.relay.v1.SendUserMessageResponse
-	47,  // 205: harness.relay.v1.RelayService.Interrupt:output_type -> harness.relay.v1.InterruptResponse
-	49,  // 206: harness.relay.v1.RelayService.RespondToPermission:output_type -> harness.relay.v1.RespondToPermissionResponse
-	51,  // 207: harness.relay.v1.RelayService.AnswerQuestion:output_type -> harness.relay.v1.AnswerQuestionResponse
-	53,  // 208: harness.relay.v1.RelayService.SetModel:output_type -> harness.relay.v1.SetModelResponse
-	55,  // 209: harness.relay.v1.RelayService.SetEffort:output_type -> harness.relay.v1.SetEffortResponse
-	57,  // 210: harness.relay.v1.RelayService.SetPermissionMode:output_type -> harness.relay.v1.SetPermissionModeResponse
-	61,  // 211: harness.relay.v1.RelayService.SetOutputStyle:output_type -> harness.relay.v1.SetOutputStyleResponse
-	63,  // 212: harness.relay.v1.RelayService.SetAutoContinue:output_type -> harness.relay.v1.SetAutoContinueResponse
-	75,  // 213: harness.relay.v1.RelayService.RemoveQueuedMessage:output_type -> harness.relay.v1.RemoveQueuedMessageResponse
-	77,  // 214: harness.relay.v1.RelayService.RespondToPlan:output_type -> harness.relay.v1.RespondToPlanResponse
-	79,  // 215: harness.relay.v1.RelayService.StopTask:output_type -> harness.relay.v1.StopTaskResponse
-	81,  // 216: harness.relay.v1.RelayService.CloseSession:output_type -> harness.relay.v1.CloseSessionResponse
-	83,  // 217: harness.relay.v1.RelayService.Compact:output_type -> harness.relay.v1.CompactResponse
-	85,  // 218: harness.relay.v1.RelayService.Rewind:output_type -> harness.relay.v1.RewindResponse
-	59,  // 219: harness.relay.v1.RelayService.SuggestFiles:output_type -> harness.relay.v1.SuggestFilesResponse
-	87,  // 220: harness.relay.v1.RelayService.ListCheckpoints:output_type -> harness.relay.v1.ListCheckpointsResponse
-	89,  // 221: harness.relay.v1.RelayService.ListTasks:output_type -> harness.relay.v1.ListTasksResponse
-	91,  // 222: harness.relay.v1.RelayService.ListOutputStyles:output_type -> harness.relay.v1.ListOutputStylesResponse
-	93,  // 223: harness.relay.v1.RelayService.ListSlashCommands:output_type -> harness.relay.v1.ListSlashCommandsResponse
-	97,  // 224: harness.relay.v1.RelayService.SpawnSession:output_type -> harness.relay.v1.SpawnSessionResponse
-	95,  // 225: harness.relay.v1.RelayService.ListHostFolders:output_type -> harness.relay.v1.ListHostFoldersResponse
-	99,  // 226: harness.relay.v1.RelayService.RequestTunnel:output_type -> harness.relay.v1.RequestTunnelResponse
-	101, // 227: harness.relay.v1.RelayService.ListTunnels:output_type -> harness.relay.v1.ListTunnelsResponse
-	103, // 228: harness.relay.v1.RelayService.AuthorizeTunnel:output_type -> harness.relay.v1.AuthorizeTunnelResponse
-	69,  // 229: harness.relay.v1.RelayService.SetKeepAwake:output_type -> harness.relay.v1.SetKeepAwakeResponse
-	65,  // 230: harness.relay.v1.RelayService.StopSubagent:output_type -> harness.relay.v1.StopSubagentResponse
-	67,  // 231: harness.relay.v1.RelayService.GetSubagentTranscript:output_type -> harness.relay.v1.GetSubagentTranscriptResponse
-	71,  // 232: harness.relay.v1.RelayService.SendSessionNote:output_type -> harness.relay.v1.SendSessionNoteResponse
-	73,  // 233: harness.relay.v1.RelayService.ResolveSessionProposal:output_type -> harness.relay.v1.ResolveSessionProposalResponse
-	152, // 234: harness.relay.v1.RelayService.StopWorkflow:output_type -> harness.relay.v1.StopWorkflowResponse
-	192, // [192:235] is the sub-list for method output_type
-	149, // [149:192] is the sub-list for method input_type
-	149, // [149:149] is the sub-list for extension type_name
-	149, // [149:149] is the sub-list for extension extendee
-	0,   // [0:149] is the sub-list for field type_name
+	116, // 13: harness.relay.v1.Command.set_output_style:type_name -> harness.agent.v1.SetOutputStyleRequest
+	117, // 14: harness.relay.v1.Command.remove_queued_message:type_name -> harness.agent.v1.RemoveQueuedMessageRequest
+	118, // 15: harness.relay.v1.Command.respond_to_plan:type_name -> harness.agent.v1.RespondToPlanRequest
+	119, // 16: harness.relay.v1.Command.stop_task:type_name -> harness.agent.v1.StopTaskRequest
+	120, // 17: harness.relay.v1.Command.close_session:type_name -> harness.agent.v1.CloseSessionRequest
+	121, // 18: harness.relay.v1.Command.compact:type_name -> harness.agent.v1.CompactRequest
+	122, // 19: harness.relay.v1.Command.rewind:type_name -> harness.agent.v1.RewindRequest
+	123, // 20: harness.relay.v1.Command.list_checkpoints:type_name -> harness.agent.v1.ListCheckpointsRequest
+	124, // 21: harness.relay.v1.Command.list_tasks:type_name -> harness.agent.v1.ListTasksRequest
+	125, // 22: harness.relay.v1.Command.list_output_styles:type_name -> harness.agent.v1.ListOutputStylesRequest
+	126, // 23: harness.relay.v1.Command.set_auto_continue:type_name -> harness.agent.v1.SetAutoContinueRequest
+	127, // 24: harness.relay.v1.Command.set_keep_awake:type_name -> harness.agent.v1.SetKeepAwakeRequest
+	128, // 25: harness.relay.v1.Command.stop_subagent:type_name -> harness.agent.v1.StopSubagentRequest
+	129, // 26: harness.relay.v1.Command.get_subagent_transcript:type_name -> harness.agent.v1.GetSubagentTranscriptRequest
+	130, // 27: harness.relay.v1.Command.deliver_session_note:type_name -> harness.agent.v1.DeliverSessionNoteRequest
+	131, // 28: harness.relay.v1.Command.resolve_session_proposal:type_name -> harness.agent.v1.ResolveSessionProposalRequest
+	132, // 29: harness.relay.v1.Command.stop_workflow:type_name -> harness.agent.v1.StopWorkflowRequest
+	133, // 30: harness.relay.v1.Command.list_slash_commands:type_name -> harness.agent.v1.ListSlashCommandsRequest
+	134, // 31: harness.relay.v1.Command.deliver_auto_fix_job:type_name -> harness.agent.v1.DeliverAutoFixJobRequest
+	135, // 32: harness.relay.v1.Command.list_recent_folders:type_name -> harness.agent.v1.ListRecentFoldersRequest
+	136, // 33: harness.relay.v1.Command.get_session_diff:type_name -> harness.agent.v1.GetSessionDiffRequest
+	137, // 34: harness.relay.v1.Command.get_session_file_diff:type_name -> harness.agent.v1.GetSessionFileDiffRequest
+	138, // 35: harness.relay.v1.SpawnSessionCommand.create:type_name -> harness.agent.v1.CreateSessionRequest
+	108, // 36: harness.relay.v1.SpawnSessionCommand.initial_message:type_name -> harness.agent.v1.SendUserMessageRequest
+	0,   // 37: harness.relay.v1.OpenTunnelCommand.kind:type_name -> harness.relay.v1.TunnelKind
+	139, // 38: harness.relay.v1.RegisterSessionRequest.session:type_name -> harness.agent.v1.SessionInfo
+	140, // 39: harness.relay.v1.EventEnvelope.event:type_name -> harness.agent.v1.SessionEvent
+	17,  // 40: harness.relay.v1.PublishEventsRequest.events:type_name -> harness.relay.v1.EventEnvelope
+	3,   // 41: harness.relay.v1.CommandAck.outcome:type_name -> harness.relay.v1.CommandAck.Outcome
+	141, // 42: harness.relay.v1.CommandAck.error:type_name -> harness.common.v1.ErrorInfo
+	142, // 43: harness.relay.v1.CommandAck.suggest_files:type_name -> harness.agent.v1.SuggestFilesResponse
+	143, // 44: harness.relay.v1.CommandAck.spawn_session:type_name -> harness.agent.v1.CreateSessionResponse
+	26,  // 45: harness.relay.v1.CommandAck.open_tunnel:type_name -> harness.relay.v1.Tunnel
+	144, // 46: harness.relay.v1.CommandAck.remove_queued_message:type_name -> harness.agent.v1.RemoveQueuedMessageResponse
+	145, // 47: harness.relay.v1.CommandAck.compact:type_name -> harness.agent.v1.CompactResponse
+	146, // 48: harness.relay.v1.CommandAck.rewind:type_name -> harness.agent.v1.RewindResponse
+	147, // 49: harness.relay.v1.CommandAck.list_checkpoints:type_name -> harness.agent.v1.ListCheckpointsResponse
+	148, // 50: harness.relay.v1.CommandAck.list_tasks:type_name -> harness.agent.v1.ListTasksResponse
+	149, // 51: harness.relay.v1.CommandAck.list_output_styles:type_name -> harness.agent.v1.ListOutputStylesResponse
+	150, // 52: harness.relay.v1.CommandAck.stop_subagent:type_name -> harness.agent.v1.StopSubagentResponse
+	151, // 53: harness.relay.v1.CommandAck.get_subagent_transcript:type_name -> harness.agent.v1.GetSubagentTranscriptResponse
+	152, // 54: harness.relay.v1.CommandAck.stop_workflow:type_name -> harness.agent.v1.StopWorkflowResponse
+	153, // 55: harness.relay.v1.CommandAck.list_slash_commands:type_name -> harness.agent.v1.ListSlashCommandsResponse
+	154, // 56: harness.relay.v1.CommandAck.list_recent_folders:type_name -> harness.agent.v1.ListRecentFoldersResponse
+	155, // 57: harness.relay.v1.CommandAck.get_session_diff:type_name -> harness.agent.v1.GetSessionDiffResponse
+	156, // 58: harness.relay.v1.CommandAck.get_session_file_diff:type_name -> harness.agent.v1.GetSessionFileDiffResponse
+	20,  // 59: harness.relay.v1.AckCommandsRequest.acks:type_name -> harness.relay.v1.CommandAck
+	24,  // 60: harness.relay.v1.HeartbeatRequest.sessions:type_name -> harness.relay.v1.HostSessionState
+	157, // 61: harness.relay.v1.HostSessionState.status:type_name -> harness.agent.v1.SessionStatus
+	11,  // 62: harness.relay.v1.HeartbeatResponse.superseded:type_name -> harness.relay.v1.SessionSuperseded
+	0,   // 63: harness.relay.v1.Tunnel.kind:type_name -> harness.relay.v1.TunnelKind
+	0,   // 64: harness.relay.v1.RegisterTunnelRequest.kind:type_name -> harness.relay.v1.TunnelKind
+	26,  // 65: harness.relay.v1.RegisterTunnelResponse.tunnel:type_name -> harness.relay.v1.Tunnel
+	33,  // 66: harness.relay.v1.ListHostsResponse.hosts:type_name -> harness.relay.v1.Host
+	139, // 67: harness.relay.v1.Host.sessions:type_name -> harness.agent.v1.SessionInfo
+	140, // 68: harness.relay.v1.SubscribeSessionResponse.session_event:type_name -> harness.agent.v1.SessionEvent
+	36,  // 69: harness.relay.v1.SubscribeSessionResponse.flush_complete:type_name -> harness.relay.v1.FlushComplete
+	37,  // 70: harness.relay.v1.SubscribeSessionResponse.host_state:type_name -> harness.relay.v1.HostState
+	38,  // 71: harness.relay.v1.SubscribeSessionResponse.presence:type_name -> harness.relay.v1.Presence
+	12,  // 72: harness.relay.v1.SubscribeSessionResponse.heartbeat:type_name -> harness.relay.v1.Heartbeat
+	39,  // 73: harness.relay.v1.Presence.viewers:type_name -> harness.relay.v1.Viewer
+	1,   // 74: harness.relay.v1.Viewer.state:type_name -> harness.relay.v1.PresenceState
+	1,   // 75: harness.relay.v1.UpdatePresenceRequest.state:type_name -> harness.relay.v1.PresenceState
+	2,   // 76: harness.relay.v1.CommandResult.delivery:type_name -> harness.relay.v1.DeliveryState
+	20,  // 77: harness.relay.v1.CommandResult.ack:type_name -> harness.relay.v1.CommandAck
+	108, // 78: harness.relay.v1.SendUserMessageRequest.request:type_name -> harness.agent.v1.SendUserMessageRequest
+	42,  // 79: harness.relay.v1.SendUserMessageRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 80: harness.relay.v1.SendUserMessageResponse.result:type_name -> harness.relay.v1.CommandResult
+	109, // 81: harness.relay.v1.InterruptRequest.request:type_name -> harness.agent.v1.InterruptRequest
+	42,  // 82: harness.relay.v1.InterruptRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 83: harness.relay.v1.InterruptResponse.result:type_name -> harness.relay.v1.CommandResult
+	110, // 84: harness.relay.v1.RespondToPermissionRequest.request:type_name -> harness.agent.v1.RespondToPermissionRequest
+	42,  // 85: harness.relay.v1.RespondToPermissionRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 86: harness.relay.v1.RespondToPermissionResponse.result:type_name -> harness.relay.v1.CommandResult
+	111, // 87: harness.relay.v1.AnswerQuestionRequest.request:type_name -> harness.agent.v1.AnswerQuestionRequest
+	42,  // 88: harness.relay.v1.AnswerQuestionRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 89: harness.relay.v1.AnswerQuestionResponse.result:type_name -> harness.relay.v1.CommandResult
+	112, // 90: harness.relay.v1.SetModelRequest.request:type_name -> harness.agent.v1.SetModelRequest
+	42,  // 91: harness.relay.v1.SetModelRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 92: harness.relay.v1.SetModelResponse.result:type_name -> harness.relay.v1.CommandResult
+	113, // 93: harness.relay.v1.SetEffortRequest.request:type_name -> harness.agent.v1.SetEffortRequest
+	42,  // 94: harness.relay.v1.SetEffortRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 95: harness.relay.v1.SetEffortResponse.result:type_name -> harness.relay.v1.CommandResult
+	114, // 96: harness.relay.v1.SetPermissionModeRequest.request:type_name -> harness.agent.v1.SetPermissionModeRequest
+	42,  // 97: harness.relay.v1.SetPermissionModeRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 98: harness.relay.v1.SetPermissionModeResponse.result:type_name -> harness.relay.v1.CommandResult
+	115, // 99: harness.relay.v1.SuggestFilesRequest.request:type_name -> harness.agent.v1.SuggestFilesRequest
+	142, // 100: harness.relay.v1.SuggestFilesResponse.response:type_name -> harness.agent.v1.SuggestFilesResponse
+	116, // 101: harness.relay.v1.SetOutputStyleRequest.request:type_name -> harness.agent.v1.SetOutputStyleRequest
+	42,  // 102: harness.relay.v1.SetOutputStyleRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 103: harness.relay.v1.SetOutputStyleResponse.result:type_name -> harness.relay.v1.CommandResult
+	126, // 104: harness.relay.v1.SetAutoContinueRequest.request:type_name -> harness.agent.v1.SetAutoContinueRequest
+	42,  // 105: harness.relay.v1.SetAutoContinueRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 106: harness.relay.v1.SetAutoContinueResponse.result:type_name -> harness.relay.v1.CommandResult
+	128, // 107: harness.relay.v1.StopSubagentRequest.request:type_name -> harness.agent.v1.StopSubagentRequest
+	150, // 108: harness.relay.v1.StopSubagentResponse.response:type_name -> harness.agent.v1.StopSubagentResponse
+	129, // 109: harness.relay.v1.GetSubagentTranscriptRequest.request:type_name -> harness.agent.v1.GetSubagentTranscriptRequest
+	151, // 110: harness.relay.v1.GetSubagentTranscriptResponse.response:type_name -> harness.agent.v1.GetSubagentTranscriptResponse
+	127, // 111: harness.relay.v1.SetKeepAwakeRequest.request:type_name -> harness.agent.v1.SetKeepAwakeRequest
+	42,  // 112: harness.relay.v1.SetKeepAwakeRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 113: harness.relay.v1.SetKeepAwakeResponse.result:type_name -> harness.relay.v1.CommandResult
+	130, // 114: harness.relay.v1.SendSessionNoteRequest.request:type_name -> harness.agent.v1.DeliverSessionNoteRequest
+	42,  // 115: harness.relay.v1.SendSessionNoteRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 116: harness.relay.v1.SendSessionNoteResponse.result:type_name -> harness.relay.v1.CommandResult
+	131, // 117: harness.relay.v1.ResolveSessionProposalRequest.request:type_name -> harness.agent.v1.ResolveSessionProposalRequest
+	42,  // 118: harness.relay.v1.ResolveSessionProposalRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 119: harness.relay.v1.ResolveSessionProposalResponse.result:type_name -> harness.relay.v1.CommandResult
+	117, // 120: harness.relay.v1.RemoveQueuedMessageRequest.request:type_name -> harness.agent.v1.RemoveQueuedMessageRequest
+	42,  // 121: harness.relay.v1.RemoveQueuedMessageRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 122: harness.relay.v1.RemoveQueuedMessageResponse.result:type_name -> harness.relay.v1.CommandResult
+	118, // 123: harness.relay.v1.RespondToPlanRequest.request:type_name -> harness.agent.v1.RespondToPlanRequest
+	42,  // 124: harness.relay.v1.RespondToPlanRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 125: harness.relay.v1.RespondToPlanResponse.result:type_name -> harness.relay.v1.CommandResult
+	119, // 126: harness.relay.v1.StopTaskRequest.request:type_name -> harness.agent.v1.StopTaskRequest
+	42,  // 127: harness.relay.v1.StopTaskRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 128: harness.relay.v1.StopTaskResponse.result:type_name -> harness.relay.v1.CommandResult
+	120, // 129: harness.relay.v1.CloseSessionRequest.request:type_name -> harness.agent.v1.CloseSessionRequest
+	42,  // 130: harness.relay.v1.CloseSessionRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 131: harness.relay.v1.CloseSessionResponse.result:type_name -> harness.relay.v1.CommandResult
+	121, // 132: harness.relay.v1.CompactRequest.request:type_name -> harness.agent.v1.CompactRequest
+	42,  // 133: harness.relay.v1.CompactRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 134: harness.relay.v1.CompactResponse.result:type_name -> harness.relay.v1.CommandResult
+	122, // 135: harness.relay.v1.RewindRequest.request:type_name -> harness.agent.v1.RewindRequest
+	42,  // 136: harness.relay.v1.RewindRequest.options:type_name -> harness.relay.v1.CommandOptions
+	43,  // 137: harness.relay.v1.RewindResponse.result:type_name -> harness.relay.v1.CommandResult
+	136, // 138: harness.relay.v1.GetSessionDiffRequest.request:type_name -> harness.agent.v1.GetSessionDiffRequest
+	155, // 139: harness.relay.v1.GetSessionDiffResponse.response:type_name -> harness.agent.v1.GetSessionDiffResponse
+	137, // 140: harness.relay.v1.GetSessionFileDiffRequest.request:type_name -> harness.agent.v1.GetSessionFileDiffRequest
+	156, // 141: harness.relay.v1.GetSessionFileDiffResponse.response:type_name -> harness.agent.v1.GetSessionFileDiffResponse
+	123, // 142: harness.relay.v1.ListCheckpointsRequest.request:type_name -> harness.agent.v1.ListCheckpointsRequest
+	147, // 143: harness.relay.v1.ListCheckpointsResponse.response:type_name -> harness.agent.v1.ListCheckpointsResponse
+	124, // 144: harness.relay.v1.ListTasksRequest.request:type_name -> harness.agent.v1.ListTasksRequest
+	148, // 145: harness.relay.v1.ListTasksResponse.response:type_name -> harness.agent.v1.ListTasksResponse
+	125, // 146: harness.relay.v1.ListOutputStylesRequest.request:type_name -> harness.agent.v1.ListOutputStylesRequest
+	149, // 147: harness.relay.v1.ListOutputStylesResponse.response:type_name -> harness.agent.v1.ListOutputStylesResponse
+	133, // 148: harness.relay.v1.ListSlashCommandsRequest.request:type_name -> harness.agent.v1.ListSlashCommandsRequest
+	153, // 149: harness.relay.v1.ListSlashCommandsResponse.response:type_name -> harness.agent.v1.ListSlashCommandsResponse
+	158, // 150: harness.relay.v1.ListHostFoldersResponse.folders:type_name -> harness.agent.v1.RecentFolder
+	9,   // 151: harness.relay.v1.SpawnSessionRequest.spawn:type_name -> harness.relay.v1.SpawnSessionCommand
+	42,  // 152: harness.relay.v1.SpawnSessionRequest.options:type_name -> harness.relay.v1.CommandOptions
+	139, // 153: harness.relay.v1.SpawnSessionResponse.session:type_name -> harness.agent.v1.SessionInfo
+	10,  // 154: harness.relay.v1.RequestTunnelRequest.open:type_name -> harness.relay.v1.OpenTunnelCommand
+	26,  // 155: harness.relay.v1.RequestTunnelResponse.tunnel:type_name -> harness.relay.v1.Tunnel
+	26,  // 156: harness.relay.v1.ListTunnelsResponse.tunnels:type_name -> harness.relay.v1.Tunnel
+	4,   // 157: harness.relay.v1.RelayService.RegisterHost:input_type -> harness.relay.v1.RegisterHostRequest
+	6,   // 158: harness.relay.v1.RelayService.OpenHostStream:input_type -> harness.relay.v1.OpenHostStreamRequest
+	13,  // 159: harness.relay.v1.RelayService.RegisterSession:input_type -> harness.relay.v1.RegisterSessionRequest
+	15,  // 160: harness.relay.v1.RelayService.UnregisterSession:input_type -> harness.relay.v1.UnregisterSessionRequest
+	18,  // 161: harness.relay.v1.RelayService.PublishEvents:input_type -> harness.relay.v1.PublishEventsRequest
+	21,  // 162: harness.relay.v1.RelayService.AckCommands:input_type -> harness.relay.v1.AckCommandsRequest
+	23,  // 163: harness.relay.v1.RelayService.Heartbeat:input_type -> harness.relay.v1.HeartbeatRequest
+	27,  // 164: harness.relay.v1.RelayService.RegisterTunnel:input_type -> harness.relay.v1.RegisterTunnelRequest
+	29,  // 165: harness.relay.v1.RelayService.CloseTunnel:input_type -> harness.relay.v1.CloseTunnelRequest
+	31,  // 166: harness.relay.v1.RelayService.ListHosts:input_type -> harness.relay.v1.ListHostsRequest
+	34,  // 167: harness.relay.v1.RelayService.SubscribeSession:input_type -> harness.relay.v1.SubscribeSessionRequest
+	40,  // 168: harness.relay.v1.RelayService.UpdatePresence:input_type -> harness.relay.v1.UpdatePresenceRequest
+	44,  // 169: harness.relay.v1.RelayService.SendUserMessage:input_type -> harness.relay.v1.SendUserMessageRequest
+	46,  // 170: harness.relay.v1.RelayService.Interrupt:input_type -> harness.relay.v1.InterruptRequest
+	48,  // 171: harness.relay.v1.RelayService.RespondToPermission:input_type -> harness.relay.v1.RespondToPermissionRequest
+	50,  // 172: harness.relay.v1.RelayService.AnswerQuestion:input_type -> harness.relay.v1.AnswerQuestionRequest
+	52,  // 173: harness.relay.v1.RelayService.SetModel:input_type -> harness.relay.v1.SetModelRequest
+	54,  // 174: harness.relay.v1.RelayService.SetEffort:input_type -> harness.relay.v1.SetEffortRequest
+	56,  // 175: harness.relay.v1.RelayService.SetPermissionMode:input_type -> harness.relay.v1.SetPermissionModeRequest
+	60,  // 176: harness.relay.v1.RelayService.SetOutputStyle:input_type -> harness.relay.v1.SetOutputStyleRequest
+	62,  // 177: harness.relay.v1.RelayService.SetAutoContinue:input_type -> harness.relay.v1.SetAutoContinueRequest
+	74,  // 178: harness.relay.v1.RelayService.RemoveQueuedMessage:input_type -> harness.relay.v1.RemoveQueuedMessageRequest
+	76,  // 179: harness.relay.v1.RelayService.RespondToPlan:input_type -> harness.relay.v1.RespondToPlanRequest
+	78,  // 180: harness.relay.v1.RelayService.StopTask:input_type -> harness.relay.v1.StopTaskRequest
+	80,  // 181: harness.relay.v1.RelayService.CloseSession:input_type -> harness.relay.v1.CloseSessionRequest
+	82,  // 182: harness.relay.v1.RelayService.Compact:input_type -> harness.relay.v1.CompactRequest
+	84,  // 183: harness.relay.v1.RelayService.Rewind:input_type -> harness.relay.v1.RewindRequest
+	58,  // 184: harness.relay.v1.RelayService.SuggestFiles:input_type -> harness.relay.v1.SuggestFilesRequest
+	90,  // 185: harness.relay.v1.RelayService.ListCheckpoints:input_type -> harness.relay.v1.ListCheckpointsRequest
+	92,  // 186: harness.relay.v1.RelayService.ListTasks:input_type -> harness.relay.v1.ListTasksRequest
+	94,  // 187: harness.relay.v1.RelayService.ListOutputStyles:input_type -> harness.relay.v1.ListOutputStylesRequest
+	96,  // 188: harness.relay.v1.RelayService.ListSlashCommands:input_type -> harness.relay.v1.ListSlashCommandsRequest
+	86,  // 189: harness.relay.v1.RelayService.GetSessionDiff:input_type -> harness.relay.v1.GetSessionDiffRequest
+	88,  // 190: harness.relay.v1.RelayService.GetSessionFileDiff:input_type -> harness.relay.v1.GetSessionFileDiffRequest
+	100, // 191: harness.relay.v1.RelayService.SpawnSession:input_type -> harness.relay.v1.SpawnSessionRequest
+	98,  // 192: harness.relay.v1.RelayService.ListHostFolders:input_type -> harness.relay.v1.ListHostFoldersRequest
+	102, // 193: harness.relay.v1.RelayService.RequestTunnel:input_type -> harness.relay.v1.RequestTunnelRequest
+	104, // 194: harness.relay.v1.RelayService.ListTunnels:input_type -> harness.relay.v1.ListTunnelsRequest
+	106, // 195: harness.relay.v1.RelayService.AuthorizeTunnel:input_type -> harness.relay.v1.AuthorizeTunnelRequest
+	68,  // 196: harness.relay.v1.RelayService.SetKeepAwake:input_type -> harness.relay.v1.SetKeepAwakeRequest
+	64,  // 197: harness.relay.v1.RelayService.StopSubagent:input_type -> harness.relay.v1.StopSubagentRequest
+	66,  // 198: harness.relay.v1.RelayService.GetSubagentTranscript:input_type -> harness.relay.v1.GetSubagentTranscriptRequest
+	70,  // 199: harness.relay.v1.RelayService.SendSessionNote:input_type -> harness.relay.v1.SendSessionNoteRequest
+	72,  // 200: harness.relay.v1.RelayService.ResolveSessionProposal:input_type -> harness.relay.v1.ResolveSessionProposalRequest
+	159, // 201: harness.relay.v1.RelayService.StopWorkflow:input_type -> harness.relay.v1.StopWorkflowRequest
+	5,   // 202: harness.relay.v1.RelayService.RegisterHost:output_type -> harness.relay.v1.RegisterHostResponse
+	7,   // 203: harness.relay.v1.RelayService.OpenHostStream:output_type -> harness.relay.v1.OpenHostStreamResponse
+	14,  // 204: harness.relay.v1.RelayService.RegisterSession:output_type -> harness.relay.v1.RegisterSessionResponse
+	16,  // 205: harness.relay.v1.RelayService.UnregisterSession:output_type -> harness.relay.v1.UnregisterSessionResponse
+	19,  // 206: harness.relay.v1.RelayService.PublishEvents:output_type -> harness.relay.v1.PublishEventsResponse
+	22,  // 207: harness.relay.v1.RelayService.AckCommands:output_type -> harness.relay.v1.AckCommandsResponse
+	25,  // 208: harness.relay.v1.RelayService.Heartbeat:output_type -> harness.relay.v1.HeartbeatResponse
+	28,  // 209: harness.relay.v1.RelayService.RegisterTunnel:output_type -> harness.relay.v1.RegisterTunnelResponse
+	30,  // 210: harness.relay.v1.RelayService.CloseTunnel:output_type -> harness.relay.v1.CloseTunnelResponse
+	32,  // 211: harness.relay.v1.RelayService.ListHosts:output_type -> harness.relay.v1.ListHostsResponse
+	35,  // 212: harness.relay.v1.RelayService.SubscribeSession:output_type -> harness.relay.v1.SubscribeSessionResponse
+	41,  // 213: harness.relay.v1.RelayService.UpdatePresence:output_type -> harness.relay.v1.UpdatePresenceResponse
+	45,  // 214: harness.relay.v1.RelayService.SendUserMessage:output_type -> harness.relay.v1.SendUserMessageResponse
+	47,  // 215: harness.relay.v1.RelayService.Interrupt:output_type -> harness.relay.v1.InterruptResponse
+	49,  // 216: harness.relay.v1.RelayService.RespondToPermission:output_type -> harness.relay.v1.RespondToPermissionResponse
+	51,  // 217: harness.relay.v1.RelayService.AnswerQuestion:output_type -> harness.relay.v1.AnswerQuestionResponse
+	53,  // 218: harness.relay.v1.RelayService.SetModel:output_type -> harness.relay.v1.SetModelResponse
+	55,  // 219: harness.relay.v1.RelayService.SetEffort:output_type -> harness.relay.v1.SetEffortResponse
+	57,  // 220: harness.relay.v1.RelayService.SetPermissionMode:output_type -> harness.relay.v1.SetPermissionModeResponse
+	61,  // 221: harness.relay.v1.RelayService.SetOutputStyle:output_type -> harness.relay.v1.SetOutputStyleResponse
+	63,  // 222: harness.relay.v1.RelayService.SetAutoContinue:output_type -> harness.relay.v1.SetAutoContinueResponse
+	75,  // 223: harness.relay.v1.RelayService.RemoveQueuedMessage:output_type -> harness.relay.v1.RemoveQueuedMessageResponse
+	77,  // 224: harness.relay.v1.RelayService.RespondToPlan:output_type -> harness.relay.v1.RespondToPlanResponse
+	79,  // 225: harness.relay.v1.RelayService.StopTask:output_type -> harness.relay.v1.StopTaskResponse
+	81,  // 226: harness.relay.v1.RelayService.CloseSession:output_type -> harness.relay.v1.CloseSessionResponse
+	83,  // 227: harness.relay.v1.RelayService.Compact:output_type -> harness.relay.v1.CompactResponse
+	85,  // 228: harness.relay.v1.RelayService.Rewind:output_type -> harness.relay.v1.RewindResponse
+	59,  // 229: harness.relay.v1.RelayService.SuggestFiles:output_type -> harness.relay.v1.SuggestFilesResponse
+	91,  // 230: harness.relay.v1.RelayService.ListCheckpoints:output_type -> harness.relay.v1.ListCheckpointsResponse
+	93,  // 231: harness.relay.v1.RelayService.ListTasks:output_type -> harness.relay.v1.ListTasksResponse
+	95,  // 232: harness.relay.v1.RelayService.ListOutputStyles:output_type -> harness.relay.v1.ListOutputStylesResponse
+	97,  // 233: harness.relay.v1.RelayService.ListSlashCommands:output_type -> harness.relay.v1.ListSlashCommandsResponse
+	87,  // 234: harness.relay.v1.RelayService.GetSessionDiff:output_type -> harness.relay.v1.GetSessionDiffResponse
+	89,  // 235: harness.relay.v1.RelayService.GetSessionFileDiff:output_type -> harness.relay.v1.GetSessionFileDiffResponse
+	101, // 236: harness.relay.v1.RelayService.SpawnSession:output_type -> harness.relay.v1.SpawnSessionResponse
+	99,  // 237: harness.relay.v1.RelayService.ListHostFolders:output_type -> harness.relay.v1.ListHostFoldersResponse
+	103, // 238: harness.relay.v1.RelayService.RequestTunnel:output_type -> harness.relay.v1.RequestTunnelResponse
+	105, // 239: harness.relay.v1.RelayService.ListTunnels:output_type -> harness.relay.v1.ListTunnelsResponse
+	107, // 240: harness.relay.v1.RelayService.AuthorizeTunnel:output_type -> harness.relay.v1.AuthorizeTunnelResponse
+	69,  // 241: harness.relay.v1.RelayService.SetKeepAwake:output_type -> harness.relay.v1.SetKeepAwakeResponse
+	65,  // 242: harness.relay.v1.RelayService.StopSubagent:output_type -> harness.relay.v1.StopSubagentResponse
+	67,  // 243: harness.relay.v1.RelayService.GetSubagentTranscript:output_type -> harness.relay.v1.GetSubagentTranscriptResponse
+	71,  // 244: harness.relay.v1.RelayService.SendSessionNote:output_type -> harness.relay.v1.SendSessionNoteResponse
+	73,  // 245: harness.relay.v1.RelayService.ResolveSessionProposal:output_type -> harness.relay.v1.ResolveSessionProposalResponse
+	160, // 246: harness.relay.v1.RelayService.StopWorkflow:output_type -> harness.relay.v1.StopWorkflowResponse
+	202, // [202:247] is the sub-list for method output_type
+	157, // [157:202] is the sub-list for method input_type
+	157, // [157:157] is the sub-list for extension type_name
+	157, // [157:157] is the sub-list for extension extendee
+	0,   // [0:157] is the sub-list for field type_name
 }
 
 func init() { file_harness_relay_v1_relay_proto_init() }
@@ -7286,6 +7561,8 @@ func file_harness_relay_v1_relay_proto_init() {
 		(*Command_ListSlashCommands)(nil),
 		(*Command_DeliverAutoFixJob)(nil),
 		(*Command_ListRecentFolders)(nil),
+		(*Command_GetSessionDiff)(nil),
+		(*Command_GetSessionFileDiff)(nil),
 	}
 	file_harness_relay_v1_relay_proto_msgTypes[16].OneofWrappers = []any{
 		(*CommandAck_SuggestFiles)(nil),
@@ -7302,6 +7579,8 @@ func file_harness_relay_v1_relay_proto_init() {
 		(*CommandAck_StopWorkflow)(nil),
 		(*CommandAck_ListSlashCommands)(nil),
 		(*CommandAck_ListRecentFolders)(nil),
+		(*CommandAck_GetSessionDiff)(nil),
+		(*CommandAck_GetSessionFileDiff)(nil),
 	}
 	file_harness_relay_v1_relay_proto_msgTypes[31].OneofWrappers = []any{
 		(*SubscribeSessionResponse_SessionEvent)(nil),
@@ -7316,7 +7595,7 @@ func file_harness_relay_v1_relay_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_relay_v1_relay_proto_rawDesc), len(file_harness_relay_v1_relay_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   100,
+			NumMessages:   104,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

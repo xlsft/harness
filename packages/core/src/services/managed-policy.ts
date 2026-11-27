@@ -60,9 +60,14 @@ export interface ManagedPolicy {
   chat_apps_disabled: boolean;
   remote_starts_disabled: boolean;
   personal_chat_bots_disabled: boolean;
+  /** Best-of-N caps (docs/design/hosts.md, decision 29); 0: none. */
+  max_attempts: number;
+  max_parallel_attempts: number;
+  attempt_budget_usd: number;
 }
 
 const isObject = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
+const positive = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : 0);
 const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((s): s is string => typeof s === "string" && !!s.trim()).map((s) => s.trim()) : []);
 
 /** A plugin source as one line of the form, from the object the settings format stores. A shape the form can't show reads as "". */
@@ -163,6 +168,9 @@ export function managedOf(content: Json): ManagedPolicy {
     defer_builtin_tools: typeof content.deferBuiltinTools === "boolean" ? content.deferBuiltinTools : null,
     plugin_ui_disabled: content.disablePluginUi === true,
     plugin_ui_network_disabled: content.disablePluginUiNetwork === true,
+    max_attempts: positive(content.maxAttempts),
+    max_parallel_attempts: positive(content.maxParallelAttempts),
+    attempt_budget_usd: positive(content.attemptBudgetUsd),
     ...pluginFields(content),
     ...skillFields(content),
     chat_apps_disabled: content.disableChatApps === true,
@@ -196,6 +204,9 @@ export function withManaged(content: Json, p: ManagedPolicy): Json {
   setOrDelete(next, "deferBuiltinTools", p.defer_builtin_tools, typeof p.defer_builtin_tools === "boolean");
   setOrDelete(next, "disablePluginUi", true, p.plugin_ui_disabled);
   setOrDelete(next, "disablePluginUiNetwork", true, p.plugin_ui_network_disabled);
+  setOrDelete(next, "maxAttempts", p.max_attempts, p.max_attempts > 0);
+  setOrDelete(next, "maxParallelAttempts", p.max_parallel_attempts, p.max_parallel_attempts > 0);
+  setOrDelete(next, "attemptBudgetUsd", p.attempt_budget_usd, p.attempt_budget_usd > 0);
   setOrDelete(next, "strictKnownMarketplaces", p.allowed_plugin_sources.map(lineToSource), p.restrict_plugin_sources);
   setOrDelete(next, "blockedMarketplaces", p.blocked_plugin_sources.map(lineToSource), p.blocked_plugin_sources.length > 0);
   const extra = Object.fromEntries(
@@ -252,6 +263,9 @@ export function cleanManaged(p: ManagedPolicy): ManagedPolicy {
   for (const r of [...out.allow_rules, ...out.ask_rules, ...out.deny_rules]) {
     if (!RULE.test(r)) throw new ApiError("invalid_request", `Not a permission rule: ${r}`);
   }
+  if (out.max_attempts && (!Number.isInteger(out.max_attempts) || out.max_attempts < 2 || out.max_attempts > 5)) throw new ApiError("invalid_request", "maxAttempts is 2 to 5");
+  if (out.max_parallel_attempts && (!Number.isInteger(out.max_parallel_attempts) || out.max_parallel_attempts < 1 || out.max_parallel_attempts > 5)) throw new ApiError("invalid_request", "maxParallelAttempts is 1 to 5");
+  if (out.attempt_budget_usd < 0 || out.attempt_budget_usd > 10_000 || !Number.isFinite(out.attempt_budget_usd)) throw new ApiError("invalid_request", "attemptBudgetUsd is 0 to 10000");
   return out;
 }
 
@@ -310,7 +324,13 @@ export interface ServerPolicy {
   chatAppsDisabled: boolean;
   remoteStartsDisabled: boolean;
   personalChatBotsDisabled: boolean;
+  /** Best-of-N caps; 0: none. The lowest of the documents wins. */
+  maxAttempts: number;
+  maxParallelAttempts: number;
+  attemptBudgetUsd: number;
 }
+
+const lowest = (a: number, b: number) => (a > 0 && b > 0 ? Math.min(a, b) : a || b);
 
 function intersect(a: string[] | undefined, b: string[]): string[] {
   return a ? a.filter((x) => b.includes(x)) : b;
@@ -324,7 +344,7 @@ export async function serverPolicyFor(user: Pick<PublicUser, "role">): Promise<S
     .select({ content: d.content, targetRoles: d.targetRoles })
     .from(d)
     .where(and(eq(d.scope, Scope.ORG), eq(d.kind, DocumentKind.POLICY), isNull(d.deletedAt)));
-  const out: ServerPolicy = { personalProvidersDisabled: false, externalSkillSearchDisabled: false, personalHostsDisabled: false, sandboxRequired: false, chatAppsDisabled: false, remoteStartsDisabled: false, personalChatBotsDisabled: false };
+  const out: ServerPolicy = { personalProvidersDisabled: false, externalSkillSearchDisabled: false, personalHostsDisabled: false, sandboxRequired: false, maxAttempts: 0, maxParallelAttempts: 0, attemptBudgetUsd: 0, chatAppsDisabled: false, remoteStartsDisabled: false, personalChatBotsDisabled: false };
   for (const r of rows) {
     const roles = Array.isArray(r.targetRoles) ? (r.targetRoles as string[]) : [];
     if (roles.length && !roles.includes(user.role)) continue;
@@ -338,6 +358,9 @@ export async function serverPolicyFor(user: Pick<PublicUser, "role">): Promise<S
     out.chatAppsDisabled ||= m.chat_apps_disabled;
     out.remoteStartsDisabled ||= m.remote_starts_disabled;
     out.personalChatBotsDisabled ||= m.personal_chat_bots_disabled;
+    out.maxAttempts = lowest(out.maxAttempts, m.max_attempts);
+    out.maxParallelAttempts = lowest(out.maxParallelAttempts, m.max_parallel_attempts);
+    out.attemptBudgetUsd = lowest(out.attemptBudgetUsd, m.attempt_budget_usd);
   }
   return out;
 }

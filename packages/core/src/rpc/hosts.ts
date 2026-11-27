@@ -9,11 +9,13 @@ import {
   deleteAgentHost,
   getHostWork,
   issueGitCredentials,
+  issueMoveCredentials,
   issueWorkerToken,
   listAgentHosts,
   listHostWork,
   listWantedWorkers,
   openHostPullRequest,
+  queueMovedWork,
   registerAgentHost,
   reportAgentHost,
   setAwayHost,
@@ -21,6 +23,7 @@ import {
   updateAgentHost,
   updateHostWork,
 } from "../relay/hosts.ts";
+import { discardAttempts, getAttemptGroup, keepAttempt, listAttemptGroups, reportAttempt, startAttempts } from "../relay/attempts.ts";
 import { requirePrincipal } from "./context.ts";
 import { guard } from "./errors.ts";
 
@@ -42,6 +45,15 @@ export function registerHostServices(router: ConnectRouter): void {
       return {};
     }),
     claimScheduleRun: guard(async (req, ctx: HandlerContext) => ({ granted: await claimScheduleRun(await requirePrincipal(ctx), req.scheduleId, req.dueAt) })),
+    startAttempts: guard(async (req, ctx: HandlerContext) => ({ group: await startAttempts(await requirePrincipal(ctx), req) })),
+    getAttemptGroup: guard(async (req, ctx: HandlerContext) => ({ group: await getAttemptGroup(await requirePrincipal(ctx), req.id) })),
+    listAttemptGroups: guard(async (req, ctx: HandlerContext) => ({ groups: await listAttemptGroups(await requirePrincipal(ctx), req.limit) })),
+    reportAttempt: guard(async (req, ctx: HandlerContext) => {
+      await reportAttempt(await requirePrincipal(ctx), req);
+      return {};
+    }),
+    keepAttempt: guard(async (req, ctx: HandlerContext) => ({ group: await keepAttempt(await requirePrincipal(ctx), req.groupId, req.index) })),
+    discardAttempts: guard(async (req, ctx: HandlerContext) => ({ group: await discardAttempts(await requirePrincipal(ctx), req.groupId) })),
   });
   router.service(HostAgentService, {
     registerAgentHost: guard(async (req, ctx: HandlerContext) => registerAgentHost(await requirePrincipal(ctx), req)),
@@ -52,5 +64,7 @@ export function registerHostServices(router: ConnectRouter): void {
     openHostPullRequest: guard(async (req, ctx: HandlerContext) => openHostPullRequest(await requirePrincipal(ctx), req)),
     listWantedWorkers: guard(async (req, ctx: HandlerContext) => listWantedWorkers(await requirePrincipal(ctx), req.waitSeconds, ctx.signal)),
     issueWorkerToken: guard(async (req, ctx: HandlerContext) => issueWorkerToken(await requirePrincipal(ctx), req.userId)),
+    issueMoveCredentials: guard(async (req, ctx: HandlerContext) => ({ credentials: await issueMoveCredentials(await requirePrincipal(ctx), req.workId) })),
+    queueMovedWork: guard(async (req, ctx: HandlerContext) => ({ work: await queueMovedWork(await requirePrincipal(ctx), req.workId) })),
   });
 }

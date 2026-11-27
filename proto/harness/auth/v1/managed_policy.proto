@@ -69,6 +69,12 @@ message ManagedPolicy {
   bool remote_starts_disabled = 281;
   // disablePersonalChatBots: nobody connects a chat bot of their own (Telegram); the organization's bot still works.
   bool personal_chat_bots_disabled = 380;
+  // Best-of-N (docs/design/hosts.md, decision 29). maxAttempts: attempts in a group, 2 to 5; 0, the default of 5.
+  int32 max_attempts = 360;
+  // maxParallelAttempts: attempts of a group that work at once; 0, no cap.
+  int32 max_parallel_attempts = 361;
+  // attemptBudgetUsd: what one attempt may spend; 0, no cap.
+  double attempt_budget_usd = 362;
 }
 
 message GetManagedPolicyRequest {}

@@ -2,6 +2,7 @@
 // only the words for it.
 
 import { tt } from '~/utils/i18n'
+import type { AttemptCheckVM, SessionMovedVM } from '~/lib/session/types'
 
 export interface HostWorkerView {
   userId: string
@@ -86,6 +87,83 @@ export interface StartWork {
   idempotencyKey: string
 }
 
+// Moving a live session to a host (decisions 21 to 27): what the client found, for the confirmation.
+export interface MoveProblem {
+  code: string
+  message: string
+  paths: string[]
+}
+
+export interface MoveCheck {
+  ok: boolean
+  problems: MoveProblem[]
+  hostName: string
+  repositoryKey: string
+  branch: string
+  base: string
+  commits: number
+  uncommittedFiles: number
+  // The mode the host session gets, and why it is not the session's when it is not.
+  permissionMode: string
+  permissionNote: string
+  working: boolean
+}
+
+export interface MoveOptions {
+  stopTurn: boolean
+  message: string
+  openPullRequest: boolean
+}
+
+// Best-of-N (decisions 28 to 33).
+export type AttemptState = 'pending' | 'running' | 'idle' | 'failed' | 'discarding' | 'discarded'
+
+export interface AttemptView {
+  index: number
+  state: AttemptState
+  workId: string
+  sessionId: string
+  branch: string
+  error: string
+  check: AttemptCheckVM | null
+  kept: boolean
+}
+
+export interface AttemptGroupView {
+  id: string
+  prompt: string
+  title: string
+  // Empty: worktrees of the client in cwd.
+  hostId: string
+  hostName: string
+  cwd: string
+  repositoryKey: string
+  testCommand: string
+  parallel: number
+  budgetUsd: number
+  keptIndex: number
+  attempts: AttemptView[]
+  createdAt: string
+}
+
+export interface StartAttempts {
+  hostId: string
+  count: number
+  prompt: string
+  title: string
+  repositoryKey: string
+  baseRef: string
+  model: string
+  effort?: string
+  permissionMode?: string
+  testCommand: string
+  // 0: the user's settings.
+  parallel: number
+  budgetUsd: number
+  cwd: string
+  idempotencyKey: string
+}
+
 export interface HostsApi {
   list(all?: boolean): Promise<HostView[]>
   // The token comes once.
@@ -97,6 +175,15 @@ export interface HostsApi {
   listWork(hostId?: string): Promise<HostWorkView[]>
   cancel(id: string): Promise<HostWorkView>
   setAway(hostId: string): Promise<void>
+  // The client of this window checks and moves its own session.
+  checkMove(sessionId: string, hostId: string): Promise<MoveCheck>
+  move(sessionId: string, hostId: string, o: MoveOptions): Promise<SessionMovedVM>
+  startAttempts(s: StartAttempts): Promise<AttemptGroupView>
+  getGroup(id: string): Promise<AttemptGroupView>
+  listGroups(): Promise<AttemptGroupView[]>
+  keepAttempt(groupId: string, index: number): Promise<AttemptGroupView>
+  // After the user confirmed: the attempts other than the kept one go, with their checkouts and branches.
+  discardAttempts(groupId: string): Promise<AttemptGroupView>
 }
 
 export function formatBytes(n: number): string {
@@ -139,4 +226,23 @@ export function workStateText(w: HostWorkView): string {
 // host/owner/name, with what people paste in front of it taken off. The server checks it again.
 export function repositoryKeyOf(input: string): string {
   return input.trim().replace(/^[a-z+]+:\/\//i, '').replace(/^git@([^:]+):/, '$1/').replace(/\.git$/, '').replace(/\/+$/, '').toLowerCase()
+}
+
+export function attemptStateText(a: AttemptView): string {
+  switch (a.state) {
+    case 'pending': return tt('Waiting for its turn')
+    case 'running': return tt('Working')
+    case 'idle': return tt('Finished its turn')
+    case 'failed': return a.error ? tt('Failed: {0}', [a.error]) : tt('Failed')
+    case 'discarding': return tt('Being removed')
+    case 'discarded': return tt('Discarded')
+  }
+}
+
+// One line about a test run: passed, failed with its code, refused or out of time.
+export function attemptCheckText(c: AttemptCheckVM | null): string {
+  if (!c) return ''
+  if (c.refused) return tt('Tests not run: a deny rule covers the command')
+  if (c.timedOut) return tt('Tests ran out of time')
+  return c.exitCode === 0 ? tt('Tests passed') : tt('Tests failed (exit {0})', [c.exitCode])
 }

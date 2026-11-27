@@ -110,6 +110,8 @@ if (desktop) {
       <SshHostBar />
       <SettingsModal />
       <SearchModal />
+      <MoveSessionDialog />
+      <AttemptsView />
     </template>
   </UApp>
 </template>

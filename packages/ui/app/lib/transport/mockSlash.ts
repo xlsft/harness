@@ -23,6 +23,7 @@ export function mockSlashCatalog(disabled: ReadonlySet<string>): SlashCatalog {
     builtin('loop', 'Repeat a prompt or command here, on an interval or at the model\'s pace', '[interval] <prompt or /command> | stop | list', true),
     builtin('tools', 'List the tools offered to the model now, and why others are not', '', true),
     builtin('schedule', 'Open Scheduled: tasks that run by themselves'),
+    builtin('move', 'Move this session to one of your always-on hosts (asks first)', '', true),
     builtin('skills', 'Open Extensions: skills and commands, with their switches'),
     own('release-notes', 'Draft release notes from the commits since the last tag', SlashCommandKind.SKILL, '.harness/skills/release-notes/SKILL.md'),
     own('fe:test', 'Run the frontend tests', SlashCommandKind.COMMAND, '.harness/commands/fe/test.md')
