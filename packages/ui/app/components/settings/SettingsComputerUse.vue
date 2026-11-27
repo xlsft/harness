@@ -283,41 +283,70 @@ const desktop = isDesktop()
     >
       {{ status.unavailableReason }}
     </p>
-    <div
-      v-for="p in status?.permissions ?? []"
-      :key="p.id"
-      class="set-row"
-    >
-      <div class="set-label">
-        <span>{{ p.name }}</span>
-        <span
-          v-if="p.description"
-          class="set-desc"
-        >{{ p.description }}</span>
-        <span
-          v-if="!p.granted"
-          class="set-desc text-warn"
-        >{{ p.howToGrant }}</span>
-      </div>
-      <span
-        class="shrink-0 text-[12px] whitespace-nowrap"
-        :class="p.granted ? 'text-ok' : 'text-warn'"
-      >{{ p.granted ? tt('Allowed') : tt('Not allowed') }}</span>
-      <HBtn
-        v-if="desktop && p.settingsUrl"
-        size="sm"
-        @click="openExternal(p.settingsUrl)"
-      >
-        {{ tt('Open System Settings') }}
-      </HBtn>
-    </div>
-    <div
+    <section
       v-if="status?.permissions?.length"
-      class="mt-2"
+      :aria-label="tt('macOS permissions')"
+      class="mt-6 mb-8 flex flex-col"
     >
-      <HBtn @click="load">
-        {{ tt('Check again') }}
-      </HBtn>
-    </div>
+      <div class="mb-3 flex items-end gap-3">
+        <span class="flex min-w-0 flex-1 flex-col gap-1">
+          <h3 class="m-0 text-[13px] font-semibold text-strong">
+            {{ tt('macOS permissions') }}
+          </h3>
+          <span class="text-[12px] text-muted">{{ tt('What the system has to allow before the agent can see and use your apps.') }}</span>
+        </span>
+        <HBtn
+          size="sm"
+          tone="muted"
+          @click="load"
+        >
+          <HIcon
+            name="refresh"
+            :size="12"
+          />{{ tt('Check again') }}
+        </HBtn>
+      </div>
+      <div class="overflow-hidden border border-default">
+        <div
+          v-for="(p, i) in status.permissions"
+          :key="p.id"
+          class="flex flex-col"
+          :class="{ 'border-t border-default': i > 0 }"
+        >
+          <div class="flex items-center gap-3 px-3 py-2.5">
+            <SettingsMonogram
+              :icon="p.id === 'screen_recording' ? 'monitor' : 'cursor'"
+              :dim="!p.granted"
+            />
+            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span class="flex items-center gap-2 text-[12.5px] text-strong">
+                {{ p.name }}
+                <span
+                  class="text-[11px]"
+                  :class="p.granted ? 'text-ok' : 'text-warn'"
+                >{{ p.granted ? tt('allowed') : tt('not allowed') }}</span>
+              </span>
+              <span class="text-[11.5px] text-muted">{{ p.description }}</span>
+            </span>
+            <HBtn
+              v-if="desktop && p.settingsUrl && !p.granted"
+              size="sm"
+              @click="openExternal(p.settingsUrl)"
+            >
+              <HIcon
+                name="arrow-up-right"
+                :size="12"
+              />{{ tt('Open Settings') }}
+            </HBtn>
+          </div>
+          <p
+            v-if="!p.granted && p.howToGrant"
+            class="m-0 border-t border-default bg-hover py-2 pr-3 pl-[52px] text-[11.5px] leading-relaxed text-toned"
+          >
+            {{ p.howToGrant }}
+          </p>
+        </div>
+      </div>
+    </section>
   </section>
 </template>
