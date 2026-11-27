@@ -20,7 +20,34 @@ export function trackerErrorKind(err: unknown): TrackerErrorKind {
   return err instanceof TrackerError ? err.kind : "other";
 }
 
-export type AuthMethodName = "token" | "password" | "oauth";
+/**
+ * How a connection signs in. "email_token": an account email in `login` and an API token (Atlassian Cloud basic auth). "vcs":
+ * through the server's code host connection from Settings > VCS (option "vcs_connection_id"), see OpenOptions.vcs.
+ */
+export type AuthMethodName = "token" | "password" | "oauth" | "email_token" | "vcs";
+
+export const AUTH_METHODS: readonly AuthMethodName[] = ["token", "password", "oauth", "email_token", "vcs"];
+
+/** A provider-specific setting kept in a connection's options. Never a secret: options are stored and shown in the clear. */
+export interface OptionField {
+  /** Lower case letters, digits and underscores. */
+  key: string;
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+  /** When set, the only values taken; the form shows a choice. */
+  allowedValues?: string[];
+  help?: string;
+  /** Used when the form leaves it empty. */
+  defaultValue?: string;
+}
+
+/** What the form says for one sign-in method of one provider, in English. */
+export interface AuthHint {
+  help: string;
+  secretLabel?: string;
+  loginLabel?: string;
+}
 
 export interface Capabilities {
   provider: string;
@@ -30,7 +57,75 @@ export interface Capabilities {
   queryExample: string;
   customFields: boolean;
   comments: boolean;
-  knowledge: boolean;
+  optionFields?: OptionField[];
+  /** Where the vendor documents the credentials the form asks for. */
+  docsUrl?: string;
+  /** Key in packages/ui/app/utils/providerLogos.ts. */
+  logo?: string;
+  baseUrlPlaceholder?: string;
+  /** Used when the form leaves the address empty (a hosted-only service). Unset: the address is required. */
+  defaultBaseUrl?: string;
+  authHints?: Partial<Record<AuthMethodName, AuthHint>>;
+}
+
+/** What a connection signs in with, decrypted. Never logged, never returned by an RPC. */
+export interface StoredCredentials {
+  /** The token of "token" and "email_token". */
+  token?: string;
+  password?: string;
+  clientSecret?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  /** Unix milliseconds. */
+  expiresAt?: number;
+}
+
+export interface OAuthTokens {
+  accessToken: string;
+  refreshToken?: string;
+  /** Unix milliseconds. */
+  expiresAt: number;
+}
+
+/** A code host connection a "vcs" sign-in goes through. The token is fetched when needed and never stored by the provider. */
+export interface VcsSignIn {
+  type: "github" | "gitlab";
+  baseUrl: string;
+  token(): Promise<string>;
+}
+
+/** What opening a provider takes. Every request it makes goes through guardedFetch with allowPrivateNetwork. */
+export interface OpenOptions {
+  baseUrl: string;
+  auth: AuthMethodName;
+  login: string;
+  oauthClientId: string;
+  credentials: StoredCredentials;
+  /** Checked against Capabilities.optionFields, defaults filled. */
+  options: Record<string, string>;
+  allowPrivateNetwork: boolean;
+  retryDelaysMs?: number[];
+  /** Store refreshed OAuth tokens. */
+  onOAuthTokens?: (t: OAuthTokens) => Promise<void>;
+  /** For "vcs": the code host connection named by options.vcs_connection_id. */
+  vcs?: () => Promise<VcsSignIn>;
+}
+
+/** The provider-specific part of Authorization Code with PKCE. */
+export interface OAuthModule {
+  authorizeUrl(o: { baseUrl: string; clientId: string; redirectUri: string; state: string; challenge: string; allowPrivateNetwork: boolean; options: Record<string, string> }): Promise<string>;
+  exchangeCode(o: { baseUrl: string; clientId: string; clientSecret?: string; code: string; redirectUri: string; verifier: string; allowPrivateNetwork: boolean; options: Record<string, string> }): Promise<OAuthTokens>;
+}
+
+/** One tracker provider, as src/tracker/registry.ts lists it. */
+export interface TrackerModule {
+  capabilities: Capabilities;
+  open(o: OpenOptions): TrackerProvider;
+  oauth?: OAuthModule;
+  /** Normalizes an address the generic way when unset (trailing slashes, https:// for a bare host). */
+  normalizeUrl?(raw: string): string;
+  /** Checks what the generic checks can't; throws ApiError("invalid_request"). */
+  validate?(baseUrl: string, options: Record<string, string>): void;
 }
 
 export interface Identity {
@@ -109,10 +204,6 @@ export interface TrackerProvider {
   comment(id: string, text: string): Promise<void>;
   fields(project: string): Promise<Field[]>;
   projects(): Promise<ProviderProject[]>;
-  /** Present when capabilities().knowledge. */
-  searchArticles?(query: string, base: string, limit: number): Promise<Article[]>;
-  listArticles?(parentId: string, base: string, page: Page): Promise<{ articles: Article[]; hasMore: boolean }>;
-  getArticle?(id: string): Promise<Article>;
 }
 
 /** The words of a query in the provider's syntax that are plain text: filters such as `project: HELP` and #shortcuts are not. */

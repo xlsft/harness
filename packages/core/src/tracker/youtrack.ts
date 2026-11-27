@@ -5,7 +5,34 @@
  * Every request goes through the SSRF guard. Nothing here logs, and error messages name the path and status, never a credential.
  */
 import { guardedFetch } from "../lib/ssrf.ts";
-import { freeTextTerms, TrackerError, type Article, type Capabilities, type Field, type Identity, type Issue, type IssueDraft, type IssueUpdate, type Page, type ProviderProject, type TrackerProvider } from "./provider.ts";
+import {
+  freeTextTerms,
+  TrackerError,
+  type Article,
+  type AuthHint,
+  type AuthMethodName,
+  type Capabilities,
+  type Field,
+  type Identity,
+  type Issue,
+  type IssueDraft,
+  type IssueUpdate,
+  type OAuthModule,
+  type OpenOptions,
+  type Page,
+  type ProviderProject,
+  type TrackerModule,
+  type TrackerProvider,
+} from "./provider.ts";
+
+/** What the form says for each method, for the tracker and the knowledge base alike. */
+export const YOUTRACK_AUTH_HINTS: Partial<Record<AuthMethodName, AuthHint>> = {
+  // https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html
+  token: { help: "Make a permanent token in YouTrack under Profile, Account Security. It has your account's rights.", secretLabel: "Permanent token" },
+  // https://www.jetbrains.com/help/youtrack/devportal/OAuth-authorization.html
+  oauth: { help: "An admin of the instance creates the OAuth client first, with Authorization Code and PKCE. Save, then Authorize." },
+  password: { help: "Uses the same sign-in as the web page. It does not work with two-factor authentication; a token is the sturdier choice.", secretLabel: "Password", loginLabel: "Login" },
+};
 
 export const YOUTRACK_CAPABILITIES: Capabilities = {
   provider: "youtrack",
@@ -15,7 +42,10 @@ export const YOUTRACK_CAPABILITIES: Capabilities = {
   queryExample: "project: DEMO Stage: Backlog",
   customFields: true,
   comments: true,
-  knowledge: true,
+  docsUrl: "https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html",
+  logo: "youtrack",
+  baseUrlPlaceholder: "https://youtrack.example.com",
+  authHints: YOUTRACK_AUTH_HINTS,
 };
 
 export interface YouTrackCredentials {
@@ -574,3 +604,52 @@ export class YouTrack implements TrackerProvider {
     return this.toArticle(await this.request<Record<string, unknown>>("GET", `articles/${encodeURIComponent(id)}`, { fields: ARTICLE_FIELDS }));
   }
 }
+
+/** A YouTrack client over the generic open options, for the tracker and the knowledge base. */
+export function openYouTrack(o: OpenOptions): YouTrack {
+  if (o.auth !== "token" && o.auth !== "password" && o.auth !== "oauth") throw new TrackerError("other", `YouTrack does not sign in with ${o.auth}`);
+  const c = o.credentials;
+  return new YouTrack({
+    baseUrl: o.baseUrl,
+    auth: o.auth,
+    allowPrivateNetwork: o.allowPrivateNetwork,
+    retryDelaysMs: o.retryDelaysMs,
+    credentials: {
+      token: c.token,
+      login: o.login,
+      password: c.password,
+      oauth: o.auth === "oauth" ? { clientId: o.oauthClientId, clientSecret: c.clientSecret, accessToken: c.accessToken, refreshToken: c.refreshToken, expiresAt: c.expiresAt } : undefined,
+    },
+    onOAuthTokens: o.onOAuthTokens,
+  });
+}
+
+/** Authorization Code with PKCE against the instance's Hub. */
+export const YOUTRACK_OAUTH: OAuthModule = {
+  async authorizeUrl(o) {
+    const hub = await new YouTrack({ baseUrl: o.baseUrl, auth: "oauth", credentials: {}, allowPrivateNetwork: o.allowPrivateNetwork }).discoverHub();
+    const u = new URL(`${hub.url}/api/rest/oauth2/auth`);
+    u.search = new URLSearchParams({
+      response_type: "code",
+      client_id: o.clientId,
+      scope: hub.serviceId,
+      redirect_uri: o.redirectUri,
+      access_type: "offline",
+      state: o.state,
+      code_challenge: o.challenge,
+      code_challenge_method: "S256",
+    }).toString();
+    return u.href;
+  },
+  async exchangeCode(o) {
+    const yt = new YouTrack({ baseUrl: o.baseUrl, auth: "oauth", credentials: {}, allowPrivateNetwork: o.allowPrivateNetwork });
+    return yt.exchangeToken({ grant_type: "authorization_code", code: o.code, redirect_uri: o.redirectUri, code_verifier: o.verifier }, o.clientId, o.clientSecret);
+  },
+};
+
+export const YOUTRACK: TrackerModule = {
+  capabilities: YOUTRACK_CAPABILITIES,
+  open: openYouTrack,
+  oauth: YOUTRACK_OAUTH,
+  normalizeUrl: normalizeYouTrackUrl,
+};

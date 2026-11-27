@@ -29,7 +29,34 @@ const (
 	AuthToken    AuthMethod = "token"
 	AuthPassword AuthMethod = "password"
 	AuthOAuth    AuthMethod = "oauth"
+	// AuthEmailToken is an account email in Login and an API token as the secret (Atlassian Cloud basic auth).
+	AuthEmailToken AuthMethod = "email_token"
+	// AuthVCS signs in through the code host: on a device the gh or glab command line signed in for the host of the base URL,
+	// asked through OpenOptions.VCSToken. Nothing is stored.
+	AuthVCS AuthMethod = "vcs"
 )
+
+// OptionField describes a provider-specific setting kept in a connection's Options. Never a secret: options are stored and
+// shown in the clear. The form renders these generically (harness.library.v1.ProviderOptionField).
+type OptionField struct {
+	// Key is lower case letters, digits and underscores.
+	Key         string
+	Label       string
+	Placeholder string
+	Required    bool
+	// AllowedValues, when set, are the only values taken; the form shows a choice.
+	AllowedValues []string
+	Help          string
+	// Default is used when the form leaves the field empty.
+	Default string
+}
+
+// AuthHint is what the form says for one sign-in method of one provider, in English.
+type AuthHint struct {
+	Help        string
+	SecretLabel string
+	LoginLabel  string
+}
 
 // Capabilities says what a provider can do, so forms and tools need no knowledge of it.
 type Capabilities struct {
@@ -40,7 +67,16 @@ type Capabilities struct {
 	QueryExample  string
 	CustomFields  bool
 	Comments      bool
-	Knowledge     bool
+	// OptionFields are the provider-specific settings of a connection.
+	OptionFields []OptionField
+	// DocsURL is where the vendor documents the credentials the form asks for.
+	DocsURL string
+	// Logo is the key in packages/ui/app/utils/providerLogos.ts; empty: a monogram.
+	Logo               string
+	BaseURLPlaceholder string
+	// DefaultBaseURL is used when the form leaves the address empty (a hosted-only service). Empty: the address is required.
+	DefaultBaseURL string
+	AuthHints      map[AuthMethod]AuthHint
 }
 
 // Identity is who the credentials sign in as.
@@ -125,27 +161,6 @@ type Provider interface {
 	Projects(ctx context.Context) ([]Project, error)
 }
 
-// Article is a document of a provider's knowledge base.
-type Article struct {
-	ID          string
-	Title       string
-	URL         string
-	Content     string
-	Project     string
-	UpdatedAt   string
-	ParentID    string
-	HasChildren bool
-}
-
-// KnowledgeProvider is what a Provider with Capabilities.Knowledge also implements.
-type KnowledgeProvider interface {
-	// SearchArticles searches with query in the provider's syntax, narrowed by base.
-	SearchArticles(ctx context.Context, query, base string, limit int) ([]Article, error)
-	// ListArticles lists the children of parentID, or the top level.
-	ListArticles(ctx context.Context, parentID, base string, page Page) (articles []Article, hasMore bool, err error)
-	GetArticle(ctx context.Context, id string) (*Article, error)
-}
-
 // Credentials are what a provider signs in with. Never logged, never sent to the server or to a model.
 type Credentials struct {
 	Secret       string `json:"secret,omitempty"`
@@ -163,8 +178,12 @@ type OpenOptions struct {
 	Login         string
 	OAuthClientID string
 	Credentials   Credentials
+	// Options are the connection's provider-specific settings, validated against Capabilities.OptionFields with defaults filled.
+	Options map[string]string
 	// OnTokens stores refreshed OAuth tokens.
 	OnTokens func(Credentials)
+	// VCSToken gives a token of the code host signed in on this device for host (gh or glab), for AuthVCS. Never log it.
+	VCSToken func(ctx context.Context, host string) (string, error)
 }
 
 // OAuthExchange is what the provider-specific part of Authorization Code offers.
@@ -181,6 +200,8 @@ type Factory struct {
 	Open         func(OpenOptions) (Provider, error)
 	// OAuth starts over a base URL; nil when the provider has no OAuth.
 	OAuth func(baseURL string) (OAuthExchange, error)
+	// Validate checks what the generic checks can't (a base URL of the right shape, options that go together). Optional.
+	Validate func(baseURL string, options map[string]string) error
 }
 
 var (

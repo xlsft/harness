@@ -218,6 +218,33 @@ func TestProjectsAndKnowledge(t *testing.T) {
 	}
 }
 
+// The knowledge base as its own provider, borrowing the sign-in of a YouTrack tracker connection on this device.
+func TestKnowledgeBaseBorrowsTheTrackerSignIn(t *testing.T) {
+	f := youtracktest.New(t, &api{})
+	t.Setenv("HARNESS_KEYRING", "0")
+	s := tracker.New(t.TempDir(), nil)
+	secret := youtracktest.Password
+	tc, err := s.Store.Save(tracker.Input{Connection: tracker.Connection{Provider: youtrack.Name, Name: "YT", BaseURL: f.URL, Auth: tracker.AuthPassword, Login: youtracktest.Login, Enabled: true}, Secret: &secret})
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, err := s.Knowledge.Save(tracker.KnowledgeInput{KnowledgeConnection: tracker.KnowledgeConnection{Provider: youtrack.KnowledgeName, Enabled: true, Borrow: tc.ID, Query: "project: H"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	hits, warnings, err := s.Search(ctx, "zebra", 5, 0, nil)
+	if err != nil || len(warnings) != 0 || len(hits) != 1 || hits[0].GetDocumentId() != "conn:"+k.ID+":H-1" || hits[0].GetSource().GetProvider() != youtrack.KnowledgeName {
+		t.Fatalf("%v %v %v", hits, warnings, err)
+	}
+	if _, content, err := s.Read(ctx, hits[0].GetDocumentId()); err != nil || content != "stripes" {
+		t.Fatalf("%q %v", content, err)
+	}
+	if caps := youtrack.KnowledgeCapabilities(); !caps.CanBorrow(youtrack.Name) || caps.Logo != "youtrack" {
+		t.Fatalf("%+v", caps)
+	}
+}
+
 func TestTransientErrorsAreClassified(t *testing.T) {
 	a := &api{}
 	_, p := open(t, a)

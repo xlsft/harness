@@ -333,5 +333,14 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE INDEX \"host_work_user_idx\" ON \"host_work\" USING btree (\"user_id\",\"created_at\");",
       "CREATE UNIQUE INDEX \"host_work_idem_idx\" ON \"host_work\" USING btree (\"user_id\",\"idempotency_key\");"
     ]
+  },
+  {
+    "id": "0018_knowledge_connections",
+    "statements": [
+      "CREATE TABLE \"knowledge_connection\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"provider\" text NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"base_url\" text DEFAULT '' NOT NULL,\n\t\"auth\" text DEFAULT '' NOT NULL,\n\t\"login\" text DEFAULT '' NOT NULL,\n\t\"oauth_client_id\" text DEFAULT '' NOT NULL,\n\t\"secrets_enc\" text DEFAULT '' NOT NULL,\n\t\"enabled\" boolean DEFAULT true NOT NULL,\n\t\"allow_private_network\" boolean DEFAULT false NOT NULL,\n\t\"query\" text DEFAULT '' NOT NULL,\n\t\"options\" jsonb DEFAULT '{}'::jsonb NOT NULL,\n\t\"borrow_connection_id\" text DEFAULT '' NOT NULL,\n\t\"migrated_from\" text DEFAULT '' NOT NULL,\n\t\"healthy\" boolean DEFAULT false NOT NULL,\n\t\"last_error\" text DEFAULT '' NOT NULL,\n\t\"last_checked_at\" timestamp with time zone,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL,\n\t\"updated_by\" text DEFAULT '' NOT NULL\n);",
+      "ALTER TABLE \"tracker_connection\" ADD COLUMN \"options\" jsonb DEFAULT '{}'::jsonb NOT NULL;",
+      "-- Data: a company tracker connection that served Knowledge itself becomes a knowledge source connection borrowing its sign-in, keeping its query; migrated_from keeps old conn:<tracker id>:<article> ids readable. docs/design/tracker.md, section 6.\nINSERT INTO \"knowledge_connection\" (\"id\", \"provider\", \"name\", \"enabled\", \"query\", \"borrow_connection_id\", \"migrated_from\", \"created_at\", \"updated_at\", \"updated_by\") SELECT 'kc_' || substr(md5(random()::text || \"id\"), 1, 16), 'youtrack-kb', 'YouTrack Knowledge Base · ' || \"name\", \"enabled\", \"knowledge_query\", \"id\", \"id\", now(), now(), \"updated_by\" FROM \"tracker_connection\" WHERE \"knowledge_enabled\" AND \"provider\" = 'youtrack';",
+      "UPDATE \"tracker_connection\" SET \"knowledge_enabled\" = false, \"knowledge_query\" = '' WHERE \"knowledge_enabled\" AND \"provider\" = 'youtrack';"
+    ]
   }
 ];

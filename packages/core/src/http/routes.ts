@@ -36,6 +36,7 @@ export const routes: RouteDef[] = [
   { route: "/harness.library.v1.KnowledgeService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.library.v1.BoardService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.library.v1.TrackerConnectionService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.library.v1.KnowledgeConnectionService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.library.v1.ProjectService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.library.v1.TranscriptSearchService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.auth.v1.AuditService/**", handler: "./src/http/routes/rpc.ts" },

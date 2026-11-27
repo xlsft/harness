@@ -49,7 +49,7 @@ import (
 	"github.com/xlsft/harness/packages/client/terminal"
 	"github.com/xlsft/harness/packages/client/tools"
 	"github.com/xlsft/harness/packages/client/tracker"
-	_ "github.com/xlsft/harness/packages/client/tracker/youtrack" // registers the provider
+	_ "github.com/xlsft/harness/packages/client/tracker/providers" // registers every provider
 	"github.com/xlsft/harness/packages/client/vcs"
 	"github.com/xlsft/harness/packages/client/web"
 	"github.com/xlsft/harness/packages/client/workflow"

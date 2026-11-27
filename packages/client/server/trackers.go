@@ -14,7 +14,7 @@ import (
 	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
 	libraryv1 "github.com/xlsft/harness/packages/client/gen/harness/library/v1"
 	"github.com/xlsft/harness/packages/client/tracker"
-	_ "github.com/xlsft/harness/packages/client/tracker/youtrack" // registers the provider
+	_ "github.com/xlsft/harness/packages/client/tracker/providers" // registers every provider
 )
 
 // Trackers on this device (trackers.proto). The work is in package tracker.
@@ -268,4 +268,75 @@ func (l *localTrackerService) ReadKnowledge(ctx context.Context, req *connect.Re
 		return nil, trackerConnectError(err)
 	}
 	return connect.NewResponse(&agentv1.ReadKnowledgeResponse{Document: doc, Content: content}), nil
+}
+
+// ---- knowledge source connections on this device ----
+
+func (l *localTrackerService) ListLocalKnowledgeConnections(context.Context, *connect.Request[agentv1.ListLocalKnowledgeConnectionsRequest]) (*connect.Response[agentv1.ListLocalKnowledgeConnectionsResponse], error) {
+	t := l.s.trackers()
+	list, err := t.Knowledge.List()
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	res := &agentv1.ListLocalKnowledgeConnectionsResponse{Providers: tracker.KnowledgeCapabilitiesProto()}
+	for _, c := range list {
+		res.Connections = append(res.Connections, t.KnowledgeConnectionProto(c))
+	}
+	return connect.NewResponse(res), nil
+}
+
+func (l *localTrackerService) SaveLocalKnowledgeConnection(_ context.Context, req *connect.Request[agentv1.SaveLocalKnowledgeConnectionRequest]) (*connect.Response[agentv1.SaveLocalKnowledgeConnectionResponse], error) {
+	if req.Msg.GetConnection() == nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("connection is required"))
+	}
+	t := l.s.trackers()
+	c, err := t.Knowledge.Save(tracker.KnowledgeInputFromProto(req.Msg.GetConnection()))
+	if err != nil {
+		return nil, trackerConnectError(err)
+	}
+	return connect.NewResponse(&agentv1.SaveLocalKnowledgeConnectionResponse{Connection: t.KnowledgeConnectionProto(c)}), nil
+}
+
+func (l *localTrackerService) DeleteLocalKnowledgeConnection(_ context.Context, req *connect.Request[agentv1.DeleteLocalKnowledgeConnectionRequest]) (*connect.Response[agentv1.DeleteLocalKnowledgeConnectionResponse], error) {
+	if err := l.s.trackers().Knowledge.Delete(req.Msg.GetId()); err != nil {
+		return nil, trackerConnectError(err)
+	}
+	return connect.NewResponse(&agentv1.DeleteLocalKnowledgeConnectionResponse{}), nil
+}
+
+func (l *localTrackerService) TestLocalKnowledgeConnection(ctx context.Context, req *connect.Request[agentv1.TestLocalKnowledgeConnectionRequest]) (*connect.Response[agentv1.TestLocalKnowledgeConnectionResponse], error) {
+	ctx, cancel := context.WithTimeout(ctx, trackerCallTimeout)
+	defer cancel()
+	k := l.s.trackers().Knowledge
+	var me tracker.Identity
+	var err error
+	if id := req.Msg.GetId(); id != "" {
+		var c tracker.KnowledgeConnection
+		if c, err = k.Get(id); err != nil {
+			return nil, trackerConnectError(err)
+		}
+		var p tracker.KnowledgeProvider
+		if p, err = k.Open(c); err == nil {
+			me, err = p.Test(ctx)
+		}
+		k.Record(id, err, time.Now())
+	} else if d := req.Msg.GetDraft(); d != nil {
+		me, err = k.TestDraft(ctx, tracker.KnowledgeInputFromProto(d))
+	} else {
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("pass a connection to test"))
+	}
+	if err != nil {
+		return connect.NewResponse(&agentv1.TestLocalKnowledgeConnectionResponse{Error: err.Error()}), nil
+	}
+	return connect.NewResponse(&agentv1.TestLocalKnowledgeConnectionResponse{Ok: true, Login: me.Login, DisplayName: me.DisplayName}), nil
+}
+
+func (l *localTrackerService) StartLocalKnowledgeOAuth(ctx context.Context, req *connect.Request[agentv1.StartLocalKnowledgeOAuthRequest]) (*connect.Response[agentv1.StartLocalKnowledgeOAuthResponse], error) {
+	ctx, cancel := context.WithTimeout(ctx, trackerCallTimeout)
+	defer cancel()
+	id, u, err := l.s.trackers().StartKnowledgeOAuth(ctx, req.Msg.GetConnectionId())
+	if err != nil {
+		return nil, trackerConnectError(err)
+	}
+	return connect.NewResponse(&agentv1.StartLocalKnowledgeOAuthResponse{FlowId: id, AuthorizeUrl: u}), nil
 }

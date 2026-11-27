@@ -32,6 +32,7 @@ import { KnowledgeService } from "../../src/gen/harness/library/v1/knowledge_pb.
 import { BoardService } from "../../src/gen/harness/library/v1/boards_pb.ts";
 import { ProjectService } from "../../src/gen/harness/library/v1/projects_pb.ts";
 import { TrackerConnectionService } from "../../src/gen/harness/library/v1/tracker_connections_pb.ts";
+import { KnowledgeConnectionService } from "../../src/gen/harness/library/v1/knowledge_connections_pb.ts";
 import { TranscriptSearchService } from "../../src/gen/harness/library/v1/transcripts_pb.ts";
 import { ObjectsService } from "../../src/gen/harness/objects/v1/objects_pb.ts";
 import { createTempDatabase, type TempDatabase } from "./pg.ts";
@@ -58,6 +59,7 @@ export interface TestServer {
   knowledge: Client<typeof KnowledgeService>;
   boards: Client<typeof BoardService>;
   trackers: Client<typeof TrackerConnectionService>;
+  knowledgeSources: Client<typeof KnowledgeConnectionService>;
   projects: Client<typeof ProjectService>;
   transcripts: Client<typeof TranscriptSearchService>;
   objects: Client<typeof ObjectsService>;
@@ -87,6 +89,7 @@ export interface TestServer {
     knowledge: Client<typeof KnowledgeService>;
     boards: Client<typeof BoardService>;
   trackers: Client<typeof TrackerConnectionService>;
+  knowledgeSources: Client<typeof KnowledgeConnectionService>;
   projects: Client<typeof ProjectService>;
     transcripts: Client<typeof TranscriptSearchService>;
     objects: Client<typeof ObjectsService>;
@@ -167,6 +170,7 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       knowledge: createClient(KnowledgeService, transport),
       boards: createClient(BoardService, transport),
       trackers: createClient(TrackerConnectionService, transport),
+      knowledgeSources: createClient(KnowledgeConnectionService, transport),
       projects: createClient(ProjectService, transport),
       transcripts: createClient(TranscriptSearchService, transport),
       objects: createClient(ObjectsService, transport),

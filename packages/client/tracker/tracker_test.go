@@ -37,7 +37,7 @@ var (
 
 func init() {
 	Register("fake", Factory{
-		Capabilities: Capabilities{Provider: "fake", DisplayName: "Fake", AuthMethods: []AuthMethod{AuthToken, AuthOAuth}, Knowledge: true},
+		Capabilities: Capabilities{Provider: "fake", DisplayName: "Fake", AuthMethods: []AuthMethod{AuthToken, AuthOAuth, AuthEmailToken}, OptionFields: []OptionField{{Key: "kind", Label: "Kind", AllowedValues: []string{"cloud", "server"}, Default: "cloud"}}},
 		Open: func(o OpenOptions) (Provider, error) {
 			currentMu.Lock()
 			defer currentMu.Unlock()
@@ -48,7 +48,24 @@ func init() {
 		},
 		OAuth: func(string) (OAuthExchange, error) { return current.oauth, nil },
 	})
+	Register("other", Factory{Capabilities: Capabilities{Provider: "other", AuthMethods: []AuthMethod{AuthToken}}, Open: func(OpenOptions) (Provider, error) { return current, nil }})
+	RegisterKnowledge("fake-kb", KnowledgeFactory{
+		Capabilities: KnowledgeCapabilities{Provider: "fake-kb", DisplayName: "Fake KB", AuthMethods: []AuthMethod{AuthToken, AuthOAuth}, BorrowFrom: []string{"fake"}, OptionFields: []OptionField{{Key: "space", Label: "Space"}}},
+		Open: func(o KnowledgeOpenOptions) (KnowledgeProvider, error) {
+			currentMu.Lock()
+			defer currentMu.Unlock()
+			lastKnowledgeOpen = o
+			if o.Auth == AuthToken && o.Credentials.Secret == "" {
+				return nil, fmt.Errorf("%w: no token", ErrAuth)
+			}
+			return current, nil
+		},
+		OAuth: func(string) (OAuthExchange, error) { return current.oauth, nil },
+	})
 }
+
+// lastKnowledgeOpen is what the fake knowledge provider was last opened with.
+var lastKnowledgeOpen KnowledgeOpenOptions
 
 func use(p *fakeProvider) {
 	currentMu.Lock()
@@ -57,7 +74,7 @@ func use(p *fakeProvider) {
 }
 
 func (*fakeProvider) Capabilities() Capabilities {
-	return Capabilities{Provider: "fake", Knowledge: true}
+	return Capabilities{Provider: "fake"}
 }
 
 func (p *fakeProvider) Test(context.Context) (Identity, error) {
@@ -427,8 +444,12 @@ func TestKnowledgeMergesSourcesAndSurvivesFailures(t *testing.T) {
 		{DocumentId: "kb_2", Title: "Second", Source: &libraryv1.KnowledgeSourceRef{Id: "internal:org"}},
 	}}
 	s := testService(t, srv)
-	c := saved(t, s, Connection{Name: "Mine", KnowledgeEnabled: true}, "t")
+	tc := saved(t, s, Connection{Name: "Mine"}, "t")
 	saved(t, s, Connection{Name: "NoDocs"}, "t")
+	c, err := s.Knowledge.Save(KnowledgeInput{KnowledgeConnection: KnowledgeConnection{Provider: "fake-kb", Enabled: true, Borrow: tc.ID}})
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
 	hits, warnings, err := s.Search(ctx, "canary", 8, commonv1.Scope_SCOPE_UNSPECIFIED, nil)

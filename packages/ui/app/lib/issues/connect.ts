@@ -6,7 +6,8 @@ import { LocalTrackerService } from '~/gen/harness/agent/v1/trackers_pb'
 import { BoardService } from '~/gen/harness/library/v1/boards_pb'
 import { ProjectService } from '~/gen/harness/library/v1/projects_pb'
 import { TrackerConnectionService } from '~/gen/harness/library/v1/tracker_connections_pb'
-import { TrackerConnectionScope, type BoardScope, type CardFilterInit, type CardPatch, type CardRelationKind, type ConnectionInputInit, type IssuesApi, type MetadataInit, type ProjectScope, type ShareInit, type StageInit } from './types'
+import { KnowledgeConnectionService } from '~/gen/harness/library/v1/knowledge_connections_pb'
+import { TrackerConnectionScope, type BoardScope, type CardFilterInit, type CardPatch, type CardRelationKind, type ConnectionInputInit, type IssuesApi, type KnowledgeInputInit, type MetadataInit, type ProjectScope, type ShareInit, type StageInit } from './types'
 
 function need<T>(v: T | undefined, what: string): T {
   if (v === undefined) throw new Error(`the server returned no ${what}`)
@@ -20,8 +21,10 @@ export class ConnectIssuesApi implements IssuesApi {
   private boards: Client<typeof BoardService>
   private conns: Client<typeof TrackerConnectionService>
   private local: Client<typeof LocalTrackerService>
+  private knowledge: Client<typeof KnowledgeConnectionService>
 
   constructor(transport: Transport) {
+    this.knowledge = createClient(KnowledgeConnectionService, transport)
     this.projects = createClient(ProjectService, transport)
     this.boards = createClient(BoardService, transport)
     this.conns = createClient(TrackerConnectionService, transport)
@@ -198,6 +201,35 @@ export class ConnectIssuesApi implements IssuesApi {
 
   async oauthStatus(flowId: string) {
     return await this.local.getLocalTrackerOAuth({ flowId })
+  }
+
+  async listKnowledgeConnections() {
+    const device = await this.local.listLocalKnowledgeConnections({})
+    const server = await this.knowledge.listKnowledgeConnections({}).catch(() => ({ connections: [], providers: [] }))
+    return { connections: [...device.connections, ...server.connections], deviceProviders: device.providers, companyProviders: server.providers }
+  }
+
+  async saveKnowledgeConnection(scope: TrackerConnectionScope, connection: KnowledgeInputInit) {
+    if (isDevice(scope)) return need((await this.local.saveLocalKnowledgeConnection({ connection })).connection, 'connection')
+    return need((await this.knowledge.putKnowledgeConnection({ connection })).connection, 'connection')
+  }
+
+  async deleteKnowledgeConnection(scope: TrackerConnectionScope, id: string) {
+    if (isDevice(scope)) await this.local.deleteLocalKnowledgeConnection({ id })
+    else await this.knowledge.deleteKnowledgeConnection({ id })
+  }
+
+  async testKnowledgeConnection(scope: TrackerConnectionScope, target: { id: string } | { draft: KnowledgeInputInit }) {
+    const msg = 'id' in target ? { id: target.id } : { draft: target.draft }
+    return isDevice(scope) ? await this.local.testLocalKnowledgeConnection(msg) : await this.knowledge.testKnowledgeConnection(msg)
+  }
+
+  async startKnowledgeOAuth(scope: TrackerConnectionScope, id: string) {
+    if (isDevice(scope)) {
+      const r = await this.local.startLocalKnowledgeOAuth({ connectionId: id })
+      return { url: r.authorizeUrl, flowId: r.flowId }
+    }
+    return { url: (await this.knowledge.startKnowledgeOAuth({ connectionId: id })).authorizeUrl, flowId: '' }
   }
 
   async deviceIssue(connectionId: string, id: string) {

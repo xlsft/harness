@@ -101,32 +101,11 @@ import {
   type ConnectionInput,
   type ConnectionRow,
 } from "../tracker/connections.ts";
-import type { AuthMethodName, Capabilities, Issue } from "../tracker/provider.ts";
+import type { AuthMethodName, Issue } from "../tracker/provider.ts";
 import { TrackerError } from "../tracker/provider.ts";
 import { requirePrincipal } from "./context.ts";
+import { AUTH, authName, capabilitiesToProto } from "./provider-convert.ts";
 import { guard } from "./errors.ts";
-
-const AUTH: Record<AuthMethodName, TrackerAuthMethod> = { token: TrackerAuthMethod.TOKEN, password: TrackerAuthMethod.PASSWORD, oauth: TrackerAuthMethod.OAUTH };
-
-function authName(m: TrackerAuthMethod): AuthMethodName {
-  if (m === TrackerAuthMethod.TOKEN) return "token";
-  if (m === TrackerAuthMethod.PASSWORD) return "password";
-  if (m === TrackerAuthMethod.OAUTH) return "oauth";
-  throw new ApiError("invalid_request", "Choose how this connection signs in");
-}
-
-function capabilitiesToProto(c: Capabilities): MessageInitShape<typeof TrackerCapabilitiesSchema> {
-  return {
-    provider: c.provider,
-    displayName: c.displayName,
-    authMethods: c.authMethods.map((m) => AUTH[m]),
-    queryLanguage: c.queryLanguage,
-    queryExample: c.queryExample,
-    customFields: c.customFields,
-    comments: c.comments,
-    knowledge: c.knowledge,
-  };
-}
 
 /** Everyone sees that a company connection exists and works; how it signs in, and why it fails, only admins. */
 function connectionToProto(r: ConnectionRow, admin: boolean): MessageInitShape<typeof TrackerConnectionSchema> {
@@ -137,7 +116,6 @@ function connectionToProto(r: ConnectionRow, admin: boolean): MessageInitShape<t
     provider: r.provider,
     name: r.name,
     enabled: r.enabled,
-    knowledgeEnabled: r.knowledgeEnabled,
     healthy: r.healthy,
     capabilities: capabilities && capabilitiesToProto(capabilities),
     ...(admin
@@ -148,7 +126,7 @@ function connectionToProto(r: ConnectionRow, admin: boolean): MessageInitShape<t
           oauthClientId: r.oauthClientId,
           hasSecret: hasSecret(r),
           allowPrivateNetwork: r.allowPrivateNetwork,
-          knowledgeQuery: r.knowledgeQuery,
+          options: r.options ?? {},
           lastError: r.lastError,
           lastCheckedAt: r.lastCheckedAt?.toISOString() ?? "",
         }
@@ -170,8 +148,7 @@ function connectionFromProto(c: TrackerConnectionInput | undefined): ConnectionI
     oauthClientSecret: c.oauthClientSecret,
     enabled: c.enabled,
     allowPrivateNetwork: c.allowPrivateNetwork,
-    knowledgeEnabled: c.knowledgeEnabled,
-    knowledgeQuery: c.knowledgeQuery,
+    options: { ...c.options },
   };
 }
 

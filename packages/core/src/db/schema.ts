@@ -1250,7 +1250,7 @@ export const trackerConnection = pgTable("tracker_connection", {
   provider: text("provider").notNull(),
   name: text("name").notNull(),
   baseUrl: text("base_url").notNull(),
-  /** "token" | "password" | "oauth". */
+  /** "token" | "password" | "oauth" | "email_token" | "vcs". */
   auth: text("auth").notNull(),
   login: text("login").notNull().default(""),
   oauthClientId: text("oauth_client_id").notNull().default(""),
@@ -1258,8 +1258,45 @@ export const trackerConnection = pgTable("tracker_connection", {
   secretsEnc: text("secrets_enc").notNull().default(""),
   enabled: boolean("enabled").notNull().default(true),
   allowPrivateNetwork: boolean("allow_private_network").notNull().default(false),
+  /** Deprecated: migrated into knowledge_connection (0018) and always false since; kept so old rows read. */
   knowledgeEnabled: boolean("knowledge_enabled").notNull().default(false),
   knowledgeQuery: text("knowledge_query").notNull().default(""),
+  /** Provider-specific settings (TrackerCapabilities.option_fields). Never secrets. */
+  options: jsonb("options").$type<Record<string, string>>().notNull().default({}),
+  healthy: boolean("healthy").notNull().default(false),
+  lastError: text("last_error").notNull().default(""),
+  lastCheckedAt: ts("last_checked_at"),
+  createdAt: ts("created_at").notNull(),
+  updatedAt: ts("updated_at").notNull(),
+  updatedBy: text("updated_by").notNull().default(""),
+});
+
+/**
+ * A company knowledge source connection (KnowledgeConnectionService). With borrow_connection_id it signs in as that tracker
+ * connection, resolved at request time; its own auth and secrets are then empty. Device ones never appear here.
+ */
+export const knowledgeConnection = pgTable("knowledge_connection", {
+  id: text("id").primaryKey(),
+  /** A knowledge provider id: "youtrack-kb", "confluence". */
+  provider: text("provider").notNull(),
+  name: text("name").notNull(),
+  /** Its own address; "" when borrowing and the tracker connection's is used. */
+  baseUrl: text("base_url").notNull().default(""),
+  /** "" when borrowing. */
+  auth: text("auth").notNull().default(""),
+  login: text("login").notNull().default(""),
+  oauthClientId: text("oauth_client_id").notNull().default(""),
+  /** AES-256-GCM (HKDF purpose "knowledge-secrets", AAD <id>:secrets) of the same JSON as a tracker connection's; "" when none. */
+  secretsEnc: text("secrets_enc").notNull().default(""),
+  enabled: boolean("enabled").notNull().default(true),
+  allowPrivateNetwork: boolean("allow_private_network").notNull().default(false),
+  /** Narrows the documents, in the provider's syntax. */
+  query: text("query").notNull().default(""),
+  options: jsonb("options").$type<Record<string, string>>().notNull().default({}),
+  /** A company tracker connection whose sign-in this uses; "" for its own. */
+  borrowConnectionId: text("borrow_connection_id").notNull().default(""),
+  /** The tracker connection it was migrated from, so document ids conn:<that id>:<article> made before the split still read. */
+  migratedFrom: text("migrated_from").notNull().default(""),
   healthy: boolean("healthy").notNull().default(false),
   lastError: text("last_error").notNull().default(""),
   lastCheckedAt: ts("last_checked_at"),

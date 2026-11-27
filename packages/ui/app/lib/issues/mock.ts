@@ -5,6 +5,7 @@ import { BoardSchema, BoardStageSchema, CardCommentSchema, CardOutputSchema, Car
 import { ProjectMemberSchema, ProjectMetadataSchema, ProjectSchema, ProviderProjectSchema } from '~/gen/harness/library/v1/projects_pb'
 import { TrackerCapabilitiesSchema, TrackerConnectionSchema, TrackerFieldSchema, TrackerIssueSchema } from '~/gen/harness/library/v1/tracker_connections_pb'
 import { FolderProjectSchema } from '~/gen/harness/agent/v1/trackers_pb'
+import { KnowledgeCapabilitiesSchema, KnowledgeConnectionSchema } from '~/gen/harness/library/v1/knowledge_connections_pb'
 import {
   BoardScope,
   CardOutputStatus,
@@ -23,6 +24,8 @@ import {
   type ConnectionInputInit,
   type FolderProject,
   type IssuesApi,
+  type KnowledgeConnection,
+  type KnowledgeInputInit,
   type MetadataInit,
   type Project,
   type SavedView,
@@ -65,10 +68,16 @@ export class MockIssuesApi implements IssuesApi {
   private views: SavedView[] = []
   private links: FolderProject[] = []
   private connections: TrackerConnection[] = [
-    create(TrackerConnectionSchema, { id: 'tc_company', scope: TrackerConnectionScope.ADMIN, provider: 'youtrack', name: 'Company YouTrack', baseUrl: 'https://yt.example.test', auth: TrackerAuthMethod.TOKEN, hasSecret: true, enabled: true, healthy: true, knowledgeEnabled: true })
+    create(TrackerConnectionSchema, { id: 'tc_company', scope: TrackerConnectionScope.ADMIN, provider: 'youtrack', name: 'Company YouTrack', baseUrl: 'https://yt.example.test', auth: TrackerAuthMethod.TOKEN, hasSecret: true, enabled: true, healthy: true })
   ]
 
-  private providers = [create(TrackerCapabilitiesSchema, { provider: 'youtrack', displayName: 'YouTrack', authMethods: [TrackerAuthMethod.TOKEN, TrackerAuthMethod.OAUTH, TrackerAuthMethod.PASSWORD], queryLanguage: 'YouTrack search', queryExample: 'project: DEMO Stage: Backlog', customFields: true, comments: true, knowledge: true })]
+  private knowledge: KnowledgeConnection[] = [
+    create(KnowledgeConnectionSchema, { id: 'kc_company', scope: TrackerConnectionScope.ADMIN, provider: 'youtrack-kb', name: 'Company YouTrack docs', borrow: ADMIN_REF, borrowName: 'Company YouTrack', hasSecret: true, enabled: true, healthy: true, query: 'project: HELP' })
+  ]
+
+  private knowledgeProviders = [create(KnowledgeCapabilitiesSchema, { provider: 'youtrack-kb', displayName: 'YouTrack Knowledge Base', description: 'Articles of a YouTrack instance, read live.', authMethods: [TrackerAuthMethod.TOKEN, TrackerAuthMethod.OAUTH, TrackerAuthMethod.PASSWORD], borrowFrom: ['youtrack'], logo: 'youtrack', docsUrl: 'https://www.jetbrains.com/help/youtrack/server/knowledge-base.html', queryLanguage: 'YouTrack search', queryExample: 'project: HELP', baseUrlPlaceholder: 'https://youtrack.example.com', tree: true })]
+
+  private providers = [create(TrackerCapabilitiesSchema, { provider: 'youtrack', displayName: 'YouTrack', authMethods: [TrackerAuthMethod.TOKEN, TrackerAuthMethod.OAUTH, TrackerAuthMethod.PASSWORD], queryLanguage: 'YouTrack search', queryExample: 'project: DEMO Stage: Backlog', customFields: true, comments: true, logo: 'youtrack', docsUrl: 'https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html', baseUrlPlaceholder: 'https://youtrack.example.com' })]
 
   private id(prefix: string) {
     return `${prefix}_${++this.seq}`
@@ -282,7 +291,7 @@ export class MockIssuesApi implements IssuesApi {
   async saveConnection(scope: TrackerConnectionScope, input: ConnectionInputInit) {
     if (!input.baseUrl?.trim()) throw new Error('the address must be an http(s) URL')
     const existing = this.connections.find(c => c.id === input.id)
-    const c = create(TrackerConnectionSchema, { id: input.id || this.id('tc'), scope, provider: input.provider ?? 'youtrack', name: input.name || input.baseUrl, baseUrl: input.baseUrl, auth: input.auth, login: input.login ?? '', oauthClientId: input.oauthClientId ?? '', hasSecret: !!input.secret || !!existing?.hasSecret, enabled: input.enabled ?? true, knowledgeEnabled: input.knowledgeEnabled ?? false, knowledgeQuery: input.knowledgeQuery ?? '', allowPrivateNetwork: input.allowPrivateNetwork ?? false })
+    const c = create(TrackerConnectionSchema, { id: input.id || this.id('tc'), scope, provider: input.provider ?? 'youtrack', name: input.name || input.baseUrl, baseUrl: input.baseUrl, auth: input.auth, login: input.login ?? '', oauthClientId: input.oauthClientId ?? '', hasSecret: !!input.secret || !!existing?.hasSecret, enabled: input.enabled ?? true, options: input.options ?? {}, allowPrivateNetwork: input.allowPrivateNetwork ?? false })
     this.connections = existing ? this.connections.map(x => (x === existing ? c : x)) : [...this.connections, c]
     return c
   }
@@ -309,6 +318,35 @@ export class MockIssuesApi implements IssuesApi {
 
   async oauthStatus() {
     return { done: true, error: '' }
+  }
+
+  async listKnowledgeConnections() {
+    return { connections: [...this.knowledge], deviceProviders: this.knowledgeProviders, companyProviders: this.knowledgeProviders }
+  }
+
+  async saveKnowledgeConnection(scope: TrackerConnectionScope, input: KnowledgeInputInit) {
+    const borrowed = this.connections.find(c => c.id === input.borrowConnectionId && c.scope === scope)
+    if (!borrowed && !input.baseUrl?.trim()) throw new Error('the address must be an http(s) URL')
+    const existing = this.knowledge.find(c => c.id === input.id)
+    const c = create(KnowledgeConnectionSchema, {
+      id: input.id || this.id('kc'), scope, provider: input.provider ?? 'youtrack-kb', name: input.name || borrowed?.name || input.baseUrl, baseUrl: input.baseUrl ?? '', auth: borrowed ? TrackerAuthMethod.UNSPECIFIED : input.auth,
+      login: input.login ?? '', hasSecret: !!borrowed || !!input.secret || !!existing?.hasSecret, enabled: input.enabled ?? true, query: input.query ?? '', options: input.options ?? {},
+      borrow: borrowed ? { scope, id: borrowed.id } : undefined, borrowName: borrowed?.name ?? '', allowPrivateNetwork: input.allowPrivateNetwork ?? false
+    })
+    this.knowledge = existing ? this.knowledge.map(x => (x === existing ? c : x)) : [...this.knowledge, c]
+    return c
+  }
+
+  async deleteKnowledgeConnection(_scope: TrackerConnectionScope, id: string) {
+    this.knowledge = this.knowledge.filter(c => c.id !== id)
+  }
+
+  async testKnowledgeConnection() {
+    return { ok: true, error: '', login: 'you', displayName: 'You' }
+  }
+
+  async startKnowledgeOAuth() {
+    return { url: 'https://yt.example.test/hub/api/rest/oauth2/auth', flowId: 'flow_2' }
   }
 
   async deviceIssue() {

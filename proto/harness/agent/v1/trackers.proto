@@ -3,6 +3,7 @@ syntax = "proto3";
 package harness.agent.v1;
 
 import "harness/library/v1/knowledge.proto";
+import "harness/library/v1/knowledge_connections.proto";
 import "harness/library/v1/projects.proto";
 import "harness/library/v1/tracker_connections.proto";
 
@@ -44,6 +45,61 @@ service LocalTrackerService {
   rpc BrowseKnowledge(BrowseKnowledgeRequest) returns (BrowseKnowledgeResponse);
   // Reads a document from the right source.
   rpc ReadKnowledge(ReadKnowledgeRequest) returns (ReadKnowledgeResponse);
+
+  // Knowledge source connections on this device (harness.library.v1.KnowledgeConnection): credentials in the system keychain,
+  // requests from this client, never synced. One may borrow the sign-in of a tracker connection of this device.
+  rpc ListLocalKnowledgeConnections(ListLocalKnowledgeConnectionsRequest) returns (ListLocalKnowledgeConnectionsResponse);
+  rpc SaveLocalKnowledgeConnection(SaveLocalKnowledgeConnectionRequest) returns (SaveLocalKnowledgeConnectionResponse);
+  rpc DeleteLocalKnowledgeConnection(DeleteLocalKnowledgeConnectionRequest) returns (DeleteLocalKnowledgeConnectionResponse);
+  // Failure is an answer, not an error.
+  rpc TestLocalKnowledgeConnection(TestLocalKnowledgeConnectionRequest) returns (TestLocalKnowledgeConnectionResponse);
+  // Authorization Code with PKCE through a loopback address, for a connection with its own OAuth sign-in. Poll the flow with
+  // GetLocalTrackerOAuth.
+  rpc StartLocalKnowledgeOAuth(StartLocalKnowledgeOAuthRequest) returns (StartLocalKnowledgeOAuthResponse);
+}
+
+message ListLocalKnowledgeConnectionsRequest {}
+
+message ListLocalKnowledgeConnectionsResponse {
+  repeated harness.library.v1.KnowledgeConnection connections = 1;
+  repeated harness.library.v1.KnowledgeCapabilities providers = 2;
+}
+
+message SaveLocalKnowledgeConnectionRequest {
+  harness.library.v1.KnowledgeConnectionInput connection = 1;
+}
+
+message SaveLocalKnowledgeConnectionResponse {
+  harness.library.v1.KnowledgeConnection connection = 1;
+}
+
+message DeleteLocalKnowledgeConnectionRequest {
+  string id = 1;
+}
+
+message DeleteLocalKnowledgeConnectionResponse {}
+
+message TestLocalKnowledgeConnectionRequest {
+  // A saved connection, or
+  string id = 1;
+  // one not saved yet.
+  harness.library.v1.KnowledgeConnectionInput draft = 2;
+}
+
+message TestLocalKnowledgeConnectionResponse {
+  bool ok = 1;
+  string error = 2;
+  string login = 3;
+  string display_name = 4;
+}
+
+message StartLocalKnowledgeOAuthRequest {
+  string connection_id = 1;
+}
+
+message StartLocalKnowledgeOAuthResponse {
+  string flow_id = 1;
+  string authorize_url = 2;
 }
 
 message ListLocalTrackerConnectionsRequest {}

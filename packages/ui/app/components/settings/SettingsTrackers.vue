@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // Settings > Issue trackers: external trackers as providers. Personal connections stay on this device, with their credentials in the
-// system keychain; company ones are the server's, for admins to manage. Secrets are write-only and never come back here.
+// system keychain; company ones are the server's, for admins to manage. Secrets are write-only and never come back here. Everything a
+// provider needs in the form comes from its capabilities, so adding a provider touches no Vue file (docs/design/tracker.md).
 import { openExternal } from '~/lib/desktop'
 import { PROVIDER_LOGOS } from '~/utils/providerLogos'
 import { errorText } from '~/lib/library/types'
-import { AUTH_LABELS, TrackerAuthMethod, TrackerConnectionScope, type TrackerCapabilities, type TrackerConnection } from '~/lib/issues/types'
+import { AUTH_LABELS, TrackerAuthMethod, TrackerConnectionScope, providerTile, type SignInForm, type SignInSpec, type TrackerCapabilities, type TrackerConnection } from '~/lib/issues/types'
 
 const store = useSessionStore()
 const api = () => store.transport!.issues()
@@ -15,8 +16,8 @@ const error = ref('')
 const notes = ref<Record<string, string>>({})
 const confirming = ref('')
 
-const blank = () => ({ open: false, id: '', scope: TrackerConnectionScope.DEVICE, provider: 'youtrack', name: '', baseUrl: '', auth: TrackerAuthMethod.TOKEN, login: '', secret: '', oauthClientId: '', oauthClientSecret: '', enabled: true, allowPrivateNetwork: false, knowledgeEnabled: false, knowledgeQuery: '' })
-const form = reactive(blank())
+const blankSignIn = (): SignInForm => ({ id: '', baseUrl: '', auth: TrackerAuthMethod.TOKEN, login: '', secret: '', oauthClientId: '', oauthClientSecret: '', options: {} })
+const form = reactive({ open: false, scope: TrackerConnectionScope.DEVICE, provider: '', name: '', enabled: true, allowPrivateNetwork: false, signIn: blankSignIn() })
 
 async function refresh() {
   if (!store.transport) return
@@ -36,25 +37,22 @@ watch(() => store.transport, refresh)
 const device = computed(() => connections.value.filter(c => c.scope === TrackerConnectionScope.DEVICE))
 const company = computed(() => connections.value.filter(c => c.scope === TrackerConnectionScope.ADMIN))
 const capability = computed(() => providers.value.find(p => p.provider === form.provider))
-const authOptions = computed(() => (capability.value?.authMethods ?? []).map(m => ({ value: String(m), label: AUTH_LABELS[m] ?? '' })))
-// Tile of a tracker, like the provider tiles in Settings > Models: its logo when one is bundled, else two letters.
-const monogram = (provider: unknown) => {
-  const name = providers.value.find(p => p.provider === provider)?.displayName ?? String(provider)
-  if (PROVIDER_LOGOS[name.toLowerCase()]) return name.toLowerCase()
-  const caps = name.match(/[A-Z]/g)?.join('') ?? ''
-  return (caps.length >= 2 ? caps : name.replace(/[^A-Za-z]/g, '')).slice(0, 2).toUpperCase() || 'TR'
-}
-const providerOptions = computed(() => providers.value.map(p => ({ value: p.provider, label: p.displayName })))
-const needsSecret = computed(() => form.auth !== TrackerAuthMethod.OAUTH)
-
-function add(scope: TrackerConnectionScope, provider = 'youtrack') {
-  Object.assign(form, blank(), { open: true, scope, provider })
+const spec = computed((): SignInSpec => {
+  const c = capability.value
+  return { authMethods: c?.authMethods ?? [], optionFields: c?.optionFields ?? [], authHints: c?.authHints ?? [], baseUrlPlaceholder: c?.baseUrlPlaceholder ?? '', defaultBaseUrl: c?.defaultBaseUrl ?? '' }
+})
+const capabilityOf = (provider: string) => providers.value.find(p => p.provider === provider)
+const monogram = (provider: string) => {
+  const c = capabilityOf(provider)
+  return providerTile(c?.logo ?? '', c?.displayName ?? provider, PROVIDER_LOGOS)
 }
 
-// Where each tracker explains the credentials the form asks for.
-const TRACKER_DOCS: Record<string, string> = {
-  youtrack: 'https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html'
+function add(scope: TrackerConnectionScope, provider: string) {
+  const first = capabilityOf(provider)?.authMethods[0] ?? TrackerAuthMethod.TOKEN
+  Object.assign(form, { open: true, scope, provider, name: '', enabled: true, allowPrivateNetwork: false, signIn: { ...blankSignIn(), auth: first } })
+  draftNote.value = ''
 }
+
 // One row per tracker the server supports, plus any a connection uses that it no longer lists; the connections of each
 // sit under its row, like the providers in Settings > Models.
 function kinds(list: TrackerConnection[]): { provider: string, displayName: string, capabilities?: TrackerCapabilities }[] {
@@ -69,28 +67,32 @@ function about(k: { capabilities?: TrackerCapabilities }) {
   const p = k.capabilities
   if (!p) return tt('No longer offered by this server')
   const ways = p.authMethods.map(m => AUTH_LABELS[m]).filter(Boolean).join(', ')
-  return p.knowledge ? tt('Issues for boards and documents for Knowledge; sign-in: {0}.', [ways]) : tt('Issues for boards; sign-in: {0}.', [ways])
+  return tt('Issues for boards; sign-in: {0}.', [ways])
 }
 
 function edit(c: TrackerConnection) {
-  Object.assign(form, blank(), { open: true, id: c.id, scope: c.scope, provider: c.provider, name: c.name, baseUrl: c.baseUrl, auth: c.auth, login: c.login, oauthClientId: c.oauthClientId, enabled: c.enabled, allowPrivateNetwork: c.allowPrivateNetwork, knowledgeEnabled: c.knowledgeEnabled, knowledgeQuery: c.knowledgeQuery })
+  Object.assign(form, {
+    open: true, scope: c.scope, provider: c.provider, name: c.name, enabled: c.enabled, allowPrivateNetwork: c.allowPrivateNetwork,
+    signIn: { ...blankSignIn(), id: c.id, baseUrl: c.baseUrl, auth: c.auth, login: c.login, oauthClientId: c.oauthClientId, options: { ...c.options } }
+  })
+  draftNote.value = ''
 }
 
 function input() {
+  const s = form.signIn
   return {
-    id: form.id,
+    id: s.id,
     provider: form.provider,
     name: form.name.trim(),
-    baseUrl: form.baseUrl.trim(),
-    auth: form.auth,
-    login: form.login.trim(),
-    oauthClientId: form.oauthClientId.trim(),
-    secret: form.secret || undefined,
-    oauthClientSecret: form.oauthClientSecret || undefined,
+    baseUrl: s.baseUrl.trim(),
+    auth: s.auth,
+    login: s.login.trim(),
+    oauthClientId: s.oauthClientId.trim(),
+    secret: s.secret || undefined,
+    oauthClientSecret: s.oauthClientSecret || undefined,
     enabled: form.enabled,
     allowPrivateNetwork: form.allowPrivateNetwork,
-    knowledgeEnabled: form.knowledgeEnabled,
-    knowledgeQuery: form.knowledgeQuery.trim()
+    options: { ...s.options }
   }
 }
 
@@ -108,7 +110,7 @@ const draftNote = ref('')
 async function testDraft() {
   draftNote.value = tt('Testing…')
   try {
-    const r = form.id && !form.secret ? await api().testConnection(form.scope, { id: form.id }) : await api().testConnection(form.scope, { draft: input() })
+    const r = form.signIn.id && !form.signIn.secret ? await api().testConnection(form.scope, { id: form.signIn.id }) : await api().testConnection(form.scope, { draft: input() })
     draftNote.value = r.ok ? tt('Signed in as {0}', [r.displayName || r.login]) : r.error
   } catch (e) {
     draftNote.value = errorText(e)
@@ -128,7 +130,7 @@ async function test(c: TrackerConnection) {
 
 async function setEnabled(c: TrackerConnection, enabled: boolean) {
   try {
-    await api().saveConnection(c.scope, { id: c.id, provider: c.provider, name: c.name, baseUrl: c.baseUrl, auth: c.auth, login: c.login, oauthClientId: c.oauthClientId, enabled, allowPrivateNetwork: c.allowPrivateNetwork, knowledgeEnabled: c.knowledgeEnabled, knowledgeQuery: c.knowledgeQuery })
+    await api().saveConnection(c.scope, { id: c.id, provider: c.provider, name: c.name, baseUrl: c.baseUrl, auth: c.auth, login: c.login, oauthClientId: c.oauthClientId, enabled, allowPrivateNetwork: c.allowPrivateNetwork, options: { ...c.options } })
     await refresh()
   } catch (e) {
     error.value = errorText(e)
@@ -173,7 +175,7 @@ async function authorize(c: TrackerConnection) {
   }
 }
 
-const describe = (c: TrackerConnection) => [c.capabilities?.displayName, c.baseUrl, c.auth ? AUTH_LABELS[c.auth] : '', c.knowledgeEnabled ? tt('serves Knowledge') : ''].filter(Boolean).join(' · ')
+const describe = (c: TrackerConnection) => [c.capabilities?.displayName, c.baseUrl, c.auth ? AUTH_LABELS[c.auth] : ''].filter(Boolean).join(' · ')
 const status = (c: TrackerConnection) => !c.enabled ? tt('Disabled') : c.lastError || (c.healthy ? tt('Working') : tt('Not tested yet'))
 const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] text-strong outline-none focus:border-accent'
 </script>
@@ -184,7 +186,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
       {{ tt('Issue trackers') }}
     </h2>
     <p class="set-sub">
-      {{ tt('Connect external issue trackers. Board stages pull issues from them and update them, and Knowledge can read their documents.') }}
+      {{ tt('Connect external issue trackers. Board stages pull issues from them and update them. Their documents are knowledge sources of their own, in Knowledge sources.') }}
     </p>
     <p
       v-if="error"
@@ -232,14 +234,14 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
                 <span class="truncate text-[11.5px] text-muted">{{ about(k) }}</span>
               </span>
               <SettingsLink
-                v-if="TRACKER_DOCS[k.provider]"
-                :href="TRACKER_DOCS[k.provider]!"
+                v-if="k.capabilities?.docsUrl"
+                :href="k.capabilities.docsUrl"
                 class="max-sm:hidden"
               >
                 {{ tt('Docs') }}
               </SettingsLink>
               <HBtn
-                v-if="(group.scope === TrackerConnectionScope.DEVICE || isAdmin) && !(form.open && form.scope === group.scope && form.provider === k.provider && !form.id)"
+                v-if="k.capabilities && (group.scope === TrackerConnectionScope.DEVICE || isAdmin) && !(form.open && form.scope === group.scope && form.provider === k.provider && !form.signIn.id)"
                 size="sm"
                 @click="add(group.scope, k.provider)"
               >
@@ -311,112 +313,30 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
             </div>
             <form
               v-if="form.open && form.scope === group.scope && form.provider === k.provider"
-              :aria-label="form.id ? tt('Change {0}', [form.name]) : tt('Connect a tracker')"
+              :aria-label="form.signIn.id ? tt('Change {0}', [form.name]) : tt('Connect a tracker')"
               class="flex flex-col gap-2 border-t border-default px-3 py-3 pl-[52px]"
               @submit.prevent="save"
             >
-              <div class="flex flex-wrap items-center gap-2">
-                <div class="w-[130px] shrink-0">
-                  <HSelect
-                    v-model="form.provider"
-                    :options="providerOptions"
-                    :aria-label="tt('Provider')"
-                  />
-                </div>
-                <input
-                  v-model="form.name"
-                  :placeholder="tt('Name')"
-                  :aria-label="tt('Name')"
-                  :class="[inputClass, 'w-[180px]']"
-                >
-                <input
-                  v-model="form.baseUrl"
-                  :placeholder="tt('https://youtrack.example.com')"
-                  :aria-label="tt('Address')"
-                  :class="[inputClass, 'min-w-[240px] flex-1']"
-                >
-              </div>
-              <div class="flex flex-wrap items-center gap-2 text-[12.5px] text-toned">
-                <span>{{ tt('Sign in with') }}</span>
-                <div class="w-[170px] shrink-0">
-                  <HSelect
-                    :model-value="String(form.auth)"
-                    :options="authOptions"
-                    :aria-label="tt('Sign in with')"
-                    @update:model-value="form.auth = Number($event)"
-                  />
-                </div>
-                <input
-                  v-if="form.auth === TrackerAuthMethod.PASSWORD"
-                  v-model="form.login"
-                  :placeholder="tt('Login')"
-                  :aria-label="tt('Login')"
-                  autocomplete="off"
-                  :class="[inputClass, 'w-[160px]']"
-                >
-                <input
-                  v-if="needsSecret"
-                  v-model="form.secret"
-                  type="password"
-                  autocomplete="new-password"
-                  :placeholder="form.id ? tt('Leave empty to keep the stored one') : form.auth === TrackerAuthMethod.TOKEN ? tt('Permanent token') : tt('Password')"
-                  :aria-label="form.auth === TrackerAuthMethod.TOKEN ? tt('Token') : tt('Password')"
-                  :class="[inputClass, 'min-w-[200px] flex-1']"
-                >
-                <template v-if="form.auth === TrackerAuthMethod.OAUTH">
-                  <input
-                    v-model="form.oauthClientId"
-                    :placeholder="tt('OAuth client id')"
-                    :aria-label="tt('OAuth client id')"
-                    :class="[inputClass, 'w-[190px]']"
-                  >
-                  <input
-                    v-model="form.oauthClientSecret"
-                    type="password"
-                    autocomplete="new-password"
-                    :placeholder="tt('Client secret, for a confidential client')"
-                    :aria-label="tt('Client secret')"
-                    :class="[inputClass, 'w-[240px]']"
-                  >
-                </template>
-              </div>
-              <p class="m-0 text-[11.5px] text-muted">
-                <template v-if="form.auth === TrackerAuthMethod.TOKEN">
-                  {{ tt('Make a permanent token in YouTrack under Profile, Account Security. It has your account\'s rights.') }}
-                </template>
-                <template v-else-if="form.auth === TrackerAuthMethod.OAUTH">
-                  {{ tt('An admin of the instance creates the OAuth client first, with Authorization Code and PKCE. Save, then Authorize.') }}
-                </template>
-                <template v-else>
-                  {{ tt('Uses the same sign-in as the web page. It does not work with two-factor authentication; a token is the sturdier choice.') }}
-                </template>
-              </p>
-              <div class="flex flex-wrap items-center gap-3 text-[12.5px] text-toned">
-                <label class="flex items-center gap-1.5">
-                  <HToggle
-                    v-model="form.knowledgeEnabled"
-                    :label="tt('Serve documents to Knowledge')"
-                  />
-                  {{ tt('Serve documents to Knowledge') }}
-                </label>
-                <input
-                  v-if="form.knowledgeEnabled"
-                  v-model="form.knowledgeQuery"
-                  :placeholder="tt('Narrow them: project: HELP')"
-                  :aria-label="tt('Which documents')"
-                  :class="[inputClass, 'w-[200px]']"
-                >
-                <label
-                  v-if="form.scope === TrackerConnectionScope.ADMIN"
-                  class="flex items-center gap-1.5"
-                >
-                  <HToggle
-                    v-model="form.allowPrivateNetwork"
-                    :label="tt('Allow a private network address')"
-                  />
-                  {{ tt('Allow a private network address') }}
-                </label>
-              </div>
+              <input
+                v-model="form.name"
+                :placeholder="tt('Name')"
+                :aria-label="tt('Name')"
+                :class="[inputClass, 'w-[220px]']"
+              >
+              <SettingsProviderSignIn
+                v-model="form.signIn"
+                :spec="spec"
+              />
+              <label
+                v-if="form.scope === TrackerConnectionScope.ADMIN"
+                class="flex items-center gap-1.5 text-[12.5px] text-toned"
+              >
+                <HToggle
+                  v-model="form.allowPrivateNetwork"
+                  :label="tt('Allow a private network address')"
+                />
+                {{ tt('Allow a private network address') }}
+              </label>
               <div class="flex items-center gap-2">
                 <HBtn
                   size="sm"
@@ -427,7 +347,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
                 </HBtn>
                 <HBtn
                   size="sm"
-                  :disabled="form.auth === TrackerAuthMethod.OAUTH"
+                  :disabled="form.signIn.auth === TrackerAuthMethod.OAUTH"
                   @click="testDraft"
                 >
                   {{ tt('Test') }}

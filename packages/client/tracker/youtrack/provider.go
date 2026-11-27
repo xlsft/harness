@@ -51,15 +51,27 @@ func init() {
 // Capabilities describes the provider.
 func Capabilities() tracker.Capabilities {
 	return tracker.Capabilities{
-		Provider:      Name,
-		DisplayName:   "YouTrack",
-		AuthMethods:   []tracker.AuthMethod{tracker.AuthToken, tracker.AuthOAuth, tracker.AuthPassword},
-		QueryLanguage: "YouTrack search",
-		QueryExample:  "project: DEMO Stage: Backlog",
-		CustomFields:  true,
-		Comments:      true,
-		Knowledge:     true,
+		Provider:           Name,
+		DisplayName:        "YouTrack",
+		AuthMethods:        []tracker.AuthMethod{tracker.AuthToken, tracker.AuthOAuth, tracker.AuthPassword},
+		QueryLanguage:      "YouTrack search",
+		QueryExample:       "project: DEMO Stage: Backlog",
+		CustomFields:       true,
+		Comments:           true,
+		DocsURL:            "https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html",
+		Logo:               "youtrack",
+		BaseURLPlaceholder: "https://youtrack.example.com",
+		AuthHints:          authHints,
 	}
+}
+
+// authHints are what the form says for each method, in both providers.
+var authHints = map[tracker.AuthMethod]tracker.AuthHint{
+	// https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html
+	tracker.AuthToken: {Help: "Make a permanent token in YouTrack under Profile, Account Security. It has your account's rights.", SecretLabel: "Permanent token"},
+	// https://www.jetbrains.com/help/youtrack/devportal/OAuth-authorization.html
+	tracker.AuthOAuth:    {Help: "An admin of the instance creates the OAuth client first, with Authorization Code and PKCE. Save, then Authorize."},
+	tracker.AuthPassword: {Help: "Uses the same sign-in as the web page. It does not work with two-factor authentication; a token is the sturdier choice.", SecretLabel: "Password", LoginLabel: "Login"},
 }
 
 type oauthExchange struct{ c *Client }

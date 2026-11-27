@@ -7,14 +7,17 @@ import type { Board, BoardStage, Card, CardActivity, CardComment, CardFilter, Sa
 import { BoardScope, CardOutputStatus, CardPriority, CardRelationKind, ExternalState } from '~/gen/harness/library/v1/boards_pb'
 import type { Project, ProjectMember, ProjectMetadata, ProjectShare, ProviderProject } from '~/gen/harness/library/v1/projects_pb'
 import { ProjectLevel, ProjectScope, ProjectShareSubject } from '~/gen/harness/library/v1/projects_pb'
-import type { TrackerCapabilities, TrackerConnection, TrackerConnectionInput, TrackerConnectionRef, TrackerField, TrackerIssue } from '~/gen/harness/library/v1/tracker_connections_pb'
+import type { ProviderAuthHint, ProviderOptionField, TrackerCapabilities, TrackerConnection, TrackerConnectionInput, TrackerConnectionRef, TrackerField, TrackerIssue } from '~/gen/harness/library/v1/tracker_connections_pb'
 import { TrackerAuthMethod, TrackerConnectionScope } from '~/gen/harness/library/v1/tracker_connections_pb'
 import type { FolderProject } from '~/gen/harness/agent/v1/trackers_pb'
+import type { KnowledgeCapabilities, KnowledgeConnection, KnowledgeConnectionInput } from '~/gen/harness/library/v1/knowledge_connections_pb'
 
 export type { Board, BoardStage, Card, CardActivity, CardComment, CardFilter, FolderProject, Project, ProjectMember, ProjectMetadata, ProjectShare, ProviderProject, SavedView, TrackerCapabilities, TrackerConnection, TrackerConnectionInput, TrackerConnectionRef, TrackerField, TrackerIssue }
+export type { KnowledgeCapabilities, KnowledgeConnection, KnowledgeConnectionInput, ProviderAuthHint, ProviderOptionField }
 export { BoardScope, CardOutputStatus, CardPriority, CardRelationKind, ExternalState, ProjectLevel, ProjectScope, ProjectShareSubject, TrackerAuthMethod, TrackerConnectionScope }
 
 export type ConnectionInputInit = Partial<Omit<TrackerConnectionInput, '$typeName' | '$unknown'>>
+export type KnowledgeInputInit = Partial<Omit<KnowledgeConnectionInput, '$typeName' | '$unknown'>>
 export type MetadataInit = Partial<Omit<ProjectMetadata, '$typeName' | '$unknown'>>
 export type ShareInit = { subject: ProjectShareSubject, subjectId: string, level: ProjectLevel }
 export type CardFilterInit = Partial<Omit<CardFilter, '$typeName' | '$unknown'>>
@@ -80,6 +83,14 @@ export interface IssuesApi {
   startOAuth(scope: TrackerConnectionScope, id: string): Promise<{ url: string, flowId: string }>
   oauthStatus(flowId: string): Promise<{ done: boolean, error: string }>
   deviceIssue(connectionId: string, id: string): Promise<TrackerIssue | undefined>
+
+  // Knowledge source connections, company ones on the server and personal ones on this device. Each scope lists its own providers.
+  listKnowledgeConnections(): Promise<{ connections: KnowledgeConnection[], deviceProviders: KnowledgeCapabilities[], companyProviders: KnowledgeCapabilities[] }>
+  saveKnowledgeConnection(scope: TrackerConnectionScope, input: KnowledgeInputInit): Promise<KnowledgeConnection>
+  deleteKnowledgeConnection(scope: TrackerConnectionScope, id: string): Promise<void>
+  testKnowledgeConnection(scope: TrackerConnectionScope, target: { id: string } | { draft: KnowledgeInputInit }): Promise<TestOutcome>
+  // Like startOAuth; a device flow is polled with oauthStatus.
+  startKnowledgeOAuth(scope: TrackerConnectionScope, id: string): Promise<{ url: string, flowId: string }>
   syncDevice(): Promise<void>
 
   listFolderLinks(): Promise<FolderProject[]>
@@ -110,8 +121,53 @@ export const RELATIONS: { value: CardRelationKind, label: string }[] = [
 export const AUTH_LABELS: Record<number, string> = {
   [TrackerAuthMethod.TOKEN]: tt('Token'),
   [TrackerAuthMethod.OAUTH]: tt('OAuth'),
-  [TrackerAuthMethod.PASSWORD]: tt('Login and password')
+  [TrackerAuthMethod.PASSWORD]: tt('Login and password'),
+  [TrackerAuthMethod.EMAIL_TOKEN]: tt('Email and API token'),
+  [TrackerAuthMethod.VCS_CONNECTION]: tt('Code host sign-in')
 }
+
+// What the form says under a method when the provider says nothing of its own.
+export const AUTH_HELP: Record<number, string> = {
+  [TrackerAuthMethod.TOKEN]: tt('A token you make on the service. It has your account\'s rights.'),
+  [TrackerAuthMethod.OAUTH]: tt('Save, then Authorize: the service asks you to approve in the browser.'),
+  [TrackerAuthMethod.PASSWORD]: tt('Your login and password on the service.'),
+  [TrackerAuthMethod.EMAIL_TOKEN]: tt('Your account email and an API token made on the service.'),
+  [TrackerAuthMethod.VCS_CONNECTION]: tt('On this device through gh or glab signed in to the host; for the company, through a connection from Settings, VCS.')
+}
+
+// What a provider's sign-in form needs, from TrackerCapabilities or KnowledgeCapabilities alike.
+export interface SignInSpec {
+  authMethods: TrackerAuthMethod[]
+  optionFields: ProviderOptionField[]
+  authHints: ProviderAuthHint[]
+  baseUrlPlaceholder: string
+  defaultBaseUrl: string
+}
+
+// The sign-in part of a connection form. Secrets are write-only: empty keeps the stored one.
+export interface SignInForm {
+  id: string
+  baseUrl: string
+  auth: TrackerAuthMethod
+  login: string
+  secret: string
+  oauthClientId: string
+  oauthClientSecret: string
+  options: Record<string, string>
+}
+
+// The tile of a provider: its logo when providerLogos.ts has the capability's key, else two letters of its name.
+export function providerTile(logo: string, displayName: string, logos: Record<string, string>): string {
+  if (logo && logos[logo]) return logo
+  if (logos[displayName.toLowerCase()]) return displayName.toLowerCase()
+  const caps = displayName.match(/[A-Z]/g)?.join('') ?? ''
+  return (caps.length >= 2 ? caps : displayName.replace(/[^A-Za-z]/g, '')).slice(0, 2).toUpperCase() || 'PR'
+}
+
+// Whether a method stores a secret the form asks for.
+export const takesSecret = (m: TrackerAuthMethod) => m === TrackerAuthMethod.TOKEN || m === TrackerAuthMethod.PASSWORD || m === TrackerAuthMethod.EMAIL_TOKEN
+// Whether a method takes a login.
+export const takesLogin = (m: TrackerAuthMethod) => m === TrackerAuthMethod.PASSWORD || m === TrackerAuthMethod.EMAIL_TOKEN
 
 export function priorityLabel(p: CardPriority): string {
   return PRIORITIES.find(x => x.value === p)?.label ?? ''

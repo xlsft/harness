@@ -87,6 +87,21 @@ const (
 	// LocalTrackerServiceReadKnowledgeProcedure is the fully-qualified name of the
 	// LocalTrackerService's ReadKnowledge RPC.
 	LocalTrackerServiceReadKnowledgeProcedure = "/harness.agent.v1.LocalTrackerService/ReadKnowledge"
+	// LocalTrackerServiceListLocalKnowledgeConnectionsProcedure is the fully-qualified name of the
+	// LocalTrackerService's ListLocalKnowledgeConnections RPC.
+	LocalTrackerServiceListLocalKnowledgeConnectionsProcedure = "/harness.agent.v1.LocalTrackerService/ListLocalKnowledgeConnections"
+	// LocalTrackerServiceSaveLocalKnowledgeConnectionProcedure is the fully-qualified name of the
+	// LocalTrackerService's SaveLocalKnowledgeConnection RPC.
+	LocalTrackerServiceSaveLocalKnowledgeConnectionProcedure = "/harness.agent.v1.LocalTrackerService/SaveLocalKnowledgeConnection"
+	// LocalTrackerServiceDeleteLocalKnowledgeConnectionProcedure is the fully-qualified name of the
+	// LocalTrackerService's DeleteLocalKnowledgeConnection RPC.
+	LocalTrackerServiceDeleteLocalKnowledgeConnectionProcedure = "/harness.agent.v1.LocalTrackerService/DeleteLocalKnowledgeConnection"
+	// LocalTrackerServiceTestLocalKnowledgeConnectionProcedure is the fully-qualified name of the
+	// LocalTrackerService's TestLocalKnowledgeConnection RPC.
+	LocalTrackerServiceTestLocalKnowledgeConnectionProcedure = "/harness.agent.v1.LocalTrackerService/TestLocalKnowledgeConnection"
+	// LocalTrackerServiceStartLocalKnowledgeOAuthProcedure is the fully-qualified name of the
+	// LocalTrackerService's StartLocalKnowledgeOAuth RPC.
+	LocalTrackerServiceStartLocalKnowledgeOAuthProcedure = "/harness.agent.v1.LocalTrackerService/StartLocalKnowledgeOAuth"
 )
 
 // LocalTrackerServiceClient is a client for the harness.agent.v1.LocalTrackerService service.
@@ -121,6 +136,16 @@ type LocalTrackerServiceClient interface {
 	BrowseKnowledge(context.Context, *connect.Request[v1.BrowseKnowledgeRequest]) (*connect.Response[v1.BrowseKnowledgeResponse], error)
 	// Reads a document from the right source.
 	ReadKnowledge(context.Context, *connect.Request[v1.ReadKnowledgeRequest]) (*connect.Response[v1.ReadKnowledgeResponse], error)
+	// Knowledge source connections on this device (harness.library.v1.KnowledgeConnection): credentials in the system keychain,
+	// requests from this client, never synced. One may borrow the sign-in of a tracker connection of this device.
+	ListLocalKnowledgeConnections(context.Context, *connect.Request[v1.ListLocalKnowledgeConnectionsRequest]) (*connect.Response[v1.ListLocalKnowledgeConnectionsResponse], error)
+	SaveLocalKnowledgeConnection(context.Context, *connect.Request[v1.SaveLocalKnowledgeConnectionRequest]) (*connect.Response[v1.SaveLocalKnowledgeConnectionResponse], error)
+	DeleteLocalKnowledgeConnection(context.Context, *connect.Request[v1.DeleteLocalKnowledgeConnectionRequest]) (*connect.Response[v1.DeleteLocalKnowledgeConnectionResponse], error)
+	// Failure is an answer, not an error.
+	TestLocalKnowledgeConnection(context.Context, *connect.Request[v1.TestLocalKnowledgeConnectionRequest]) (*connect.Response[v1.TestLocalKnowledgeConnectionResponse], error)
+	// Authorization Code with PKCE through a loopback address, for a connection with its own OAuth sign-in. Poll the flow with
+	// GetLocalTrackerOAuth.
+	StartLocalKnowledgeOAuth(context.Context, *connect.Request[v1.StartLocalKnowledgeOAuthRequest]) (*connect.Response[v1.StartLocalKnowledgeOAuthResponse], error)
 }
 
 // NewLocalTrackerServiceClient constructs a client for the harness.agent.v1.LocalTrackerService
@@ -242,29 +267,64 @@ func NewLocalTrackerServiceClient(httpClient connect.HTTPClient, baseURL string,
 			connect.WithSchema(localTrackerServiceMethods.ByName("ReadKnowledge")),
 			connect.WithClientOptions(opts...),
 		),
+		listLocalKnowledgeConnections: connect.NewClient[v1.ListLocalKnowledgeConnectionsRequest, v1.ListLocalKnowledgeConnectionsResponse](
+			httpClient,
+			baseURL+LocalTrackerServiceListLocalKnowledgeConnectionsProcedure,
+			connect.WithSchema(localTrackerServiceMethods.ByName("ListLocalKnowledgeConnections")),
+			connect.WithClientOptions(opts...),
+		),
+		saveLocalKnowledgeConnection: connect.NewClient[v1.SaveLocalKnowledgeConnectionRequest, v1.SaveLocalKnowledgeConnectionResponse](
+			httpClient,
+			baseURL+LocalTrackerServiceSaveLocalKnowledgeConnectionProcedure,
+			connect.WithSchema(localTrackerServiceMethods.ByName("SaveLocalKnowledgeConnection")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteLocalKnowledgeConnection: connect.NewClient[v1.DeleteLocalKnowledgeConnectionRequest, v1.DeleteLocalKnowledgeConnectionResponse](
+			httpClient,
+			baseURL+LocalTrackerServiceDeleteLocalKnowledgeConnectionProcedure,
+			connect.WithSchema(localTrackerServiceMethods.ByName("DeleteLocalKnowledgeConnection")),
+			connect.WithClientOptions(opts...),
+		),
+		testLocalKnowledgeConnection: connect.NewClient[v1.TestLocalKnowledgeConnectionRequest, v1.TestLocalKnowledgeConnectionResponse](
+			httpClient,
+			baseURL+LocalTrackerServiceTestLocalKnowledgeConnectionProcedure,
+			connect.WithSchema(localTrackerServiceMethods.ByName("TestLocalKnowledgeConnection")),
+			connect.WithClientOptions(opts...),
+		),
+		startLocalKnowledgeOAuth: connect.NewClient[v1.StartLocalKnowledgeOAuthRequest, v1.StartLocalKnowledgeOAuthResponse](
+			httpClient,
+			baseURL+LocalTrackerServiceStartLocalKnowledgeOAuthProcedure,
+			connect.WithSchema(localTrackerServiceMethods.ByName("StartLocalKnowledgeOAuth")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // localTrackerServiceClient implements LocalTrackerServiceClient.
 type localTrackerServiceClient struct {
-	listLocalTrackerConnections  *connect.Client[v1.ListLocalTrackerConnectionsRequest, v1.ListLocalTrackerConnectionsResponse]
-	saveLocalTrackerConnection   *connect.Client[v1.SaveLocalTrackerConnectionRequest, v1.SaveLocalTrackerConnectionResponse]
-	deleteLocalTrackerConnection *connect.Client[v1.DeleteLocalTrackerConnectionRequest, v1.DeleteLocalTrackerConnectionResponse]
-	testLocalTrackerConnection   *connect.Client[v1.TestLocalTrackerConnectionRequest, v1.TestLocalTrackerConnectionResponse]
-	searchLocalTrackerIssues     *connect.Client[v1.SearchLocalTrackerIssuesRequest, v1.SearchLocalTrackerIssuesResponse]
-	getLocalTrackerIssue         *connect.Client[v1.GetLocalTrackerIssueRequest, v1.GetLocalTrackerIssueResponse]
-	listLocalTrackerFields       *connect.Client[v1.ListLocalTrackerFieldsRequest, v1.ListLocalTrackerFieldsResponse]
-	startLocalTrackerOAuth       *connect.Client[v1.StartLocalTrackerOAuthRequest, v1.StartLocalTrackerOAuthResponse]
-	getLocalTrackerOAuth         *connect.Client[v1.GetLocalTrackerOAuthRequest, v1.GetLocalTrackerOAuthResponse]
-	syncLocalTrackers            *connect.Client[v1.SyncLocalTrackersRequest, v1.SyncLocalTrackersResponse]
-	listLocalProviderProjects    *connect.Client[v1.ListLocalProviderProjectsRequest, v1.ListLocalProviderProjectsResponse]
-	listFolderProjects           *connect.Client[v1.ListFolderProjectsRequest, v1.ListFolderProjectsResponse]
-	setFolderProject             *connect.Client[v1.SetFolderProjectRequest, v1.SetFolderProjectResponse]
-	prepareIssueSession          *connect.Client[v1.PrepareIssueSessionRequest, v1.PrepareIssueSessionResponse]
-	listAllKnowledgeSources      *connect.Client[v1.ListAllKnowledgeSourcesRequest, v1.ListAllKnowledgeSourcesResponse]
-	searchAllKnowledge           *connect.Client[v1.SearchAllKnowledgeRequest, v1.SearchAllKnowledgeResponse]
-	browseKnowledge              *connect.Client[v1.BrowseKnowledgeRequest, v1.BrowseKnowledgeResponse]
-	readKnowledge                *connect.Client[v1.ReadKnowledgeRequest, v1.ReadKnowledgeResponse]
+	listLocalTrackerConnections    *connect.Client[v1.ListLocalTrackerConnectionsRequest, v1.ListLocalTrackerConnectionsResponse]
+	saveLocalTrackerConnection     *connect.Client[v1.SaveLocalTrackerConnectionRequest, v1.SaveLocalTrackerConnectionResponse]
+	deleteLocalTrackerConnection   *connect.Client[v1.DeleteLocalTrackerConnectionRequest, v1.DeleteLocalTrackerConnectionResponse]
+	testLocalTrackerConnection     *connect.Client[v1.TestLocalTrackerConnectionRequest, v1.TestLocalTrackerConnectionResponse]
+	searchLocalTrackerIssues       *connect.Client[v1.SearchLocalTrackerIssuesRequest, v1.SearchLocalTrackerIssuesResponse]
+	getLocalTrackerIssue           *connect.Client[v1.GetLocalTrackerIssueRequest, v1.GetLocalTrackerIssueResponse]
+	listLocalTrackerFields         *connect.Client[v1.ListLocalTrackerFieldsRequest, v1.ListLocalTrackerFieldsResponse]
+	startLocalTrackerOAuth         *connect.Client[v1.StartLocalTrackerOAuthRequest, v1.StartLocalTrackerOAuthResponse]
+	getLocalTrackerOAuth           *connect.Client[v1.GetLocalTrackerOAuthRequest, v1.GetLocalTrackerOAuthResponse]
+	syncLocalTrackers              *connect.Client[v1.SyncLocalTrackersRequest, v1.SyncLocalTrackersResponse]
+	listLocalProviderProjects      *connect.Client[v1.ListLocalProviderProjectsRequest, v1.ListLocalProviderProjectsResponse]
+	listFolderProjects             *connect.Client[v1.ListFolderProjectsRequest, v1.ListFolderProjectsResponse]
+	setFolderProject               *connect.Client[v1.SetFolderProjectRequest, v1.SetFolderProjectResponse]
+	prepareIssueSession            *connect.Client[v1.PrepareIssueSessionRequest, v1.PrepareIssueSessionResponse]
+	listAllKnowledgeSources        *connect.Client[v1.ListAllKnowledgeSourcesRequest, v1.ListAllKnowledgeSourcesResponse]
+	searchAllKnowledge             *connect.Client[v1.SearchAllKnowledgeRequest, v1.SearchAllKnowledgeResponse]
+	browseKnowledge                *connect.Client[v1.BrowseKnowledgeRequest, v1.BrowseKnowledgeResponse]
+	readKnowledge                  *connect.Client[v1.ReadKnowledgeRequest, v1.ReadKnowledgeResponse]
+	listLocalKnowledgeConnections  *connect.Client[v1.ListLocalKnowledgeConnectionsRequest, v1.ListLocalKnowledgeConnectionsResponse]
+	saveLocalKnowledgeConnection   *connect.Client[v1.SaveLocalKnowledgeConnectionRequest, v1.SaveLocalKnowledgeConnectionResponse]
+	deleteLocalKnowledgeConnection *connect.Client[v1.DeleteLocalKnowledgeConnectionRequest, v1.DeleteLocalKnowledgeConnectionResponse]
+	testLocalKnowledgeConnection   *connect.Client[v1.TestLocalKnowledgeConnectionRequest, v1.TestLocalKnowledgeConnectionResponse]
+	startLocalKnowledgeOAuth       *connect.Client[v1.StartLocalKnowledgeOAuthRequest, v1.StartLocalKnowledgeOAuthResponse]
 }
 
 // ListLocalTrackerConnections calls
@@ -359,6 +419,35 @@ func (c *localTrackerServiceClient) ReadKnowledge(ctx context.Context, req *conn
 	return c.readKnowledge.CallUnary(ctx, req)
 }
 
+// ListLocalKnowledgeConnections calls
+// harness.agent.v1.LocalTrackerService.ListLocalKnowledgeConnections.
+func (c *localTrackerServiceClient) ListLocalKnowledgeConnections(ctx context.Context, req *connect.Request[v1.ListLocalKnowledgeConnectionsRequest]) (*connect.Response[v1.ListLocalKnowledgeConnectionsResponse], error) {
+	return c.listLocalKnowledgeConnections.CallUnary(ctx, req)
+}
+
+// SaveLocalKnowledgeConnection calls
+// harness.agent.v1.LocalTrackerService.SaveLocalKnowledgeConnection.
+func (c *localTrackerServiceClient) SaveLocalKnowledgeConnection(ctx context.Context, req *connect.Request[v1.SaveLocalKnowledgeConnectionRequest]) (*connect.Response[v1.SaveLocalKnowledgeConnectionResponse], error) {
+	return c.saveLocalKnowledgeConnection.CallUnary(ctx, req)
+}
+
+// DeleteLocalKnowledgeConnection calls
+// harness.agent.v1.LocalTrackerService.DeleteLocalKnowledgeConnection.
+func (c *localTrackerServiceClient) DeleteLocalKnowledgeConnection(ctx context.Context, req *connect.Request[v1.DeleteLocalKnowledgeConnectionRequest]) (*connect.Response[v1.DeleteLocalKnowledgeConnectionResponse], error) {
+	return c.deleteLocalKnowledgeConnection.CallUnary(ctx, req)
+}
+
+// TestLocalKnowledgeConnection calls
+// harness.agent.v1.LocalTrackerService.TestLocalKnowledgeConnection.
+func (c *localTrackerServiceClient) TestLocalKnowledgeConnection(ctx context.Context, req *connect.Request[v1.TestLocalKnowledgeConnectionRequest]) (*connect.Response[v1.TestLocalKnowledgeConnectionResponse], error) {
+	return c.testLocalKnowledgeConnection.CallUnary(ctx, req)
+}
+
+// StartLocalKnowledgeOAuth calls harness.agent.v1.LocalTrackerService.StartLocalKnowledgeOAuth.
+func (c *localTrackerServiceClient) StartLocalKnowledgeOAuth(ctx context.Context, req *connect.Request[v1.StartLocalKnowledgeOAuthRequest]) (*connect.Response[v1.StartLocalKnowledgeOAuthResponse], error) {
+	return c.startLocalKnowledgeOAuth.CallUnary(ctx, req)
+}
+
 // LocalTrackerServiceHandler is an implementation of the harness.agent.v1.LocalTrackerService
 // service.
 type LocalTrackerServiceHandler interface {
@@ -392,6 +481,16 @@ type LocalTrackerServiceHandler interface {
 	BrowseKnowledge(context.Context, *connect.Request[v1.BrowseKnowledgeRequest]) (*connect.Response[v1.BrowseKnowledgeResponse], error)
 	// Reads a document from the right source.
 	ReadKnowledge(context.Context, *connect.Request[v1.ReadKnowledgeRequest]) (*connect.Response[v1.ReadKnowledgeResponse], error)
+	// Knowledge source connections on this device (harness.library.v1.KnowledgeConnection): credentials in the system keychain,
+	// requests from this client, never synced. One may borrow the sign-in of a tracker connection of this device.
+	ListLocalKnowledgeConnections(context.Context, *connect.Request[v1.ListLocalKnowledgeConnectionsRequest]) (*connect.Response[v1.ListLocalKnowledgeConnectionsResponse], error)
+	SaveLocalKnowledgeConnection(context.Context, *connect.Request[v1.SaveLocalKnowledgeConnectionRequest]) (*connect.Response[v1.SaveLocalKnowledgeConnectionResponse], error)
+	DeleteLocalKnowledgeConnection(context.Context, *connect.Request[v1.DeleteLocalKnowledgeConnectionRequest]) (*connect.Response[v1.DeleteLocalKnowledgeConnectionResponse], error)
+	// Failure is an answer, not an error.
+	TestLocalKnowledgeConnection(context.Context, *connect.Request[v1.TestLocalKnowledgeConnectionRequest]) (*connect.Response[v1.TestLocalKnowledgeConnectionResponse], error)
+	// Authorization Code with PKCE through a loopback address, for a connection with its own OAuth sign-in. Poll the flow with
+	// GetLocalTrackerOAuth.
+	StartLocalKnowledgeOAuth(context.Context, *connect.Request[v1.StartLocalKnowledgeOAuthRequest]) (*connect.Response[v1.StartLocalKnowledgeOAuthResponse], error)
 }
 
 // NewLocalTrackerServiceHandler builds an HTTP handler from the service implementation. It returns
@@ -509,6 +608,36 @@ func NewLocalTrackerServiceHandler(svc LocalTrackerServiceHandler, opts ...conne
 		connect.WithSchema(localTrackerServiceMethods.ByName("ReadKnowledge")),
 		connect.WithHandlerOptions(opts...),
 	)
+	localTrackerServiceListLocalKnowledgeConnectionsHandler := connect.NewUnaryHandler(
+		LocalTrackerServiceListLocalKnowledgeConnectionsProcedure,
+		svc.ListLocalKnowledgeConnections,
+		connect.WithSchema(localTrackerServiceMethods.ByName("ListLocalKnowledgeConnections")),
+		connect.WithHandlerOptions(opts...),
+	)
+	localTrackerServiceSaveLocalKnowledgeConnectionHandler := connect.NewUnaryHandler(
+		LocalTrackerServiceSaveLocalKnowledgeConnectionProcedure,
+		svc.SaveLocalKnowledgeConnection,
+		connect.WithSchema(localTrackerServiceMethods.ByName("SaveLocalKnowledgeConnection")),
+		connect.WithHandlerOptions(opts...),
+	)
+	localTrackerServiceDeleteLocalKnowledgeConnectionHandler := connect.NewUnaryHandler(
+		LocalTrackerServiceDeleteLocalKnowledgeConnectionProcedure,
+		svc.DeleteLocalKnowledgeConnection,
+		connect.WithSchema(localTrackerServiceMethods.ByName("DeleteLocalKnowledgeConnection")),
+		connect.WithHandlerOptions(opts...),
+	)
+	localTrackerServiceTestLocalKnowledgeConnectionHandler := connect.NewUnaryHandler(
+		LocalTrackerServiceTestLocalKnowledgeConnectionProcedure,
+		svc.TestLocalKnowledgeConnection,
+		connect.WithSchema(localTrackerServiceMethods.ByName("TestLocalKnowledgeConnection")),
+		connect.WithHandlerOptions(opts...),
+	)
+	localTrackerServiceStartLocalKnowledgeOAuthHandler := connect.NewUnaryHandler(
+		LocalTrackerServiceStartLocalKnowledgeOAuthProcedure,
+		svc.StartLocalKnowledgeOAuth,
+		connect.WithSchema(localTrackerServiceMethods.ByName("StartLocalKnowledgeOAuth")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.LocalTrackerService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case LocalTrackerServiceListLocalTrackerConnectionsProcedure:
@@ -547,6 +676,16 @@ func NewLocalTrackerServiceHandler(svc LocalTrackerServiceHandler, opts ...conne
 			localTrackerServiceBrowseKnowledgeHandler.ServeHTTP(w, r)
 		case LocalTrackerServiceReadKnowledgeProcedure:
 			localTrackerServiceReadKnowledgeHandler.ServeHTTP(w, r)
+		case LocalTrackerServiceListLocalKnowledgeConnectionsProcedure:
+			localTrackerServiceListLocalKnowledgeConnectionsHandler.ServeHTTP(w, r)
+		case LocalTrackerServiceSaveLocalKnowledgeConnectionProcedure:
+			localTrackerServiceSaveLocalKnowledgeConnectionHandler.ServeHTTP(w, r)
+		case LocalTrackerServiceDeleteLocalKnowledgeConnectionProcedure:
+			localTrackerServiceDeleteLocalKnowledgeConnectionHandler.ServeHTTP(w, r)
+		case LocalTrackerServiceTestLocalKnowledgeConnectionProcedure:
+			localTrackerServiceTestLocalKnowledgeConnectionHandler.ServeHTTP(w, r)
+		case LocalTrackerServiceStartLocalKnowledgeOAuthProcedure:
+			localTrackerServiceStartLocalKnowledgeOAuthHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -626,4 +765,24 @@ func (UnimplementedLocalTrackerServiceHandler) BrowseKnowledge(context.Context, 
 
 func (UnimplementedLocalTrackerServiceHandler) ReadKnowledge(context.Context, *connect.Request[v1.ReadKnowledgeRequest]) (*connect.Response[v1.ReadKnowledgeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.LocalTrackerService.ReadKnowledge is not implemented"))
+}
+
+func (UnimplementedLocalTrackerServiceHandler) ListLocalKnowledgeConnections(context.Context, *connect.Request[v1.ListLocalKnowledgeConnectionsRequest]) (*connect.Response[v1.ListLocalKnowledgeConnectionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.LocalTrackerService.ListLocalKnowledgeConnections is not implemented"))
+}
+
+func (UnimplementedLocalTrackerServiceHandler) SaveLocalKnowledgeConnection(context.Context, *connect.Request[v1.SaveLocalKnowledgeConnectionRequest]) (*connect.Response[v1.SaveLocalKnowledgeConnectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.LocalTrackerService.SaveLocalKnowledgeConnection is not implemented"))
+}
+
+func (UnimplementedLocalTrackerServiceHandler) DeleteLocalKnowledgeConnection(context.Context, *connect.Request[v1.DeleteLocalKnowledgeConnectionRequest]) (*connect.Response[v1.DeleteLocalKnowledgeConnectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.LocalTrackerService.DeleteLocalKnowledgeConnection is not implemented"))
+}
+
+func (UnimplementedLocalTrackerServiceHandler) TestLocalKnowledgeConnection(context.Context, *connect.Request[v1.TestLocalKnowledgeConnectionRequest]) (*connect.Response[v1.TestLocalKnowledgeConnectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.LocalTrackerService.TestLocalKnowledgeConnection is not implemented"))
+}
+
+func (UnimplementedLocalTrackerServiceHandler) StartLocalKnowledgeOAuth(context.Context, *connect.Request[v1.StartLocalKnowledgeOAuthRequest]) (*connect.Response[v1.StartLocalKnowledgeOAuthResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.LocalTrackerService.StartLocalKnowledgeOAuth is not implemented"))
 }

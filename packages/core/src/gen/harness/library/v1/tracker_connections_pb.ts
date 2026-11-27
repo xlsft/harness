@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/library/v1/tracker_connections.proto.
  */
 export const file_harness_library_v1_tracker_connections: GenFile = /*@__PURE__*/
-  fileDesc("CixoYXJuZXNzL2xpYnJhcnkvdjEvdHJhY2tlcl9jb25uZWN0aW9ucy5wcm90bxISaGFybmVzcy5saWJyYXJ5LnYxIuUBChNUcmFja2VyQ2FwYWJpbGl0aWVzEhAKCHByb3ZpZGVyGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRI7CgxhdXRoX21ldGhvZHMYAyADKA4yJS5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckF1dGhNZXRob2QSFgoOcXVlcnlfbGFuZ3VhZ2UYBCABKAkSFQoNcXVlcnlfZXhhbXBsZRgFIAEoCRIVCg1jdXN0b21fZmllbGRzGAYgASgIEhAKCGNvbW1lbnRzGAcgASgIEhEKCWtub3dsZWRnZRgIIAEoCCJdChRUcmFja2VyQ29ubmVjdGlvblJlZhI5CgVzY29wZRgBIAEoDjIqLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VyQ29ubmVjdGlvblNjb3BlEgoKAmlkGAIgASgJIt4DChFUcmFja2VyQ29ubmVjdGlvbhIKCgJpZBgBIAEoCRI5CgVzY29wZRgCIAEoDjIqLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VyQ29ubmVjdGlvblNjb3BlEhAKCHByb3ZpZGVyGAMgASgJEgwKBG5hbWUYBCABKAkSEAoIYmFzZV91cmwYBSABKAkSMwoEYXV0aBgGIAEoDjIlLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VyQXV0aE1ldGhvZBINCgVsb2dpbhgHIAEoCRIXCg9vYXV0aF9jbGllbnRfaWQYCCABKAkSEgoKaGFzX3NlY3JldBgJIAEoCBIPCgdlbmFibGVkGAogASgIEh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgLIAEoCBIZChFrbm93bGVkZ2VfZW5hYmxlZBgMIAEoCBIXCg9rbm93bGVkZ2VfcXVlcnkYDSABKAkSDwoHaGVhbHRoeRgOIAEoCBISCgpsYXN0X2Vycm9yGA8gASgJEhcKD2xhc3RfY2hlY2tlZF9hdBgQIAEoCRI9CgxjYXBhYmlsaXRpZXMYESABKAsyJy5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckNhcGFiaWxpdGllcyLxAgoWVHJhY2tlckNvbm5lY3Rpb25JbnB1dBIKCgJpZBgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIMCgRuYW1lGAMgASgJEhAKCGJhc2VfdXJsGAQgASgJEjMKBGF1dGgYBSABKA4yJS5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckF1dGhNZXRob2QSDQoFbG9naW4YBiABKAkSEwoGc2VjcmV0GAcgASgJSACIAQESFwoPb2F1dGhfY2xpZW50X2lkGAggASgJEiAKE29hdXRoX2NsaWVudF9zZWNyZXQYCSABKAlIAYgBARIPCgdlbmFibGVkGAogASgIEh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgLIAEoCBIZChFrbm93bGVkZ2VfZW5hYmxlZBgMIAEoCBIXCg9rbm93bGVkZ2VfcXVlcnkYDSABKAlCCQoHX3NlY3JldEIWChRfb2F1dGhfY2xpZW50X3NlY3JldCLiAQoMVHJhY2tlcklzc3VlEgoKAmlkGAEgASgJEg0KBXRpdGxlGAIgASgJEgsKA3VybBgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCRIPCgdwcm9qZWN0GAUgASgJEjUKBmZpZWxkcxgGIAMoCzIlLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VySXNzdWVGaWVsZBISCgp1cGRhdGVkX2F0GAcgASgJEjkKCGNvbW1lbnRzGAggAygLMicuaGFybmVzcy5saWJyYXJ5LnYxLlRyYWNrZXJJc3N1ZUNvbW1lbnQiMAoRVHJhY2tlcklzc3VlRmllbGQSDAoEbmFtZRgBIAEoCRINCgV2YWx1ZRgCIAEoCSJHChNUcmFja2VySXNzdWVDb21tZW50Eg4KBmF1dGhvchgBIAEoCRIMCgR0ZXh0GAIgASgJEhIKCmNyZWF0ZWRfYXQYAyABKAkiSQoMVHJhY2tlckZpZWxkEgwKBG5hbWUYASABKAkSDAoEa2luZBgCIAEoCRINCgVtdWx0aRgDIAEoCBIOCgZ2YWx1ZXMYBCADKAkiHwodTGlzdFRyYWNrZXJDb25uZWN0aW9uc1JlcXVlc3QimAEKHkxpc3RUcmFja2VyQ29ubmVjdGlvbnNSZXNwb25zZRI6Cgtjb25uZWN0aW9ucxgBIAMoCzIlLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VyQ29ubmVjdGlvbhI6Cglwcm92aWRlcnMYAiADKAsyJy5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckNhcGFiaWxpdGllcyJdChtQdXRUcmFja2VyQ29ubmVjdGlvblJlcXVlc3QSPgoKY29ubmVjdGlvbhgBIAEoCzIqLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VyQ29ubmVjdGlvbklucHV0IlkKHFB1dFRyYWNrZXJDb25uZWN0aW9uUmVzcG9uc2USOQoKY29ubmVjdGlvbhgBIAEoCzIlLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VyQ29ubmVjdGlvbiIsCh5EZWxldGVUcmFja2VyQ29ubmVjdGlvblJlcXVlc3QSCgoCaWQYASABKAkiIQofRGVsZXRlVHJhY2tlckNvbm5lY3Rpb25SZXNwb25zZSJlChxUZXN0VHJhY2tlckNvbm5lY3Rpb25SZXF1ZXN0EgoKAmlkGAEgASgJEjkKBWRyYWZ0GAIgASgLMiouaGFybmVzcy5saWJyYXJ5LnYxLlRyYWNrZXJDb25uZWN0aW9uSW5wdXQiXwodVGVzdFRyYWNrZXJDb25uZWN0aW9uUmVzcG9uc2USCgoCb2sYASABKAgSDQoFZXJyb3IYAiABKAkSDQoFbG9naW4YAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJIlQKHVNlYXJjaENvbm5lY3Rpb25Jc3N1ZXNSZXF1ZXN0EhUKDWNvbm5lY3Rpb25faWQYASABKAkSDQoFcXVlcnkYAiABKAkSDQoFbGltaXQYAyABKAUiZAoeU2VhcmNoQ29ubmVjdGlvbklzc3Vlc1Jlc3BvbnNlEjAKBmlzc3VlcxgBIAMoCzIgLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VySXNzdWUSEAoIaGFzX21vcmUYAiABKAgiRQobTGlzdENvbm5lY3Rpb25GaWVsZHNSZXF1ZXN0EhUKDWNvbm5lY3Rpb25faWQYASABKAkSDwoHcHJvamVjdBgCIAEoCSJQChxMaXN0Q29ubmVjdGlvbkZpZWxkc1Jlc3BvbnNlEjAKBmZpZWxkcxgBIAMoCzIgLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VyRmllbGQiMQoYU3RhcnRUcmFja2VyT0F1dGhSZXF1ZXN0EhUKDWNvbm5lY3Rpb25faWQYASABKAkiMgoZU3RhcnRUcmFja2VyT0F1dGhSZXNwb25zZRIVCg1hdXRob3JpemVfdXJsGAEgASgJKpgBChFUcmFja2VyQXV0aE1ldGhvZBIjCh9UUkFDS0VSX0FVVEhfTUVUSE9EX1VOU1BFQ0lGSUVEEAASHQoZVFJBQ0tFUl9BVVRIX01FVEhPRF9UT0tFThABEiAKHFRSQUNLRVJfQVVUSF9NRVRIT0RfUEFTU1dPUkQQAhIdChlUUkFDS0VSX0FVVEhfTUVUSE9EX09BVVRIEAMqiwEKFlRyYWNrZXJDb25uZWN0aW9uU2NvcGUSKAokVFJBQ0tFUl9DT05ORUNUSU9OX1NDT1BFX1VOU1BFQ0lGSUVEEAASIgoeVFJBQ0tFUl9DT05ORUNUSU9OX1NDT1BFX0FETUlOEAESIwofVFJBQ0tFUl9DT05ORUNUSU9OX1NDT1BFX0RFVklDRRACMocHChhUcmFja2VyQ29ubmVjdGlvblNlcnZpY2USfwoWTGlzdFRyYWNrZXJDb25uZWN0aW9ucxIxLmhhcm5lc3MubGlicmFyeS52MS5MaXN0VHJhY2tlckNvbm5lY3Rpb25zUmVxdWVzdBoyLmhhcm5lc3MubGlicmFyeS52MS5MaXN0VHJhY2tlckNvbm5lY3Rpb25zUmVzcG9uc2USeQoUUHV0VHJhY2tlckNvbm5lY3Rpb24SLy5oYXJuZXNzLmxpYnJhcnkudjEuUHV0VHJhY2tlckNvbm5lY3Rpb25SZXF1ZXN0GjAuaGFybmVzcy5saWJyYXJ5LnYxLlB1dFRyYWNrZXJDb25uZWN0aW9uUmVzcG9uc2USggEKF0RlbGV0ZVRyYWNrZXJDb25uZWN0aW9uEjIuaGFybmVzcy5saWJyYXJ5LnYxLkRlbGV0ZVRyYWNrZXJDb25uZWN0aW9uUmVxdWVzdBozLmhhcm5lc3MubGlicmFyeS52MS5EZWxldGVUcmFja2VyQ29ubmVjdGlvblJlc3BvbnNlEnwKFVRlc3RUcmFja2VyQ29ubmVjdGlvbhIwLmhhcm5lc3MubGlicmFyeS52MS5UZXN0VHJhY2tlckNvbm5lY3Rpb25SZXF1ZXN0GjEuaGFybmVzcy5saWJyYXJ5LnYxLlRlc3RUcmFja2VyQ29ubmVjdGlvblJlc3BvbnNlEn8KFlNlYXJjaENvbm5lY3Rpb25Jc3N1ZXMSMS5oYXJuZXNzLmxpYnJhcnkudjEuU2VhcmNoQ29ubmVjdGlvbklzc3Vlc1JlcXVlc3QaMi5oYXJuZXNzLmxpYnJhcnkudjEuU2VhcmNoQ29ubmVjdGlvbklzc3Vlc1Jlc3BvbnNlEnkKFExpc3RDb25uZWN0aW9uRmllbGRzEi8uaGFybmVzcy5saWJyYXJ5LnYxLkxpc3RDb25uZWN0aW9uRmllbGRzUmVxdWVzdBowLmhhcm5lc3MubGlicmFyeS52MS5MaXN0Q29ubmVjdGlvbkZpZWxkc1Jlc3BvbnNlEnAKEVN0YXJ0VHJhY2tlck9BdXRoEiwuaGFybmVzcy5saWJyYXJ5LnYxLlN0YXJ0VHJhY2tlck9BdXRoUmVxdWVzdBotLmhhcm5lc3MubGlicmFyeS52MS5TdGFydFRyYWNrZXJPQXV0aFJlc3BvbnNlQuYBChZjb20uaGFybmVzcy5saWJyYXJ5LnYxQhdUcmFja2VyQ29ubmVjdGlvbnNQcm90b1ABWklnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2xpYnJhcnkvdjE7bGlicmFyeXYxogIDSExYqgISSGFybmVzcy5MaWJyYXJ5LlYxygISSGFybmVzc1xMaWJyYXJ5XFYx4gIeSGFybmVzc1xMaWJyYXJ5XFYxXEdQQk1ldGFkYXRh6gIUSGFybmVzczo6TGlicmFyeTo6VjFiBnByb3RvMw");
+  fileDesc("CixoYXJuZXNzL2xpYnJhcnkvdjEvdHJhY2tlcl9jb25uZWN0aW9ucy5wcm90bxISaGFybmVzcy5saWJyYXJ5LnYxIrsDChNUcmFja2VyQ2FwYWJpbGl0aWVzEhAKCHByb3ZpZGVyGAEgASgJEhQKDGRpc3BsYXlfbmFtZRgCIAEoCRI7CgxhdXRoX21ldGhvZHMYAyADKA4yJS5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckF1dGhNZXRob2QSFgoOcXVlcnlfbGFuZ3VhZ2UYBCABKAkSFQoNcXVlcnlfZXhhbXBsZRgFIAEoCRIVCg1jdXN0b21fZmllbGRzGAYgASgIEhAKCGNvbW1lbnRzGAcgASgIEhUKCWtub3dsZWRnZRgIIAEoCEICGAESPgoNb3B0aW9uX2ZpZWxkcxgJIAMoCzInLmhhcm5lc3MubGlicmFyeS52MS5Qcm92aWRlck9wdGlvbkZpZWxkEhAKCGRvY3NfdXJsGAogASgJEgwKBGxvZ28YCyABKAkSHAoUYmFzZV91cmxfcGxhY2Vob2xkZXIYDCABKAkSGAoQZGVmYXVsdF9iYXNlX3VybBgNIAEoCRI4CgphdXRoX2hpbnRzGA4gAygLMiQuaGFybmVzcy5saWJyYXJ5LnYxLlByb3ZpZGVyQXV0aEhpbnQilQEKE1Byb3ZpZGVyT3B0aW9uRmllbGQSCwoDa2V5GAEgASgJEg0KBWxhYmVsGAIgASgJEhMKC3BsYWNlaG9sZGVyGAMgASgJEhAKCHJlcXVpcmVkGAQgASgIEhYKDmFsbG93ZWRfdmFsdWVzGAUgAygJEgwKBGhlbHAYBiABKAkSFQoNZGVmYXVsdF92YWx1ZRgHIAEoCSKCAQoQUHJvdmlkZXJBdXRoSGludBI1CgZtZXRob2QYASABKA4yJS5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckF1dGhNZXRob2QSDAoEaGVscBgCIAEoCRIUCgxzZWNyZXRfbGFiZWwYAyABKAkSEwoLbG9naW5fbGFiZWwYBCABKAkiXQoUVHJhY2tlckNvbm5lY3Rpb25SZWYSOQoFc2NvcGUYASABKA4yKi5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckNvbm5lY3Rpb25TY29wZRIKCgJpZBgCIAEoCSLbBAoRVHJhY2tlckNvbm5lY3Rpb24SCgoCaWQYASABKAkSOQoFc2NvcGUYAiABKA4yKi5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckNvbm5lY3Rpb25TY29wZRIQCghwcm92aWRlchgDIAEoCRIMCgRuYW1lGAQgASgJEhAKCGJhc2VfdXJsGAUgASgJEjMKBGF1dGgYBiABKA4yJS5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckF1dGhNZXRob2QSDQoFbG9naW4YByABKAkSFwoPb2F1dGhfY2xpZW50X2lkGAggASgJEhIKCmhhc19zZWNyZXQYCSABKAgSDwoHZW5hYmxlZBgKIAEoCBIdChVhbGxvd19wcml2YXRlX25ldHdvcmsYCyABKAgSHQoRa25vd2xlZGdlX2VuYWJsZWQYDCABKAhCAhgBEhsKD2tub3dsZWRnZV9xdWVyeRgNIAEoCUICGAESDwoHaGVhbHRoeRgOIAEoCBISCgpsYXN0X2Vycm9yGA8gASgJEhcKD2xhc3RfY2hlY2tlZF9hdBgQIAEoCRI9CgxjYXBhYmlsaXRpZXMYESABKAsyJy5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckNhcGFiaWxpdGllcxJDCgdvcHRpb25zGBIgAygLMjIuaGFybmVzcy5saWJyYXJ5LnYxLlRyYWNrZXJDb25uZWN0aW9uLk9wdGlvbnNFbnRyeRouCgxPcHRpb25zRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASLzAwoWVHJhY2tlckNvbm5lY3Rpb25JbnB1dBIKCgJpZBgBIAEoCRIQCghwcm92aWRlchgCIAEoCRIMCgRuYW1lGAMgASgJEhAKCGJhc2VfdXJsGAQgASgJEjMKBGF1dGgYBSABKA4yJS5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckF1dGhNZXRob2QSDQoFbG9naW4YBiABKAkSEwoGc2VjcmV0GAcgASgJSACIAQESFwoPb2F1dGhfY2xpZW50X2lkGAggASgJEiAKE29hdXRoX2NsaWVudF9zZWNyZXQYCSABKAlIAYgBARIPCgdlbmFibGVkGAogASgIEh0KFWFsbG93X3ByaXZhdGVfbmV0d29yaxgLIAEoCBIdChFrbm93bGVkZ2VfZW5hYmxlZBgMIAEoCEICGAESGwoPa25vd2xlZGdlX3F1ZXJ5GA0gASgJQgIYARJICgdvcHRpb25zGA4gAygLMjcuaGFybmVzcy5saWJyYXJ5LnYxLlRyYWNrZXJDb25uZWN0aW9uSW5wdXQuT3B0aW9uc0VudHJ5Gi4KDE9wdGlvbnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBQgkKB19zZWNyZXRCFgoUX29hdXRoX2NsaWVudF9zZWNyZXQi4gEKDFRyYWNrZXJJc3N1ZRIKCgJpZBgBIAEoCRINCgV0aXRsZRgCIAEoCRILCgN1cmwYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkSDwoHcHJvamVjdBgFIAEoCRI1CgZmaWVsZHMYBiADKAsyJS5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlcklzc3VlRmllbGQSEgoKdXBkYXRlZF9hdBgHIAEoCRI5Cghjb21tZW50cxgIIAMoCzInLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VySXNzdWVDb21tZW50IjAKEVRyYWNrZXJJc3N1ZUZpZWxkEgwKBG5hbWUYASABKAkSDQoFdmFsdWUYAiABKAkiRwoTVHJhY2tlcklzc3VlQ29tbWVudBIOCgZhdXRob3IYASABKAkSDAoEdGV4dBgCIAEoCRISCgpjcmVhdGVkX2F0GAMgASgJIkkKDFRyYWNrZXJGaWVsZBIMCgRuYW1lGAEgASgJEgwKBGtpbmQYAiABKAkSDQoFbXVsdGkYAyABKAgSDgoGdmFsdWVzGAQgAygJIh8KHUxpc3RUcmFja2VyQ29ubmVjdGlvbnNSZXF1ZXN0IpgBCh5MaXN0VHJhY2tlckNvbm5lY3Rpb25zUmVzcG9uc2USOgoLY29ubmVjdGlvbnMYASADKAsyJS5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckNvbm5lY3Rpb24SOgoJcHJvdmlkZXJzGAIgAygLMicuaGFybmVzcy5saWJyYXJ5LnYxLlRyYWNrZXJDYXBhYmlsaXRpZXMiXQobUHV0VHJhY2tlckNvbm5lY3Rpb25SZXF1ZXN0Ej4KCmNvbm5lY3Rpb24YASABKAsyKi5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckNvbm5lY3Rpb25JbnB1dCJZChxQdXRUcmFja2VyQ29ubmVjdGlvblJlc3BvbnNlEjkKCmNvbm5lY3Rpb24YASABKAsyJS5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckNvbm5lY3Rpb24iLAoeRGVsZXRlVHJhY2tlckNvbm5lY3Rpb25SZXF1ZXN0EgoKAmlkGAEgASgJIiEKH0RlbGV0ZVRyYWNrZXJDb25uZWN0aW9uUmVzcG9uc2UiZQocVGVzdFRyYWNrZXJDb25uZWN0aW9uUmVxdWVzdBIKCgJpZBgBIAEoCRI5CgVkcmFmdBgCIAEoCzIqLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VyQ29ubmVjdGlvbklucHV0Il8KHVRlc3RUcmFja2VyQ29ubmVjdGlvblJlc3BvbnNlEgoKAm9rGAEgASgIEg0KBWVycm9yGAIgASgJEg0KBWxvZ2luGAMgASgJEhQKDGRpc3BsYXlfbmFtZRgEIAEoCSJUCh1TZWFyY2hDb25uZWN0aW9uSXNzdWVzUmVxdWVzdBIVCg1jb25uZWN0aW9uX2lkGAEgASgJEg0KBXF1ZXJ5GAIgASgJEg0KBWxpbWl0GAMgASgFImQKHlNlYXJjaENvbm5lY3Rpb25Jc3N1ZXNSZXNwb25zZRIwCgZpc3N1ZXMYASADKAsyIC5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlcklzc3VlEhAKCGhhc19tb3JlGAIgASgIIkUKG0xpc3RDb25uZWN0aW9uRmllbGRzUmVxdWVzdBIVCg1jb25uZWN0aW9uX2lkGAEgASgJEg8KB3Byb2plY3QYAiABKAkiUAocTGlzdENvbm5lY3Rpb25GaWVsZHNSZXNwb25zZRIwCgZmaWVsZHMYASADKAsyIC5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckZpZWxkIjEKGFN0YXJ0VHJhY2tlck9BdXRoUmVxdWVzdBIVCg1jb25uZWN0aW9uX2lkGAEgASgJIjIKGVN0YXJ0VHJhY2tlck9BdXRoUmVzcG9uc2USFQoNYXV0aG9yaXplX3VybBgBIAEoCSrlAQoRVHJhY2tlckF1dGhNZXRob2QSIwofVFJBQ0tFUl9BVVRIX01FVEhPRF9VTlNQRUNJRklFRBAAEh0KGVRSQUNLRVJfQVVUSF9NRVRIT0RfVE9LRU4QARIgChxUUkFDS0VSX0FVVEhfTUVUSE9EX1BBU1NXT1JEEAISHQoZVFJBQ0tFUl9BVVRIX01FVEhPRF9PQVVUSBADEiMKH1RSQUNLRVJfQVVUSF9NRVRIT0RfRU1BSUxfVE9LRU4QBBImCiJUUkFDS0VSX0FVVEhfTUVUSE9EX1ZDU19DT05ORUNUSU9OEAUqiwEKFlRyYWNrZXJDb25uZWN0aW9uU2NvcGUSKAokVFJBQ0tFUl9DT05ORUNUSU9OX1NDT1BFX1VOU1BFQ0lGSUVEEAASIgoeVFJBQ0tFUl9DT05ORUNUSU9OX1NDT1BFX0FETUlOEAESIwofVFJBQ0tFUl9DT05ORUNUSU9OX1NDT1BFX0RFVklDRRACMocHChhUcmFja2VyQ29ubmVjdGlvblNlcnZpY2USfwoWTGlzdFRyYWNrZXJDb25uZWN0aW9ucxIxLmhhcm5lc3MubGlicmFyeS52MS5MaXN0VHJhY2tlckNvbm5lY3Rpb25zUmVxdWVzdBoyLmhhcm5lc3MubGlicmFyeS52MS5MaXN0VHJhY2tlckNvbm5lY3Rpb25zUmVzcG9uc2USeQoUUHV0VHJhY2tlckNvbm5lY3Rpb24SLy5oYXJuZXNzLmxpYnJhcnkudjEuUHV0VHJhY2tlckNvbm5lY3Rpb25SZXF1ZXN0GjAuaGFybmVzcy5saWJyYXJ5LnYxLlB1dFRyYWNrZXJDb25uZWN0aW9uUmVzcG9uc2USggEKF0RlbGV0ZVRyYWNrZXJDb25uZWN0aW9uEjIuaGFybmVzcy5saWJyYXJ5LnYxLkRlbGV0ZVRyYWNrZXJDb25uZWN0aW9uUmVxdWVzdBozLmhhcm5lc3MubGlicmFyeS52MS5EZWxldGVUcmFja2VyQ29ubmVjdGlvblJlc3BvbnNlEnwKFVRlc3RUcmFja2VyQ29ubmVjdGlvbhIwLmhhcm5lc3MubGlicmFyeS52MS5UZXN0VHJhY2tlckNvbm5lY3Rpb25SZXF1ZXN0GjEuaGFybmVzcy5saWJyYXJ5LnYxLlRlc3RUcmFja2VyQ29ubmVjdGlvblJlc3BvbnNlEn8KFlNlYXJjaENvbm5lY3Rpb25Jc3N1ZXMSMS5oYXJuZXNzLmxpYnJhcnkudjEuU2VhcmNoQ29ubmVjdGlvbklzc3Vlc1JlcXVlc3QaMi5oYXJuZXNzLmxpYnJhcnkudjEuU2VhcmNoQ29ubmVjdGlvbklzc3Vlc1Jlc3BvbnNlEnkKFExpc3RDb25uZWN0aW9uRmllbGRzEi8uaGFybmVzcy5saWJyYXJ5LnYxLkxpc3RDb25uZWN0aW9uRmllbGRzUmVxdWVzdBowLmhhcm5lc3MubGlicmFyeS52MS5MaXN0Q29ubmVjdGlvbkZpZWxkc1Jlc3BvbnNlEnAKEVN0YXJ0VHJhY2tlck9BdXRoEiwuaGFybmVzcy5saWJyYXJ5LnYxLlN0YXJ0VHJhY2tlck9BdXRoUmVxdWVzdBotLmhhcm5lc3MubGlicmFyeS52MS5TdGFydFRyYWNrZXJPQXV0aFJlc3BvbnNlQuYBChZjb20uaGFybmVzcy5saWJyYXJ5LnYxQhdUcmFja2VyQ29ubmVjdGlvbnNQcm90b1ABWklnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2xpYnJhcnkvdjE7bGlicmFyeXYxogIDSExYqgISSGFybmVzcy5MaWJyYXJ5LlYxygISSGFybmVzc1xMaWJyYXJ5XFYx4gIeSGFybmVzc1xMaWJyYXJ5XFYxXEdQQk1ldGFkYXRh6gIUSGFybmVzczo6TGlicmFyeTo6VjFiBnByb3RvMw");
 
 /**
  * What a provider can do, so that forms and tools need no knowledge of the provider.
@@ -58,11 +58,55 @@ export type TrackerCapabilities = Message<"harness.library.v1.TrackerCapabilitie
   comments: boolean;
 
   /**
-   * Has documents Knowledge can read.
+   * Deprecated: documents are a knowledge provider's now (knowledge_connections.proto), with connections of their own that may
+   * borrow this provider's sign-in. Always false.
    *
-   * @generated from field: bool knowledge = 8;
+   * @generated from field: bool knowledge = 8 [deprecated = true];
+   * @deprecated
    */
   knowledge: boolean;
+
+  /**
+   * Provider-specific settings the form asks for, kept in TrackerConnection.options. The UI renders them generically.
+   *
+   * @generated from field: repeated harness.library.v1.ProviderOptionField option_fields = 9;
+   */
+  optionFields: ProviderOptionField[];
+
+  /**
+   * Where the vendor documents the credentials the form asks for.
+   *
+   * @generated from field: string docs_url = 10;
+   */
+  docsUrl: string;
+
+  /**
+   * Key of the logo in packages/ui/app/utils/providerLogos.ts; empty: a monogram of display_name.
+   *
+   * @generated from field: string logo = 11;
+   */
+  logo: string;
+
+  /**
+   * Placeholder of the address field, such as https://youtrack.example.com.
+   *
+   * @generated from field: string base_url_placeholder = 12;
+   */
+  baseUrlPlaceholder: string;
+
+  /**
+   * The address used when the form leaves it empty, for a hosted-only service (https://api.linear.app). Empty: required.
+   *
+   * @generated from field: string default_base_url = 13;
+   */
+  defaultBaseUrl: string;
+
+  /**
+   * What the form says under each sign-in method, in English. A method without one gets the form's own text.
+   *
+   * @generated from field: repeated harness.library.v1.ProviderAuthHint auth_hints = 14;
+   */
+  authHints: ProviderAuthHint[];
 };
 
 /**
@@ -71,6 +115,101 @@ export type TrackerCapabilities = Message<"harness.library.v1.TrackerCapabilitie
  */
 export const TrackerCapabilitiesSchema: GenMessage<TrackerCapabilities> = /*@__PURE__*/
   messageDesc(file_harness_library_v1_tracker_connections, 0);
+
+/**
+ * A provider-specific setting. Never a secret: options are shown to admins and stored in the clear.
+ *
+ * @generated from message harness.library.v1.ProviderOptionField
+ */
+export type ProviderOptionField = Message<"harness.library.v1.ProviderOptionField"> & {
+  /**
+   * The key in `options`, such as "org_id". Lower case letters, digits and underscores.
+   *
+   * @generated from field: string key = 1;
+   */
+  key: string;
+
+  /**
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * @generated from field: string placeholder = 3;
+   */
+  placeholder: string;
+
+  /**
+   * @generated from field: bool required = 4;
+   */
+  required: boolean;
+
+  /**
+   * When set, the value is one of these and the form shows a choice.
+   *
+   * @generated from field: repeated string allowed_values = 5;
+   */
+  allowedValues: string[];
+
+  /**
+   * One line under the field.
+   *
+   * @generated from field: string help = 6;
+   */
+  help: string;
+
+  /**
+   * Used when the form leaves it empty.
+   *
+   * @generated from field: string default_value = 7;
+   */
+  defaultValue: string;
+};
+
+/**
+ * Describes the message harness.library.v1.ProviderOptionField.
+ * Use `create(ProviderOptionFieldSchema)` to create a new message.
+ */
+export const ProviderOptionFieldSchema: GenMessage<ProviderOptionField> = /*@__PURE__*/
+  messageDesc(file_harness_library_v1_tracker_connections, 1);
+
+/**
+ * What the form says for one sign-in method of one provider.
+ *
+ * @generated from message harness.library.v1.ProviderAuthHint
+ */
+export type ProviderAuthHint = Message<"harness.library.v1.ProviderAuthHint"> & {
+  /**
+   * @generated from field: harness.library.v1.TrackerAuthMethod method = 1;
+   */
+  method: TrackerAuthMethod;
+
+  /**
+   * @generated from field: string help = 2;
+   */
+  help: string;
+
+  /**
+   * The label of the secret field: "Permanent token", "API token".
+   *
+   * @generated from field: string secret_label = 3;
+   */
+  secretLabel: string;
+
+  /**
+   * The label of the login field when the method takes one: "Account email".
+   *
+   * @generated from field: string login_label = 4;
+   */
+  loginLabel: string;
+};
+
+/**
+ * Describes the message harness.library.v1.ProviderAuthHint.
+ * Use `create(ProviderAuthHintSchema)` to create a new message.
+ */
+export const ProviderAuthHintSchema: GenMessage<ProviderAuthHint> = /*@__PURE__*/
+  messageDesc(file_harness_library_v1_tracker_connections, 2);
 
 /**
  * Which connection something uses.
@@ -94,7 +233,7 @@ export type TrackerConnectionRef = Message<"harness.library.v1.TrackerConnection
  * Use `create(TrackerConnectionRefSchema)` to create a new message.
  */
 export const TrackerConnectionRefSchema: GenMessage<TrackerConnectionRef> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 1);
+  messageDesc(file_harness_library_v1_tracker_connections, 3);
 
 /**
  * @generated from message harness.library.v1.TrackerConnection
@@ -164,16 +303,19 @@ export type TrackerConnection = Message<"harness.library.v1.TrackerConnection"> 
   allowPrivateNetwork: boolean;
 
   /**
-   * Serves documents to Knowledge: for everyone on an admin connection, for its user on a device one.
+   * Deprecated: Knowledge reads knowledge source connections (KnowledgeConnection), which may borrow this one's sign-in.
+   * Connections that had it set were migrated into one. Always false.
    *
-   * @generated from field: bool knowledge_enabled = 12;
+   * @generated from field: bool knowledge_enabled = 12 [deprecated = true];
+   * @deprecated
    */
   knowledgeEnabled: boolean;
 
   /**
-   * Narrows the documents, in the provider's syntax.
+   * Deprecated with knowledge_enabled; migrated into KnowledgeConnection.query.
    *
-   * @generated from field: string knowledge_query = 13;
+   * @generated from field: string knowledge_query = 13 [deprecated = true];
+   * @deprecated
    */
   knowledgeQuery: string;
 
@@ -198,6 +340,13 @@ export type TrackerConnection = Message<"harness.library.v1.TrackerConnection"> 
    * @generated from field: harness.library.v1.TrackerCapabilities capabilities = 17;
    */
   capabilities?: TrackerCapabilities | undefined;
+
+  /**
+   * Provider-specific settings, keyed by TrackerCapabilities.option_fields. Never secrets.
+   *
+   * @generated from field: map<string, string> options = 18;
+   */
+  options: { [key: string]: string };
 };
 
 /**
@@ -205,7 +354,7 @@ export type TrackerConnection = Message<"harness.library.v1.TrackerConnection"> 
  * Use `create(TrackerConnectionSchema)` to create a new message.
  */
 export const TrackerConnectionSchema: GenMessage<TrackerConnection> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 2);
+  messageDesc(file_harness_library_v1_tracker_connections, 4);
 
 /**
  * A connection as the form sends it. An unset secret keeps the stored one.
@@ -275,14 +424,23 @@ export type TrackerConnectionInput = Message<"harness.library.v1.TrackerConnecti
   allowPrivateNetwork: boolean;
 
   /**
-   * @generated from field: bool knowledge_enabled = 12;
+   * Deprecated and ignored: see TrackerConnection.knowledge_enabled.
+   *
+   * @generated from field: bool knowledge_enabled = 12 [deprecated = true];
+   * @deprecated
    */
   knowledgeEnabled: boolean;
 
   /**
-   * @generated from field: string knowledge_query = 13;
+   * @generated from field: string knowledge_query = 13 [deprecated = true];
+   * @deprecated
    */
   knowledgeQuery: string;
+
+  /**
+   * @generated from field: map<string, string> options = 14;
+   */
+  options: { [key: string]: string };
 };
 
 /**
@@ -290,7 +448,7 @@ export type TrackerConnectionInput = Message<"harness.library.v1.TrackerConnecti
  * Use `create(TrackerConnectionInputSchema)` to create a new message.
  */
 export const TrackerConnectionInputSchema: GenMessage<TrackerConnectionInput> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 3);
+  messageDesc(file_harness_library_v1_tracker_connections, 5);
 
 /**
  * @generated from message harness.library.v1.TrackerIssue
@@ -350,7 +508,7 @@ export type TrackerIssue = Message<"harness.library.v1.TrackerIssue"> & {
  * Use `create(TrackerIssueSchema)` to create a new message.
  */
 export const TrackerIssueSchema: GenMessage<TrackerIssue> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 4);
+  messageDesc(file_harness_library_v1_tracker_connections, 6);
 
 /**
  * @generated from message harness.library.v1.TrackerIssueField
@@ -372,7 +530,7 @@ export type TrackerIssueField = Message<"harness.library.v1.TrackerIssueField"> 
  * Use `create(TrackerIssueFieldSchema)` to create a new message.
  */
 export const TrackerIssueFieldSchema: GenMessage<TrackerIssueField> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 5);
+  messageDesc(file_harness_library_v1_tracker_connections, 7);
 
 /**
  * @generated from message harness.library.v1.TrackerIssueComment
@@ -399,7 +557,7 @@ export type TrackerIssueComment = Message<"harness.library.v1.TrackerIssueCommen
  * Use `create(TrackerIssueCommentSchema)` to create a new message.
  */
 export const TrackerIssueCommentSchema: GenMessage<TrackerIssueComment> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 6);
+  messageDesc(file_harness_library_v1_tracker_connections, 8);
 
 /**
  * A field an output can set.
@@ -437,7 +595,7 @@ export type TrackerField = Message<"harness.library.v1.TrackerField"> & {
  * Use `create(TrackerFieldSchema)` to create a new message.
  */
 export const TrackerFieldSchema: GenMessage<TrackerField> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 7);
+  messageDesc(file_harness_library_v1_tracker_connections, 9);
 
 /**
  * @generated from message harness.library.v1.ListTrackerConnectionsRequest
@@ -450,7 +608,7 @@ export type ListTrackerConnectionsRequest = Message<"harness.library.v1.ListTrac
  * Use `create(ListTrackerConnectionsRequestSchema)` to create a new message.
  */
 export const ListTrackerConnectionsRequestSchema: GenMessage<ListTrackerConnectionsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 8);
+  messageDesc(file_harness_library_v1_tracker_connections, 10);
 
 /**
  * @generated from message harness.library.v1.ListTrackerConnectionsResponse
@@ -474,7 +632,7 @@ export type ListTrackerConnectionsResponse = Message<"harness.library.v1.ListTra
  * Use `create(ListTrackerConnectionsResponseSchema)` to create a new message.
  */
 export const ListTrackerConnectionsResponseSchema: GenMessage<ListTrackerConnectionsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 9);
+  messageDesc(file_harness_library_v1_tracker_connections, 11);
 
 /**
  * @generated from message harness.library.v1.PutTrackerConnectionRequest
@@ -491,7 +649,7 @@ export type PutTrackerConnectionRequest = Message<"harness.library.v1.PutTracker
  * Use `create(PutTrackerConnectionRequestSchema)` to create a new message.
  */
 export const PutTrackerConnectionRequestSchema: GenMessage<PutTrackerConnectionRequest> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 10);
+  messageDesc(file_harness_library_v1_tracker_connections, 12);
 
 /**
  * @generated from message harness.library.v1.PutTrackerConnectionResponse
@@ -508,7 +666,7 @@ export type PutTrackerConnectionResponse = Message<"harness.library.v1.PutTracke
  * Use `create(PutTrackerConnectionResponseSchema)` to create a new message.
  */
 export const PutTrackerConnectionResponseSchema: GenMessage<PutTrackerConnectionResponse> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 11);
+  messageDesc(file_harness_library_v1_tracker_connections, 13);
 
 /**
  * @generated from message harness.library.v1.DeleteTrackerConnectionRequest
@@ -525,7 +683,7 @@ export type DeleteTrackerConnectionRequest = Message<"harness.library.v1.DeleteT
  * Use `create(DeleteTrackerConnectionRequestSchema)` to create a new message.
  */
 export const DeleteTrackerConnectionRequestSchema: GenMessage<DeleteTrackerConnectionRequest> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 12);
+  messageDesc(file_harness_library_v1_tracker_connections, 14);
 
 /**
  * @generated from message harness.library.v1.DeleteTrackerConnectionResponse
@@ -538,7 +696,7 @@ export type DeleteTrackerConnectionResponse = Message<"harness.library.v1.Delete
  * Use `create(DeleteTrackerConnectionResponseSchema)` to create a new message.
  */
 export const DeleteTrackerConnectionResponseSchema: GenMessage<DeleteTrackerConnectionResponse> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 13);
+  messageDesc(file_harness_library_v1_tracker_connections, 15);
 
 /**
  * @generated from message harness.library.v1.TestTrackerConnectionRequest
@@ -564,7 +722,7 @@ export type TestTrackerConnectionRequest = Message<"harness.library.v1.TestTrack
  * Use `create(TestTrackerConnectionRequestSchema)` to create a new message.
  */
 export const TestTrackerConnectionRequestSchema: GenMessage<TestTrackerConnectionRequest> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 14);
+  messageDesc(file_harness_library_v1_tracker_connections, 16);
 
 /**
  * @generated from message harness.library.v1.TestTrackerConnectionResponse
@@ -598,7 +756,7 @@ export type TestTrackerConnectionResponse = Message<"harness.library.v1.TestTrac
  * Use `create(TestTrackerConnectionResponseSchema)` to create a new message.
  */
 export const TestTrackerConnectionResponseSchema: GenMessage<TestTrackerConnectionResponse> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 15);
+  messageDesc(file_harness_library_v1_tracker_connections, 17);
 
 /**
  * @generated from message harness.library.v1.SearchConnectionIssuesRequest
@@ -627,7 +785,7 @@ export type SearchConnectionIssuesRequest = Message<"harness.library.v1.SearchCo
  * Use `create(SearchConnectionIssuesRequestSchema)` to create a new message.
  */
 export const SearchConnectionIssuesRequestSchema: GenMessage<SearchConnectionIssuesRequest> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 16);
+  messageDesc(file_harness_library_v1_tracker_connections, 18);
 
 /**
  * @generated from message harness.library.v1.SearchConnectionIssuesResponse
@@ -649,7 +807,7 @@ export type SearchConnectionIssuesResponse = Message<"harness.library.v1.SearchC
  * Use `create(SearchConnectionIssuesResponseSchema)` to create a new message.
  */
 export const SearchConnectionIssuesResponseSchema: GenMessage<SearchConnectionIssuesResponse> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 17);
+  messageDesc(file_harness_library_v1_tracker_connections, 19);
 
 /**
  * @generated from message harness.library.v1.ListConnectionFieldsRequest
@@ -673,7 +831,7 @@ export type ListConnectionFieldsRequest = Message<"harness.library.v1.ListConnec
  * Use `create(ListConnectionFieldsRequestSchema)` to create a new message.
  */
 export const ListConnectionFieldsRequestSchema: GenMessage<ListConnectionFieldsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 18);
+  messageDesc(file_harness_library_v1_tracker_connections, 20);
 
 /**
  * @generated from message harness.library.v1.ListConnectionFieldsResponse
@@ -690,7 +848,7 @@ export type ListConnectionFieldsResponse = Message<"harness.library.v1.ListConne
  * Use `create(ListConnectionFieldsResponseSchema)` to create a new message.
  */
 export const ListConnectionFieldsResponseSchema: GenMessage<ListConnectionFieldsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 19);
+  messageDesc(file_harness_library_v1_tracker_connections, 21);
 
 /**
  * @generated from message harness.library.v1.StartTrackerOAuthRequest
@@ -707,7 +865,7 @@ export type StartTrackerOAuthRequest = Message<"harness.library.v1.StartTrackerO
  * Use `create(StartTrackerOAuthRequestSchema)` to create a new message.
  */
 export const StartTrackerOAuthRequestSchema: GenMessage<StartTrackerOAuthRequest> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 20);
+  messageDesc(file_harness_library_v1_tracker_connections, 22);
 
 /**
  * @generated from message harness.library.v1.StartTrackerOAuthResponse
@@ -724,7 +882,7 @@ export type StartTrackerOAuthResponse = Message<"harness.library.v1.StartTracker
  * Use `create(StartTrackerOAuthResponseSchema)` to create a new message.
  */
 export const StartTrackerOAuthResponseSchema: GenMessage<StartTrackerOAuthResponse> = /*@__PURE__*/
-  messageDesc(file_harness_library_v1_tracker_connections, 21);
+  messageDesc(file_harness_library_v1_tracker_connections, 23);
 
 /**
  * @generated from enum harness.library.v1.TrackerAuthMethod
@@ -755,6 +913,21 @@ export enum TrackerAuthMethod {
    * @generated from enum value: TRACKER_AUTH_METHOD_OAUTH = 3;
    */
   OAUTH = 3,
+
+  /**
+   * Account email (in `login`) and an API token, such as Atlassian Cloud basic auth.
+   *
+   * @generated from enum value: TRACKER_AUTH_METHOD_EMAIL_TOKEN = 4;
+   */
+  EMAIL_TOKEN = 4,
+
+  /**
+   * Signs in through the server's code host connection from Settings > VCS (option "vcs_connection_id"), or on a device
+   * through the gh or glab command line signed in for the host of base_url. No secret is stored.
+   *
+   * @generated from enum value: TRACKER_AUTH_METHOD_VCS_CONNECTION = 5;
+   */
+  VCS_CONNECTION = 5,
 }
 
 /**

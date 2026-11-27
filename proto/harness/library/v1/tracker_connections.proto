@@ -35,8 +35,46 @@ message TrackerCapabilities {
   string query_example = 5;
   bool custom_fields = 6;
   bool comments = 7;
-  // Has documents Knowledge can read.
-  bool knowledge = 8;
+  // Deprecated: documents are a knowledge provider's now (knowledge_connections.proto), with connections of their own that may
+  // borrow this provider's sign-in. Always false.
+  bool knowledge = 8 [deprecated = true];
+  // Provider-specific settings the form asks for, kept in TrackerConnection.options. The UI renders them generically.
+  repeated ProviderOptionField option_fields = 9;
+  // Where the vendor documents the credentials the form asks for.
+  string docs_url = 10;
+  // Key of the logo in packages/ui/app/utils/providerLogos.ts; empty: a monogram of display_name.
+  string logo = 11;
+  // Placeholder of the address field, such as https://youtrack.example.com.
+  string base_url_placeholder = 12;
+  // The address used when the form leaves it empty, for a hosted-only service (https://api.linear.app). Empty: required.
+  string default_base_url = 13;
+  // What the form says under each sign-in method, in English. A method without one gets the form's own text.
+  repeated ProviderAuthHint auth_hints = 14;
+}
+
+// A provider-specific setting. Never a secret: options are shown to admins and stored in the clear.
+message ProviderOptionField {
+  // The key in `options`, such as "org_id". Lower case letters, digits and underscores.
+  string key = 1;
+  string label = 2;
+  string placeholder = 3;
+  bool required = 4;
+  // When set, the value is one of these and the form shows a choice.
+  repeated string allowed_values = 5;
+  // One line under the field.
+  string help = 6;
+  // Used when the form leaves it empty.
+  string default_value = 7;
+}
+
+// What the form says for one sign-in method of one provider.
+message ProviderAuthHint {
+  TrackerAuthMethod method = 1;
+  string help = 2;
+  // The label of the secret field: "Permanent token", "API token".
+  string secret_label = 3;
+  // The label of the login field when the method takes one: "Account email".
+  string login_label = 4;
 }
 
 enum TrackerAuthMethod {
@@ -47,6 +85,11 @@ enum TrackerAuthMethod {
   TRACKER_AUTH_METHOD_PASSWORD = 2;
   // Authorization Code with PKCE and a client an admin of the instance registered.
   TRACKER_AUTH_METHOD_OAUTH = 3;
+  // Account email (in `login`) and an API token, such as Atlassian Cloud basic auth.
+  TRACKER_AUTH_METHOD_EMAIL_TOKEN = 4;
+  // Signs in through the server's code host connection from Settings > VCS (option "vcs_connection_id"), or on a device
+  // through the gh or glab command line signed in for the host of base_url. No secret is stored.
+  TRACKER_AUTH_METHOD_VCS_CONNECTION = 5;
 }
 
 enum TrackerConnectionScope {
@@ -79,15 +122,18 @@ message TrackerConnection {
   bool has_secret = 9;
   bool enabled = 10;
   bool allow_private_network = 11;
-  // Serves documents to Knowledge: for everyone on an admin connection, for its user on a device one.
-  bool knowledge_enabled = 12;
-  // Narrows the documents, in the provider's syntax.
-  string knowledge_query = 13;
+  // Deprecated: Knowledge reads knowledge source connections (KnowledgeConnection), which may borrow this one's sign-in.
+  // Connections that had it set were migrated into one. Always false.
+  bool knowledge_enabled = 12 [deprecated = true];
+  // Deprecated with knowledge_enabled; migrated into KnowledgeConnection.query.
+  string knowledge_query = 13 [deprecated = true];
   bool healthy = 14;
   string last_error = 15;
   // RFC 3339; empty before the first test.
   string last_checked_at = 16;
   TrackerCapabilities capabilities = 17;
+  // Provider-specific settings, keyed by TrackerCapabilities.option_fields. Never secrets.
+  map<string, string> options = 18;
 }
 
 // A connection as the form sends it. An unset secret keeps the stored one.
@@ -106,8 +152,10 @@ message TrackerConnectionInput {
   optional string oauth_client_secret = 9;
   bool enabled = 10;
   bool allow_private_network = 11;
-  bool knowledge_enabled = 12;
-  string knowledge_query = 13;
+  // Deprecated and ignored: see TrackerConnection.knowledge_enabled.
+  bool knowledge_enabled = 12 [deprecated = true];
+  string knowledge_query = 13 [deprecated = true];
+  map<string, string> options = 14;
 }
 
 message TrackerIssue {
