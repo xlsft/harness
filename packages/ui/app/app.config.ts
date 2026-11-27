@@ -47,6 +47,13 @@ export default defineAppConfig({
         separator: 'bg-line my-1 -mx-1'
       }
     },
+    // Toasts take the theme's box corners (square in square themes); the root clips the progress bar to them.
+    // Important, because tailwind-merge doesn't see rounded-box as replacing Nuxt UI's rounded-lg.
+    toast: {
+      slots: {
+        root: 'rounded-box!'
+      }
+    },
     modal: {
       slots: {
         content: 'rounded-none bg-elevated ring ring-accented shadow-none divide-default'
