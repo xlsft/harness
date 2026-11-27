@@ -99,6 +99,8 @@ Clients fill `{{name}}` placeholders; an unknown placeholder becomes empty (and 
 | `team_context` | `team` | starts the first message of a subagent started with a `team`: who it works with and how. The client has a fallback text |
 | `team_next_task` | `team`, `tasks` | a team member ended its turn with free tasks of its team in the graph, or settled and tasks came free: sent back to take one, until it stops taking any. The client has a fallback text |
 | `team_message` | `from`, `message` | a subagent sent the main agent a message (`SendMessage` to `lead`). Wakes it when idle; not the user's words. The client has a fallback text |
+| `project_coordinator` | `run_id`, `limits`, `targets` | the brief of a project run's coordinator session, before the goal (the user's first message): split it into graph tasks, start workers with ProjectWorkerStart, finish with ProjectFinish (docs/design/coordinator.md). The client has a fallback text |
+| `project_run_resumed` | `status` | the user resumed a paused project run; `status` is the ProjectStatus text. Wakes the coordinator. The client has a fallback text |
 | `compacted` | — | first message after a compaction summary |
 | `attribution` | `commit`, `pr` | commit / PR attribution lines |
 | `output_style` | `name`, `content` | the active output style, at session start and when it changes |
@@ -170,6 +172,10 @@ exactly `[Request interrupted by user]`, and `interrupted_tool_use` must start w
 | `TaskGraphClaim` | `id?` | takes a task for the calling agent, atomically; default the first free one its team may take. What an agent holds goes free when its run ends |
 | `TaskGraphUpdate` | `id`, `status?` (`pending` \| `done` \| `failed` \| `cancelled`), `note?`, `title?`, `description?`, `add_blocked_by?` | only the holder or the main agent changes a held task |
 | `TaskGraphList` | `{}` | the graph; read-only |
+| `ProjectStatus` | `{}` | a project run's coordinator only: the run, workers, budget and targets; read-only |
+| `ProjectWorkerStart` | `task_id`, `prompt`, `target?`, `cwd?`, `model?` | coordinator only: starts a worker session for a ready graph task (worktree, here or a host), in the coordinator's mode, never more; limits enforced by the client |
+| `ProjectWorkerMerge` | `worker` | coordinator only: a no-fast-forward merge of a finished local worktree worker's branch; a conflict is aborted. Goes through the permission check |
+| `ProjectFinish` | `outcome` (`done` \| `failed`), `summary` | coordinator only: ends the run |
 | `TodoWrite` | `todos: [{content, activeForm, status}]` | full replacement; exactly one `in_progress` |
 | `AskUserQuestion` | `questions: [{question, header (≤12), type: single\|multi\|text\|yes_no, options: [{label, description?, recommended?}] (2–6, single/multi only), min?, max? (multi), allowOther? (default true)}] (1–4)` | |
 | `SessionStart` | `title`, `prompt`, `initiation` (offer\|user_asked\|own_initiative), `context` (fresh\|fork), `worktree`, `model?`, `cwd?` | starts a linked session; `offer` waits for a card's answer, `own_initiative` leaves a proposal (expires after a week) and returns its id |

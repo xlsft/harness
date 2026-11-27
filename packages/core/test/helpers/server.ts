@@ -25,6 +25,7 @@ import { McpService } from "../../src/gen/harness/mcp/v1/mcp_pb.ts";
 import { PromptService } from "../../src/gen/harness/prompts/v1/prompts_pb.ts";
 import { HostAgentService, HostsService } from "../../src/gen/harness/relay/v1/hosts_pb.ts";
 import { RelayService } from "../../src/gen/harness/relay/v1/relay_pb.ts";
+import { InboxService } from "../../src/gen/harness/relay/v1/inbox_pb.ts";
 import { SyncService } from "../../src/gen/harness/sync/v1/sync_pb.ts";
 import { UsageService } from "../../src/gen/harness/llm/v1/usage_pb.ts";
 import { VcsService } from "../../src/gen/harness/vcs/v1/vcs_pb.ts";
@@ -55,6 +56,7 @@ export interface TestServer {
   relay: Client<typeof RelayService>;
   hosts: Client<typeof HostsService>;
   hostAgent: Client<typeof HostAgentService>;
+  inbox: Client<typeof InboxService>;
   vcs: Client<typeof VcsService>;
   artifacts: Client<typeof ArtifactService>;
   knowledge: Client<typeof KnowledgeService>;
@@ -86,6 +88,7 @@ export interface TestServer {
     relay: Client<typeof RelayService>;
     hosts: Client<typeof HostsService>;
     hostAgent: Client<typeof HostAgentService>;
+    inbox: Client<typeof InboxService>;
     vcs: Client<typeof VcsService>;
     artifacts: Client<typeof ArtifactService>;
     knowledge: Client<typeof KnowledgeService>;
@@ -168,6 +171,7 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       relay: createClient(RelayService, transport),
       hosts: createClient(HostsService, transport),
       hostAgent: createClient(HostAgentService, transport),
+      inbox: createClient(InboxService, transport),
       vcs: createClient(VcsService, transport),
       artifacts: createClient(ArtifactService, transport),
       knowledge: createClient(KnowledgeService, transport),

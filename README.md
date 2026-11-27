@@ -65,7 +65,7 @@ The app updates itself from **Settings > About**, and `harness-client update` up
 ## What it does
 
 - **Tools**: `Read`, `Write`, `Edit`, `Glob`, `Grep`, `NotebookEdit`, `Bash`, `Monitor`, `Wait`, `LSP`, `WebFetch`, `WebSearch`, plus a browser, terminals, dev server previews and macOS computer use
-- **Parallel work**: subagents (`Agent`, `SendMessage`) in worktrees of their own (`EnterWorktree`), scripted `Workflow`s, sessions that start and message each other
+- **Parallel work**: subagents (`Agent`, `SendMessage`) in worktrees of their own (`EnterWorktree`), scripted `Workflow`s, sessions that start and message each other, project runs where a coordinator hands tasks to worker sessions, and an inbox of every session and agent on all your machines (`harness-client agents`)
 - **Planning and review**: plan mode, todos, `AskUserQuestion`, a changes pane against any base, line comments that go to the agent, rewind and fork
 - **Pull requests**: status, CI and review comments wake the agent
 - **Safety**: permission rules and modes, an auto mode backed by a classifier you choose, an OS sandbox for commands (Seatbelt on macOS) that each user can turn off

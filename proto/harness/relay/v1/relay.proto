@@ -5,12 +5,14 @@ package harness.relay.v1;
 import "harness/agent/v1/agent.proto";
 import "harness/agent/v1/auto_fix.proto";
 import "harness/agent/v1/device_settings.proto";
+import "harness/agent/v1/project_runs.proto";
 import "harness/agent/v1/session_diff.proto";
 import "harness/agent/v1/session_links.proto";
 import "harness/agent/v1/slash_commands.proto";
 import "harness/agent/v1/subagents.proto";
 import "harness/agent/v1/workflows.proto";
 import "harness/common/v1/errors.proto";
+import "harness/relay/v1/inbox.proto";
 import "harness/relay/v1/workflows.proto";
 
 // RelayService is served by core and implements remote control without bidirectional streaming
@@ -165,6 +167,10 @@ service RelayService {
 
   // Stops a run of the Workflow tool on the machine running the session: a query command like StopSubagent.
   rpc StopWorkflow(StopWorkflowRequest) returns (StopWorkflowResponse);
+
+  // Pauses, resumes, stops or limits a project run on the machine of its coordinator session (inbox.proto): a query
+  // command like StopWorkflow, routed by the request's session_id.
+  rpc ControlProjectRun(ControlProjectRunRequest) returns (ControlProjectRunResponse);
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -258,6 +264,8 @@ message Command {
     // Queries of the Changes pane.
     harness.agent.v1.GetSessionDiffRequest get_session_diff = 360;
     harness.agent.v1.GetSessionFileDiffRequest get_session_file_diff = 361;
+    // Project runs (project_runs.proto); numbered apart like the others.
+    harness.agent.v1.ControlProjectRunRequest project_run_control = 310;
   }
   // RFC 3339, UTC. The host ignores (acks OUTCOME_REJECTED) a command received after this time.
   string expires_at = 7;
@@ -366,6 +374,7 @@ message CommandAck {
     harness.agent.v1.StopSubagentResponse stop_subagent = 30;
     harness.agent.v1.GetSubagentTranscriptResponse get_subagent_transcript = 31;
     harness.agent.v1.StopWorkflowResponse stop_workflow = 40;
+    harness.agent.v1.ControlProjectRunResponse project_run_control = 310;
     harness.agent.v1.ListSlashCommandsResponse list_slash_commands = 110;
     harness.agent.v1.ListRecentFoldersResponse list_recent_folders = 280;
     harness.agent.v1.GetSessionDiffResponse get_session_diff = 360;

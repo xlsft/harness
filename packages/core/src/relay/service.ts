@@ -45,6 +45,16 @@ import { record as recordAudit } from "../audit/log.ts";
 import { ListRecentFoldersRequestSchema, type RecentFolder } from "../gen/harness/agent/v1/agent_pb.ts";
 import { serverPolicyFor } from "../services/managed-policy.ts";
 import { relayBus, type HostFeedItem, type SessionFeedItem } from "./bus.ts";
+import { foldInbox, type InboxUpdate } from "./inbox.ts";
+
+/** Folds into the inbox; the relay goes on whatever the inbox does. */
+async function inboxFold(userId: string, sessionId: string, hostId: string, u: InboxUpdate): Promise<void> {
+  try {
+    await foldInbox(userId, sessionId, hostId, u);
+  } catch (err) {
+    console.error("[harness] inbox fold failed", err);
+  }
+}
 
 type Init<T extends Parameters<typeof create>[0]> = MessageInitShape<T>;
 type HostRow = typeof schema.relayHost.$inferSelect;
@@ -390,6 +400,7 @@ export async function registerSession(p: Principal, hostId: string, info: Sessio
     for (const row of await pendingCommandsForSession(sessionId)) {
       bus.publishHost(hostId, { kind: "command", command: commandForDelivery(row, epoch) });
     }
+    await inboxFold(p.user.id, sessionId, hostId, { info: create(SessionInfoSchema, stored), active: true });
     bus.publishSession(sessionId, { kind: "host" });
     return { epoch: BigInt(epoch), ackedSeq: BigInt(prev?.ackedSeq ?? 0) };
   }).then(async (r) => {
@@ -405,6 +416,7 @@ export async function unregisterSession(p: Principal, hostId: string, sessionId:
     const [row] = await db.select().from(schema.relaySession).where(eq(schema.relaySession.id, sessionId));
     checkOwner(row, p, hostId, epoch);
     await db.update(schema.relaySession).set({ active: false, updatedAt: new Date() }).where(eq(schema.relaySession.id, sessionId));
+    await inboxFold(p.user.id, sessionId, hostId, { active: false });
   });
   relayBus().publishSession(sessionId, { kind: "host" });
 }
@@ -449,7 +461,9 @@ export async function publishEvents(
       .where(eq(schema.relayEvent.sessionId, sessionId));
     let maxStored = Number(m ?? 0);
 
+    const fanned: SessionEvent[] = [];
     const fanOut = (ev: SessionEvent) => {
+      fanned.push(ev);
       if (ev.event.case === "sessionUpdated") latestInfo = ev.event.value;
       bus.publishSession(sessionId, { kind: "event", event: ev });
     };
@@ -512,6 +526,7 @@ export async function publishEvents(
       update.status = latestInfo.status;
     }
     await db.update(schema.relaySession).set(update).where(eq(schema.relaySession.id, sessionId));
+    if (fanned.length) await inboxFold(p.user.id, sessionId, hostId, { events: fanned });
     return { ackedSeq: BigInt(acked), duplicates };
   });
 }
@@ -622,6 +637,7 @@ export async function heartbeat(
     if (row.hostId === hostId && BigInt(row.epoch) === s.epoch) {
       if (row.status !== s.status) {
         await db.update(schema.relaySession).set({ status: s.status }).where(eq(schema.relaySession.id, row.id));
+        await inboxFold(p.user.id, row.id, hostId, { status: s.status });
       }
     } else if (BigInt(row.epoch) > s.epoch) {
       superseded.push({ sessionId: row.id, oldEpoch: s.epoch, newEpoch: BigInt(row.epoch), newDeviceId: row.deviceId });

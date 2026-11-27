@@ -104,6 +104,20 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 		set[settings.KeySchedulesEnabled] = req.Msg.GetSchedulesEnabled()
 		defer s.scheduler().forgetPreference()
 	}
+	if req.Msg.ProjectMaxWorkers != nil {
+		n := int(req.Msg.GetProjectMaxWorkers())
+		if !settings.ValidProjectMaxWorkers(n) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("workers of a project run must be between 1 and %d", settings.MaxProjectMaxWorkers))
+		}
+		set[settings.KeyProjectMaxWorkers] = n
+	}
+	if req.Msg.ProjectBudgetUsd != nil {
+		v := req.Msg.GetProjectBudgetUsd()
+		if !settings.ValidProjectBudget(v) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("the budget of a project run must be 0 or more"))
+		}
+		set[settings.KeyProjectBudgetUSD] = v
+	}
 	if req.Msg.GoalMaxTurns != nil {
 		n := int(req.Msg.GetGoalMaxTurns())
 		if !settings.ValidGoalMaxTurns(n) {
@@ -276,7 +290,7 @@ func (s *Server) userSettings(ctx context.Context) (*syncv1.Document, error) {
 func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	p := &agentv1.UserPreferences{CompactIdleSessions: true, LspEnabled: true, LspDiagnostics: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour,
 		SubagentMaxDepth: settings.DefaultSubagentMaxDepth, SubagentMaxRunning: settings.DefaultSubagentMaxRunning, WorkflowMaxAgents: settings.DefaultWorkflowMaxAgents,
-		Sandbox: &agentv1.SandboxPreferences{Enabled: true, AllowLocalhost: true}, HooksEnabled: true, AutoMemoryEnabled: true, SchedulesEnabled: true, GoalMaxTurns: settings.DefaultGoalMaxTurns,
+		Sandbox: &agentv1.SandboxPreferences{Enabled: true, AllowLocalhost: true}, HooksEnabled: true, AutoMemoryEnabled: true, SchedulesEnabled: true, GoalMaxTurns: settings.DefaultGoalMaxTurns, ProjectMaxWorkers: settings.DefaultProjectMaxWorkers,
 		DeferBuiltinTools: true}
 	var raw map[string]json.RawMessage
 	if json.Unmarshal([]byte(doc.GetContent()), &raw) != nil {
@@ -293,6 +307,14 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	var budget float64
 	if v, ok := raw[settings.KeyBestOfNBudgetUSD]; ok && json.Unmarshal(v, &budget) == nil && budget >= 0 && budget <= settings.MaxAttemptBudgetUSD {
 		p.BestOfNBudgetUsd = budget
+	}
+	var workers int
+	if v, ok := raw[settings.KeyProjectMaxWorkers]; ok && json.Unmarshal(v, &workers) == nil && settings.ValidProjectMaxWorkers(workers) {
+		p.ProjectMaxWorkers = int32(workers)
+	}
+	var projectBudget float64
+	if v, ok := raw[settings.KeyProjectBudgetUSD]; ok && json.Unmarshal(v, &projectBudget) == nil && settings.ValidProjectBudget(projectBudget) {
+		p.ProjectBudgetUsd = projectBudget
 	}
 	var turns int
 	if v, ok := raw[settings.KeyGoalMaxTurns]; ok && json.Unmarshal(v, &turns) == nil && settings.ValidGoalMaxTurns(turns) {

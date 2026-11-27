@@ -52,6 +52,7 @@ import type { IssuesApi } from '~/lib/issues/types'
 import type { BrowserApi } from '~/lib/browser/types'
 import type { SlashCatalog, SlashTarget } from '~/lib/session/slashCommands'
 import type { SchedulesApi } from '~/lib/schedule/types'
+import type { InboxApi, ProjectRunsApi } from '~/lib/inbox/types'
 
 // Computer use on this device (GetComputerUseStatus).
 export interface ComputerUseStatusVM {
@@ -476,6 +477,10 @@ export interface SessionTransport {
 
   // Scheduled tasks (the Scheduled screen).
   schedules(): SchedulesApi
+
+  // The inbox across machines and the project runs (the Inbox and Projects screens, docs/design/coordinator.md).
+  inbox(): InboxApi
+  projectRuns(): ProjectRunsApi
 
   // LLM providers and the auto-mode classifier for the settings screens (harness.llm.v1.ProviderService,
   // forwarded to the server by the client).

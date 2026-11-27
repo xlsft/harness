@@ -32,6 +32,9 @@ export interface RelayBus {
   subscribeHost(hostId: string, fn: (item: HostFeedItem) => void): () => void;
   publishAck(commandId: string, ack: CommandAck): void;
   subscribeAck(commandId: string, fn: (ack: CommandAck) => void): () => void;
+  /** Inbox changes of one user (src/relay/inbox.ts): the session ids whose item changed. */
+  publishInbox(userId: string, sessionIds: string[]): void;
+  subscribeInbox(userId: string, fn: (sessionIds: string[]) => void): () => void;
 }
 
 class Topics<T> {
@@ -65,6 +68,7 @@ export class InProcessBus implements RelayBus {
   private readonly sessions = new Topics<SessionFeedItem>();
   private readonly hosts = new Topics<HostFeedItem>();
   private readonly acks = new Topics<CommandAck>();
+  private readonly inbox = new Topics<string[]>();
 
   publishSession(sessionId: string, item: SessionFeedItem): void {
     this.sessions.publish(sessionId, item);
@@ -83,6 +87,12 @@ export class InProcessBus implements RelayBus {
   }
   subscribeAck(commandId: string, fn: (ack: CommandAck) => void): () => void {
     return this.acks.subscribe(commandId, fn);
+  }
+  publishInbox(userId: string, sessionIds: string[]): void {
+    this.inbox.publish(userId, sessionIds);
+  }
+  subscribeInbox(userId: string, fn: (sessionIds: string[]) => void): () => void {
+    return this.inbox.subscribe(userId, fn);
   }
 }
 

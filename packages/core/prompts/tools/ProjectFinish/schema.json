@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "outcome": {
+      "type": "string",
+      "enum": ["done", "failed"]
+    },
+    "summary": {
+      "type": "string",
+      "description": "What was done, where the results are, what is left"
+    }
+  },
+  "required": ["outcome", "summary"],
+  "additionalProperties": false
+}

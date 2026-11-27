@@ -1,0 +1,191 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+import "harness/agent/v1/teamwork.proto";
+
+// Project runs: a coordinator session splits a goal into tasks (its task graph) and hands them to worker sessions, here,
+// in worktrees or on the user's hosts (docs/design/coordinator.md). The run is kept on the coordinator's machine next to
+// its session (HARNESS_HOME/project-runs) and survives a client restart; other devices see it through the coordinator
+// session's events (SessionEvent.project_run_updated) and control it through the relay (Command.project_run_control).
+
+enum ProjectRunState {
+  PROJECT_RUN_STATE_UNSPECIFIED = 0;
+  // The coordinator is splitting the goal into tasks.
+  PROJECT_RUN_STATE_PLANNING = 1;
+  PROJECT_RUN_STATE_RUNNING = 2;
+  // A question, plan or permission of the coordinator waits for the user.
+  PROJECT_RUN_STATE_WAITING_FOR_USER = 3;
+  // Results of workers are being merged.
+  PROJECT_RUN_STATE_MERGING = 4;
+  // Nothing new starts: the budget ran out, the user paused it, or the client restarted. ControlProjectRun resumes.
+  PROJECT_RUN_STATE_PAUSED = 5;
+  PROJECT_RUN_STATE_DONE = 6;
+  PROJECT_RUN_STATE_FAILED = 7;
+  PROJECT_RUN_STATE_STOPPED = 8;
+}
+
+enum ProjectWorkerState {
+  PROJECT_WORKER_STATE_UNSPECIFIED = 0;
+  PROJECT_WORKER_STATE_STARTING = 1;
+  PROJECT_WORKER_STATE_RUNNING = 2;
+  // A permission or question of the worker waits for the user.
+  PROJECT_WORKER_STATE_NEEDS_INPUT = 3;
+  // Its last turn ended with a report.
+  PROJECT_WORKER_STATE_FINISHED = 4;
+  PROJECT_WORKER_STATE_FAILED = 5;
+  PROJECT_WORKER_STATE_STOPPED = 6;
+  // It was running here when the client stopped.
+  PROJECT_WORKER_STATE_INTERRUPTED = 7;
+  // Its branch was merged into the coordinator's.
+  PROJECT_WORKER_STATE_MERGED = 8;
+}
+
+// Limits of a run. Zero means: the default (max_workers) or none (budgets). The effective values are the lower of these,
+// the user's preferences and the managed policy.
+message ProjectRunLimits {
+  // Workers running at once, 1 to 32.
+  int32 max_workers = 1;
+  double budget_usd = 2;
+  int64 budget_tokens = 3;
+}
+
+message ProjectUsage {
+  int64 input_tokens = 1;
+  int64 output_tokens = 2;
+  double cost_usd = 3;
+}
+
+// Where a worker can run.
+message ProjectTarget {
+  // "worktree" (a new git worktree of the coordinator's repository), "here" (the coordinator's folder) or a relay host
+  // id (an always-on host, or another machine of the user that accepts new sessions).
+  string id = 1;
+  string label = 2;
+  bool remote = 3;
+  bool available = 4;
+  // Why it is not available.
+  string reason = 5;
+}
+
+message ProjectWorker {
+  // The worker's session id, and the short name the coordinator uses for it.
+  string session_id = 1;
+  string name = 2;
+  // The task of the coordinator's graph it works on.
+  string task_id = 3;
+  string title = 4;
+  ProjectWorkerState state = 5;
+  // ProjectTarget.id it was started on.
+  string target = 6;
+  string device_id = 7;
+  string device_name = 8;
+  bool remote = 9;
+  // Set for a worker in a worktree.
+  string branch = 10;
+  string worktree_path = 11;
+  // The last report, bounded.
+  string report = 12;
+  ProjectUsage usage = 13;
+  // RFC 3339, UTC.
+  string started_at = 14;
+  string updated_at = 15;
+}
+
+message ProjectRun {
+  // prun_...
+  string id = 1;
+  string goal = 2;
+  string title = 3;
+  string cwd = 4;
+  string coordinator_session_id = 5;
+  ProjectRunState state = 6;
+  // Why it is paused, failed or stopped; the summary when done.
+  string reason = 7;
+  // The limits in force (already capped by preferences and policy).
+  ProjectRunLimits limits = 8;
+  // The coordinator's own usage plus every worker's.
+  ProjectUsage usage = 9;
+  repeated ProjectWorker workers = 10;
+  // The coordinator's task graph.
+  repeated TaskNode tasks = 11;
+  repeated ProjectTarget targets = 12;
+  // The coordinator's permission mode, settings spelling ("default", "acceptEdits", ...). Workers never get more.
+  string permission_mode = 13;
+  string device_id = 14;
+  string device_name = 15;
+  // RFC 3339, UTC.
+  string created_at = 16;
+  string updated_at = 17;
+}
+
+// The run of a coordinator session changed. A resumed coordinator publishes the run on record.
+message ProjectRunUpdated {
+  ProjectRun run = 1;
+}
+
+message CreateProjectRunRequest {
+  string goal = 1;
+  // The repository or folder the run works in; required.
+  string cwd = 2;
+  // Empty: the default model.
+  string model = 3;
+  // Settings spelling; empty: the user's default mode. A mode the policy disables falls back to "default".
+  string permission_mode = 4;
+  ProjectRunLimits limits = 5;
+  // Empty: derived from the goal.
+  string title = 6;
+}
+
+message CreateProjectRunResponse {
+  ProjectRun run = 1;
+}
+
+message ListProjectRunsRequest {
+  // Also list the runs of the user's other machines (from the inbox of the harness server).
+  bool include_remote = 1;
+}
+
+message ListProjectRunsResponse {
+  // Newest first.
+  repeated ProjectRun runs = 1;
+}
+
+message GetProjectRunRequest {
+  string id = 1;
+}
+
+message GetProjectRunResponse {
+  ProjectRun run = 1;
+}
+
+// Also the relay command that controls a run from another device (harness.relay.v1.Command.project_run_control): it is
+// routed by session_id, the coordinator session.
+message ControlProjectRunRequest {
+  enum Action {
+    ACTION_UNSPECIFIED = 0;
+    // Only change the limits.
+    ACTION_SET_LIMITS = 1;
+    ACTION_PAUSE = 2;
+    // Reopens the coordinator session when it is closed and tells it the state.
+    ACTION_RESUME = 3;
+    // Stops the coordinator's turn and every worker's; the run ends as stopped.
+    ACTION_STOP = 4;
+  }
+  string id = 1;
+  Action action = 2;
+  // Replaces the limits (with any action).
+  optional ProjectRunLimits limits = 3;
+  // The coordinator session; set for the relay route.
+  string session_id = 4;
+}
+
+message ControlProjectRunResponse {
+  ProjectRun run = 1;
+}
+
+message DeleteProjectRunRequest {
+  string id = 1;
+}
+
+message DeleteProjectRunResponse {}

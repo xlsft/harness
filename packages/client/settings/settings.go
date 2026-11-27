@@ -216,6 +216,13 @@ type Settings struct {
 	// RemoteControlPolicyOff: a policy document says "remoteControl": false, so sessions are never mirrored to the
 	// server and the per-session switch cannot turn it on.
 	RemoteControlPolicyOff bool
+	// Project runs (project.go): the user's defaults, the policy's ceilings (0: none) and its off switch.
+	ProjectMaxWorkers                   int
+	ProjectBudgetUSD                    float64
+	ProjectPolicyMaxWorkers             int
+	ProjectPolicyBudgetUSD              float64
+	ProjectRunsDisabled                 bool
+	projectWorkersSet, projectBudgetSet bool
 	// Sandbox is the OS sandbox of the model's commands (sandbox.go).
 	Sandbox Sandbox
 	// Hooks are the hook blocks of every source, lowest precedence first (hooks.go). HooksOff: disableAllHooks at any level;
@@ -412,16 +419,20 @@ type layer struct {
 	model, effort, outputStyle, claudeMdMode, defaultMode     *string
 	autoCompactWindow, cleanupPeriodDays, prWakes             *int
 	subagentDepth, subagentRunning, workflowAgents, goalTurns *int
-	includeGit, interruptReply, compactIdle                   *bool
-	lspEnabled, lspDiagnostics, lspStartServer                *bool
-	speedTier, cacheTTL, advisorModel, imageModel             *string
-	autoMemory, deferTools                                    *bool
-	lspServers                                                map[string]LSPServer
-	attrCommit, attrPR                                        *string
-	env                                                       map[string]string
-	allow, ask, deny, addDirs                                 []string
-	disableBypass, disableAuto                                bool
-	disabledModes                                             []string
+	// project runs (project.go)
+	projectWorkers                                *int
+	projectBudget                                 *float64
+	projectOff                                    bool
+	includeGit, interruptReply, compactIdle       *bool
+	lspEnabled, lspDiagnostics, lspStartServer    *bool
+	speedTier, cacheTTL, advisorModel, imageModel *string
+	autoMemory, deferTools                        *bool
+	lspServers                                    map[string]LSPServer
+	attrCommit, attrPR                            *string
+	env                                           map[string]string
+	allow, ask, deny, addDirs                     []string
+	disableBypass, disableAuto                    bool
+	disabledModes                                 []string
 
 	availableModels  []string
 	managedRulesOnly bool
@@ -454,7 +465,7 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 		CleanupPeriodDays: DefaultCleanupPeriodDays, IncludeGitInstructions: true, InterruptReply: true,
 		CompactIdleSessions: true, AutoMemoryEnabled: true, DeferBuiltinTools: true, LSPEnabled: true, LSPDiagnostics: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
 		SubagentMaxDepth: DefaultSubagentMaxDepth, SubagentMaxRunning: DefaultSubagentMaxRunning, WorkflowMaxAgents: DefaultWorkflowMaxAgents, GoalMaxTurns: DefaultGoalMaxTurns,
-		Sandbox: Sandbox{Enabled: true, AllowLocalhost: true}}
+		ProjectMaxWorkers: DefaultProjectMaxWorkers, Sandbox: Sandbox{Enabled: true, AllowLocalhost: true}}
 	var layers []*layer // highest precedence first
 	add := func(l *layer) {
 		if l != nil {

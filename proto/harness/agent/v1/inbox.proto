@@ -1,0 +1,167 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+import "harness/agent/v1/project_runs.proto";
+import "harness/agent/v1/subagents.proto";
+
+// The inbox: every session and background agent of the user, on every machine, grouped by what it needs from the user
+// (docs/design/coordinator.md). The harness server folds the relay events of mirrored sessions into one item per session
+// (harness.relay.v1.InboxService); the local client folds its own live sessions the same way and merges the two
+// (AgentService.ListInbox). Items are the user's own: nobody else, admins included, can read them.
+
+enum InboxGroup {
+  INBOX_GROUP_UNSPECIFIED = 0;
+  // A permission prompt, a question or a plan waits for the user.
+  INBOX_GROUP_NEEDS_INPUT = 1;
+  // The last turn, or a subagent, ended on an error.
+  INBOX_GROUP_FAILED = 2;
+  // The last turn ended with a report.
+  INBOX_GROUP_FINISHED = 3;
+  // A turn or a subagent runs.
+  INBOX_GROUP_RUNNING = 4;
+}
+
+// Something of a session that waits for the user.
+message InboxRequest {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    // A PermissionRequest: answer with RespondToPermission.
+    KIND_PERMISSION = 1;
+    // A Question: answer with AnswerQuestion.
+    KIND_QUESTION = 2;
+    // A PlanProposed: answer with RespondToPlan.
+    KIND_PLAN = 3;
+    // A project run that paused (budget, restart): ControlProjectRun.
+    KIND_PROJECT_RUN = 4;
+  }
+  Kind kind = 1;
+  string request_id = 2;
+  // Permissions: the tool and a one-line summary of what it would do (bounded).
+  string tool_name = 3;
+  string summary = 4;
+  repeated string suggested_rules = 5;
+  bool one_time_only = 6;
+  // Questions: the questions with their options.
+  repeated InboxQuestion questions = 7;
+  // Set when a subagent asks.
+  string agent_id = 8;
+  string agent_name = 9;
+  // RFC 3339, UTC.
+  string created_at = 10;
+}
+
+// One question of a Question (agent.proto QuestionItem, cut to what the inbox shows).
+message InboxQuestion {
+  string question = 1;
+  string header = 2;
+  // Option labels, in order. Empty for a free-text question.
+  repeated string options = 3;
+  bool multi_select = 4;
+  // QuestionItem.Type as a number (agent.proto is not imported here: it imports this file).
+  int32 type = 5;
+}
+
+// A background agent (subagent) of a session.
+message InboxAgent {
+  string id = 1;
+  string name = 2;
+  SubagentState state = 3;
+  // The final message of its last turn, bounded.
+  string report = 4;
+  string error = 5;
+  string current_tool = 6;
+  // RFC 3339, UTC.
+  string updated_at = 7;
+}
+
+message InboxItem {
+  string session_id = 1;
+  string title = 2;
+  string cwd = 3;
+  string repo = 4;
+  // The machine running the session.
+  string device_id = 5;
+  string device_name = 6;
+  InboxGroup group = 7;
+  // A turn of the session runs now.
+  bool working = 8;
+  // Something needing attention happened after the user last read the item (MarkInboxRead), on any device.
+  bool unread = 9;
+  // Whether the session's machine is connected now; absent when unknown.
+  optional bool device_online = 10;
+  // The session is open on its machine (it can be answered and stopped).
+  bool open = 11;
+  // The session runs on another machine than the one listing it.
+  bool remote = 12;
+  repeated InboxRequest requests = 13;
+  repeated InboxAgent agents = 14;
+  // The final text of the last finished turn, bounded; error_message of a failed one.
+  string report = 15;
+  string error = 16;
+  // RFC 3339, UTC: when it last needed attention (a request, a finished or failed turn), and when anything changed.
+  string attention_at = 17;
+  string updated_at = 18;
+  string parent_session_id = 19;
+  // Usage of the session's turns since the server or client first saw it.
+  int64 input_tokens = 20;
+  int64 output_tokens = 21;
+  double cost_usd = 22;
+  // Set on a coordinator session: its project run as last published (project_runs.proto).
+  optional ProjectRun project_run = 23;
+}
+
+message InboxCount {
+  InboxGroup group = 1;
+  int32 total = 2;
+  int32 unread = 3;
+}
+
+message ListInboxRequest {
+  // Required: the group to page through.
+  InboxGroup group = 1;
+  // Default 50, at most 200.
+  int32 page_size = 2;
+  string page_token = 3;
+  // Only coordinator sessions (items with project_run), in any group; group is then ignored.
+  bool project_runs_only = 4;
+}
+
+message ListInboxResponse {
+  // Unread first, then by attention_at, newest first.
+  repeated InboxItem items = 1;
+  // Empty when there are no more.
+  string next_page_token = 2;
+  // Every group, whatever was asked.
+  repeated InboxCount counts = 3;
+}
+
+message WatchInboxRequest {}
+
+// An item was added or changed (item), or left the inbox (removed_session_id).
+message InboxChange {
+  InboxItem item = 1;
+  string removed_session_id = 2;
+}
+
+message WatchInboxResponse {
+  oneof event {
+    InboxChange change = 1;
+    // Everything before this was already listed; what follows is live.
+    bool caught_up = 2;
+    // Keeps idle streams open.
+    bool heartbeat = 3;
+    // The stream fell behind: list again. The stream goes on after it.
+    bool resync = 4;
+  }
+  // The counts after this change (set with change).
+  repeated InboxCount counts = 5;
+}
+
+message MarkInboxReadRequest {
+  repeated string session_ids = 1;
+  // false marks them unread again.
+  bool read = 2;
+}
+
+message MarkInboxReadResponse {}

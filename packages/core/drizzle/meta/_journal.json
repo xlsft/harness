@@ -169,6 +169,13 @@
       "when": 1795773903791,
       "tag": "0023_device_fingerprint",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795774069739,
+      "tag": "0024_relay_inbox",
+      "breakpoints": true
     }
   ]
 }

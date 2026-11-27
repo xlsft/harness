@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package harness.relay.v1;
+
+import "harness/agent/v1/inbox.proto";
+import "harness/agent/v1/project_runs.proto";
+
+// InboxService is served by core: the inbox of the caller, folded from the relay events of the sessions their machines
+// mirror (docs/design/coordinator.md). Device and user tokens both work; items are the caller's own and nobody else's,
+// admins included. The messages wrap the ones of AgentService, which merges this inbox with the local client's.
+service InboxService {
+  rpc ListInbox(ListInboxRequest) returns (ListInboxResponse);
+  // caught_up first (nothing is listed), then the caller's changes as they happen.
+  rpc WatchInbox(WatchInboxRequest) returns (stream WatchInboxResponse);
+  rpc MarkInboxRead(MarkInboxReadRequest) returns (MarkInboxReadResponse);
+}
+
+message ListInboxRequest {
+  harness.agent.v1.ListInboxRequest request = 1;
+}
+
+message ListInboxResponse {
+  harness.agent.v1.ListInboxResponse response = 1;
+}
+
+message WatchInboxRequest {}
+
+message WatchInboxResponse {
+  harness.agent.v1.WatchInboxResponse response = 1;
+}
+
+message MarkInboxReadRequest {
+  harness.agent.v1.MarkInboxReadRequest request = 1;
+}
+
+message MarkInboxReadResponse {}
+
+// RelayService.ControlProjectRun: a query command to the machine of a coordinator session (Command.project_run_control).
+message ControlProjectRunRequest {
+  harness.agent.v1.ControlProjectRunRequest request = 1;
+}
+
+message ControlProjectRunResponse {
+  harness.agent.v1.ControlProjectRunResponse response = 1;
+}

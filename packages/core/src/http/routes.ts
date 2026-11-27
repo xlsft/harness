@@ -13,7 +13,7 @@ export const routes: RouteDef[] = [
 
   // Connect services (proto/harness/**): DeviceAuthService, AdminService, GatewayService, ProviderService, UsageService,
   // PromptService, SyncService, SearchService, SpeechService, DecisionService, McpService, VcsService,
-  // RelayService, ProviderLimitsService, ObjectsService
+  // RelayService, InboxService, ProviderLimitsService, ObjectsService
   { route: "/harness.auth.v1.DeviceAuthService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.auth.v1.AdminService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.GatewayService/**", handler: "./src/http/routes/rpc.ts" },
@@ -30,6 +30,7 @@ export const routes: RouteDef[] = [
   { route: "/harness.relay.v1.RelayService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.relay.v1.HostsService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.relay.v1.HostAgentService/**", handler: "./src/http/routes/rpc.ts" },
+  { route: "/harness.relay.v1.InboxService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.vcs.v1.VcsService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.llm.v1.ProviderLimitsService/**", handler: "./src/http/routes/rpc.ts" },
   { route: "/harness.objects.v1.ObjectsService/**", handler: "./src/http/routes/rpc.ts" },

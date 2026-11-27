@@ -43,7 +43,7 @@ describe("bundle builder", () => {
       "ComputerType", "DemoRecording", "DemoSkillSave", "DocumentEdit", "DocumentRead", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "ImageGenerate", "Issues", "KeepAwake",
       "KnowledgeRead", "KnowledgeSearch", "LS", "LSP", "ListAgents", "ListMcpResources", "MarkChapter", "McpAuthenticate", "Memory", "Monitor", "MultiEdit", "NotebookEdit",
       "NotebookRun", "OpenInEditor", "PowerShell", "PrAutoMerge", "PrBind", "PrMonitor", "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop",
-      "ProposeBranch", "PushNotification", "Read", "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "ScheduleCancel", "ScheduleList", "ScheduleWakeup", "SendMessage",
+      "ProjectFinish", "ProjectStatus", "ProjectWorkerMerge", "ProjectWorkerStart", "ProposeBranch", "PushNotification", "Read", "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "ScheduleCancel", "ScheduleList", "ScheduleWakeup", "SendMessage",
       "SendUserFile", "SessionArchive", "SessionDismiss", "SessionHandoff", "SessionList", "SessionSend", "SessionSetEffort", "SessionSetMode", "SessionSetModel", "SessionSetTitle", "SessionStart", "SettingsGet",
       "SettingsSet", "Show", "SimulatorBoot", "SimulatorButton", "SimulatorInstall", "SimulatorLaunch", "SimulatorList", "SimulatorScreenshot",
       "SimulatorSwipe", "SimulatorTap", "SimulatorType", "Skill", "SyncWithBase", "TaskGraphAdd", "TaskGraphClaim", "TaskGraphList", "TaskGraphUpdate", "TaskInput", "TaskOutput", "TaskStop", "TerminalList",
@@ -115,6 +115,8 @@ describe("bundle builder", () => {
       team_context: ["team"],
       team_next_task: ["team", "tasks"],
       team_message: ["from", "message"],
+      project_coordinator: ["run_id", "limits", "targets"],
+      project_run_resumed: ["status"],
       // the WebFetch summarization prompt, filled by the client for the small-slot model
       webfetch_summary: ["url", "prompt", "content"],
       // Bash tool_result notes about a command that runs in the background, by reason

@@ -1,0 +1,1 @@
+Shows the project run you coordinate: its state, limits and what was spent, each worker with its task, state, branch and last report, and where workers can run (targets for ProjectWorkerStart). Reports of workers on other machines are read from here.

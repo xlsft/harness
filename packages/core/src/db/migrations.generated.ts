@@ -409,5 +409,13 @@ export const migrations: { id: string; statements: string[] }[] = [
       "ALTER TABLE \"device_code\" ADD COLUMN \"fingerprint\" text;",
       "CREATE INDEX \"device_fingerprint_idx\" ON \"device\" USING btree (\"user_id\",\"fingerprint\");"
     ]
+  },
+  {
+    "id": "0024_relay_inbox",
+    "statements": [
+      "CREATE TABLE \"relay_inbox\" (\n\t\"session_id\" text PRIMARY KEY NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"host_id\" text DEFAULT '' NOT NULL,\n\t\"grp\" integer DEFAULT 0 NOT NULL,\n\t\"state\" jsonb NOT NULL,\n\t\"scratch\" jsonb DEFAULT '{}'::jsonb NOT NULL,\n\t\"project_run\" boolean DEFAULT false NOT NULL,\n\t\"active\" boolean DEFAULT true NOT NULL,\n\t\"attention_at\" timestamp with time zone,\n\t\"read_at\" timestamp with time zone,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "ALTER TABLE \"relay_inbox\" ADD CONSTRAINT \"relay_inbox_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "CREATE INDEX \"relay_inbox_user_idx\" ON \"relay_inbox\" USING btree (\"user_id\",\"grp\",\"attention_at\");"
+    ]
   }
 ];

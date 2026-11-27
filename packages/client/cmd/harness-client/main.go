@@ -66,6 +66,7 @@ Usage:
   harness-client completion bash|zsh|fish
                                         Print a shell completion script
   harness-client plugin [help|...]      Install, approve and manage plugins and marketplaces
+  harness-client agents [--watch]       The inbox: sessions and agents on all your machines, by what they need
   harness-client version
 
 Headless flags:
@@ -128,6 +129,8 @@ func run(args []string) int {
 			return runDaemon(ctx, args[1:])
 		case "runner":
 			return runRunner(ctx, args[1:])
+		case "agents":
+			return runAgents(args[1:])
 		case "version", "--version":
 			fmt.Println(config.UserAgent())
 			return 0
