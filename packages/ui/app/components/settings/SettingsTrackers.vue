@@ -47,8 +47,29 @@ const monogram = (provider: unknown) => {
 const providerOptions = computed(() => providers.value.map(p => ({ value: p.provider, label: p.displayName })))
 const needsSecret = computed(() => form.auth !== TrackerAuthMethod.OAUTH)
 
-function add(scope: TrackerConnectionScope) {
-  Object.assign(form, blank(), { open: true, scope })
+function add(scope: TrackerConnectionScope, provider = 'youtrack') {
+  Object.assign(form, blank(), { open: true, scope, provider })
+}
+
+// Where each tracker explains the credentials the form asks for.
+const TRACKER_DOCS: Record<string, string> = {
+  youtrack: 'https://www.jetbrains.com/help/youtrack/server/manage-permanent-token.html'
+}
+// One row per tracker the server supports, plus any a connection uses that it no longer lists; the connections of each
+// sit under its row, like the providers in Settings > Models.
+function kinds(list: TrackerConnection[]): { provider: string, displayName: string, capabilities?: TrackerCapabilities }[] {
+  const out: { provider: string, displayName: string, capabilities?: TrackerCapabilities }[] = providers.value.map(p => ({ provider: p.provider, displayName: p.displayName, capabilities: p }))
+  for (const c of list) {
+    if (!out.some(k => k.provider === c.provider)) out.push({ provider: c.provider, displayName: c.provider })
+  }
+  return out
+}
+// What a tracker gives, and how it signs in, from what the server says it supports.
+function about(k: { capabilities?: TrackerCapabilities }) {
+  const p = k.capabilities
+  if (!p) return tt('No longer offered by this server')
+  const ways = p.authMethods.map(m => AUTH_LABELS[m]).filter(Boolean).join(', ')
+  return p.knowledge ? tt('Issues for boards and documents for Knowledge; sign-in: {0}.', [ways]) : tt('Issues for boards; sign-in: {0}.', [ways])
 }
 
 function edit(c: TrackerConnection) {
@@ -190,221 +211,238 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
         </p>
         <div class="overflow-hidden border border-default">
           <div
-            v-for="c in group.list"
-            :key="c.id"
-            class="flex items-center gap-3 border-b border-default px-3 py-2.5"
+            v-for="(k, ki) in kinds(group.list)"
+            :key="k.provider"
+            class="flex flex-col"
+            :class="{ 'border-t border-default': ki > 0 }"
           >
-            <SettingsMonogram
-              :text="monogram(c.provider)"
-              :dim="!c.enabled"
-            />
-            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span class="flex items-center gap-2 text-[12.5px] text-strong">
-                {{ c.name }}
-                <span
-                  v-if="!c.enabled"
-                  class="text-[11px] text-dimmed"
-                >{{ tt('disabled') }}</span>
+            <div class="flex items-center gap-3 px-3 py-2.5">
+              <SettingsMonogram
+                :text="monogram(k.provider)"
+                :dim="!group.list.some(c => c.provider === k.provider)"
+              />
+              <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span class="flex items-center gap-2 text-[12.5px] text-strong">
+                  {{ k.displayName }}
+                  <span
+                    v-if="group.list.some(c => c.provider === k.provider)"
+                    class="text-[11px] text-ok"
+                  >{{ tt('connected') }}</span>
+                </span>
+                <span class="truncate text-[11.5px] text-muted">{{ about(k) }}</span>
               </span>
-              <span class="truncate text-[11.5px] text-muted">{{ describe(c) }}</span>
+              <SettingsLink
+                v-if="TRACKER_DOCS[k.provider]"
+                :href="TRACKER_DOCS[k.provider]!"
+                class="max-sm:hidden"
+              >
+                {{ tt('Docs') }}
+              </SettingsLink>
+              <HBtn
+                v-if="(group.scope === TrackerConnectionScope.DEVICE || isAdmin) && !(form.open && form.scope === group.scope && form.provider === k.provider && !form.id)"
+                size="sm"
+                @click="add(group.scope, k.provider)"
+              >
+                {{ tt('Connect') }}
+              </HBtn>
               <span
-                class="truncate text-[11.5px]"
-                :class="c.lastError ? 'text-bad' : 'text-muted'"
-              >{{ notes[c.id] || status(c) }}</span>
-            </span>
-            <template v-if="group.scope === TrackerConnectionScope.DEVICE || isAdmin">
-              <HBtn
-                v-if="c.auth === TrackerAuthMethod.OAUTH"
-                size="sm"
-                @click="authorize(c)"
-              >
-                {{ c.hasSecret ? tt('Authorize again') : tt('Authorize') }}
-              </HBtn>
-              <HBtn
-                size="sm"
-                @click="test(c)"
-              >
-                {{ tt('Test') }}
-              </HBtn>
-              <HBtn
-                size="sm"
-                @click="edit(c)"
-              >
-                {{ tt('Change') }}
-              </HBtn>
-              <HBtn
-                size="sm"
-                @click="setEnabled(c, !c.enabled)"
-              >
-                {{ c.enabled ? tt('Disable') : tt('Enable') }}
-              </HBtn>
-              <HBtn
-                size="sm"
-                tone="danger"
-                :aria-label="tt('Remove {0}', [c.name])"
-                @click="remove(c)"
-              >
-                {{ confirming === c.id ? tt('Remove for good') : tt('Remove') }}
-              </HBtn>
-            </template>
-          </div>
-          <div class="flex items-center gap-3 px-3 py-2.5">
-            <SettingsMonogram
-              icon="plus"
-              :dim="!group.list.length"
-            />
-            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span class="text-[12.5px] text-strong">{{ tt('Connect a tracker') }}</span>
-              <span class="truncate text-[11.5px] text-muted">{{ group.scope === TrackerConnectionScope.DEVICE ? tt('YouTrack with a token, a password or OAuth, from this device.') : tt('YouTrack with a token, a password or OAuth, for everyone on the server.') }}</span>
-            </span>
-            <HBtn
-              v-if="(group.scope === TrackerConnectionScope.DEVICE || isAdmin) && !(form.open && form.scope === group.scope && !form.id)"
-              size="sm"
-              @click="add(group.scope)"
-            >
-              <HIcon
-                name="plus"
-                :size="12"
-              />{{ tt('Connect') }}
-            </HBtn>
-            <span
-              v-else-if="group.scope !== TrackerConnectionScope.DEVICE && !isAdmin"
-              class="text-[11px] text-dimmed"
-            >{{ tt('admins connect it') }}</span>
-          </div>
-          <form
-            v-if="form.open && form.scope === group.scope"
-            :aria-label="form.id ? tt('Change {0}', [form.name]) : tt('Connect a tracker')"
-            class="flex flex-col gap-2 border-t border-default px-3 py-3 pl-[52px]"
-            @submit.prevent="save"
-          >
-            <div class="flex flex-wrap items-center gap-2">
-              <div class="w-[130px] shrink-0">
-                <HSelect
-                  v-model="form.provider"
-                  :options="providerOptions"
-                  :aria-label="tt('Provider')"
-                />
-              </div>
-              <input
-                v-model="form.name"
-                :placeholder="tt('Name')"
-                :aria-label="tt('Name')"
-                :class="[inputClass, 'w-[180px]']"
-              >
-              <input
-                v-model="form.baseUrl"
-                :placeholder="tt('https://youtrack.example.com')"
-                :aria-label="tt('Address')"
-                :class="[inputClass, 'min-w-[240px] flex-1']"
-              >
+                v-else-if="group.scope !== TrackerConnectionScope.DEVICE && !isAdmin"
+                class="text-[11px] text-dimmed"
+              >{{ tt('admins connect it') }}</span>
             </div>
-            <div class="flex flex-wrap items-center gap-2 text-[12.5px] text-toned">
-              <span>{{ tt('Sign in with') }}</span>
-              <div class="w-[170px] shrink-0">
-                <HSelect
-                  :model-value="String(form.auth)"
-                  :options="authOptions"
-                  :aria-label="tt('Sign in with')"
-                  @update:model-value="form.auth = Number($event)"
-                />
-              </div>
-              <input
-                v-if="form.auth === TrackerAuthMethod.PASSWORD"
-                v-model="form.login"
-                :placeholder="tt('Login')"
-                :aria-label="tt('Login')"
-                autocomplete="off"
-                :class="[inputClass, 'w-[160px]']"
-              >
-              <input
-                v-if="needsSecret"
-                v-model="form.secret"
-                type="password"
-                autocomplete="new-password"
-                :placeholder="form.id ? tt('Leave empty to keep the stored one') : form.auth === TrackerAuthMethod.TOKEN ? tt('Permanent token') : tt('Password')"
-                :aria-label="form.auth === TrackerAuthMethod.TOKEN ? tt('Token') : tt('Password')"
-                :class="[inputClass, 'min-w-[200px] flex-1']"
-              >
-              <template v-if="form.auth === TrackerAuthMethod.OAUTH">
+            <div
+              v-for="c in group.list.filter(x => x.provider === k.provider)"
+              :key="c.id"
+              class="flex items-center gap-3 border-t border-default py-2.5 pr-3 pl-[52px]"
+            >
+              <SettingsMonogram
+                :text="monogram(c.provider)"
+                :dim="!c.enabled"
+              />
+              <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span class="flex items-center gap-2 text-[12.5px] text-strong">
+                  {{ c.name }}
+                  <span
+                    v-if="!c.enabled"
+                    class="text-[11px] text-dimmed"
+                  >{{ tt('disabled') }}</span>
+                </span>
+                <span class="truncate text-[11.5px] text-muted">{{ describe(c) }}</span>
+                <span
+                  class="truncate text-[11.5px]"
+                  :class="c.lastError ? 'text-bad' : 'text-muted'"
+                >{{ notes[c.id] || status(c) }}</span>
+              </span>
+              <template v-if="group.scope === TrackerConnectionScope.DEVICE || isAdmin">
+                <HBtn
+                  v-if="c.auth === TrackerAuthMethod.OAUTH"
+                  size="sm"
+                  @click="authorize(c)"
+                >
+                  {{ c.hasSecret ? tt('Authorize again') : tt('Authorize') }}
+                </HBtn>
+                <HBtn
+                  size="sm"
+                  @click="test(c)"
+                >
+                  {{ tt('Test') }}
+                </HBtn>
+                <HBtn
+                  size="sm"
+                  @click="edit(c)"
+                >
+                  {{ tt('Change') }}
+                </HBtn>
+                <HBtn
+                  size="sm"
+                  @click="setEnabled(c, !c.enabled)"
+                >
+                  {{ c.enabled ? tt('Disable') : tt('Enable') }}
+                </HBtn>
+                <HBtn
+                  size="sm"
+                  tone="danger"
+                  :aria-label="tt('Remove {0}', [c.name])"
+                  @click="remove(c)"
+                >
+                  {{ confirming === c.id ? tt('Remove for good') : tt('Remove') }}
+                </HBtn>
+              </template>
+            </div>
+            <form
+              v-if="form.open && form.scope === group.scope && form.provider === k.provider"
+              :aria-label="form.id ? tt('Change {0}', [form.name]) : tt('Connect a tracker')"
+              class="flex flex-col gap-2 border-t border-default px-3 py-3 pl-[52px]"
+              @submit.prevent="save"
+            >
+              <div class="flex flex-wrap items-center gap-2">
+                <div class="w-[130px] shrink-0">
+                  <HSelect
+                    v-model="form.provider"
+                    :options="providerOptions"
+                    :aria-label="tt('Provider')"
+                  />
+                </div>
                 <input
-                  v-model="form.oauthClientId"
-                  :placeholder="tt('OAuth client id')"
-                  :aria-label="tt('OAuth client id')"
-                  :class="[inputClass, 'w-[190px]']"
+                  v-model="form.name"
+                  :placeholder="tt('Name')"
+                  :aria-label="tt('Name')"
+                  :class="[inputClass, 'w-[180px]']"
                 >
                 <input
-                  v-model="form.oauthClientSecret"
+                  v-model="form.baseUrl"
+                  :placeholder="tt('https://youtrack.example.com')"
+                  :aria-label="tt('Address')"
+                  :class="[inputClass, 'min-w-[240px] flex-1']"
+                >
+              </div>
+              <div class="flex flex-wrap items-center gap-2 text-[12.5px] text-toned">
+                <span>{{ tt('Sign in with') }}</span>
+                <div class="w-[170px] shrink-0">
+                  <HSelect
+                    :model-value="String(form.auth)"
+                    :options="authOptions"
+                    :aria-label="tt('Sign in with')"
+                    @update:model-value="form.auth = Number($event)"
+                  />
+                </div>
+                <input
+                  v-if="form.auth === TrackerAuthMethod.PASSWORD"
+                  v-model="form.login"
+                  :placeholder="tt('Login')"
+                  :aria-label="tt('Login')"
+                  autocomplete="off"
+                  :class="[inputClass, 'w-[160px]']"
+                >
+                <input
+                  v-if="needsSecret"
+                  v-model="form.secret"
                   type="password"
                   autocomplete="new-password"
-                  :placeholder="tt('Client secret, for a confidential client')"
-                  :aria-label="tt('Client secret')"
-                  :class="[inputClass, 'w-[240px]']"
+                  :placeholder="form.id ? tt('Leave empty to keep the stored one') : form.auth === TrackerAuthMethod.TOKEN ? tt('Permanent token') : tt('Password')"
+                  :aria-label="form.auth === TrackerAuthMethod.TOKEN ? tt('Token') : tt('Password')"
+                  :class="[inputClass, 'min-w-[200px] flex-1']"
                 >
-              </template>
-            </div>
-            <p class="m-0 text-[11.5px] text-muted">
-              <template v-if="form.auth === TrackerAuthMethod.TOKEN">
-                {{ tt('Make a permanent token in YouTrack under Profile, Account Security. It has your account\'s rights.') }}
-              </template>
-              <template v-else-if="form.auth === TrackerAuthMethod.OAUTH">
-                {{ tt('An admin of the instance creates the OAuth client first, with Authorization Code and PKCE. Save, then Authorize.') }}
-              </template>
-              <template v-else>
-                {{ tt('Uses the same sign-in as the web page. It does not work with two-factor authentication; a token is the sturdier choice.') }}
-              </template>
-            </p>
-            <div class="flex flex-wrap items-center gap-3 text-[12.5px] text-toned">
-              <label class="flex items-center gap-1.5">
-                <HToggle
-                  v-model="form.knowledgeEnabled"
-                  :label="tt('Serve documents to Knowledge')"
-                />
-                {{ tt('Serve documents to Knowledge') }}
-              </label>
-              <input
-                v-if="form.knowledgeEnabled"
-                v-model="form.knowledgeQuery"
-                :placeholder="tt('Narrow them: project: HELP')"
-                :aria-label="tt('Which documents')"
-                :class="[inputClass, 'w-[200px]']"
-              >
-              <label
-                v-if="form.scope === TrackerConnectionScope.ADMIN"
-                class="flex items-center gap-1.5"
-              >
-                <HToggle
-                  v-model="form.allowPrivateNetwork"
-                  :label="tt('Allow a private network address')"
-                />
-                {{ tt('Allow a private network address') }}
-              </label>
-            </div>
-            <div class="flex items-center gap-2">
-              <HBtn
-                size="sm"
-                variant="primary"
-                type="submit"
-              >
-                {{ tt('Save') }}
-              </HBtn>
-              <HBtn
-                size="sm"
-                :disabled="form.auth === TrackerAuthMethod.OAUTH"
-                @click="testDraft"
-              >
-                {{ tt('Test') }}
-              </HBtn>
-              <HBtn
-                size="sm"
-                variant="ghost"
-                @click="form.open = false"
-              >
-                {{ tt('Cancel') }}
-              </HBtn>
-              <span class="text-[12px] text-muted">{{ draftNote }}</span>
-            </div>
-          </form>
+                <template v-if="form.auth === TrackerAuthMethod.OAUTH">
+                  <input
+                    v-model="form.oauthClientId"
+                    :placeholder="tt('OAuth client id')"
+                    :aria-label="tt('OAuth client id')"
+                    :class="[inputClass, 'w-[190px]']"
+                  >
+                  <input
+                    v-model="form.oauthClientSecret"
+                    type="password"
+                    autocomplete="new-password"
+                    :placeholder="tt('Client secret, for a confidential client')"
+                    :aria-label="tt('Client secret')"
+                    :class="[inputClass, 'w-[240px]']"
+                  >
+                </template>
+              </div>
+              <p class="m-0 text-[11.5px] text-muted">
+                <template v-if="form.auth === TrackerAuthMethod.TOKEN">
+                  {{ tt('Make a permanent token in YouTrack under Profile, Account Security. It has your account\'s rights.') }}
+                </template>
+                <template v-else-if="form.auth === TrackerAuthMethod.OAUTH">
+                  {{ tt('An admin of the instance creates the OAuth client first, with Authorization Code and PKCE. Save, then Authorize.') }}
+                </template>
+                <template v-else>
+                  {{ tt('Uses the same sign-in as the web page. It does not work with two-factor authentication; a token is the sturdier choice.') }}
+                </template>
+              </p>
+              <div class="flex flex-wrap items-center gap-3 text-[12.5px] text-toned">
+                <label class="flex items-center gap-1.5">
+                  <HToggle
+                    v-model="form.knowledgeEnabled"
+                    :label="tt('Serve documents to Knowledge')"
+                  />
+                  {{ tt('Serve documents to Knowledge') }}
+                </label>
+                <input
+                  v-if="form.knowledgeEnabled"
+                  v-model="form.knowledgeQuery"
+                  :placeholder="tt('Narrow them: project: HELP')"
+                  :aria-label="tt('Which documents')"
+                  :class="[inputClass, 'w-[200px]']"
+                >
+                <label
+                  v-if="form.scope === TrackerConnectionScope.ADMIN"
+                  class="flex items-center gap-1.5"
+                >
+                  <HToggle
+                    v-model="form.allowPrivateNetwork"
+                    :label="tt('Allow a private network address')"
+                  />
+                  {{ tt('Allow a private network address') }}
+                </label>
+              </div>
+              <div class="flex items-center gap-2">
+                <HBtn
+                  size="sm"
+                  variant="primary"
+                  type="submit"
+                >
+                  {{ tt('Save') }}
+                </HBtn>
+                <HBtn
+                  size="sm"
+                  :disabled="form.auth === TrackerAuthMethod.OAUTH"
+                  @click="testDraft"
+                >
+                  {{ tt('Test') }}
+                </HBtn>
+                <HBtn
+                  size="sm"
+                  variant="ghost"
+                  @click="form.open = false"
+                >
+                  {{ tt('Cancel') }}
+                </HBtn>
+                <span class="text-[12px] text-muted">{{ draftNote }}</span>
+              </div>
+            </form>
+          </div>
         </div>
       </section>
     </template>

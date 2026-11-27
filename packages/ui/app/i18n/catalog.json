@@ -791,6 +791,8 @@
   "Issue",
   "Issuer URL",
   "Issues",
+  "Issues for boards and documents for Knowledge; sign-in: {0}.",
+  "Issues for boards; sign-in: {0}.",
   "Issues from",
   "It can run programs with your rights, once you approve it.",
   "It comes with its plugins: approve or turn it off there.",
@@ -1014,6 +1016,7 @@
   "No groups yet.",
   "No hooks are configured.",
   "No hosts yet.",
+  "No longer offered by this server",
   "No matches",
   "No matching files",
   "No members.",
@@ -1911,7 +1914,5 @@
   "Your workflow, unbounded.",
   "Yours",
   "Yours alone: your connections or company ones.",
-  "Yours or Discover",
-  "YouTrack with a token, a password or OAuth, for everyone on the server.",
-  "YouTrack with a token, a password or OAuth, from this device."
+  "Yours or Discover"
 ]
