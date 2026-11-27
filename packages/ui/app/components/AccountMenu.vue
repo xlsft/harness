@@ -1,10 +1,12 @@
 <script setup lang="ts">
 // The account button at the foot of the sidebar: avatar, name and server, and a menu with the settings you reach for
-// most (account, usage, users for admins), the server in a browser, About, and signing out. Signing out asks first: the
-// first click turns the row into a confirmation, the second signs out.
+// most (account, usage, users for admins), the server in a browser, About, then (desktop) the accounts this device was
+// signed in to, a server to type, and signing out. This device signs in to one account at a time, so choosing another
+// signs out here and starts the sign-in on that server at once. Signing out asks first: the first click turns the row
+// into a confirmation, the second signs out.
 import { avatarUrl } from '~/lib/account/types'
-import { isDesktop, logout as desktopLogout, openExternal } from '~/lib/desktop'
-import { rememberAccount } from '~/lib/account/recent'
+import { isDesktop, logout as desktopLogout, machineConfig, openExternal } from '~/lib/desktop'
+import { AUTO_SIGN_IN, LAST_SERVER, recentAccounts, rememberAccount, type RecentAccount } from '~/lib/account/recent'
 
 const emit = defineEmits<{ navigate: [] }>()
 
@@ -14,10 +16,35 @@ const toast = useToast()
 const desktop = isDesktop()
 const open = ref(false)
 const confirmSignOut = ref(false)
-const switching = ref(false)
-watch(open, (v) => {
-  if (!v) confirmSignOut.value = false
+const accounts = ref<RecentAccount[]>([])
+const server = ref('')
+// A server the administrator set for this machine: no other can be chosen.
+const managed = ref(false)
+const switchError = ref('')
+const busy = ref(false)
+watch(open, async (v) => {
+  if (!v) {
+    confirmSignOut.value = false
+    return
+  }
+  switchError.value = ''
+  server.value = ''
+  if (!desktop) return
+  accounts.value = recentAccounts()
+  try {
+    managed.value = !!(await machineConfig()).serverUrl
+  } catch {
+    managed.value = false
+  }
 })
+const isCurrent = (a: RecentAccount) => a.server === store.account.server && a.email === store.userEmail
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).host
+  } catch {
+    return url
+  }
+}
 
 // The profile (name, avatar, role) from the server; the shell's whoami until it loads.
 const { profile, load: loadProfile } = useAccountProfile()
@@ -42,9 +69,24 @@ function openSettings(section?: string) {
   settings.open(section)
 }
 
-function switchAccount() {
-  open.value = false
-  switching.value = true
+async function switchTo(url: string) {
+  const target = url.trim().replace(/\/+$/, '')
+  if (!target || busy.value) return
+  busy.value = true
+  switchError.value = ''
+  try {
+    localStorage.setItem(LAST_SERVER, /^https?:\/\//.test(target) ? target : `https://${target}`)
+    localStorage.setItem(AUTO_SIGN_IN, '1')
+  } catch {
+    // The sign-in screen then waits for a click instead.
+  }
+  try {
+    await desktopLogout()
+    window.location.reload()
+  } catch (err) {
+    busy.value = false
+    switchError.value = err instanceof Error ? err.message : String(err)
+  }
 }
 
 async function signOut() {
@@ -163,12 +205,61 @@ async function signOut() {
         </PaneMenuItem>
         <template v-if="desktop">
           <div class="my-1 h-px bg-line-strong" />
-          <PaneMenuItem
-            icon="refresh"
-            @click="switchAccount"
+          <div
+            v-if="!managed && accounts.length"
+            role="group"
+            :aria-label="tt('Accounts')"
           >
-            {{ tt('Switch account') }}
-          </PaneMenuItem>
+            <button
+              v-for="a in accounts"
+              :key="a.server + a.email"
+              type="button"
+              role="menuitemradio"
+              :aria-checked="isCurrent(a)"
+              :disabled="busy || isCurrent(a)"
+              class="flex w-full items-center gap-2 px-[9px] py-1.5 text-left enabled:hover:bg-raised disabled:cursor-default"
+              @click="switchTo(a.server)"
+            >
+              <HAvatar
+                :name="a.name || a.email"
+                :seed="a.email"
+              />
+              <span class="flex min-w-0 flex-1 flex-col">
+                <span class="truncate text-strong">{{ a.name || a.email }}</span>
+                <span class="truncate text-[11px] text-muted">{{ a.name ? `${a.email} · ${hostOf(a.server)}` : hostOf(a.server) }}</span>
+              </span>
+              <HIcon
+                v-if="isCurrent(a)"
+                name="check"
+                :size="14"
+                class="shrink-0 text-accent"
+              />
+            </button>
+          </div>
+          <form
+            v-if="!managed"
+            class="px-[9px] py-1"
+            @submit.prevent="switchTo(server)"
+          >
+            <input
+              v-model="server"
+              type="text"
+              inputmode="url"
+              spellcheck="false"
+              autocomplete="url"
+              :disabled="busy"
+              :aria-label="tt('Sign in to another server')"
+              :placeholder="tt('Another server, then Enter')"
+              class="h-7 w-full border border-accented bg-surface px-2 text-[12px] text-strong outline-none placeholder:text-dimmed focus:border-accent"
+            >
+          </form>
+          <p
+            v-if="switchError"
+            role="alert"
+            class="m-0 px-[9px] py-1 text-[11.5px] text-bad"
+          >
+            {{ switchError }}
+          </p>
           <PaneMenuItem
             icon="arrow-left"
             danger
@@ -180,8 +271,4 @@ async function signOut() {
       </div>
     </template>
   </UPopover>
-  <AccountSwitch
-    v-if="desktop"
-    v-model:open="switching"
-  />
 </template>

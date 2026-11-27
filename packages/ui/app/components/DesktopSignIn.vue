@@ -35,7 +35,7 @@ onMounted(async () => {
   } catch {
     // An older shell, or none: the user picks.
   }
-  // Switch account signed out to come here: go on with the chosen server.
+  // Choosing another account in the account menu signed out to come here: go on with the chosen server.
   if (takeAutoSignIn()) void start()
 })
 onBeforeUnmount(() => stop?.())

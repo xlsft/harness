@@ -1,4 +1,4 @@
-// Accounts this window has been signed in to (desktop): server, email and name, for Switch account. Kept in local storage
+// Accounts this window has been signed in to (desktop): server, email and name, for the accounts in the account menu. Kept in local storage
 // of this device only; no tokens. The sign-in screen reads LAST_SERVER, and starts at once when AUTO_SIGN_IN is set.
 
 export const LAST_SERVER = 'harness-server-url'

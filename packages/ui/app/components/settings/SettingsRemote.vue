@@ -33,13 +33,18 @@ const botSaved = ref(false)
 
 const PROVIDER_NAMES: Record<ChatKind, string> = { slack: 'Slack', telegram: 'Telegram' }
 const CHAT_KINDS: ChatKind[] = ['slack', 'telegram']
+// Admins set the organization's apps up here too: the button opens Chat apps.
+const access = useAccess()
+const modal = useSettingsModal()
+const canSetUp = computed(() => access.can('policy.write'))
+onMounted(() => access.load())
 const botOpen = ref(false)
 
 // The provider row's line: whether the organization's app is there to link to.
 function about(p: ChatKind) {
   if (providers.value.includes(p)) return p === 'slack' ? tt('Your organization\'s Slack app') : telegramBot.value ? tt('Your organization\'s bot @{0}', [telegramBot.value]) : tt('Your organization\'s bot')
   if (p === 'telegram' && botAllowed.value) return tt('Not connected on this server; your own bot works without it')
-  return tt('Not connected on this server. An admin connects it under Chat apps.')
+  return canSetUp.value ? tt('Not connected on this server yet') : tt('Not connected on this server. An admin connects it under Chat apps.')
 }
 
 function message(e: unknown) {
@@ -236,6 +241,13 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
             @click="newLink(p, p === 'telegram' && !telegramBot)"
           >
             {{ links[p] ? tt('New code') : tt('Link account') }}
+          </HBtn>
+          <HBtn
+            v-if="canSetUp"
+            size="sm"
+            @click="modal.setSection('chat')"
+          >
+            {{ providers.includes(p) ? tt('Settings') : tt('Set up') }}
           </HBtn>
         </div>
 
