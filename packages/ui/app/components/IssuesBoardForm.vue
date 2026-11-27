@@ -130,7 +130,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
         :aria-label="tt('Name of the board')"
         :class="[inputClass, 'w-[240px]']"
       >
-      <span class="text-muted">{{ board.scope === BoardScope.PERSONAL ? tt('Yours alone: your connections or company ones.') : tt('Shared with the project: company connections only.') }}</span>
+      <span class="text-muted">{{ board.scope === BoardScope.PERSONAL ? tt('Yours alone: your local connections or global ones.') : tt('Shared with the project: global connections only.') }}</span>
     </div>
     <div
       v-for="(s, i) in stages"

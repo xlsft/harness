@@ -241,11 +241,11 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
     </section>
 
     <section
-      :aria-label="tt('On this machine')"
+      :aria-label="tt('Local')"
       class="mb-8 flex flex-col"
     >
       <h3 class="m-0 text-[13px] font-semibold text-strong">
-        {{ tt('On this machine') }}
+        {{ tt('Local') }}
       </h3>
       <p class="m-0 mt-1 mb-3 text-[12px] text-muted">
         {{ tt('The gh and glab command-line tools here and the accounts they are signed in to. Used for hosts the server has no connection to.') }}
@@ -318,11 +318,11 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
 
     <section
       v-if="isAdmin"
-      :aria-label="tt('Server connections')"
+      :aria-label="tt('Global')"
       class="mb-8 flex flex-col"
     >
       <h3 class="m-0 text-[13px] font-semibold text-strong">
-        {{ tt('Server connections') }}
+        {{ tt('Global') }}
       </h3>
       <p class="m-0 mt-1 mb-3 text-[12px] text-muted">
         {{ tt('Everyone on this server can use these. Keys are stored on the server and never shown again.') }}

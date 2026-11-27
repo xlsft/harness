@@ -199,7 +199,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
     </p>
 
     <template
-      v-for="group in [{ title: tt('On this device'), about: tt('Credentials are in the system keychain and requests go from this device, so instances behind a VPN work. Never synced.'), list: device, scope: TrackerConnectionScope.DEVICE, show: true }, { title: tt('Company'), about: tt('Kept encrypted on the server, which makes the requests. Usable by everyone on their boards; the credentials never reach them.'), list: company, scope: TrackerConnectionScope.ADMIN, show: isAdmin || company.length > 0 }]"
+      v-for="group in [{ title: tt('Local'), about: tt('Credentials are in the system keychain and requests go from this device, so instances behind a VPN work. Never synced.'), list: device, scope: TrackerConnectionScope.DEVICE, show: true }, { title: tt('Global'), about: tt('Kept encrypted on the server, which makes the requests. Usable by everyone on their boards; the credentials never reach them.'), list: company, scope: TrackerConnectionScope.ADMIN, show: isAdmin || company.length > 0 }]"
       :key="group.scope"
     >
       <section

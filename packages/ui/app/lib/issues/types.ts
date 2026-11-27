@@ -132,7 +132,7 @@ export const AUTH_HELP: Record<number, string> = {
   [TrackerAuthMethod.OAUTH]: tt('Save, then Authorize: the service asks you to approve in the browser.'),
   [TrackerAuthMethod.PASSWORD]: tt('Your login and password on the service.'),
   [TrackerAuthMethod.EMAIL_TOKEN]: tt('Your account email and an API token made on the service.'),
-  [TrackerAuthMethod.VCS_CONNECTION]: tt('On this device through gh or glab signed in to the host; for the company, through a connection from Settings, Code hosting.')
+  [TrackerAuthMethod.VCS_CONNECTION]: tt('Locally through gh or glab signed in to the host; globally through a connection from Settings, Code hosting.')
 }
 
 // What a provider's sign-in form needs, from TrackerCapabilities or KnowledgeCapabilities alike.
