@@ -22,28 +22,45 @@ const source = ref<ImportSource['id'] | null>(null)
     <p class="set-sub">
       {{ tt('Bring your work from another tool. Nothing moves until you choose what to bring.') }}
     </p>
-    <button
-      v-for="s in IMPORT_SOURCES"
-      :key="s.id"
-      type="button"
-      class="set-row w-[calc(100%+2*var(--set-gutter,0px))] items-center rounded-none text-left hover:bg-hover"
-      @click="source = s.id"
+    <section
+      :aria-label="tt('Sources')"
+      class="mb-8 flex flex-col"
     >
-      <span class="flex min-w-0 items-center gap-3">
-        <HIcon
-          :name="s.icon"
-          class="shrink-0 text-muted"
-        />
-        <span class="set-label">
-          <span>{{ s.name }}</span>
-          <span class="set-desc">{{ s.description }}</span>
-        </span>
-      </span>
-      <HIcon
-        name="arrow-right"
-        :size="13"
-        class="shrink-0 text-muted"
-      />
-    </button>
+      <div class="overflow-hidden border border-default">
+        <div
+          v-for="(s, i) in IMPORT_SOURCES"
+          :key="s.id"
+          class="flex items-center gap-3 px-3 py-2.5"
+          :class="{ 'border-t border-default': i > 0 }"
+        >
+          <!-- The tool's logo (the same as its provider's in Settings > Models); a folder import also shows a folder. -->
+          <span class="relative shrink-0">
+            <SettingsMonogram text="anthropic" />
+            <span
+              v-if="s.icon === 'folder'"
+              class="absolute -right-1 -bottom-1 flex size-3.5 items-center justify-center rounded-chip border border-line bg-default text-muted"
+            >
+              <HIcon
+                name="folder"
+                :size="9"
+              />
+            </span>
+          </span>
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[12.5px] text-strong">{{ s.name }}</span>
+            <span class="truncate text-[11.5px] text-muted">{{ s.description }}</span>
+          </span>
+          <HBtn
+            size="sm"
+            @click="source = s.id"
+          >
+            <HIcon
+              name="download"
+              :size="12"
+            />{{ tt('Import') }}
+          </HBtn>
+        </div>
+      </div>
+    </section>
   </template>
 </template>
