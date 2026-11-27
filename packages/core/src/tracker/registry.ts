@@ -9,12 +9,13 @@ import type { KnowledgeModule } from "../knowledge/provider.ts";
 import { YOUTRACK_KB } from "../knowledge/youtrack-kb.ts";
 import { JIRA } from "./jira.ts";
 import { GITHUB } from "./github.ts";
+import { GITLAB } from "./gitlab.ts";
 import { LINEAR } from "./linear.ts";
 import type { TrackerModule } from "./provider.ts";
 import { YOUTRACK } from "./youtrack.ts";
 
 /** Issue trackers. One line per provider. */
-export const TRACKERS: TrackerModule[] = [YOUTRACK, JIRA, LINEAR, GITHUB];
+export const TRACKERS: TrackerModule[] = [YOUTRACK, JIRA, LINEAR, GITHUB, GITLAB];
 
 /** Knowledge sources. One line per provider. */
 export const KNOWLEDGE: KnowledgeModule[] = [YOUTRACK_KB, CONFLUENCE, LINEAR_DOCS];

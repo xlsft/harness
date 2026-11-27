@@ -7,7 +7,7 @@ import { ProviderType } from "../gen/harness/vcs/v1/vcs_pb.ts";
 import { ApiError } from "../lib/errors.ts";
 import { connSecrets, getConnectionRow } from "../vcs/connections.ts";
 import { installationToken, listInstallations } from "../vcs/github-app.ts";
-import type { VcsSignIn } from "./provider.ts";
+import { TrackerError, type VcsSignIn } from "./provider.ts";
 
 /** The option keys a provider with the "vcs" method declares among its optionFields. */
 export const VCS_OPTION_FIELDS = [
@@ -43,4 +43,22 @@ export function vcsSignIn(options: Record<string, string>): () => Promise<VcsSig
       },
     };
   };
+}
+
+/** The code host's ApiErrors read as a tracker's, so the sync decides on them the same way. */
+export function vcsTrackerError(err: unknown): never {
+  if (err instanceof ApiError) {
+    const kind =
+      err.type === "not_found"
+        ? "not_found"
+        : err.type === "authentication" || err.type === "needs_auth"
+          ? "auth"
+          : err.type === "permission" || err.type === "failed_precondition"
+            ? "forbidden"
+            : err.type === "upstream" || err.type === "overloaded" || err.type === "rate_limit"
+              ? "transient"
+              : "other";
+    throw new TrackerError(kind, err.message);
+  }
+  throw err;
 }

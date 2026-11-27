@@ -5,9 +5,8 @@
  * here. docs/design/tracker.md, section "GitHub Issues".
  */
 import { githubApiBase } from "../vcs/github-app.ts";
-import { ApiError } from "../lib/errors.ts";
 import { JsonClient, splitList } from "./http.ts";
-import { VCS_OPTION_FIELDS, vcsSignIn } from "./vcs-signin.ts";
+import { VCS_OPTION_FIELDS, vcsSignIn, vcsTrackerError } from "./vcs-signin.ts";
 import {
   TrackerError,
   type Capabilities,
@@ -99,7 +98,7 @@ export class GitHubIssues implements TrackerProvider {
   private async api(): Promise<JsonClient> {
     this.client ??= this.o
       .signIn()
-      .catch(rethrow)
+      .catch(vcsTrackerError)
       .then((v) => ({
         type: v.type,
         c: new JsonClient({
@@ -108,7 +107,7 @@ export class GitHubIssues implements TrackerProvider {
           allowPrivateNetwork: this.o.allowPrivateNetwork,
           retryDelaysMs: this.o.retryDelaysMs,
           headers: { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28" },
-          authorize: async () => ({ authorization: `Bearer ${await v.token().catch(rethrow)}` }),
+          authorize: async () => ({ authorization: `Bearer ${await v.token().catch(vcsTrackerError)}` }),
         }),
       }));
     const { c, type } = await this.client.catch((err: unknown) => {
@@ -273,20 +272,3 @@ export const GITHUB: TrackerModule = {
   open: openGitHub,
 };
 
-/** The code host's ApiErrors read as a tracker's, so the sync decides on them the same way. */
-function rethrow(err: unknown): never {
-  if (err instanceof ApiError) {
-    const kind =
-      err.type === "not_found"
-        ? "not_found"
-        : err.type === "authentication" || err.type === "needs_auth"
-          ? "auth"
-          : err.type === "permission" || err.type === "failed_precondition"
-            ? "forbidden"
-            : err.type === "upstream" || err.type === "overloaded" || err.type === "rate_limit"
-              ? "transient"
-              : "other";
-    throw new TrackerError(kind, err.message);
-  }
-  throw err;
-}
