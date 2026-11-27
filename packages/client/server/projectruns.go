@@ -305,7 +305,9 @@ func (s *Server) CreateProjectRun(ctx context.Context, req *connect.Request[agen
 		Content: pbconv.Blocks([]llm.ContentBlock{llm.TextBlock(goal)})})); err != nil {
 		return nil, err
 	}
+	r.mu.Lock()
 	snap := proto.Clone(run).(*agentv1.ProjectRun)
+	r.mu.Unlock()
 	s.publishRun(snap)
 	return connect.NewResponse(&agentv1.CreateProjectRunResponse{Run: snap}), nil
 }
