@@ -885,6 +885,7 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 			a.emit(Event{Kind: EventCheckpoint, Checkpoint: &Checkpoint{ID: uid, UserMessageUUID: uid, PromptPreview: preview(input), CreatedAt: created}})
 		}
 		a.record(session.Entry{Type: session.TypeUser, UUID: uid, Message: userEntryMessage(input), PromptID: promptID, PermissionMode: a.permissionMode(), ClientUUIDs: clientIDs})
+		a.acceptMessageSkills(clientIDs)
 		a.notePrompt(input)
 		a.emit(Event{Kind: EventUser, UUID: uid, Message: &llm.Message{Role: llm.RoleUser, Content: input}, ClientUUIDs: clientIDs})
 		a.emit(Event{Kind: EventTurnStarted, UUID: uid, Model: a.Model()})
@@ -1011,9 +1012,14 @@ func (a *Agent) RunTurnWithIDs(parent context.Context, input []llm.ContentBlock,
 		tail = append(tail, comments...)
 		if interrupted {
 			tail = append(tail, llm.TextBlock(a.interruptedText()))
-		} else if q, ids := a.DrainQueueIDs(); len(q) > 0 && a.submitHook(ctx, q, ids, false) {
-			tail = append(tail, q...)
-			tailIDs = ids
+		} else if q, ids := a.DrainQueueIDs(); len(q) > 0 {
+			if a.submitHook(ctx, q, ids, false) {
+				a.acceptMessageSkills(ids)
+				tail = append(tail, q...)
+				tailIDs = ids
+			} else {
+				a.dropSkillsOfMessages(ids)
+			}
 		}
 		if len(tail) > 0 {
 			blocks = append(blocks, tail...)

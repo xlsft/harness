@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"slices"
 	"strings"
 
 	"github.com/xlsft/harness/packages/client/llm"
@@ -185,11 +186,31 @@ func (a *Agent) hasTextLocked(text string) bool {
 	return false
 }
 
+// acceptMessageSkills makes a user skill eligible once its message has entered the conversation.
+func (a *Agent) acceptMessageSkills(ids []string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for _, p := range a.skills.pending {
+		if slices.Contains(ids, p.MessageID) {
+			p.MessageID = ""
+		}
+	}
+}
+
 // startSkills puts what's pending into the conversation.
 func (a *Agent) startSkills(ctx context.Context, promptID string) {
 	a.mu.Lock()
-	pending, restore := a.skills.pending, a.skills.restore
-	a.skills.pending, a.skills.restore = nil, nil
+	var pending []*SkillActivation
+	waiting := a.skills.pending[:0]
+	for _, p := range a.skills.pending {
+		if p.MessageID == "" {
+			pending = append(pending, p)
+		} else {
+			waiting = append(waiting, p)
+		}
+	}
+	restore := a.skills.restore
+	a.skills.pending, a.skills.restore = waiting, nil
 	bundle := a.bundle
 	a.mu.Unlock()
 	for _, r := range restore {
