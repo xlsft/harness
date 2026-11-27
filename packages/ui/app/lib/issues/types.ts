@@ -220,3 +220,9 @@ export function stagesToInit(stages: BoardStage[]): StageInit[] {
     outputs: s.outputs.map(o => ({ id: o.id, connection: { scope: o.connection?.scope ?? TrackerConnectionScope.ADMIN, id: o.connection?.id ?? '' }, fields: o.fields.map(f => ({ name: f.name, value: f.value })), comment: o.comment }))
   }))
 }
+
+/** A value a page lets an option field take, as a choice (a code host connection). */
+export interface OptionChoice { value: string, label: string, hint?: string }
+
+/** The options of the "vcs" sign-in; on a device gh or glab signs in, so the form hides them there. */
+export const VCS_OPTION_KEYS = ['vcs_connection_id', 'vcs_owner']

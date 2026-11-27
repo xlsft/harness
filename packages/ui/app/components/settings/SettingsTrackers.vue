@@ -5,7 +5,7 @@
 import { openExternal } from '~/lib/desktop'
 import { PROVIDER_LOGOS } from '~/utils/providerLogos'
 import { errorText } from '~/lib/library/types'
-import { AUTH_LABELS, TrackerAuthMethod, TrackerConnectionScope, providerTile, type SignInForm, type SignInSpec, type TrackerCapabilities, type TrackerConnection } from '~/lib/issues/types'
+import { AUTH_LABELS, TrackerAuthMethod, TrackerConnectionScope, providerTile, type SignInForm, type SignInSpec, type TrackerCapabilities, type TrackerConnection, VCS_OPTION_KEYS } from '~/lib/issues/types'
 
 const store = useSessionStore()
 const api = () => store.transport!.issues()
@@ -17,6 +17,8 @@ const notes = ref<Record<string, string>>({})
 const confirming = ref('')
 
 const blankSignIn = (): SignInForm => ({ id: '', baseUrl: '', auth: TrackerAuthMethod.TOKEN, login: '', secret: '', oauthClientId: '', oauthClientSecret: '', options: {} })
+// Company forms choose the code host connection a "vcs" sign-in goes through; on a device gh or glab signs in.
+const vcsChoices = useVcsChoices()
 const form = reactive({ open: false, scope: TrackerConnectionScope.DEVICE, provider: '', name: '', enabled: true, allowPrivateNetwork: false, signIn: blankSignIn() })
 
 async function refresh() {
@@ -326,6 +328,8 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
               <SettingsProviderSignIn
                 v-model="form.signIn"
                 :spec="spec"
+                :choices-for="form.scope === TrackerConnectionScope.ADMIN ? vcsChoices : {}"
+                :hide-options="form.scope === TrackerConnectionScope.DEVICE ? VCS_OPTION_KEYS : []"
               />
               <label
                 v-if="form.scope === TrackerConnectionScope.ADMIN"
