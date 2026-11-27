@@ -37,6 +37,7 @@ export function userView(u: AdminUser): UserView {
     createdAt: u.createdAt,
     lastSignInAt: u.lastSignInAt,
     lastSeenAt: u.lastSeenAt,
+    image: u.image,
     isSelf: u.isSelf
   }
 }

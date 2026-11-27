@@ -94,7 +94,9 @@ type AdminUser struct {
 	// Whether the user has a confirmed authenticator (mfa.proto).
 	MfaEnabled bool `protobuf:"varint,13,opt,name=mfa_enabled,json=mfaEnabled,proto3" json:"mfa_enabled,omitempty"`
 	// Names of the groups the user belongs to (directory.proto).
-	Groups        []string `protobuf:"bytes,14,rep,name=groups,proto3" json:"groups,omitempty"`
+	Groups []string `protobuf:"bytes,14,rep,name=groups,proto3" json:"groups,omitempty"`
+	// Avatar as a data URL (see UpdateMeRequest.image); empty when none is set. Lists show it beside the name.
+	Image         string `protobuf:"bytes,15,opt,name=image,proto3" json:"image,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -225,6 +227,13 @@ func (x *AdminUser) GetGroups() []string {
 		return x.Groups
 	}
 	return nil
+}
+
+func (x *AdminUser) GetImage() string {
+	if x != nil {
+		return x.Image
+	}
+	return ""
 }
 
 // One rule of a group to role mapping: members of `group` get `role`. Rules are checked in order and the first match
@@ -2492,7 +2501,7 @@ var File_harness_auth_v1_admin_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"\n" +
-	"\x1bharness/auth/v1/admin.proto\x12\x0fharness.auth.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1aharness/auth/v1/auth.proto\x1a#harness/auth/v1/limits_policy.proto\"\xc5\x03\n" +
+	"\x1bharness/auth/v1/admin.proto\x12\x0fharness.auth.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1aharness/auth/v1/auth.proto\x1a#harness/auth/v1/limits_policy.proto\"\xdb\x03\n" +
 	"\tAdminUser\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
@@ -2511,7 +2520,8 @@ const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"\ais_self\x18\f \x01(\bR\x06isSelf\x12\x1f\n" +
 	"\vmfa_enabled\x18\r \x01(\bR\n" +
 	"mfaEnabled\x12\x16\n" +
-	"\x06groups\x18\x0e \x03(\tR\x06groups\"X\n" +
+	"\x06groups\x18\x0e \x03(\tR\x06groups\x12\x14\n" +
+	"\x05image\x18\x0f \x01(\tR\x05image\"X\n" +
 	"\x10GroupRoleMapping\x12\x14\n" +
 	"\x05group\x18\x01 \x01(\tR\x05group\x12.\n" +
 	"\x04role\x18\x02 \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\">\n" +

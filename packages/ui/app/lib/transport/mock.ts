@@ -73,6 +73,7 @@ import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import { MockClaudeImportApi, type MockImportedSession } from '~/lib/import/mock'
 import { MockProjectImportApi } from '~/lib/import/project'
+import { MockImportSourcesApi } from '~/lib/import/sourcesMock'
 import type { AddLocalProviderInput, LocalModel, LocalModelsApi, LocalProvider, LocalProviderKindName, LocalProviderPatch, LocalProvidersState, PullHandle, PullHandlers, PullProgress } from './localModels'
 import { contextUsageFromProto } from '~/lib/session/context'
 import { backgroundReasonPb, permissionModeName, permissionModePb, usageLimitVM } from '~/lib/session/reducer'
@@ -410,6 +411,11 @@ export class MockTransport implements SessionTransport {
   private projectImportApi?: MockProjectImportApi
   projectImport() {
     return (this.projectImportApi ??= new MockProjectImportApi())
+  }
+
+  private importSourcesApi?: MockImportSourcesApi
+  importSources() {
+    return (this.importSourcesApi ??= new MockImportSourcesApi({ tick: this.tick * 3 }))
   }
 
   // An imported session joins the session list, as its transcript does on a real client.
@@ -907,7 +913,7 @@ export class MockTransport implements SessionTransport {
       b.computerAccessRequested(req, tool, 'To write the summary into a note', [
         { id: 'com.apple.Notes', name: 'Notes', tier: ComputerAccessTier.FULL, tierNote: 'Full: clicks, typing and keys.' },
         { id: 'com.apple.Safari', name: 'Safari', tier: ComputerAccessTier.READ, tierNote: 'Read-only: screenshots and reading the interface.' }
-      ], [{ id: 'accessibility', name: 'Accessibility', granted: false, howToGrant: 'Turn it on for the Harness app in System Settings > Privacy & Security > Accessibility, then restart Harness.' }])
+      ], [{ id: 'accessibility', name: 'Accessibility', granted: false, howToGrant: 'Turn it on for the xlsft`s harness app in System Settings > Privacy & Security > Accessibility, then restart the app.', description: 'Lets the agent click, type, scroll and read the controls of the apps you allow.', settingsUrl: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility' }])
     })
     s.waiting = { requestId: req, resume: (b) => {
       const approved = this.computerApproved
@@ -1118,8 +1124,8 @@ export class MockTransport implements SessionTransport {
         { id: 'system_settings', label: 'System Settings', warning: 'The agent could change security and privacy settings, and give itself more permissions.' }
       ],
       permissions: [
-        { id: 'screen_recording', name: 'Screen Recording', granted: true, howToGrant: '' },
-        { id: 'accessibility', name: 'Accessibility', granted: false, howToGrant: 'Turn it on for the Harness app in System Settings > Privacy & Security > Accessibility, then restart Harness.' }
+        { id: 'screen_recording', name: 'Screen Recording', granted: true, howToGrant: '', description: 'Lets the agent take screenshots of the screen and of the apps you allow, so it can see what it is doing.', settingsUrl: 'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture' },
+        { id: 'accessibility', name: 'Accessibility', granted: false, howToGrant: 'Turn it on for the xlsft`s harness app in System Settings > Privacy & Security > Accessibility, then restart the app.', description: 'Lets the agent click, type, scroll and read the controls of the apps you allow.', settingsUrl: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility' }
       ]
     }
   }

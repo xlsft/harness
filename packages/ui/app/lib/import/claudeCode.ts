@@ -7,7 +7,8 @@ import type { ImportHandle, ImportHandlers, ImportItem, ImportStatus } from './t
 
 export type ClaudeSection = 'memory' | 'settings' | 'skills' | 'agents' | 'commands' | 'output-styles' | 'workflows' | 'mcp' | 'sessions'
 
-// The kinds with a checkbox, in order. MCP servers are only listed: they are set up by hand.
+// The kinds with a checkbox, in order. MCP servers become servers of this device; what the client cannot set up is
+// listed as manual.
 export const CLAUDE_SECTIONS: { key: ClaudeSection, label: string }[] = [
   { key: 'memory', label: tt('Memory') },
   { key: 'settings', label: tt('Settings') },
@@ -15,7 +16,8 @@ export const CLAUDE_SECTIONS: { key: ClaudeSection, label: string }[] = [
   { key: 'agents', label: tt('Agents') },
   { key: 'commands', label: tt('Commands') },
   { key: 'output-styles', label: tt('Output styles') },
-  { key: 'workflows', label: tt('Workflows') }
+  { key: 'workflows', label: tt('Workflows') },
+  { key: 'mcp', label: tt('MCP servers') }
 ]
 
 export interface ClaudeImportSession {
@@ -93,8 +95,9 @@ export function sectionRows(scan: ClaudeImportScan): ClaudeSectionRow[] {
   })
 }
 
+// What the client cannot import, for the user to set up by hand (a WebSocket MCP server, ...).
 export function manualItems(scan: ClaudeImportScan): ImportItem[] {
-  return scan.items.filter(i => i.section === 'mcp')
+  return scan.items.filter(i => i.status === 'manual')
 }
 
 /** The sessions an import of this project would bring. */

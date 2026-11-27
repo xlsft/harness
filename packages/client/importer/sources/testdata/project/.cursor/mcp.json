@@ -1,0 +1,6 @@
+{
+  // project servers
+  "mcpServers": {
+    "docs": { "url": "https://docs.example.com/mcp", "headers": { "X-Api-Key": "${env:DOCS_KEY}" } },
+  }
+}

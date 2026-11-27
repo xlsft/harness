@@ -23,6 +23,8 @@ export interface UserView {
   lastSignInAt: string
   lastSeenAt: string
   isSelf: boolean
+  // Avatar as a data URL; '' when none.
+  image: string
 }
 
 export interface NewUser {

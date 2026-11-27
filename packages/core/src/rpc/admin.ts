@@ -61,6 +61,7 @@ function userToProto(u: AdminUserView, selfId: string): Omit<AdminUser, "$typeNa
     lastSignInAt: u.last_sign_in_at,
     lastSeenAt: u.last_seen_at,
     isSelf: u.id === selfId,
+    image: u.image,
   };
 }
 

@@ -1,0 +1,6 @@
+{
+  "mcpServers": {
+    "events": { "url": "https://events.example.com/sse" },
+    "stream": { "httpUrl": "https://stream.example.com/mcp", "headers": { "Authorization": "Bearer test-token-value" } }
+  }
+}

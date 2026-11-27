@@ -83,6 +83,7 @@ function profileToProto(p: Profile) {
     source: { ldap: UserSource.LDAP, sso: UserSource.SSO, scim: UserSource.SCIM, local: UserSource.LOCAL }[p.source] ?? UserSource.LOCAL,
     createdAt: p.created_at,
     lastSignInAt: p.last_sign_in_at,
+    groups: p.groups,
   };
 }
 

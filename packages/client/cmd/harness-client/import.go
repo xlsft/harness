@@ -16,6 +16,7 @@ import (
 	"github.com/xlsft/harness/packages/client/bootstrap"
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/importer"
+	"github.com/xlsft/harness/packages/client/mcp"
 	"github.com/xlsft/harness/packages/client/syncclient"
 )
 
@@ -48,7 +49,7 @@ func runImport(args []string) int {
 	dryRun := fs.Bool("dry-run", false, "show what would be imported without uploading or copying anything")
 	sessions := fs.Bool("sessions", false, "also copy ~/.claude/projects/**.jsonl to ~/.harness/projects and upload them")
 	noUpload := fs.Bool("no-upload", false, "with --sessions: only queue sessions; the next session start uploads them")
-	secrets := fs.Bool("include-secrets", false, "upload env values that look like secrets (API keys, tokens)")
+	secrets := fs.Bool("include-secrets", false, "upload env values that look like secrets (API keys, tokens) and store MCP server secrets on this device")
 	force := fs.Bool("force", false, "overwrite documents that already exist on the server")
 	claudeDir := fs.String("claude-dir", filepath.Join(home, ".claude"), "Claude Code configuration directory")
 	claudeJSON := fs.String("claude-json", filepath.Join(home, ".claude.json"), "Claude Code global state file (MCP servers)")
@@ -63,6 +64,8 @@ func runImport(args []string) int {
 	opts := importer.Options{
 		ClaudeHome: *claudeDir, ClaudeJSON: *claudeJSON, ProjectsDir: config.ProjectsDir(),
 		DryRun: *dryRun, Sessions: *sessions, IncludeSecrets: *secrets, Force: *force,
+		// MCP servers become servers of this device, as when added in Settings > MCP.
+		MCP: mcp.ImportTarget{Inv: &mcp.Inventory{Local: &mcp.LocalStore{Path: bootstrap.MCPLocalFile()}, Approvals: &mcp.Approvals{Path: bootstrap.MCPApprovalsFile()}}},
 	}
 	var objects *syncclient.ObjectQueue
 	if !*dryRun {

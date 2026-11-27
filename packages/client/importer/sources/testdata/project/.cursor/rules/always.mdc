@@ -1,0 +1,6 @@
+---
+description: Project basics
+alwaysApply: true
+---
+
+Run make test before committing.

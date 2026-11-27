@@ -33,7 +33,8 @@ const SECTION_PB: Partial<Record<ClaudeSection, ClaudeImportSection>> = {
   'agents': ClaudeImportSection.AGENTS,
   'commands': ClaudeImportSection.COMMANDS,
   'output-styles': ClaudeImportSection.OUTPUT_STYLES,
-  'workflows': ClaudeImportSection.WORKFLOWS
+  'workflows': ClaudeImportSection.WORKFLOWS,
+  'mcp': ClaudeImportSection.MCP_SERVERS
 }
 
 const STATUS_NAME: Record<ClaudeImportStatus, ImportStatus> = {
