@@ -203,9 +203,9 @@ function openMore(to: string) {
         :class="isCurrent(item.to) ? 'nav-row-current' : ''"
         :aria-current="isCurrent(item.to) ? 'page' : undefined"
       >
-        <HIcon :name="item.icon" />{{ item.label }}<span
+        <HIcon :name="item.icon" />{{ item.label }}<span class="flex-1" /><span
           v-if="item.beta"
-          class="ml-1.5 rounded-chip border border-accent px-1 text-[10px] leading-[14px] text-accent"
+          class="rounded-chip border border-accent px-1 text-[10px] leading-[14px] text-accent"
         >{{ tt('Beta') }}</span>
       </component>
       <UPopover
@@ -237,9 +237,10 @@ function openMore(to: string) {
               :active="isCurrent(item.to)"
               @click="openMore(item.to)"
             >
-              {{ item.label }}<span
-                class="ml-1.5 rounded-chip border border-accent px-1 text-[10px] leading-[14px] text-accent"
-              >{{ tt('Beta') }}</span>
+              <!-- Grows over the menu row's own spacer, so the badge sits at the right edge. -->
+              <span class="flex min-w-0 grow-[999] items-center gap-2">{{ item.label }}<span class="flex-1" /><span
+                class="rounded-chip border border-accent px-1 text-[10px] leading-[14px] text-accent"
+              >{{ tt('Beta') }}</span></span>
             </PaneMenuItem>
           </div>
         </template>
