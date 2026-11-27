@@ -15,7 +15,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 )
 
 func TestSpeakableText(t *testing.T) {
@@ -191,7 +190,10 @@ func TestModelDownloads(t *testing.T) {
 	}))
 	defer srv.Close()
 	dir := t.TempDir()
-	m := NewModels(dir, testCatalog(srv.URL), srv.Client())
+	catalog := testCatalog(srv.URL)
+	catalog[0].Files[0].Size = int64(len(runtimeArchive))
+	catalog[1].Files[0].Size = int64(len(parakeetArchive))
+	m := NewModels(dir, catalog, srv.Client())
 	ctx := context.Background()
 
 	if _, err := m.Start(ctx, "nope/x"); !errors.Is(err, ErrUnknownModel) {
@@ -207,11 +209,10 @@ func TestModelDownloads(t *testing.T) {
 	}
 	close(gate)
 	var seen []int64
-	pollInterval = 5 * time.Millisecond
 	if err := d.Watch(ctx, func(n, total int64) error { seen = append(seen, total); return nil }); err != nil {
 		t.Fatalf("download: %v", err)
 	}
-	if seen[0] != 200 {
+	if seen[0] != int64(len(runtimeArchive)+len(parakeetArchive)) {
 		t.Fatalf("the total includes the runtime: %v", seen)
 	}
 	p, _ := m.Find("parakeet/p1")
