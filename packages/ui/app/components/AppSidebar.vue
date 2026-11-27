@@ -114,9 +114,9 @@ const NuxtLink = resolveComponent('NuxtLink')
 
 // `soon`: not built yet; the row shows a badge and does nothing.
 const nav = [
-  { label: tt('Artifacts'), icon: 'copy' as const, to: '/artifacts' },
-  { label: tt('Scheduled'), icon: 'clock' as const, to: '/scheduled' },
-  { label: tt('Extensions'), icon: 'sliders' as const, to: '/extensions' }
+  { label: tt('Artifacts'), icon: 'copy' as const, to: '/artifacts', beta: true },
+  { label: tt('Scheduled'), icon: 'clock' as const, to: '/scheduled', beta: false },
+  { label: tt('Extensions'), icon: 'sliders' as const, to: '/extensions', beta: false }
 ]
 // Under More, a dropdown: pages people open less often. The row reads as current while one of them is open.
 const more = [
@@ -203,7 +203,10 @@ function openMore(to: string) {
         :class="isCurrent(item.to) ? 'nav-row-current' : ''"
         :aria-current="isCurrent(item.to) ? 'page' : undefined"
       >
-        <HIcon :name="item.icon" />{{ item.label }}
+        <HIcon :name="item.icon" />{{ item.label }}<span
+          v-if="item.beta"
+          class="ml-1.5 rounded-chip border border-accent px-1 text-[10px] leading-[14px] text-accent"
+        >{{ tt('Beta') }}</span>
       </component>
       <UPopover
         v-model:open="moreOpen"
