@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { create } from '@bufbuild/protobuf'
 import { CardOutputSchema, CardSchema } from '~/gen/harness/library/v1/boards_pb'
 import { MockIssuesApi } from '~/lib/issues/mock'
-import { BoardScope, cardsByStage, CardOutputStatus, CardPriority, CardRelationKind, ExternalState, externalNote, outputNote, priorityLabel, ProjectScope, stagesToInit, TrackerAuthMethod, TrackerConnectionScope } from '~/lib/issues/types'
+import { BoardScope, cardsByStage, CardOutputStatus, CardPriority, CardRelationKind, ExternalState, externalNote, outputNote, priorityLabel, ProjectScope, providerTile, stagesToInit, TrackerAuthMethod, TrackerConnectionScope } from '~/lib/issues/types'
 import { MockTransport } from '~/lib/transport/mock'
 import { toolIcon, toolTarget } from '~/utils/tools'
 import type { ToolItem } from '~/lib/session/types'
@@ -104,6 +104,25 @@ describe('issues', () => {
     expect(providers[0]?.authMethods).toContain(TrackerAuthMethod.OAUTH)
     await api.deleteConnection(TrackerConnectionScope.DEVICE, c.id)
     expect((await api.listConnections()).connections.some(x => x.id === c.id)).toBe(false)
+  })
+
+  it('adds a knowledge source that borrows a tracker connection of the same scope', async () => {
+    const api = new MockIssuesApi()
+    const { connections, companyProviders } = await api.listKnowledgeConnections()
+    expect(companyProviders[0]?.borrowFrom).toEqual(['youtrack'])
+    expect(connections[0]?.borrowName).toBe('Company YouTrack')
+    const k = await api.saveKnowledgeConnection(TrackerConnectionScope.ADMIN, { provider: 'youtrack-kb', borrowConnectionId: 'tc_company', enabled: true })
+    expect(k.borrow?.id).toBe('tc_company')
+    expect(k.hasSecret).toBe(true)
+    expect(k.auth).toBe(TrackerAuthMethod.UNSPECIFIED)
+    // A device source can't borrow a company connection: it needs its own sign-in then.
+    await expect(api.saveKnowledgeConnection(TrackerConnectionScope.DEVICE, { provider: 'youtrack-kb', borrowConnectionId: 'tc_company' })).rejects.toThrow(/address/)
+  })
+
+  it('picks a tile from the capability logo, else letters', () => {
+    expect(providerTile('youtrack', 'YouTrack Knowledge Base', { youtrack: '<svg/>' })).toBe('youtrack')
+    expect(providerTile('', 'Yandex Wiki', {})).toBe('YW')
+    expect(providerTile('', 'kaiten', {})).toBe('KA')
   })
 
   it('makes a board with the default stages', async () => {

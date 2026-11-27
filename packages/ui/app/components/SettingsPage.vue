@@ -25,6 +25,7 @@ const SECTIONS = [
   { key: 'memory', label: tt('Memory'), icon: 'doc', group: 'app' },
   { key: 'codehosts', label: tt('VCS'), icon: 'pull-request', group: 'app' },
   { key: 'trackers', label: tt('Issue trackers'), icon: 'tasks', group: 'app' },
+  { key: 'knowledge', label: tt('Knowledge sources'), icon: 'page', group: 'app' },
   { key: 'hosts', label: tt('Always-on hosts'), icon: 'box', group: 'app' },
   { key: 'import', label: tt('Import'), icon: 'download', group: 'app' },
   { key: 'models', label: tt('Models'), icon: 'ai', group: 'ai' },
@@ -67,7 +68,8 @@ const KEYWORDS: Record<Section, string> = {
   sessions: 'permission modes ask auto plan bypass new sessions worktree defaults compact idle compaction context',
   sandbox: 'sandbox seatbelt restrict commands bash write paths network hosts proxy allowlist localhost',
   codehosts: 'github gitlab vcs code host pull request merge request pr connect app oauth gh glab webhook',
-  trackers: 'youtrack jira linear issues issue tracker provider connection token oauth board knowledge',
+  trackers: 'youtrack jira linear github gitlab yandex kaiten issues issue tracker provider connection token oauth board',
+  knowledge: 'knowledge sources wiki confluence yandex wiki youtrack knowledge base articles documents linear github gitlab kaiten docs connection sign-in borrow',
   hosts: 'always-on host daemon server container cloud remote capacity load workers team isolation',
   hooks: 'hooks pretooluse posttooluse stop sessionstart scripts automation disable trust',
   memory: 'memory auto notes remember forget index project MEMORY.md',
@@ -174,6 +176,7 @@ const notifications = computed({
       <SettingsHosts v-else-if="section === 'hosts'" />
 
       <SettingsTrackers v-else-if="section === 'trackers'" />
+      <SettingsKnowledgeSources v-else-if="section === 'knowledge'" />
 
       <template v-else-if="section === 'sessions'">
         <template v-if="managed?.active">
