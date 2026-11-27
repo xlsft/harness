@@ -191,6 +191,20 @@ func CLIStatus(ctx context.Context, providers []Provider) []*agentv1.VcsDeviceCl
 			defer wg.Done()
 			dctx, cancel := context.WithTimeout(ctx, cliStatusTimeout)
 			defer cancel()
+			// A CLI that can check its hosts one by one (glab) lists every host it knows, each with what went wrong.
+			if hp, ok := p.(interface {
+				CLIHosts(context.Context, time.Duration) (string, []*agentv1.VcsDeviceCliHost, error)
+			}); ok {
+				version, hosts, err := hp.CLIHosts(dctx, cliStatusTimeout*3/4)
+				switch {
+				case errors.Is(err, ErrNotInstalled):
+				case err != nil:
+					cli.Installed, cli.Problem = true, err.Error()
+				default:
+					cli.Installed, cli.Version, cli.Hosts = true, version, hosts
+				}
+				return
+			}
 			d, err := p.Detect(dctx)
 			switch {
 			case errors.Is(err, ErrNotInstalled):

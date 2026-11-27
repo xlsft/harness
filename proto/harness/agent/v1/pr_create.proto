@@ -58,7 +58,7 @@ message CreatePullRequestResponse {
   bool pushed = 5;
 }
 
-// AgentService.GetVcsStatus: what this client can reach code hosts with, for Settings > Code hosts.
+// AgentService.GetVcsStatus: what this client can reach code hosts with, for Settings > VCS.
 message GetVcsStatusRequest {}
 
 message GetVcsStatusResponse {
@@ -80,5 +80,8 @@ message VcsDeviceCli {
 
 message VcsDeviceCliHost {
   string host = 1;
+  // Empty when the CLI has the host in its config but is not signed in there, or could not check.
   string login = 2;
+  // Why the host could not be checked: its API refused the token, it did not answer in time, and so on.
+  string problem = 3;
 }

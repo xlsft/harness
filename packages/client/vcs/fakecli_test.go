@@ -46,6 +46,7 @@ case "$*" in
   "--version") c=version ;;
   "auth status --json hosts") c=auth-json ;;
   "auth status --all") c=auth-all ;;
+  "auth status --hostname "*) c="auth-host-$4" ;;
   "auth status") c=auth ;;
   "pr list "*) c=pr-list ;;
   "pr view "*) c=pr-view ;;

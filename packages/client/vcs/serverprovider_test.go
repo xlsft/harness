@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -207,5 +209,43 @@ func TestCLIStatusDoesNotWaitForAStuckCLI(t *testing.T) {
 	}
 	if !out[1].GetInstalled() || !strings.Contains(out[1].GetProblem(), "did not answer") {
 		t.Fatalf("glab: %+v", out[1])
+	}
+}
+
+// glab lists every host in its config, each checked on its own: the signed-in one with its login, the one whose API
+// refuses with the reason, and the one that does not answer with that, without holding up the others.
+func TestGLabCLIHostsChecksEachHost(t *testing.T) {
+	f := newFakeEnv(t)
+	cli := f.install("glab")
+	cli.set("version", "glab 1.119.0\n", "", 0)
+	cli.set("auth-host-ok.example", "", "ok.example\n  ✓ Logged in to ok.example as me (keyring)\n", 0)
+	cli.set("auth-host-bad.example", "", "bad.example\n  x bad.example: API call failed: GET https://bad.example/api/v4/user: 401 {message: 401 Unauthorized}\n", 1)
+	cli.hang("auth-host-slow.example", 3)
+	conf := t.TempDir()
+	t.Setenv("GLAB_CONFIG_DIR", conf)
+	config := "git_protocol: ssh\nhosts:\n    ok.example:\n        token: secret-a\n        user: me\n    bad.example:\n        token: secret-b\n    slow.example:\n        api_protocol: https\nno_prompt: true\n"
+	if err := os.WriteFile(filepath.Join(conf, "config.yml"), []byte(config), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	g := &GLab{Runner: f.runner()}
+	start := time.Now()
+	version, hosts, err := g.CLIHosts(context.Background(), 500*time.Millisecond)
+	if err != nil || version != "glab 1.119.0" {
+		t.Fatalf("version %q, err %v", version, err)
+	}
+	if d := time.Since(start); d > 2500*time.Millisecond {
+		t.Fatalf("took %v", d)
+	}
+	if len(hosts) != 3 {
+		t.Fatalf("hosts: %+v", hosts)
+	}
+	if h := hosts[0]; h.GetHost() != "ok.example" || h.GetLogin() != "me" || h.GetProblem() != "" {
+		t.Fatalf("ok: %+v", h)
+	}
+	if h := hosts[1]; h.GetHost() != "bad.example" || h.GetLogin() != "" || !strings.HasPrefix(h.GetProblem(), "API call failed") {
+		t.Fatalf("bad: %+v", h)
+	}
+	if h := hosts[2]; h.GetHost() != "slow.example" || !strings.Contains(h.GetProblem(), "did not answer") {
+		t.Fatalf("slow: %+v", h)
 	}
 }

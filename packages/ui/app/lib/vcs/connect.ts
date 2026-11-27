@@ -32,7 +32,7 @@ export class ConnectVcsApi implements VcsApi {
 
   async clis() {
     const res = await this.agent.getVcsStatus({})
-    return res.clis.map(c => ({ name: c.name, installed: c.installed, version: c.version, hosts: c.hosts.map(h => ({ host: h.host, login: h.login })), loginCommand: c.loginCommand, problem: c.problem }))
+    return res.clis.map(c => ({ name: c.name, installed: c.installed, version: c.version, hosts: c.hosts.map(h => ({ host: h.host, login: h.login, problem: h.problem })), loginCommand: c.loginCommand, problem: c.problem }))
   }
 
   async userConnections() {

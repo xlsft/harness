@@ -379,7 +379,7 @@ func (x *CreatePullRequestResponse) GetPushed() bool {
 	return false
 }
 
-// AgentService.GetVcsStatus: what this client can reach code hosts with, for Settings > Code hosts.
+// AgentService.GetVcsStatus: what this client can reach code hosts with, for Settings > VCS.
 type GetVcsStatusRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -549,9 +549,12 @@ func (x *VcsDeviceCli) GetProblem() string {
 }
 
 type VcsDeviceCliHost struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Host          string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
-	Login         string                 `protobuf:"bytes,2,opt,name=login,proto3" json:"login,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Host  string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	// Empty when the CLI has the host in its config but is not signed in there, or could not check.
+	Login string `protobuf:"bytes,2,opt,name=login,proto3" json:"login,omitempty"`
+	// Why the host could not be checked: its API refused the token, it did not answer in time, and so on.
+	Problem       string `protobuf:"bytes,3,opt,name=problem,proto3" json:"problem,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -596,6 +599,13 @@ func (x *VcsDeviceCliHost) GetHost() string {
 func (x *VcsDeviceCliHost) GetLogin() string {
 	if x != nil {
 		return x.Login
+	}
+	return ""
+}
+
+func (x *VcsDeviceCliHost) GetProblem() string {
+	if x != nil {
+		return x.Problem
 	}
 	return ""
 }
@@ -651,10 +661,11 @@ const file_harness_agent_v1_pr_create_proto_rawDesc = "" +
 	"\aversion\x18\x03 \x01(\tR\aversion\x128\n" +
 	"\x05hosts\x18\x04 \x03(\v2\".harness.agent.v1.VcsDeviceCliHostR\x05hosts\x12#\n" +
 	"\rlogin_command\x18\x05 \x01(\tR\floginCommand\x12\x18\n" +
-	"\aproblem\x18\x06 \x01(\tR\aproblem\"<\n" +
+	"\aproblem\x18\x06 \x01(\tR\aproblem\"V\n" +
 	"\x10VcsDeviceCliHost\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x14\n" +
-	"\x05login\x18\x02 \x01(\tR\x05loginB\xce\x01\n" +
+	"\x05login\x18\x02 \x01(\tR\x05login\x12\x18\n" +
+	"\aproblem\x18\x03 \x01(\tR\aproblemB\xce\x01\n" +
 	"\x14com.harness.agent.v1B\rPrCreateProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
 var (

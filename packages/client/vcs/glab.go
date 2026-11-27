@@ -6,9 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	vcsv1 "github.com/xlsft/harness/packages/client/gen/harness/vcs/v1"
@@ -260,4 +264,117 @@ func glabJobState(status string, allowFailure bool) vcsv1.CheckState {
 		return vcsv1.CheckState_CHECK_STATE_NEUTRAL
 	}
 	return vcsv1.CheckState_CHECK_STATE_UNSPECIFIED
+}
+
+// glabConfigFile is glab's config: $GLAB_CONFIG_DIR, else the OS config dir (~/Library/Application Support on macOS),
+// else ~/.config, each with glab-cli/config.yml.
+func glabConfigFile() string {
+	var dirs []string
+	if d := os.Getenv("GLAB_CONFIG_DIR"); d != "" {
+		return filepath.Join(d, "config.yml")
+	}
+	if d := os.Getenv("XDG_CONFIG_HOME"); d != "" {
+		dirs = append(dirs, filepath.Join(d, "glab-cli"))
+	}
+	if d, err := os.UserConfigDir(); err == nil {
+		dirs = append(dirs, filepath.Join(d, "glab-cli"))
+	}
+	if h, err := os.UserHomeDir(); err == nil {
+		dirs = append(dirs, filepath.Join(h, ".config", "glab-cli"))
+	}
+	for _, d := range dirs {
+		if _, err := os.Stat(filepath.Join(d, "config.yml")); err == nil {
+			return filepath.Join(d, "config.yml")
+		}
+	}
+	return ""
+}
+
+// glabConfiguredHosts lists the hosts in glab's config, in its order. Only the keys under `hosts:` are read: never a
+// token or any other value.
+func glabConfiguredHosts() []string {
+	f := glabConfigFile()
+	if f == "" {
+		return nil
+	}
+	b, err := os.ReadFile(f)
+	if err != nil {
+		return nil
+	}
+	var hosts []string
+	in, indent := false, -1
+	for _, line := range strings.Split(string(b), "\n") {
+		trimmed := strings.TrimLeft(line, " ")
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		depth := len(line) - len(trimmed)
+		if depth == 0 {
+			in = strings.TrimSpace(line) == "hosts:"
+			indent = -1
+			continue
+		}
+		if !in {
+			continue
+		}
+		if indent < 0 {
+			indent = depth
+		}
+		if depth != indent || !strings.HasSuffix(strings.TrimSpace(trimmed), ":") {
+			continue
+		}
+		hosts = append(hosts, strings.Trim(strings.TrimSuffix(strings.TrimSpace(trimmed), ":"), `"'`))
+	}
+	return hosts
+}
+
+var glabHostFailRe = regexp.MustCompile(`(?m)^\s*x\s+(?:\S+?:\s+)?(.+)$`)
+
+// CLIHosts reports glab's version and every host in its config, each checked on its own with `glab auth status
+// --hostname`, all at the same time and each for at most hostTimeout, so one unreachable host shows as that host's
+// problem instead of holding the rest.
+func (g *GLab) CLIHosts(ctx context.Context, hostTimeout time.Duration) (string, []*agentv1.VcsDeviceCliHost, error) {
+	r := g.runner()
+	res, err := r.Run(ctx, g.bin(), "--version")
+	if err != nil {
+		return "", nil, err
+	}
+	if res.ExitCode != 0 {
+		return "", nil, cliError(g.bin(), res)
+	}
+	version := firstLine(res.Stdout)
+	names := glabConfiguredHosts()
+	out := make([]*agentv1.VcsDeviceCliHost, len(names))
+	var wg sync.WaitGroup
+	for i, host := range names {
+		out[i] = &agentv1.VcsDeviceCliHost{Host: host}
+		wg.Add(1)
+		go func(h *agentv1.VcsDeviceCliHost) {
+			defer wg.Done()
+			hctx, cancel := context.WithTimeout(ctx, hostTimeout)
+			defer cancel()
+			res, err := r.Run(hctx, g.bin(), "auth", "status", "--hostname", h.Host)
+			switch {
+			case errors.Is(err, ErrTimeout) || errors.Is(hctx.Err(), context.DeadlineExceeded):
+				h.Problem = fmt.Sprintf("did not answer within %v", hostTimeout)
+				return
+			case err != nil:
+				h.Problem = err.Error()
+				return
+			}
+			text := stripANSI(string(res.Stdout) + "\n" + string(res.Stderr))
+			if m := glabLoggedInRe.FindStringSubmatch(text); m != nil {
+				h.Login = m[2]
+			}
+			if h.Login == "" {
+				if m := glabHostFailRe.FindStringSubmatch(text); m != nil {
+					h.Problem = strings.TrimSpace(m[1])
+				} else if strings.Contains(text, "No token found") {
+					h.Problem = "not signed in"
+				}
+			}
+		}(out[i])
+	}
+	wg.Wait()
+	return version, out, nil
 }

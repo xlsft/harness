@@ -145,6 +145,8 @@ async function removeConnection(c: ConnectionView) {
 
 // Tile of a code host or CLI, like the provider tiles in Settings > Models: its logo (utils/providerLogos.ts).
 const MONO: Record<string, string> = { github: 'github', gitlab: 'gitlab', gh: 'github', glab: 'gitlab' }
+// Signed in somewhere: at least one host answered with a login.
+const signedIn = (c: CliView) => c.hosts.some(h => h.login && !h.problem)
 const mono = (k: string) => MONO[k] ?? k.slice(0, 2).toUpperCase()
 const GITHUB_APP_DOCS = 'https://docs.github.com/en/apps/creating-github-apps'
 const GITLAB_OAUTH_DOCS = 'https://docs.gitlab.com/integration/oauth_provider/'
@@ -258,35 +260,58 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
         <div
           v-for="(c, i) in clis"
           :key="c.name"
-          class="flex items-center gap-3 px-3 py-2.5"
-          :class="{ 'border-t border-default': i > 0 }"
+          class="flex flex-col"
+          :class="{ 'border-t border-default': i > 0 || !clisLoaded }"
         >
-          <SettingsMonogram
-            :text="mono(c.name)"
-            :dim="!c.hosts.length"
-          />
-          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span class="flex items-center gap-2 text-[12.5px] text-strong">
-              {{ c.name }}
+          <div class="flex items-center gap-3 px-3 py-2.5">
+            <SettingsMonogram
+              :text="mono(c.name)"
+              :dim="!signedIn(c)"
+            />
+            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span class="flex items-center gap-2 text-[12.5px] text-strong">
+                {{ c.name }}
+                <span
+                  v-if="c.version"
+                  class="text-[11px] text-dimmed"
+                >{{ c.version }}</span>
+                <span
+                  v-if="signedIn(c) && !c.problem"
+                  class="text-[11px] text-ok"
+                >{{ tt('signed in') }}</span>
+              </span>
               <span
-                v-if="c.version"
-                class="text-[11px] text-dimmed"
-              >{{ c.version }}</span>
-              <span
-                v-if="c.hosts.length && !c.problem"
-                class="text-[11px] text-ok"
-              >{{ tt('signed in') }}</span>
+                class="text-[11.5px]"
+                :class="c.problem ? 'text-warn' : 'truncate text-muted'"
+              >
+                <template v-if="c.problem">{{ c.problem }}</template>
+                <template v-else-if="!c.installed">{{ tt('Not installed') }}</template>
+                <template v-else-if="!c.hosts.length">{{ tt('Installed, not signed in. Run') }} <code>{{ c.loginCommand }}</code></template>
+                <template v-else>{{ tt('{0} of {1} hosts signed in', [c.hosts.filter(h => h.login && !h.problem).length, c.hosts.length]) }}</template>
+              </span>
             </span>
+          </div>
+          <!-- Every host the CLI knows, with who it is signed in as there or why it could not check. -->
+          <div
+            v-for="h in c.hosts"
+            :key="h.host"
+            class="flex items-center gap-2 border-t border-default py-1.5 pr-3 pl-[52px] text-[11.5px]"
+          >
             <span
-              class="text-[11.5px]"
-              :class="c.problem ? 'text-warn' : 'truncate text-muted'"
+              class="size-1.5 shrink-0 rounded-full"
+              :class="h.problem ? 'bg-bad' : h.login ? 'bg-ok' : 'bg-dimmed'"
+            />
+            <span class="shrink-0 text-strong">{{ h.host }}</span>
+            <span
+              class="min-w-0 truncate"
+              :class="h.problem ? 'text-bad' : 'text-muted'"
+              :title="h.problem || undefined"
             >
-              <template v-if="c.problem">{{ c.problem }}</template>
-              <template v-else-if="!c.installed">{{ tt('Not installed') }}</template>
-              <template v-else-if="!c.hosts.length">{{ tt('Installed, not signed in. Run') }} <code>{{ c.loginCommand }}</code></template>
-              <template v-else>{{ c.hosts.map(h => `${h.login} on ${h.host}`).join(', ') }}</template>
+              <template v-if="h.problem">{{ h.problem }}</template>
+              <template v-else-if="h.login">{{ tt('as {0}', [h.login]) }}</template>
+              <template v-else>{{ tt('not signed in') }}</template>
             </span>
-          </span>
+          </div>
         </div>
       </div>
     </section>

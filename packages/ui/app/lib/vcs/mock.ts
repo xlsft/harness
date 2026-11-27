@@ -5,8 +5,8 @@ import type { AuthStatus, ConnectionView, CliView, GitLabConnectionInput, UserCo
 export class MockVcsApi implements VcsApi {
   admin = true
   private cliList: CliView[] = [
-    { name: 'gh', installed: true, version: 'gh version 2.80.0', hosts: [{ host: 'github.com', login: 'demo' }], loginCommand: 'gh auth login', problem: '' },
-    { name: 'glab', installed: false, version: '', hosts: [], loginCommand: 'glab auth login', problem: '' }
+    { name: 'gh', installed: true, version: 'gh version 2.80.0', hosts: [{ host: 'github.com', login: 'demo', problem: '' }], loginCommand: 'gh auth login', problem: '' },
+    { name: 'glab', installed: true, version: 'glab 1.119.0', hosts: [{ host: 'gitlab.com', login: 'demo', problem: '' }, { host: 'gitlab.example.com', login: '', problem: 'did not answer within 4.5s' }], loginCommand: 'glab auth login', problem: '' }
   ]
 
   private conns: ConnectionView[] = [

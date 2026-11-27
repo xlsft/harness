@@ -1,4 +1,4 @@
-// VcsApi: what Settings > Code hosts needs. The local CLIs come from AgentService; connections and the user's own
+// VcsApi: what Settings > VCS needs. The local CLIs come from AgentService; connections and the user's own
 // authorization from harness.vcs.v1.VcsService, which the client forwards to the server with the user's credentials.
 // The server keeps connections admin-only and their secrets write-only. Two implementations: connect.ts and mock.ts.
 
@@ -8,7 +8,10 @@ export type UserAuthState = 'not_connected' | 'pending' | 'connected' | 'error'
 
 export interface CliHostView {
   host: string
+  // Empty when the CLI is not signed in there or could not check.
   login: string
+  // Why the host could not be checked (the API refused, it did not answer in time); empty when it is fine.
+  problem: string
 }
 
 export interface CliView {
