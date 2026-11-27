@@ -63,8 +63,8 @@ const CODEX: SourceItem[] = [
   it({ kind: 'command', name: 'draftpr', source: '~/.codex/prompts/draftpr.md', target: 'command draftpr', note: 'Codex took FILES as KEY=value; here they are given in order' }),
   it({ kind: 'agent', name: 'reviewer', source: '~/.codex/agents/reviewer.toml', target: 'agent reviewer' }),
   it({ kind: 'skill', name: 'review', source: '~/.agents/skills/review', target: 'skill review' }),
-  it({ kind: 'settings', name: 'Codex settings', source: '~/.codex/config.toml', status: 'noted', note: 'model = gpt-6: models and permission modes are chosen in Settings' }),
-  it({ kind: 'session', name: 'Codex sessions', source: '~/.codex/sessions', status: 'noted', note: '12 session(s); sessions from this tool are not imported yet' })
+  it({ kind: 'settings', name: 'Codex settings', source: '~/.codex/config.toml', status: 'manual', note: 'model = gpt-6: models and permission modes are chosen in Settings' }),
+  it({ kind: 'session', name: 'Codex sessions', source: '~/.codex/sessions', status: 'manual', note: '12 session(s); sessions from this tool are not imported yet' })
 ]
 
 const ITEMS: Record<string, SourceItem[]> = { 'claude-desktop': DESKTOP, 'folder': FOLDER, 'cursor': FOLDER.filter(i => i.source.startsWith('.cursor')), 'codex': CODEX }
