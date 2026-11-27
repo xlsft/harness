@@ -32,8 +32,21 @@ function messageOf(e: unknown) {
   return e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e)
 }
 
-const usable = computed(() => machines.value.filter(m => m.online && m.remoteStarts))
-const others = computed(() => machines.value.filter(m => !(m.online && m.remoteStarts)))
+// A machine signed in again gets a new device, so one computer can be listed many times: keep one per name, the one that
+// can take the start, else the one online, else the one seen last.
+const rank = (m: MachineView) => (m.online && m.remoteStarts ? 2 : m.online ? 1 : 0)
+const distinct = computed(() => {
+  const best = new Map<string, MachineView>()
+  for (const m of machines.value) {
+    const key = m.name || m.hostId
+    const had = best.get(key)
+    if (!had || rank(m) > rank(had) || (rank(m) === rank(had) && m.lastSeenAt > had.lastSeenAt)) best.set(key, m)
+  }
+  return [...best.values()]
+})
+const usable = computed(() => distinct.value.filter(m => m.online && m.remoteStarts))
+const others = computed(() => distinct.value.filter(m => !(m.online && m.remoteStarts)).sort((a, b) => rank(b) - rank(a) || b.lastSeenAt.localeCompare(a.lastSeenAt)))
+const OTHERS_SHOWN = 3
 const machineOptions = computed(() => usable.value.map(m => ({ value: m.hostId, label: m.name || tt('Unnamed machine') })))
 const folderOptions = computed(() => folders.value.map(f => ({ value: f.path, label: f.name || f.path, hint: f.branch ? `${f.path} · ${f.branch}` : f.path })))
 const modeOptions = computed(() => REMOTE_MODES.filter(m => !(store.disabledModes as string[]).includes(m)).map(m => ({ value: m, label: MODE_LABELS[m] ?? m })))
@@ -167,12 +180,29 @@ async function start() {
       {{ error }}
     </p>
 
-    <p
+    <div
       v-if="others.length"
-      class="m-0 text-[11.5px] text-muted"
+      class="flex flex-col gap-1 text-[11.5px]"
     >
-      {{ tt('Not available now: {0}', [others.map(m => `${m.name || tt('Unnamed machine')} (${m.online ? tt('remote starts off') : tt('offline')})`).join(', ')]) }}
-    </p>
+      <span class="text-muted">{{ tt('Not available now') }}</span>
+      <div
+        v-for="m in others.slice(0, OTHERS_SHOWN)"
+        :key="m.hostId"
+        class="flex items-center gap-2"
+      >
+        <HIcon
+          name="monitor"
+          :size="12"
+          class="text-muted"
+        />
+        <span class="min-w-0 flex-1 truncate text-toned">{{ m.name || tt('Unnamed machine') }}</span>
+        <span class="shrink-0 text-muted">{{ m.online ? tt('remote starts off') : tt('offline') }}</span>
+      </div>
+      <span
+        v-if="others.length > OTHERS_SHOWN"
+        class="text-muted"
+      >{{ tt('and {0} more', [others.length - OTHERS_SHOWN]) }}</span>
+    </div>
 
     <div
       v-if="usable.length && !policyOff"
