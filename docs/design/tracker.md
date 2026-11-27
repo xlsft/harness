@@ -45,7 +45,7 @@ A knowledge source connection either signs in on its own or **borrows the sign-i
   when the source has none of its own, and merges its options under the source's own. Refreshed OAuth tokens are written back to the
   tracker connection. A new token there is used by the source at once.
 - A borrowing connection keeps no auth, login, OAuth client or secret of its own (they are cleared on save). Its own address is
-  allowed (the API takes it; the form does not offer it), and then the tracker's credentials go there: only the owner of the device or an
+  allowed (the form offers it as an optional address, empty meaning the tracker's), and then the tracker's credentials go there: only the owner of the device or an
   admin can set either.
 - The tracker connection disabled: the source fails with "<name>, whose sign-in this uses, is disabled". Removed: "the tracker connection
   whose sign-in this uses is gone". The source is not removed with it; the user sees why it fails and picks another sign-in.
@@ -372,8 +372,6 @@ sources.
 - **Webhooks** instead of polling; attachments.
 - **Providers**: trackers Jira, Linear, GitHub Issues, GitLab Issues, Yandex Tracker, Kaiten; knowledge Confluence, Yandex Wiki, Linear
   documents, GitHub and GitLab wikis, Kaiten documents. One agent per vendor, following section 10.
-- **An own address with a borrowed sign-in** in the form (the API has it).
-- **Picking the code host connection** for `VCS_CONNECTION` from a list: it is a plain option field (`vcs_connection_id`) today.
 - **Remote control**: `LocalTrackerService` answers on the client the window talks to, like SSH hosts, not through the relay.
 
 ## 10. Writing a provider

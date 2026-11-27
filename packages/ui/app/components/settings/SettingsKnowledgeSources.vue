@@ -120,7 +120,8 @@ function input() {
     id: s.id,
     provider: form.provider,
     name: form.name.trim(),
-    baseUrl: own ? s.baseUrl.trim() : '',
+    // A borrowing source may have an address of its own (a wiki on another host); empty: the tracker's.
+    baseUrl: s.baseUrl.trim(),
     auth: own ? s.auth : TrackerAuthMethod.UNSPECIFIED,
     login: own ? s.login.trim() : '',
     oauthClientId: own ? s.oauthClientId.trim() : '',
@@ -392,11 +393,19 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
                 :hide-options="form.scope === TrackerConnectionScope.DEVICE ? VCS_OPTION_KEYS : []"
               />
               <SettingsProviderSignIn
-                v-else-if="spec.optionFields.length"
+                v-else
                 v-model="form.signIn"
                 :spec="{ ...spec, authMethods: [] }"
-                :address="false"
+                :address-placeholder="tt('Its own address, if not the tracker\'s (optional)')"
+                :choices-for="form.scope === TrackerConnectionScope.ADMIN ? vcsChoices : {}"
+                :hide-options="form.scope === TrackerConnectionScope.DEVICE ? VCS_OPTION_KEYS : []"
               />
+              <p
+                v-if="form.borrow && form.signIn.baseUrl.trim()"
+                class="m-0 text-[11.5px] text-muted"
+              >
+                {{ tt('The tracker\'s sign-in is sent to this address: use it only for a host of the same service.') }}
+              </p>
               <input
                 v-if="capability?.queryLanguage"
                 v-model="form.query"

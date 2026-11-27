@@ -4,7 +4,7 @@
 // may give an option a list to choose from (`choicesFor`: a code host connection) or hide it where it means nothing.
 import { AUTH_HELP, AUTH_LABELS, TrackerAuthMethod, takesLogin, takesSecret, type OptionChoice, type SignInForm, type SignInSpec } from '~/lib/issues/types'
 
-const props = withDefaults(defineProps<{ spec: SignInSpec, address?: boolean, choicesFor?: Record<string, OptionChoice[]>, hideOptions?: string[] }>(), { address: true, choicesFor: () => ({}), hideOptions: () => [] })
+const props = withDefaults(defineProps<{ spec: SignInSpec, address?: boolean, choicesFor?: Record<string, OptionChoice[]>, hideOptions?: string[], addressPlaceholder?: string }>(), { address: true, addressPlaceholder: '', choicesFor: () => ({}), hideOptions: () => [] })
 const form = defineModel<SignInForm>({ required: true })
 
 const authOptions = computed(() => props.spec.authMethods.map(m => ({ value: String(m), label: AUTH_LABELS[m] ?? '' })))
@@ -32,7 +32,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
     <input
       v-if="address"
       v-model="form.baseUrl"
-      :placeholder="spec.defaultBaseUrl || spec.baseUrlPlaceholder || tt('https://example.com')"
+      :placeholder="addressPlaceholder || spec.defaultBaseUrl || spec.baseUrlPlaceholder || tt('https://example.com')"
       :aria-label="tt('Address')"
       :class="[inputClass, 'min-w-[240px]']"
     >
