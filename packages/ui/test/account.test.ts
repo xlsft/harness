@@ -15,9 +15,10 @@ describe('profileView / deviceView', () => {
       role: User_Role.ADMIN,
       source: UserSource.LDAP,
       createdAt: '2026-01-01T00:00:00Z',
-      lastSignInAt: ''
+      lastSignInAt: '',
+      groups: ['Engineering']
     }))
-    expect(p).toEqual({ id: 'usr_1', username: 'ada', email: 'ada@example.com', name: 'Ada', image: 'data:image/png;base64,AAAA', role: 'admin', source: 'ldap', createdAt: '2026-01-01T00:00:00Z', lastSignInAt: '' })
+    expect(p).toEqual({ id: 'usr_1', username: 'ada', email: 'ada@example.com', name: 'Ada', image: 'data:image/png;base64,AAAA', role: 'admin', source: 'ldap', createdAt: '2026-01-01T00:00:00Z', lastSignInAt: '', groups: ['Engineering'] })
     expect(profileView(undefined)).toMatchObject({ role: 'user', source: 'local', image: '' })
 
     const d = deviceView(create(DeviceSchema, { id: 'dev_1', name: 'box', os: 'linux', arch: 'amd64', clientName: 'harness-client', createdAt: 'c', lastSeenAt: 's', current: true }))

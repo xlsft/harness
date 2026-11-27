@@ -16,7 +16,8 @@ export function profileView(u: User | undefined): AccountProfile {
     role: u?.role === User_Role.ADMIN ? 'admin' : u?.role === User_Role.AUDITOR ? 'auditor' : u?.role === User_Role.BILLING ? 'billing' : 'user',
     source: u?.source === UserSource.LDAP ? 'ldap' : u?.source === UserSource.SSO ? 'sso' : u?.source === UserSource.SCIM ? 'scim' : 'local',
     createdAt: u?.createdAt ?? '',
-    lastSignInAt: u?.lastSignInAt ?? ''
+    lastSignInAt: u?.lastSignInAt ?? '',
+    groups: u?.groups ?? []
   }
 }
 

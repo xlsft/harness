@@ -22,7 +22,8 @@ export class MockAccountApi implements AccountApi {
       role: 'admin',
       source,
       createdAt: at(90),
-      lastSignInAt: at(0.2)
+      lastSignInAt: at(0.2),
+      groups: ['Engineering', 'Platform']
     }
     this.list = [
       { id: 'dev_this', name: 'my-macbook', os: 'darwin', arch: 'arm64', clientName: 'harness-client', createdAt: at(30), lastSeenAt: at(0), current: true },

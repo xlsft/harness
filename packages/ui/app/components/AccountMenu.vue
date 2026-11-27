@@ -98,6 +98,16 @@ async function signOut() {
             v-if="host"
             class="truncate text-[11.5px] text-muted"
           >{{ host }}</span>
+          <span
+            v-if="profile?.groups?.length"
+            class="mt-1 flex flex-wrap gap-1"
+          >
+            <HGroupChip
+              v-for="g in profile.groups"
+              :key="g"
+              :name="g"
+            />
+          </span>
         </div>
         <div class="my-1 h-px bg-line-strong" />
         <PaneMenuItem

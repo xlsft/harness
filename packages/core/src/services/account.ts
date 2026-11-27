@@ -17,6 +17,7 @@ import { ApiError } from "../lib/errors.ts";
 import { TokenBucketLimiter } from "../lib/rate-limit.ts";
 import { revokeDevice, toPublicUser, type Principal, type PublicUser } from "./devices.ts";
 import { deleteOtherObjects, putObject, readObjectBytes, statObjectOf, usersWithInlineAvatars } from "./objects.ts";
+import { groupNamesOf } from "./groups.ts";
 
 export interface Profile extends PublicUser {
   username: string;
@@ -28,6 +29,8 @@ export interface Profile extends PublicUser {
   created_at: string;
   /** Latest web sign-in; "" when never. */
   last_sign_in_at: string;
+  /** Names of the user's groups, sorted. */
+  groups: string[];
 }
 
 export const AVATAR_MAX_BYTES = 200 * 1024;
@@ -72,6 +75,7 @@ async function profileOf(u: UserRow): Promise<Profile> {
     source: await sourceOf(u.id),
     created_at: u.createdAt.toISOString(),
     last_sign_in_at: s?.signIn ? s.signIn.toISOString() : "",
+    groups: (await groupNamesOf([u.id])).get(u.id) ?? [],
   };
 }
 
