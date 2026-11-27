@@ -235,12 +235,11 @@ function openMore(to: string) {
               :key="item.to"
               :icon="item.icon"
               :active="isCurrent(item.to)"
+              :value="tt('Beta')"
+              value-class="rounded-chip border border-accent px-1 text-[10px] leading-[14px] text-accent"
               @click="openMore(item.to)"
             >
-              <!-- Grows over the menu row's own spacer, so the badge sits at the right edge. -->
-              <span class="flex min-w-0 grow-[999] items-center gap-2">{{ item.label }}<span class="flex-1" /><span
-                class="rounded-chip border border-accent px-1 text-[10px] leading-[14px] text-accent"
-              >{{ tt('Beta') }}</span></span>
+              {{ item.label }}
             </PaneMenuItem>
           </div>
         </template>
