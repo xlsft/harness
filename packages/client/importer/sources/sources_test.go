@@ -374,8 +374,23 @@ func TestCodexUser(t *testing.T) {
 	if _, ok := f["skill/.system"]; ok {
 		t.Error("the bundled skills were read")
 	}
-	if s := want(t, f, "session/Codex sessions"); !strings.Contains(s.Note, "1 session") {
-		t.Errorf("sessions: %s", s.Note)
+	fix := want(t, f, "session/Fix the failing test").Session
+	if fix == nil || fix.Cwd != "/work/app" || fix.Messages != 2 || fix.ID != importer.ImportedSessionID("codex", "abc") {
+		t.Fatalf("session: %+v", fix)
+	}
+	tr := string(fix.Transcript)
+	if strings.Contains(tr, "environment_context") || strings.Contains(tr, "FAIL") || !strings.Contains(tr, "*Used shell: `go test ./...`*\\n\\nFixed") || !strings.Contains(tr, `"model":"gpt-5-codex"`) {
+		t.Errorf("transcript: %s", tr)
+	}
+	// The older format is read (its title is its prompt), but records no folder to put it in.
+	if old := want(t, f, "session/Old prompt"); old.Status != importer.StatusSkipped || !strings.Contains(old.Note, "not recorded") {
+		t.Errorf("old format: %+v", old)
+	}
+	if sub := want(t, f, "session/rollout-2026-01-02T11-00-00-sub"); sub.Status != importer.StatusSkipped || sub.Session != nil {
+		t.Errorf("subagent: %+v", sub)
+	}
+	if z := want(t, f, "session/Compressed Codex sessions"); !strings.Contains(z.Note, "1 older session") {
+		t.Errorf("compressed: %s", z.Note)
 	}
 	for k, v := range f {
 		if strings.Contains(v.Text, "never-read") || strings.Contains(k, "auth") {

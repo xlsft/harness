@@ -10,6 +10,7 @@ import (
 
 	"connectrpc.com/connect"
 
+	"github.com/xlsft/harness/packages/client/config"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
 	"github.com/xlsft/harness/packages/client/importer"
@@ -87,6 +88,13 @@ func (s *Server) engineOptions(env importer.Env) importer.EngineOptions {
 	if s.ImportTo != nil {
 		o.Putter = s.ImportTo
 	}
+	// Sessions of other tools land where this client's sessions are, and go up like the Claude Code import's.
+	o.ProjectsDir, o.HoldSession, o.SessionDone = config.ProjectsDir(), s.holdSession, sessionUploaded
+	if s.ImportTo != nil {
+		host, _ := os.Hostname()
+		o.Queue = syncclient.NewUploader(syncclient.UploaderOptions{API: s.ImportTo, DeviceID: s.DeviceID, DeviceName: host, Logger: s.log(), Objects: syncclient.SharedObjectQueue(s.ImportTo, s.log())})
+		o.UploadSessions = true
+	}
 	return o
 }
 
@@ -116,6 +124,9 @@ func (s *Server) ScanImportSource(ctx context.Context, req *connect.Request[agen
 	env, err := importerEnv()
 	if err != nil {
 		return nil, err
+	}
+	if folder == "" {
+		s.refreshImportListing(ctx)
 	}
 	scan, err := importer.ScanSource(ctx, src, folder, s.engineOptions(env))
 	if err != nil {
@@ -157,6 +168,9 @@ func (s *Server) RunImportSource(ctx context.Context, req *connect.Request[agent
 	s.forgetSkillDocs()
 	defer s.forgetSkillDocs()
 
+	if folder == "" {
+		s.refreshImportListing(ctx)
+	}
 	o := s.engineOptions(env)
 	o.IncludeSecrets, o.Force = m.GetIncludeSecrets(), m.GetForce()
 	o.OnProgress = func(p importer.SourceProgress) {

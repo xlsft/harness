@@ -21,6 +21,8 @@ describe('import sources', () => {
     expect(sourceSections(items).map(s => s.key)).toEqual(['instructions', 'mcp', 'odd'])
     const picked = defaultChoice(items)
     expect([...picked]).toEqual(['a', 'c'])
+    // Sessions are opt-in.
+    expect([...defaultChoice([...items, item('s', 'session', 'new')])]).toEqual(['a', 'c'])
     expect(chosenIds(items, picked, false)).toEqual(['a', 'c'])
     expect(secretsMatter(items, picked)).toBe(true)
     expect(secretsMatter(items, new Set(['c']))).toBe(false)

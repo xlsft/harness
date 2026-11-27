@@ -199,6 +199,8 @@ type Found struct {
 	MCP *MCPServer
 	// Settings is set for KindSettings: harness settings keys only.
 	Settings map[string]any
+	// Session is set for a KindSession the reader converted; without it the session is listed for manual setup.
+	Session *SessionSource
 	// Dir is, in a folder, the project directory the item applies to (slash, "" for the root).
 	Dir string
 	// Status is empty for an importable item. A reader may set StatusSkipped, StatusNoted (to set up by hand) or

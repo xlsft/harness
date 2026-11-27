@@ -1,1 +1,9 @@
-{"type":"session_meta","payload":{"id":"abc","cwd":"/x"}}
+{"timestamp":"2026-01-02T10:00:00.000Z","type":"session_meta","payload":{"id":"abc","timestamp":"2026-01-02T10:00:00.000Z","cwd":"/work/app","source":"cli","git":{"branch":"main"}}}
+{"timestamp":"2026-01-02T10:00:00.100Z","type":"turn_context","payload":{"cwd":"/work/app","model":"gpt-5-codex"}}
+{"timestamp":"2026-01-02T10:00:00.200Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<environment_context>cwd</environment_context>"}]}}
+{"timestamp":"2026-01-02T10:00:01.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Fix the failing test"}]}}
+{"timestamp":"2026-01-02T10:00:02.000Z","type":"response_item","payload":{"type":"reasoning","summary":[],"encrypted_content":"x"}}
+{"timestamp":"2026-01-02T10:00:03.000Z","type":"response_item","payload":{"type":"function_call","name":"shell","arguments":"{\"command\":[\"bash\",\"-lc\",\"go test ./...\"]}","call_id":"c1"}}
+{"timestamp":"2026-01-02T10:00:04.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"c1","output":"FAIL"}}
+{"timestamp":"2026-01-02T10:00:05.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Fixed: the test now passes."}]}}
+{"timestamp":"2026-01-02T10:00:05.100Z","type":"event_msg","payload":{"type":"token_count"}}

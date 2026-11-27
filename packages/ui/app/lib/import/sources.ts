@@ -95,9 +95,9 @@ export function choosable(i: SourceItem, force: boolean): boolean {
   return i.status === 'new' || (force && i.status === 'exists')
 }
 
-/** What a fresh scan picks: everything new. */
+/** What a fresh scan picks: everything new except sessions, which are opt-in as in the Claude Code import. */
 export function defaultChoice(items: SourceItem[]): Set<string> {
-  return new Set(items.filter(i => i.status === 'new').map(i => i.id))
+  return new Set(items.filter(i => i.status === 'new' && i.kind !== 'session').map(i => i.id))
 }
 
 /** The ids to send: what is picked and still choosable. */

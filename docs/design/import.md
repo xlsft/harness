@@ -136,7 +136,7 @@ may set `Status` to `StatusSkipped`, `StatusNoted` (set up by hand) or `StatusEr
 | `skill` | `<dir>/.harness/skills/<name>/` (SKILL.md + Files) | SKILL document `<name>` with files |
 | `mcp` | merged into the root's `.mcp.json` (trust + device approval apply) | server of **this device** (`mcp.ImportTarget`) |
 | `settings` | merged into `<dir>/.harness/settings.json`; hooks / allow rules wait for trust | listed for manual setup |
-| `session` | listed for manual setup (not imported yet) | listed for manual setup |
+| `session` | listed for manual setup | converted (`Found.Session`) into `<projects>/<slug(cwd)>/<id>.jsonl` and uploaded like any session; without a converter, listed for manual setup |
 
 Documents carry source label `import:<source id>`. AGENTS.md is harness's own format and is never imported. Item names
 used as paths are checked (`safeName`): no `..`, no absolute paths; targets reached through symbolic links are refused.
@@ -240,7 +240,7 @@ read by the Codex reader only, although Cursor, Gemini CLI and Devin read it too
 
 | Tool | Read from | Becomes |
 | --- | --- | --- |
-| Codex CLI | `$CODEX_HOME` (`~/.codex`): `AGENTS.override.md` else `AGENTS.md`; `config.toml` `[mcp_servers.*]` (`env_vars`, `bearer_token_env_var`, `env_http_headers` become `${VAR}`); `prompts/*.md` (top level); `agents/*.toml`; `~/.agents/skills` | instructions, MCP, commands (`$$` → `$`, named `$UPPER` → `arguments:`), agents (`developer_instructions` is the body), skills. `model`, `approval_policy`, `sandbox_mode`, `model_reasoning_effort` and `<name>.config.toml` profiles are listed to set by hand. Sessions are counted and listed. `auth.json` is never read |
+| Codex CLI | `$CODEX_HOME` (`~/.codex`): `AGENTS.override.md` else `AGENTS.md`; `config.toml` `[mcp_servers.*]` (`env_vars`, `bearer_token_env_var`, `env_http_headers` become `${VAR}`); `prompts/*.md` (top level); `agents/*.toml`; `~/.agents/skills` | instructions, MCP, commands (`$$` → `$`, named `$UPPER` → `arguments:`), agents (`developer_instructions` is the body), skills. `model`, `approval_policy`, `sandbox_mode`, `model_reasoning_effort` and `<name>.config.toml` profiles are listed to set by hand. Sessions: each rollout in `sessions/` and `archived_sessions/` (see below). `auth.json` is never read |
 | Gemini CLI | `~/.gemini`: `settings.json` (`context.fileName`, `mcpServers`), the context files, `commands/**/*.toml`, `agents/*.md`, `skills/`, `extensions/*/gemini-extension.json` | instructions, MCP (bare `url` is SSE), commands (`git/commit.toml` → `git:commit`; `{{args}}` → `$ARGUMENTS`, `!{cmd}` → `` !`cmd` ``, `@{path}` kept with a note), agents, skills. Extensions: MCP with `${extensionPath}` expanded, context file, commands (prefixed `<ext>.` on a clash), `settings[].envVar` listed |
 | Cursor | `~/.cursor/mcp.json`, `~/.cursor/skills/` | MCP, skills. User Rules live in Cursor's settings: listed to copy by hand |
 | GitHub Copilot | `$COPILOT_HOME` (`~/.copilot`): `copilot-instructions.md`, `instructions/**/*.instructions.md`, `agents/*.agent.md`, `skills/`, `mcp-config.json`. VS Code user data (`Code[ - Insiders]/User` and each `profiles/<id>`): `prompts/*.prompt.md`, `*.instructions.md`, `*.agent.md`, `*.chatmode.md`, `mcp.json` (`servers`) | instructions, rules (`applyTo` → `paths`), agents (tools and model left out), skills, commands (one `${input:x}` → `$ARGUMENTS`, several → named arguments; `${file}` and the like kept with a note), MCP (`${input:id}` are secret references) |
@@ -257,10 +257,23 @@ read by the Codex reader only, although Cursor, Gemini CLI and Devin read it too
 
 Sources: the URLs in each reader's header comment (checked 2026-11-27).
 
+### Sessions of other tools
+
+A reader converts a session into a `SessionSource` (`importer/transcript.go`): the conversation only, the user's prompts
+and the model's answers, with one `*Used <tool>: <command>*` line per tool call. Tool output, reasoning and token counts
+stay behind. The harness id is a UUIDv5 of `<tool>:<its id>`, and the transcript is the same bytes on every run, so the
+status is a comparison with the copy already there: the same bytes are `exists` (or planned again while the upload is
+unfinished), a copy that starts with them was continued here and is skipped, another one changed since and is replaced
+only with force. A session open here or known from another machine (`HoldSession`) is skipped. After writing, the file
+goes to the upload queue and is flushed at once. In the app, sessions start unchecked.
+
+Codex (`sources/codex_sessions.go`): rollouts are `{timestamp, type, payload}` lines (`session_meta`, `turn_context` for
+the model, `response_item`), or, before about August 2025, a bare meta object and bare response items. Messages Codex
+adds in the user's name (`<environment_context>`, `<user_instructions>`, `# AGENTS.md instructions`…) are dropped;
+`["bash", "-lc", X]` shows as X. A subagent's thread and a rollout with no folder recorded are skipped.
+
 ### Not done yet
 
-- Sessions from other tools (`KindSession` is listed as manual). Codex rollouts are counted; converting them needs the
-  engine's session support (`Found.Session`, mtime-based status, upload queue), see
-  `docs/handoff/worktree-agent-a9355fb33803dac6b.md`.
+- Sessions of Gemini CLI (its chat recordings) are not converted yet; Codex's `.jsonl.zst` rollouts are counted, not read.
 - User-level settings mapping (listed as manual).
 - When the registry is unreachable, MCP names are checked against this device's servers only.

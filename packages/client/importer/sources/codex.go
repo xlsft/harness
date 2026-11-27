@@ -26,7 +26,7 @@ import (
 //	  (https://learn.chatgpt.com/docs/agent-configuration/subagents.md)
 //	~/.agents/skills/<name>/SKILL.md   → skills; shared with Cursor and Gemini CLI, so read here only. Codex's bundled
 //	  .system skills are not read (https://learn.chatgpt.com/docs/build-skills.md)
-//	sessions/YYYY/MM/DD/rollout-*.jsonl → listed; sessions from Codex are not imported yet
+//	sessions/YYYY/MM/DD/rollout-*.jsonl → sessions, converted (codex_sessions.go)
 //	auth.json                          → never read
 
 // codexMCPConfig is one [mcp_servers.<id>] table.
@@ -210,29 +210,6 @@ func codexAgents(env importer.Env, dir string) []importer.Found {
 	return out
 }
 
-// codexSessions lists the rollouts: one noted item with how many there are.
-func codexSessions(env importer.Env, dir string) []importer.Found {
-	plain, packed := 0, 0
-	for _, rel := range userFiles(dir, ".jsonl", true) {
-		if strings.HasPrefix(filepath.Base(rel), "rollout-") {
-			plain++
-		}
-	}
-	for _, rel := range userFiles(dir, ".jsonl.zst", true) {
-		if strings.HasPrefix(filepath.Base(rel), "rollout-") {
-			packed++
-		}
-	}
-	if plain+packed == 0 {
-		return nil
-	}
-	note := fmt.Sprintf("%d session(s)", plain+packed)
-	if packed > 0 {
-		note += fmt.Sprintf(", %d of them compressed", packed)
-	}
-	return []importer.Found{{Kind: importer.KindSession, Name: "Codex sessions", Source: env.Display(dir), Note: note}}
-}
-
 func codexUser(env importer.Env) []importer.Found {
 	d := env.Codex()
 	var out []importer.Found
@@ -259,7 +236,7 @@ func codexUser(env importer.Env) []importer.Found {
 		func(rel string) string { return trimExt(rel, ".md") }, codexPrompt)...)
 	out = append(out, codexAgents(env, filepath.Join(d, "agents"))...)
 	out = append(out, userSkills(env, filepath.Join(env.Home, ".agents", "skills"))...)
-	out = append(out, codexSessions(env, filepath.Join(d, "sessions"))...)
+	out = append(out, codexSessions(env, d)...)
 	return out
 }
 

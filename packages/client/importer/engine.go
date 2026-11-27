@@ -1,6 +1,7 @@
 package importer
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 
 	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
 	"github.com/xlsft/harness/packages/client/memory"
+	"github.com/xlsft/harness/packages/client/session"
 )
 
 // EngineOptions configure ScanSource and RunSource.
@@ -33,6 +35,15 @@ type EngineOptions struct {
 	ForceHint, SecretsHint string
 	// OnProgress follows a run; it is called on RunSource's goroutine.
 	OnProgress func(SourceProgress)
+	// ProjectsDir is where session transcripts go; "": sessions are listed for manual setup.
+	ProjectsDir string
+	// Queue uploads imported sessions; UploadSessions flushes each one at once.
+	Queue          SessionQueue
+	UploadSessions bool
+	// HoldSession says why a session must stay as it is (open here, of another machine); "": it may be imported.
+	HoldSession func(id string) string
+	// SessionDone says the server has all of a session's local copy.
+	SessionDone func(id string) bool
 }
 
 // SourceItem is one line of a scan or a run's report.
@@ -266,7 +277,11 @@ func (e *engine) plan(ctx context.Context, en *entry, apply bool) {
 	}
 	it.Status = StatusPlanned
 	if f.Kind == KindSession {
-		it.Status, it.Note = StatusNoted, joinNote(f.Note, "sessions from this tool are not imported yet")
+		if f.Session == nil || e.o.ProjectsDir == "" {
+			it.Status, it.Note = StatusNoted, joinNote(f.Note, "sessions from this tool are not imported yet")
+			return
+		}
+		e.planSession(ctx, en, apply)
 		return
 	}
 	if e.pr != nil {
@@ -377,6 +392,68 @@ func (e *engine) apply(ctx context.Context, todo []int) error {
 		finish(i)
 	}
 	return err
+}
+
+// planSession compares the converted transcript with the copy here: the same bytes were imported before, a copy that
+// starts with them was continued here, another one changed since (Force replaces it).
+func (e *engine) planSession(ctx context.Context, en *entry, apply bool) {
+	f, it := en.found, &en.item
+	s := f.Session
+	dst := session.Store{Root: e.o.ProjectsDir}.Path(s.Cwd, s.ID)
+	it.Target = "session in " + s.Cwd
+	set := func(st Status, note string) { it.Status, it.Note = st, joinNote(f.Note, note) }
+	if e.o.HoldSession != nil {
+		if why := e.o.HoldSession(s.ID); why != "" {
+			set(StatusSkipped, why)
+			return
+		}
+	}
+	write, note := true, ""
+	if cur, err := os.ReadFile(dst); err == nil {
+		switch {
+		case bytes.Equal(cur, s.Transcript):
+			if e.o.SessionDone == nil || e.o.SessionDone(s.ID) {
+				set(StatusExists, "already imported")
+				return
+			}
+			write, note = false, "imported; the upload is not finished"
+		case len(cur) > len(s.Transcript) && bytes.HasPrefix(cur, s.Transcript):
+			set(StatusSkipped, "continued in xlsft`s harness: left as it is")
+			return
+		case !e.o.Force:
+			set(StatusSkipped, "imported before, and changed since; import with "+e.o.ForceHint+" to replace it")
+			return
+		default:
+			note = "replaces the earlier import"
+		}
+	}
+	set(StatusPlanned, note)
+	if !apply {
+		return
+	}
+	if write {
+		if err := writeTranscript(dst, s.Transcript, s.Modified); err != nil {
+			set(StatusError, err.Error())
+			return
+		}
+	}
+	if e.o.Queue == nil {
+		set(StatusCopied, note)
+		return
+	}
+	if err := e.o.Queue.Queue(s.ID, dst); err != nil {
+		set(StatusError, joinNote(note, "queue: "+err.Error()))
+		return
+	}
+	if !e.o.UploadSessions {
+		set(StatusQueued, note)
+		return
+	}
+	if err := e.o.Queue.Flush(ctx, s.ID); err != nil {
+		set(StatusQueued, joinNote(note, "upload deferred: "+err.Error()))
+		return
+	}
+	set(StatusUploaded, note)
 }
 
 func docFiles(files []File) []*syncv1.DocumentFile {
