@@ -136,7 +136,7 @@ func TestScanClaudeImport(t *testing.T) {
 		sections[it.Section] = it.Status
 	}
 	if sections[agentv1.ClaudeImportSection_CLAUDE_IMPORT_SECTION_MEMORY] != agentv1.ClaudeImportStatus_CLAUDE_IMPORT_STATUS_NEW ||
-		sections[agentv1.ClaudeImportSection_CLAUDE_IMPORT_SECTION_MCP_SERVERS] != agentv1.ClaudeImportStatus_CLAUDE_IMPORT_STATUS_MANUAL {
+		sections[agentv1.ClaudeImportSection_CLAUDE_IMPORT_SECTION_MCP_SERVERS] != agentv1.ClaudeImportStatus_CLAUDE_IMPORT_STATUS_NEW {
 		t.Fatalf("sections: %v", sections)
 	}
 	if len(m.Projects) != 2 || m.Projects[0].Path != "/b" || m.Projects[1].Path != "/w" || m.Projects[0].SessionCount != 1 || m.Projects[0].TotalBytes == 0 || m.Projects[0].NewestAt == "" {

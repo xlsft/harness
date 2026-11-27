@@ -40,8 +40,9 @@ type ScanOptions struct {
 	// HoldSession and SessionDone are as in Options.
 	HoldSession func(id string) string
 	SessionDone func(id string) bool
-	// SecretsHint is as in Options.
+	// SecretsHint and MCP are as in Options.
 	SecretsHint string
+	MCP         MCPTarget
 }
 
 // ScanResult is what Scan found.
@@ -87,7 +88,7 @@ func Scan(ctx context.Context, o ScanOptions) (*ScanResult, error) {
 	if !res.Found {
 		return res, nil
 	}
-	rep, err := Run(ctx, Options{ClaudeHome: o.ClaudeHome, ClaudeJSON: o.ClaudeJSON, ProjectsDir: o.ProjectsDir, HarnessHome: o.HarnessHome, DryRun: true, SecretsHint: o.SecretsHint})
+	rep, err := Run(ctx, Options{ClaudeHome: o.ClaudeHome, ClaudeJSON: o.ClaudeJSON, ProjectsDir: o.ProjectsDir, HarnessHome: o.HarnessHome, DryRun: true, SecretsHint: o.SecretsHint, MCP: o.MCP})
 	if err != nil {
 		return nil, err
 	}

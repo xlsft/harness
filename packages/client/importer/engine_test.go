@@ -31,7 +31,7 @@ func (f *fakeMCP) Create(_ context.Context, s *mcpv1.Server, sc *mcpv1.SecretCha
 	return nil
 }
 
-func (f *fakeMCP) Replace(_ context.Context, id string, s *mcpv1.Server, sc *mcpv1.SecretChanges) error {
+func (f *fakeMCP) Replace(_ context.Context, id string, s *mcpv1.Server, sc *mcpv1.SecretChanges, _ int64) error {
 	f.replace = append(f.replace, id)
 	return f.Create(context.Background(), s, sc)
 }

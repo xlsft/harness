@@ -18,7 +18,7 @@ enum ClaudeImportSection {
   CLAUDE_IMPORT_SECTION_AGENTS = 4;
   CLAUDE_IMPORT_SECTION_COMMANDS = 5;
   CLAUDE_IMPORT_SECTION_OUTPUT_STYLES = 6;
-  // Listed for manual setup: nothing is uploaded.
+  // ~/.claude.json's servers, added as MCP servers of this device (secrets as for settings: include_secrets).
   CLAUDE_IMPORT_SECTION_MCP_SERVERS = 7;
   // Labels the sessions in reports. A request picks sessions by project_paths and session_ids instead.
   CLAUDE_IMPORT_SECTION_SESSIONS = 8;

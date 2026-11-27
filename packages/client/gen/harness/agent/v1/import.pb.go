@@ -33,7 +33,7 @@ const (
 	ClaudeImportSection_CLAUDE_IMPORT_SECTION_AGENTS        ClaudeImportSection = 4
 	ClaudeImportSection_CLAUDE_IMPORT_SECTION_COMMANDS      ClaudeImportSection = 5
 	ClaudeImportSection_CLAUDE_IMPORT_SECTION_OUTPUT_STYLES ClaudeImportSection = 6
-	// Listed for manual setup: nothing is uploaded.
+	// ~/.claude.json's servers, added as MCP servers of this device (secrets as for settings: include_secrets).
 	ClaudeImportSection_CLAUDE_IMPORT_SECTION_MCP_SERVERS ClaudeImportSection = 7
 	// Labels the sessions in reports. A request picks sessions by project_paths and session_ids instead.
 	ClaudeImportSection_CLAUDE_IMPORT_SECTION_SESSIONS ClaudeImportSection = 8

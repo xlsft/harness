@@ -29,12 +29,14 @@ type MCPTarget interface {
 	// Create adds a server to this device.
 	Create(ctx context.Context, s *mcpv1.Server, secrets *mcpv1.SecretChanges) error
 	// Replace replaces the config of an existing server (an import with force).
-	Replace(ctx context.Context, id string, s *mcpv1.Server, secrets *mcpv1.SecretChanges) error
+	Replace(ctx context.Context, id string, s *mcpv1.Server, secrets *mcpv1.SecretChanges, version int64) error
 }
 
 // ExistingMCP is a server that is already there.
 type ExistingMCP struct {
 	ID, Name, ManagedBy string
+	// Version is its change counter, for Replace.
+	Version int64
 	// CanEdit: Replace may change it.
 	CanEdit bool
 }
@@ -332,7 +334,7 @@ func mcpUser(ctx context.Context, target MCPTarget, existing map[string]Existing
 	}
 	var err error
 	if have {
-		err = target.Replace(ctx, cur.ID, p.server, p.secrets)
+		err = target.Replace(ctx, cur.ID, p.server, p.secrets, cur.Version)
 		notes = append(notes, "replaced the one already there")
 	} else {
 		err = target.Create(ctx, p.server, p.secrets)

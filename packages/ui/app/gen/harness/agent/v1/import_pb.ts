@@ -451,7 +451,7 @@ export enum ClaudeImportSection {
   OUTPUT_STYLES = 6,
 
   /**
-   * Listed for manual setup: nothing is uploaded.
+   * ~/.claude.json's servers, added as MCP servers of this device (secrets as for settings: include_secrets).
    *
    * @generated from enum value: CLAUDE_IMPORT_SECTION_MCP_SERVERS = 7;
    */

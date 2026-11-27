@@ -27,7 +27,7 @@ func (r *recorder) Create(_ context.Context, s *mcpv1.Server, sc *mcpv1.SecretCh
 	return nil
 }
 
-func (r *recorder) Replace(ctx context.Context, _ string, s *mcpv1.Server, sc *mcpv1.SecretChanges) error {
+func (r *recorder) Replace(ctx context.Context, _ string, s *mcpv1.Server, sc *mcpv1.SecretChanges, _ int64) error {
 	return r.Create(ctx, s, sc)
 }
 
