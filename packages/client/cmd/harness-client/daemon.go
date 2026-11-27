@@ -18,6 +18,7 @@ import (
 	"github.com/xlsft/harness/packages/client/cibot"
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/daemon"
+	relayv1 "github.com/xlsft/harness/packages/client/gen/harness/relay/v1"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/relay"
 	"github.com/xlsft/harness/packages/client/rpc"
@@ -49,6 +50,7 @@ type daemonFlags struct {
 	keepWorkspaces *time.Duration
 	allowed        *[]string
 	verbose        *bool
+	cloud          *bool
 }
 
 func newDaemonFlags(name string) *daemonFlags {
@@ -66,6 +68,7 @@ func newDaemonFlags(name string) *daemonFlags {
 		keepWorkspaces: fs.Duration("keep-workspaces", 7*24*time.Hour, "remove a closed session's checkout after this long"),
 		allowed:        fs.StringArray("allowedTools", nil, `permission rules allowed without asking on this host, e.g. "Bash(go test *)"`),
 		verbose:        fs.Bool("verbose", false, "debug logging"),
+		cloud:          fs.Bool("cloud", false, "in a cloud session's container, started by harness-client runner: run that one session (docs/design/cloud-sessions.md)"),
 	}
 }
 
@@ -87,7 +90,11 @@ func runDaemon(ctx context.Context, args []string) int {
 		fmt.Fprint(os.Stderr, daemonUsage+f.fs.FlagUsages())
 		return 2
 	}
-	if err := tokenFromFile(); err != nil {
+	if *f.cloud {
+		// Nothing the agent starts may see the token: read once, then gone from the disk and the environment.
+		daemon.Harden()
+	}
+	if err := tokenFromFile(*f.cloud); err != nil {
 		return fail(err)
 	}
 	if *f.shared {
@@ -97,7 +104,7 @@ func runDaemon(ctx context.Context, args []string) int {
 }
 
 // tokenFromFile lets a container's secret be a file, which its environment does not show.
-func tokenFromFile() error {
+func tokenFromFile(remove bool) error {
 	path := os.Getenv("HARNESS_DEVICE_TOKEN_FILE")
 	if path == "" {
 		return nil
@@ -105,6 +112,11 @@ func tokenFromFile() error {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("HARNESS_DEVICE_TOKEN_FILE: %w", err)
+	}
+	if remove {
+		if err := os.Remove(path); err != nil {
+			return fmt.Errorf("removing the token file: %w", err)
+		}
 	}
 	if err := os.Unsetenv("HARNESS_DEVICE_TOKEN_FILE"); err != nil {
 		return err
@@ -252,10 +264,25 @@ func runHost(ctx context.Context, f *daemonFlags) int {
 	if name == "" {
 		name, _ = os.Hostname()
 	}
-	runner := daemon.New(daemon.Options{
+	opts := daemon.Options{
 		ServerURL: wired.url, HTTP: rpc.HTTPClient(wired.url), Tokens: wired.tokens, Sessions: daemon.ServerSessions{S: srv}, Logger: log,
 		Name: name, Root: root, MaxSessions: *f.maxSessions, SandboxDriver: sandboxDriverName(), IdleClose: *f.idleClose, KeepWorkspaces: *f.keepWorkspaces,
-	})
+	}
+	if *f.cloud {
+		// docs/design/cloud-sessions.md: the container is the boundary; bypassPermissions only where the policy allows it.
+		opts.Cloud, opts.SandboxDriver, opts.Restore = true, "container", srv.RestoreFromServer
+		if srv.Base.ModePolicy == nil {
+			srv.SetModePolicy(permissions.NewModePolicy())
+		}
+		policy := srv.Base.ModePolicy
+		policy.Force(permissions.ModeBypassPermissions)
+		opts.OnRegistered = func(res *relayv1.RegisterAgentHostResponse) {
+			if res.GetBypassPermissionsAllowed() {
+				policy.Unforce(permissions.ModeBypassPermissions)
+			}
+		}
+	}
+	runner := daemon.New(opts)
 	srv.HostMode = runner.ScheduleHooks(wired.name, wired.email)
 	srv.StartBackground()
 	defer srv.Close()

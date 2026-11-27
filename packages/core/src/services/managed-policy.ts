@@ -12,6 +12,8 @@
  *   disableChatApps, disableRemoteStarts                               enforced here (chat apps, relay spawns); clients stop
  *                                                                      offering remote starts too
  *   disablePersonalChatBots                                            enforced here (chat/app.ts: personal Telegram bots)
+ *   cloud.disabled / allowBypassPermissions / egressAllow / maxSessionsPerUser / maxSessionsPerGroup
+ *                                                                      enforced here and by runners: cloud sessions (relay/cloud.ts)
  *   strictKnownMarketplaces, blockedMarketplaces, extraKnownMarketplaces, enabledPlugins
  *                                                                      enforced by clients (packages/client/plugins): plugins are a device's
  * The server cannot be talked out of what it enforces itself, whatever a modified client does; permission rules and the
@@ -64,6 +66,11 @@ export interface ManagedPolicy {
   max_attempts: number;
   max_parallel_attempts: number;
   attempt_budget_usd: number;
+  cloud_disabled: boolean;
+  cloud_bypass_permissions_allowed: boolean;
+  cloud_egress_allow: string[];
+  cloud_max_sessions_per_user: number;
+  cloud_max_sessions_per_group: number;
 }
 
 const isObject = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
@@ -116,6 +123,9 @@ function checkPattern(out: Json, pattern: string): Json {
   return out;
 }
 
+/** An egress entry: a host or *.domain, optionally with a port (the sandbox proxy's syntax). */
+const EGRESS_HOST = /^(\*\.)?[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*(:\d{1,5})?$|^\[[0-9a-f:]+\](:\d{1,5})?$/;
+
 const PLUGIN_ID = /^[A-Za-z0-9][\w.-]*@[A-Za-z0-9][\w.-]*$/;
 const MARKET_NAME = /^[A-Za-z0-9][\w.-]*$/;
 
@@ -148,6 +158,19 @@ function pluginFields(content: Json) {
   };
 }
 
+const count = (v: unknown): number => (typeof v === "number" && Number.isInteger(v) && v > 0 ? v : 0);
+
+function cloudFields(content: Json) {
+  const c = isObject(content.cloud) ? content.cloud : {};
+  return {
+    cloud_disabled: c.disabled === true,
+    cloud_bypass_permissions_allowed: c.allowBypassPermissions === true,
+    cloud_egress_allow: strings(c.egressAllow),
+    cloud_max_sessions_per_user: count(c.maxSessionsPerUser),
+    cloud_max_sessions_per_group: count(c.maxSessionsPerGroup),
+  };
+}
+
 /** The managed part of a POLICY document's content. */
 export function managedOf(content: Json): ManagedPolicy {
   const perms = isObject(content.permissions) ? content.permissions : {};
@@ -171,6 +194,7 @@ export function managedOf(content: Json): ManagedPolicy {
     max_attempts: positive(content.maxAttempts),
     max_parallel_attempts: positive(content.maxParallelAttempts),
     attempt_budget_usd: positive(content.attemptBudgetUsd),
+    ...cloudFields(content),
     ...pluginFields(content),
     ...skillFields(content),
     chat_apps_disabled: content.disableChatApps === true,
@@ -207,6 +231,13 @@ export function withManaged(content: Json, p: ManagedPolicy): Json {
   setOrDelete(next, "maxAttempts", p.max_attempts, p.max_attempts > 0);
   setOrDelete(next, "maxParallelAttempts", p.max_parallel_attempts, p.max_parallel_attempts > 0);
   setOrDelete(next, "attemptBudgetUsd", p.attempt_budget_usd, p.attempt_budget_usd > 0);
+  const cloud: Json = isObject(content.cloud) ? { ...content.cloud } : {};
+  setOrDelete(cloud, "disabled", true, p.cloud_disabled);
+  setOrDelete(cloud, "allowBypassPermissions", true, p.cloud_bypass_permissions_allowed);
+  setOrDelete(cloud, "egressAllow", p.cloud_egress_allow, p.cloud_egress_allow.length > 0);
+  setOrDelete(cloud, "maxSessionsPerUser", p.cloud_max_sessions_per_user, p.cloud_max_sessions_per_user > 0);
+  setOrDelete(cloud, "maxSessionsPerGroup", p.cloud_max_sessions_per_group, p.cloud_max_sessions_per_group > 0);
+  setOrDelete(next, "cloud", cloud, Object.keys(cloud).length > 0);
   setOrDelete(next, "strictKnownMarketplaces", p.allowed_plugin_sources.map(lineToSource), p.restrict_plugin_sources);
   setOrDelete(next, "blockedMarketplaces", p.blocked_plugin_sources.map(lineToSource), p.blocked_plugin_sources.length > 0);
   const extra = Object.fromEntries(
@@ -248,7 +279,18 @@ export function cleanManaged(p: ManagedPolicy): ManagedPolicy {
     blocked_plugins: list(p.blocked_plugins),
     allowed_skills: list(p.allowed_skills),
     blocked_skills: list(p.blocked_skills),
+    cloud_egress_allow: list(p.cloud_egress_allow ?? []).map((h) => h.toLowerCase()),
+    cloud_disabled: !!p.cloud_disabled,
+    cloud_bypass_permissions_allowed: !!p.cloud_bypass_permissions_allowed,
+    cloud_max_sessions_per_user: p.cloud_max_sessions_per_user ?? 0,
+    cloud_max_sessions_per_group: p.cloud_max_sessions_per_group ?? 0,
   };
+  for (const h of out.cloud_egress_allow) {
+    if (!EGRESS_HOST.test(h)) throw new ApiError("invalid_request", `Not a host like example.com, *.example.com or example.com:8443: ${h}`);
+  }
+  for (const [n, what] of [[out.cloud_max_sessions_per_user, "Cloud sessions per user"], [out.cloud_max_sessions_per_group, "Cloud sessions per group"]] as const) {
+    if (!Number.isInteger(n) || n < 0 || n > 10_000) throw new ApiError("invalid_request", `${what} must be between 0 and 10000`);
+  }
   for (const l of [...out.allowed_plugin_sources, ...out.blocked_plugin_sources]) lineToSource(l);
   for (const l of out.distributed_marketplaces) {
     const i = l.indexOf("=");
@@ -328,9 +370,20 @@ export interface ServerPolicy {
   maxAttempts: number;
   maxParallelAttempts: number;
   attemptBudgetUsd: number;
+  cloud: {
+    disabled: boolean;
+    bypassPermissionsAllowed: boolean;
+    /** Undefined: the defaults (registries and code hosts). */
+    egressAllow?: string[];
+    /** 0: no limit. */
+    maxSessionsPerUser: number;
+    maxSessionsPerGroup: number;
+  };
 }
 
 const lowest = (a: number, b: number) => (a > 0 && b > 0 ? Math.min(a, b) : a || b);
+
+const minLimit = (a: number, b: number) => (a && b ? Math.min(a, b) : a || b);
 
 function intersect(a: string[] | undefined, b: string[]): string[] {
   return a ? a.filter((x) => b.includes(x)) : b;
@@ -344,7 +397,13 @@ export async function serverPolicyFor(user: Pick<PublicUser, "role">): Promise<S
     .select({ content: d.content, targetRoles: d.targetRoles })
     .from(d)
     .where(and(eq(d.scope, Scope.ORG), eq(d.kind, DocumentKind.POLICY), isNull(d.deletedAt)));
-  const out: ServerPolicy = { personalProvidersDisabled: false, externalSkillSearchDisabled: false, personalHostsDisabled: false, sandboxRequired: false, maxAttempts: 0, maxParallelAttempts: 0, attemptBudgetUsd: 0, chatAppsDisabled: false, remoteStartsDisabled: false, personalChatBotsDisabled: false };
+  const out: ServerPolicy = {
+    personalProvidersDisabled: false,
+    externalSkillSearchDisabled: false,
+    personalHostsDisabled: false,
+    sandboxRequired: false,
+    cloud: { disabled: false, bypassPermissionsAllowed: false, maxSessionsPerUser: 0, maxSessionsPerGroup: 0 },
+    maxAttempts: 0, maxParallelAttempts: 0, attemptBudgetUsd: 0, chatAppsDisabled: false, remoteStartsDisabled: false, personalChatBotsDisabled: false };
   for (const r of rows) {
     const roles = Array.isArray(r.targetRoles) ? (r.targetRoles as string[]) : [];
     if (roles.length && !roles.includes(user.role)) continue;
@@ -361,6 +420,12 @@ export async function serverPolicyFor(user: Pick<PublicUser, "role">): Promise<S
     out.maxAttempts = lowest(out.maxAttempts, m.max_attempts);
     out.maxParallelAttempts = lowest(out.maxParallelAttempts, m.max_parallel_attempts);
     out.attemptBudgetUsd = lowest(out.attemptBudgetUsd, m.attempt_budget_usd);
+    // Restrictions add up; bypass is opt-in, so one document that allows it is enough unless another turns cloud off.
+    out.cloud.disabled ||= m.cloud_disabled;
+    out.cloud.bypassPermissionsAllowed ||= m.cloud_bypass_permissions_allowed;
+    if (m.cloud_egress_allow.length) out.cloud.egressAllow = intersect(out.cloud.egressAllow, m.cloud_egress_allow);
+    out.cloud.maxSessionsPerUser = minLimit(out.cloud.maxSessionsPerUser, m.cloud_max_sessions_per_user);
+    out.cloud.maxSessionsPerGroup = minLimit(out.cloud.maxSessionsPerGroup, m.cloud_max_sessions_per_group);
   }
   return out;
 }

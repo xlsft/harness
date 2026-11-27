@@ -21,7 +21,7 @@ import { readAttachments } from '~/lib/session/attachments'
 import type { ComposerFile, MenuOption } from '~/utils/composer'
 import { isDesktop, pickFolder } from '~/lib/desktop'
 
-import { repositoryKeyOf, type HostView, type WorkLanding } from '~/lib/hosts/types'
+import { CLOUD_HOST, repositoryKeyOf, workStateText, type HostView, type HostWorkView, type WorkLanding } from '~/lib/hosts/types'
 
 const store = useSessionStore()
 const collapsed = useState('sidebar-collapsed', () => false)
@@ -72,7 +72,13 @@ const hostBase = ref('')
 const landing = ref<WorkLanding>('pull_request')
 const freshClone = ref(false)
 const waiting = ref('')
-const hostName = computed(() => hosts.value.find(h => h.id === host.value)?.name ?? '')
+const cloud = computed(() => host.value === CLOUD_HOST)
+const hostName = computed(() => (cloud.value ? tt('Cloud') : hosts.value.find(h => h.id === host.value)?.name ?? ''))
+// What the work is doing while this screen waits for its session (a cloud session's environment being started, say).
+const waitingWork = ref<HostWorkView | null>(null)
+const landingOptions = computed(() => cloud.value
+  ? [{ value: 'pull_request', label: tt('A draft pull request') }, { value: 'branch', label: tt('A branch') }]
+  : [{ value: 'pull_request', label: tt('A draft pull request') }, { value: 'branch', label: tt('A branch') }, { value: 'none', label: tt('Nothing: it stays on the host') }])
 async function loadHosts() {
   try {
     hosts.value = await store.transport!.hosts().list()
@@ -83,6 +89,7 @@ async function loadHosts() {
 function pickHost(id: string) {
   host.value = id
   error.value = ''
+  if (id === CLOUD_HOST && landing.value === 'none') landing.value = 'branch'
 }
 
 const forkOf = computed(() => typeof route.query.fork === 'string' ? store.sessions[route.query.fork] : undefined)
@@ -296,10 +303,13 @@ async function startOnHost(msg: string) {
   })
   text.value = ''
   waiting.value = work.id
+  waitingWork.value = work
   while (waiting.value === work.id && !work.sessionId && (work.state === 'queued' || work.state === 'preparing')) {
     await new Promise(r => setTimeout(r, 1000))
     work = await api.get(work.id)
+    waitingWork.value = work
   }
+  waitingWork.value = null
   if (waiting.value !== work.id) return // cancelled from here
   waiting.value = ''
   if (!work.sessionId) throw new Error(work.error || `The host did not start it (${work.state}).`)
@@ -441,11 +451,14 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           {{ tt('The work lands as') }}
           <HSelect
             v-model="landing"
-            :options="[{ value: 'pull_request', label: 'A draft pull request' }, { value: 'branch', label: 'A branch' }, { value: 'none', label: 'Nothing: it stays on the host' }]"
+            :options="landingOptions"
             :aria-label="tt('The work lands as')"
           />
         </label>
-        <span class="flex items-center gap-2 text-muted">
+        <span
+          v-if="!cloud"
+          class="flex items-center gap-2 text-muted"
+        >
           <HToggle
             v-model="freshClone"
             :label="tt('A clone of its own rather than a worktree')"
@@ -456,7 +469,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           v-if="waiting"
           class="flex items-center gap-2 text-toned"
         >
-          <span class="flex-1">{{ tt('Waiting for {0} to start it…', [hostName]) }}</span>
+          <span class="flex-1">{{ cloud && waitingWork ? workStateText(waitingWork) : tt('Waiting for {0} to start it…', [hostName]) }}</span>
           <HBtn
             size="sm"
             @click="cancelWaiting"
@@ -653,7 +666,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
                   :class="[CHIP, menu === 'env' && 'bg-hover']"
                 >
                   <HIcon
-                    :name="host ? 'box' : 'monitor'"
+                    :name="cloud ? 'globe' : host ? 'box' : 'monitor'"
                     :size="12"
                   />{{ host ? hostName : tt('This computer') }}
                 </button>

@@ -2,6 +2,8 @@
 
 How xlsft`s harness works when no laptop is awake: `harness-client daemon`, a long-lived client on a server or in a container, signed in with a device token. Contracts: `proto/harness/relay/v1/hosts.proto`. Server: `packages/core/src/relay/hosts.ts`. Client: `packages/client/daemon`, `cmd/harness-client/daemon.go`. Image: `deploy/Dockerfile.host`, `deploy/compose.host.yml`.
 
+Sessions in one-off containers on runner nodes, a third scope of host, are in [cloud-sessions.md](cloud-sessions.md).
+
 A host is a machine like any other: its sessions are ordinary sessions, mirrored through the relay, watched and steered from any viewer. What it adds is taking work with nobody at the keyboard. **Nothing runs on the server**, as before: the server queues, checks and mints credentials; agents only ever run on a host.
 
 ## Decisions

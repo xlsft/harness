@@ -1,0 +1,62 @@
+# syntax=docker/dockerfile:1
+#
+# The image of a cloud session's container (docs/design/cloud-sessions.md; deploy/README.md, "Cloud sessions").
+# A runner (harness-client runner) starts one per session; the daemon in it runs that session and nothing else.
+#
+# Build from the repo root:  docker build -f deploy/Dockerfile.agent -t harness-agent .
+#
+# What is in it: git, a shell, ripgrep, Node with pnpm, Go, Python with uv. No secret: the runner copies the session's
+# token in at start, and the daemon deletes it once read. An organization extends it:
+#
+#   FROM harness-agent
+#   USER root
+#   RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client && rm -rf /var/lib/apt/lists/*
+#   USER agent
+#
+# The caches (/cache/pnpm, /cache/go, /cache/uv) are mounted by the runner; without them the tools use the container's disk.
+# BuildKit reads deploy/Dockerfile.agent.dockerignore for this file's context.
+
+ARG GO_VERSION=1.26
+ARG NODE_VERSION=22
+ARG UV_VERSION=0.9.7
+ARG DEBIAN_TAG=trixie-slim
+
+FROM golang:${GO_VERSION}-trixie AS build
+WORKDIR /src
+COPY packages/client/go.mod packages/client/go.sum ./
+RUN --mount=type=cache,id=gomod,target=/go/pkg/mod go mod download
+COPY packages/client/ ./
+RUN --mount=type=cache,id=gomod,target=/go/pkg/mod --mount=type=cache,id=gobuild,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/harness-client ./cmd/harness-client
+
+FROM golang:${GO_VERSION}-trixie AS go
+FROM node:${NODE_VERSION}-${DEBIAN_TAG} AS node
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+
+FROM debian:${DEBIAN_TAG}
+RUN apt-get -o Acquire::Retries=5 update \
+    && apt-get install -y --no-install-recommends ca-certificates git ripgrep procps less make python3 python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+# Toolchains from their official images, not from a package index that lags.
+COPY --from=go /usr/local/go /usr/local/go
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=uv /uv /uvx /usr/local/bin/
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+    && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && ln -s ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack \
+    && corepack enable --install-directory /usr/local/bin pnpm
+COPY --from=build /out/harness-client /usr/local/bin/harness-client
+# Who runs it: uid 10001, the runner's AgentUID. /run/harness receives the token; /work holds the checkout; both are in the
+# container's writable layer, which goes with the container.
+RUN useradd --create-home --home-dir /home/agent --uid 10001 --user-group agent \
+    && mkdir -p /run/harness /work /cache/pnpm /cache/go /cache/uv \
+    && chown agent:agent /run/harness /work /cache /cache/pnpm /cache/go /cache/uv \
+    && chmod 0700 /run/harness
+ENV PATH=/usr/local/go/bin:/home/agent/go/bin:$PATH \
+    HARNESS_HOME=/home/agent/.harness \
+    HARNESS_KEYRING=0 \
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+USER agent
+WORKDIR /work
+ENTRYPOINT ["harness-client", "daemon", "--cloud", "--root", "/work"]

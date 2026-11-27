@@ -382,5 +382,17 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE UNIQUE INDEX \"attempt_group_idem_idx\" ON \"attempt_group\" USING btree (\"user_id\",\"idempotency_key\");",
       "CREATE INDEX \"host_work_group_idx\" ON \"host_work\" USING btree (\"attempt_group_id\");"
     ]
+  },
+  {
+    "id": "0021_cloud_sessions",
+    "statements": [
+      "CREATE TABLE \"cloud_session\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"host_id\" text NOT NULL,\n\t\"user_id\" text NOT NULL,\n\t\"work_id\" text NOT NULL,\n\t\"device_id\" text DEFAULT '' NOT NULL,\n\t\"session_id\" text DEFAULT '' NOT NULL,\n\t\"state\" integer NOT NULL,\n\t\"container_id\" text DEFAULT '' NOT NULL,\n\t\"image\" text DEFAULT '' NOT NULL,\n\t\"repository_key\" text DEFAULT '' NOT NULL,\n\t\"error\" text DEFAULT '' NOT NULL,\n\t\"disk_bytes\" bigint DEFAULT 0 NOT NULL,\n\t\"starts\" integer DEFAULT 0 NOT NULL,\n\t\"attempts\" integer DEFAULT 0 NOT NULL,\n\t\"claimed\" boolean DEFAULT false NOT NULL,\n\t\"working_sessions\" integer DEFAULT 0 NOT NULL,\n\t\"starting_since\" timestamp with time zone,\n\t\"started_at\" timestamp with time zone,\n\t\"registered_at\" timestamp with time zone,\n\t\"reported_at\" timestamp with time zone,\n\t\"last_active_at\" timestamp with time zone,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL\n);",
+      "ALTER TABLE \"agent_host\" ADD COLUMN \"cloud_config\" jsonb DEFAULT '{}'::jsonb NOT NULL;",
+      "ALTER TABLE \"cloud_session\" ADD CONSTRAINT \"cloud_session_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
+      "CREATE INDEX \"cloud_session_host_idx\" ON \"cloud_session\" USING btree (\"host_id\",\"state\");",
+      "CREATE INDEX \"cloud_session_user_idx\" ON \"cloud_session\" USING btree (\"user_id\",\"state\");",
+      "CREATE UNIQUE INDEX \"cloud_session_work_idx\" ON \"cloud_session\" USING btree (\"work_id\");",
+      "CREATE INDEX \"cloud_session_device_idx\" ON \"cloud_session\" USING btree (\"device_id\");"
+    ]
   }
 ];

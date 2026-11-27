@@ -84,6 +84,74 @@ func (PermissionMode) EnumDescriptor() ([]byte, []int) {
 	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{0}
 }
 
+// The container of a cloud session (docs/design/cloud-sessions.md).
+type CloudEnvironmentState int32
+
+const (
+	CloudEnvironmentState_CLOUD_ENVIRONMENT_STATE_UNSPECIFIED CloudEnvironmentState = 0
+	// Wanted: a runner is creating its container, or will when it has room.
+	CloudEnvironmentState_CLOUD_ENVIRONMENT_STATE_STARTING CloudEnvironmentState = 1
+	// The container is up and a turn is running.
+	CloudEnvironmentState_CLOUD_ENVIRONMENT_STATE_RUNNING CloudEnvironmentState = 2
+	// The container is up and nothing runs; it is removed after the idle timeout.
+	CloudEnvironmentState_CLOUD_ENVIRONMENT_STATE_IDLE CloudEnvironmentState = 3
+	// No container: the next message starts one.
+	CloudEnvironmentState_CLOUD_ENVIRONMENT_STATE_REMOVED CloudEnvironmentState = 4
+	// Starting failed; the next message tries again.
+	CloudEnvironmentState_CLOUD_ENVIRONMENT_STATE_FAILED CloudEnvironmentState = 5
+	// The work was cancelled or deleted: it never starts again.
+	CloudEnvironmentState_CLOUD_ENVIRONMENT_STATE_ENDED CloudEnvironmentState = 6
+)
+
+// Enum value maps for CloudEnvironmentState.
+var (
+	CloudEnvironmentState_name = map[int32]string{
+		0: "CLOUD_ENVIRONMENT_STATE_UNSPECIFIED",
+		1: "CLOUD_ENVIRONMENT_STATE_STARTING",
+		2: "CLOUD_ENVIRONMENT_STATE_RUNNING",
+		3: "CLOUD_ENVIRONMENT_STATE_IDLE",
+		4: "CLOUD_ENVIRONMENT_STATE_REMOVED",
+		5: "CLOUD_ENVIRONMENT_STATE_FAILED",
+		6: "CLOUD_ENVIRONMENT_STATE_ENDED",
+	}
+	CloudEnvironmentState_value = map[string]int32{
+		"CLOUD_ENVIRONMENT_STATE_UNSPECIFIED": 0,
+		"CLOUD_ENVIRONMENT_STATE_STARTING":    1,
+		"CLOUD_ENVIRONMENT_STATE_RUNNING":     2,
+		"CLOUD_ENVIRONMENT_STATE_IDLE":        3,
+		"CLOUD_ENVIRONMENT_STATE_REMOVED":     4,
+		"CLOUD_ENVIRONMENT_STATE_FAILED":      5,
+		"CLOUD_ENVIRONMENT_STATE_ENDED":       6,
+	}
+)
+
+func (x CloudEnvironmentState) Enum() *CloudEnvironmentState {
+	p := new(CloudEnvironmentState)
+	*p = x
+	return p
+}
+
+func (x CloudEnvironmentState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CloudEnvironmentState) Descriptor() protoreflect.EnumDescriptor {
+	return file_harness_agent_v1_agent_proto_enumTypes[1].Descriptor()
+}
+
+func (CloudEnvironmentState) Type() protoreflect.EnumType {
+	return &file_harness_agent_v1_agent_proto_enumTypes[1]
+}
+
+func (x CloudEnvironmentState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CloudEnvironmentState.Descriptor instead.
+func (CloudEnvironmentState) EnumDescriptor() ([]byte, []int) {
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{1}
+}
+
 type SessionStatus int32
 
 const (
@@ -127,11 +195,11 @@ func (x SessionStatus) String() string {
 }
 
 func (SessionStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[1].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[2].Descriptor()
 }
 
 func (SessionStatus) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[1]
+	return &file_harness_agent_v1_agent_proto_enumTypes[2]
 }
 
 func (x SessionStatus) Number() protoreflect.EnumNumber {
@@ -140,7 +208,7 @@ func (x SessionStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use SessionStatus.Descriptor instead.
 func (SessionStatus) EnumDescriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{1}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{2}
 }
 
 // How a Question ended.
@@ -187,11 +255,11 @@ func (x QuestionOutcome) String() string {
 }
 
 func (QuestionOutcome) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[2].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[3].Descriptor()
 }
 
 func (QuestionOutcome) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[2]
+	return &file_harness_agent_v1_agent_proto_enumTypes[3]
 }
 
 func (x QuestionOutcome) Number() protoreflect.EnumNumber {
@@ -200,7 +268,7 @@ func (x QuestionOutcome) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use QuestionOutcome.Descriptor instead.
 func (QuestionOutcome) EnumDescriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{2}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{3}
 }
 
 // Why a Bash command runs in the background.
@@ -247,11 +315,11 @@ func (x BackgroundReason) String() string {
 }
 
 func (BackgroundReason) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[3].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[4].Descriptor()
 }
 
 func (BackgroundReason) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[3]
+	return &file_harness_agent_v1_agent_proto_enumTypes[4]
 }
 
 func (x BackgroundReason) Number() protoreflect.EnumNumber {
@@ -260,7 +328,7 @@ func (x BackgroundReason) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use BackgroundReason.Descriptor instead.
 func (BackgroundReason) EnumDescriptor() ([]byte, []int) {
-	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{3}
+	return file_harness_agent_v1_agent_proto_rawDescGZIP(), []int{4}
 }
 
 type PullRequest_State int32
@@ -302,11 +370,11 @@ func (x PullRequest_State) String() string {
 }
 
 func (PullRequest_State) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[4].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[5].Descriptor()
 }
 
 func (PullRequest_State) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[4]
+	return &file_harness_agent_v1_agent_proto_enumTypes[5]
 }
 
 func (x PullRequest_State) Number() protoreflect.EnumNumber {
@@ -354,11 +422,11 @@ func (x Todo_Status) String() string {
 }
 
 func (Todo_Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[5].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[6].Descriptor()
 }
 
 func (Todo_Status) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[5]
+	return &file_harness_agent_v1_agent_proto_enumTypes[6]
 }
 
 func (x Todo_Status) Number() protoreflect.EnumNumber {
@@ -409,11 +477,11 @@ func (x TaskFinished_Reason) String() string {
 }
 
 func (TaskFinished_Reason) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[6].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[7].Descriptor()
 }
 
 func (TaskFinished_Reason) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[6]
+	return &file_harness_agent_v1_agent_proto_enumTypes[7]
 }
 
 func (x TaskFinished_Reason) Number() protoreflect.EnumNumber {
@@ -465,11 +533,11 @@ func (x Compacted_Trigger) String() string {
 }
 
 func (Compacted_Trigger) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[7].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[8].Descriptor()
 }
 
 func (Compacted_Trigger) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[7]
+	return &file_harness_agent_v1_agent_proto_enumTypes[8]
 }
 
 func (x Compacted_Trigger) Number() protoreflect.EnumNumber {
@@ -524,11 +592,11 @@ func (x ShowRequested_Kind) String() string {
 }
 
 func (ShowRequested_Kind) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[8].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[9].Descriptor()
 }
 
 func (ShowRequested_Kind) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[8]
+	return &file_harness_agent_v1_agent_proto_enumTypes[9]
 }
 
 func (x ShowRequested_Kind) Number() protoreflect.EnumNumber {
@@ -583,11 +651,11 @@ func (x QuestionItem_Type) String() string {
 }
 
 func (QuestionItem_Type) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[9].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[10].Descriptor()
 }
 
 func (QuestionItem_Type) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[9]
+	return &file_harness_agent_v1_agent_proto_enumTypes[10]
 }
 
 func (x QuestionItem_Type) Number() protoreflect.EnumNumber {
@@ -638,11 +706,11 @@ func (x TurnFinished_Result) String() string {
 }
 
 func (TurnFinished_Result) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[10].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[11].Descriptor()
 }
 
 func (TurnFinished_Result) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[10]
+	return &file_harness_agent_v1_agent_proto_enumTypes[11]
 }
 
 func (x TurnFinished_Result) Number() protoreflect.EnumNumber {
@@ -698,11 +766,11 @@ func (x UsageLimit_State) String() string {
 }
 
 func (UsageLimit_State) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[11].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[12].Descriptor()
 }
 
 func (UsageLimit_State) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[11]
+	return &file_harness_agent_v1_agent_proto_enumTypes[12]
 }
 
 func (x UsageLimit_State) Number() protoreflect.EnumNumber {
@@ -750,11 +818,11 @@ func (x Notice_Level) String() string {
 }
 
 func (Notice_Level) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[12].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[13].Descriptor()
 }
 
 func (Notice_Level) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[12]
+	return &file_harness_agent_v1_agent_proto_enumTypes[13]
 }
 
 func (x Notice_Level) Number() protoreflect.EnumNumber {
@@ -799,11 +867,11 @@ func (x SendUserMessageRequest_Delivery) String() string {
 }
 
 func (SendUserMessageRequest_Delivery) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[13].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[14].Descriptor()
 }
 
 func (SendUserMessageRequest_Delivery) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[13]
+	return &file_harness_agent_v1_agent_proto_enumTypes[14]
 }
 
 func (x SendUserMessageRequest_Delivery) Number() protoreflect.EnumNumber {
@@ -853,11 +921,11 @@ func (x RespondToPermissionRequest_Decision) String() string {
 }
 
 func (RespondToPermissionRequest_Decision) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[14].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[15].Descriptor()
 }
 
 func (RespondToPermissionRequest_Decision) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[14]
+	return &file_harness_agent_v1_agent_proto_enumTypes[15]
 }
 
 func (x RespondToPermissionRequest_Decision) Number() protoreflect.EnumNumber {
@@ -908,11 +976,11 @@ func (x RespondToPlanRequest_Decision) String() string {
 }
 
 func (RespondToPlanRequest_Decision) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[15].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[16].Descriptor()
 }
 
 func (RespondToPlanRequest_Decision) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[15]
+	return &file_harness_agent_v1_agent_proto_enumTypes[16]
 }
 
 func (x RespondToPlanRequest_Decision) Number() protoreflect.EnumNumber {
@@ -968,11 +1036,11 @@ func (x RewindRequest_Mode) String() string {
 }
 
 func (RewindRequest_Mode) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[16].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[17].Descriptor()
 }
 
 func (RewindRequest_Mode) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[16]
+	return &file_harness_agent_v1_agent_proto_enumTypes[17]
 }
 
 func (x RewindRequest_Mode) Number() protoreflect.EnumNumber {
@@ -1040,11 +1108,11 @@ func (x ContextUsage_Category) String() string {
 }
 
 func (ContextUsage_Category) Descriptor() protoreflect.EnumDescriptor {
-	return file_harness_agent_v1_agent_proto_enumTypes[17].Descriptor()
+	return file_harness_agent_v1_agent_proto_enumTypes[18].Descriptor()
 }
 
 func (ContextUsage_Category) Type() protoreflect.EnumType {
-	return &file_harness_agent_v1_agent_proto_enumTypes[17]
+	return &file_harness_agent_v1_agent_proto_enumTypes[18]
 }
 
 func (x ContextUsage_Category) Number() protoreflect.EnumNumber {
@@ -1565,9 +1633,12 @@ type SessionInfo struct {
 	// The session moved to an always-on host and is read-only here.
 	Moved *SessionMoved `protobuf:"bytes,360,opt,name=moved,proto3" json:"moved,omitempty"`
 	// The session is an attempt of a best-of-N group.
-	Attempt       *SessionAttempt `protobuf:"bytes,361,opt,name=attempt,proto3" json:"attempt,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Attempt *SessionAttempt `protobuf:"bytes,361,opt,name=attempt,proto3" json:"attempt,omitempty"`
+	// A cloud session (docs/design/cloud-sessions.md): the state of its container, as relay presence says. Unspecified for any
+	// other session. A cloud session whose container is gone still takes messages: the next one starts it again.
+	CloudEnvironment CloudEnvironmentState `protobuf:"varint,450,opt,name=cloud_environment,json=cloudEnvironment,proto3,enum=harness.agent.v1.CloudEnvironmentState" json:"cloud_environment,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *SessionInfo) Reset() {
@@ -1843,6 +1914,13 @@ func (x *SessionInfo) GetAttempt() *SessionAttempt {
 		return x.Attempt
 	}
 	return nil
+}
+
+func (x *SessionInfo) GetCloudEnvironment() CloudEnvironmentState {
+	if x != nil {
+		return x.CloudEnvironment
+	}
+	return CloudEnvironmentState_CLOUD_ENVIRONMENT_STATE_UNSPECIFIED
 }
 
 // A git worktree a session runs in. `cwd` of the session is inside `path`.
@@ -12087,7 +12165,7 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
 	"cache_ttls\x18\x0f \x03(\tR\tcacheTtlsB\x0e\n" +
 	"\f_input_priceB\x0f\n" +
-	"\r_output_price\"\xe5\v\n" +
+	"\r_output_price\"\xbc\f\n" +
 	"\vSessionInfo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x10\n" +
@@ -12130,7 +12208,8 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\n" +
 	"keep_awake\x18= \x01(\bR\tkeepAwake\x125\n" +
 	"\x05moved\x18\xe8\x02 \x01(\v2\x1e.harness.agent.v1.SessionMovedR\x05moved\x12;\n" +
-	"\aattempt\x18\xe9\x02 \x01(\v2 .harness.agent.v1.SessionAttemptR\aattemptB\x0f\n" +
+	"\aattempt\x18\xe9\x02 \x01(\v2 .harness.agent.v1.SessionAttemptR\aattempt\x12U\n" +
+	"\x11cloud_environment\x18\xc2\x03 \x01(\x0e2'.harness.agent.v1.CloudEnvironmentStateR\x10cloudEnvironmentB\x0f\n" +
 	"\r_pull_requestB\v\n" +
 	"\t_worktreeB\x10\n" +
 	"\x0e_device_onlineB\x06\n" +
@@ -13029,7 +13108,15 @@ const file_harness_agent_v1_agent_proto_rawDesc = "" +
 	"\x14PERMISSION_MODE_PLAN\x10\x03\x12\x1c\n" +
 	"\x18PERMISSION_MODE_DONT_ASK\x10\x04\x12&\n" +
 	"\"PERMISSION_MODE_BYPASS_PERMISSIONS\x10\x05\x12\x18\n" +
-	"\x14PERMISSION_MODE_AUTO\x10\x06*\xc9\x01\n" +
+	"\x14PERMISSION_MODE_AUTO\x10\x06*\x99\x02\n" +
+	"\x15CloudEnvironmentState\x12'\n" +
+	"#CLOUD_ENVIRONMENT_STATE_UNSPECIFIED\x10\x00\x12$\n" +
+	" CLOUD_ENVIRONMENT_STATE_STARTING\x10\x01\x12#\n" +
+	"\x1fCLOUD_ENVIRONMENT_STATE_RUNNING\x10\x02\x12 \n" +
+	"\x1cCLOUD_ENVIRONMENT_STATE_IDLE\x10\x03\x12#\n" +
+	"\x1fCLOUD_ENVIRONMENT_STATE_REMOVED\x10\x04\x12\"\n" +
+	"\x1eCLOUD_ENVIRONMENT_STATE_FAILED\x10\x05\x12!\n" +
+	"\x1dCLOUD_ENVIRONMENT_STATE_ENDED\x10\x06*\xc9\x01\n" +
 	"\rSessionStatus\x12\x1e\n" +
 	"\x1aSESSION_STATUS_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13SESSION_STATUS_IDLE\x10\x01\x12\x1a\n" +
@@ -13224,912 +13311,914 @@ func file_harness_agent_v1_agent_proto_rawDescGZIP() []byte {
 	return file_harness_agent_v1_agent_proto_rawDescData
 }
 
-var file_harness_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 18)
+var file_harness_agent_v1_agent_proto_enumTypes = make([]protoimpl.EnumInfo, 19)
 var file_harness_agent_v1_agent_proto_msgTypes = make([]protoimpl.MessageInfo, 148)
 var file_harness_agent_v1_agent_proto_goTypes = []any{
 	(PermissionMode)(0),                      // 0: harness.agent.v1.PermissionMode
-	(SessionStatus)(0),                       // 1: harness.agent.v1.SessionStatus
-	(QuestionOutcome)(0),                     // 2: harness.agent.v1.QuestionOutcome
-	(BackgroundReason)(0),                    // 3: harness.agent.v1.BackgroundReason
-	(PullRequest_State)(0),                   // 4: harness.agent.v1.PullRequest.State
-	(Todo_Status)(0),                         // 5: harness.agent.v1.Todo.Status
-	(TaskFinished_Reason)(0),                 // 6: harness.agent.v1.TaskFinished.Reason
-	(Compacted_Trigger)(0),                   // 7: harness.agent.v1.Compacted.Trigger
-	(ShowRequested_Kind)(0),                  // 8: harness.agent.v1.ShowRequested.Kind
-	(QuestionItem_Type)(0),                   // 9: harness.agent.v1.QuestionItem.Type
-	(TurnFinished_Result)(0),                 // 10: harness.agent.v1.TurnFinished.Result
-	(UsageLimit_State)(0),                    // 11: harness.agent.v1.UsageLimit.State
-	(Notice_Level)(0),                        // 12: harness.agent.v1.Notice.Level
-	(SendUserMessageRequest_Delivery)(0),     // 13: harness.agent.v1.SendUserMessageRequest.Delivery
-	(RespondToPermissionRequest_Decision)(0), // 14: harness.agent.v1.RespondToPermissionRequest.Decision
-	(RespondToPlanRequest_Decision)(0),       // 15: harness.agent.v1.RespondToPlanRequest.Decision
-	(RewindRequest_Mode)(0),                  // 16: harness.agent.v1.RewindRequest.Mode
-	(ContextUsage_Category)(0),               // 17: harness.agent.v1.ContextUsage.Category
-	(*CreateObjectTicketRequest)(nil),        // 18: harness.agent.v1.CreateObjectTicketRequest
-	(*CreateObjectTicketResponse)(nil),       // 19: harness.agent.v1.CreateObjectTicketResponse
-	(*InitializeRequest)(nil),                // 20: harness.agent.v1.InitializeRequest
-	(*InitializeResponse)(nil),               // 21: harness.agent.v1.InitializeResponse
-	(*ModelInfo)(nil),                        // 22: harness.agent.v1.ModelInfo
-	(*SessionInfo)(nil),                      // 23: harness.agent.v1.SessionInfo
-	(*Worktree)(nil),                         // 24: harness.agent.v1.Worktree
-	(*DiffStats)(nil),                        // 25: harness.agent.v1.DiffStats
-	(*PullRequest)(nil),                      // 26: harness.agent.v1.PullRequest
-	(*CreateSessionRequest)(nil),             // 27: harness.agent.v1.CreateSessionRequest
-	(*WorktreeOptions)(nil),                  // 28: harness.agent.v1.WorktreeOptions
-	(*ListRecentFoldersRequest)(nil),         // 29: harness.agent.v1.ListRecentFoldersRequest
-	(*ListRecentFoldersResponse)(nil),        // 30: harness.agent.v1.ListRecentFoldersResponse
-	(*RecentFolder)(nil),                     // 31: harness.agent.v1.RecentFolder
-	(*ListDirectoryRequest)(nil),             // 32: harness.agent.v1.ListDirectoryRequest
-	(*ListDirectoryResponse)(nil),            // 33: harness.agent.v1.ListDirectoryResponse
-	(*DirectoryEntry)(nil),                   // 34: harness.agent.v1.DirectoryEntry
-	(*ListBranchesRequest)(nil),              // 35: harness.agent.v1.ListBranchesRequest
-	(*ListBranchesResponse)(nil),             // 36: harness.agent.v1.ListBranchesResponse
-	(*Branch)(nil),                           // 37: harness.agent.v1.Branch
-	(*CreateSessionResponse)(nil),            // 38: harness.agent.v1.CreateSessionResponse
-	(*ListSessionsRequest)(nil),              // 39: harness.agent.v1.ListSessionsRequest
-	(*ListSessionsResponse)(nil),             // 40: harness.agent.v1.ListSessionsResponse
-	(*UpdateSessionRequest)(nil),             // 41: harness.agent.v1.UpdateSessionRequest
-	(*UpdateSessionResponse)(nil),            // 42: harness.agent.v1.UpdateSessionResponse
-	(*DeleteSessionRequest)(nil),             // 43: harness.agent.v1.DeleteSessionRequest
-	(*DeleteSessionResponse)(nil),            // 44: harness.agent.v1.DeleteSessionResponse
-	(*SubscribeRequest)(nil),                 // 45: harness.agent.v1.SubscribeRequest
-	(*SubscribeResponse)(nil),                // 46: harness.agent.v1.SubscribeResponse
-	(*SessionEvent)(nil),                     // 47: harness.agent.v1.SessionEvent
-	(*SessionMoved)(nil),                     // 48: harness.agent.v1.SessionMoved
-	(*CheckSessionMoveRequest)(nil),          // 49: harness.agent.v1.CheckSessionMoveRequest
-	(*SessionMoveProblem)(nil),               // 50: harness.agent.v1.SessionMoveProblem
-	(*SessionMoveCheck)(nil),                 // 51: harness.agent.v1.SessionMoveCheck
-	(*CheckSessionMoveResponse)(nil),         // 52: harness.agent.v1.CheckSessionMoveResponse
-	(*MoveSessionRequest)(nil),               // 53: harness.agent.v1.MoveSessionRequest
-	(*MoveSessionResponse)(nil),              // 54: harness.agent.v1.MoveSessionResponse
-	(*AttemptCheck)(nil),                     // 55: harness.agent.v1.AttemptCheck
-	(*SessionAttempt)(nil),                   // 56: harness.agent.v1.SessionAttempt
-	(*HostWorkUpdated)(nil),                  // 57: harness.agent.v1.HostWorkUpdated
-	(*TurnStarted)(nil),                      // 58: harness.agent.v1.TurnStarted
-	(*TodosUpdated)(nil),                     // 59: harness.agent.v1.TodosUpdated
-	(*Todo)(nil),                             // 60: harness.agent.v1.Todo
-	(*PlanProposed)(nil),                     // 61: harness.agent.v1.PlanProposed
-	(*PlanResolved)(nil),                     // 62: harness.agent.v1.PlanResolved
-	(*TaskStarted)(nil),                      // 63: harness.agent.v1.TaskStarted
-	(*TaskOutput)(nil),                       // 64: harness.agent.v1.TaskOutput
-	(*TaskFinished)(nil),                     // 65: harness.agent.v1.TaskFinished
-	(*Checkpoint)(nil),                       // 66: harness.agent.v1.Checkpoint
-	(*CheckpointCreated)(nil),                // 67: harness.agent.v1.CheckpointCreated
-	(*Rewound)(nil),                          // 68: harness.agent.v1.Rewound
-	(*Compacted)(nil),                        // 69: harness.agent.v1.Compacted
-	(*PermissionModeChanged)(nil),            // 70: harness.agent.v1.PermissionModeChanged
-	(*ShowRequested)(nil),                    // 71: harness.agent.v1.ShowRequested
-	(*UserMessage)(nil),                      // 72: harness.agent.v1.UserMessage
-	(*AssistantDelta)(nil),                   // 73: harness.agent.v1.AssistantDelta
-	(*AssistantMessage)(nil),                 // 74: harness.agent.v1.AssistantMessage
-	(*ToolCallStarted)(nil),                  // 75: harness.agent.v1.ToolCallStarted
-	(*ToolCallFinished)(nil),                 // 76: harness.agent.v1.ToolCallFinished
-	(*PermissionRequest)(nil),                // 77: harness.agent.v1.PermissionRequest
-	(*PermissionResolved)(nil),               // 78: harness.agent.v1.PermissionResolved
-	(*QuestionResolved)(nil),                 // 79: harness.agent.v1.QuestionResolved
-	(*SessionEnded)(nil),                     // 80: harness.agent.v1.SessionEnded
-	(*Question)(nil),                         // 81: harness.agent.v1.Question
-	(*QuestionItem)(nil),                     // 82: harness.agent.v1.QuestionItem
-	(*QuestionOption)(nil),                   // 83: harness.agent.v1.QuestionOption
-	(*QueueChanged)(nil),                     // 84: harness.agent.v1.QueueChanged
-	(*TurnFinished)(nil),                     // 85: harness.agent.v1.TurnFinished
-	(*UsageLimit)(nil),                       // 86: harness.agent.v1.UsageLimit
-	(*Notice)(nil),                           // 87: harness.agent.v1.Notice
-	(*SendUserMessageRequest)(nil),           // 88: harness.agent.v1.SendUserMessageRequest
-	(*SendUserMessageResponse)(nil),          // 89: harness.agent.v1.SendUserMessageResponse
-	(*RemoveQueuedMessageRequest)(nil),       // 90: harness.agent.v1.RemoveQueuedMessageRequest
-	(*RemoveQueuedMessageResponse)(nil),      // 91: harness.agent.v1.RemoveQueuedMessageResponse
-	(*InterruptRequest)(nil),                 // 92: harness.agent.v1.InterruptRequest
-	(*InterruptResponse)(nil),                // 93: harness.agent.v1.InterruptResponse
-	(*RespondToPermissionRequest)(nil),       // 94: harness.agent.v1.RespondToPermissionRequest
-	(*RespondToPermissionResponse)(nil),      // 95: harness.agent.v1.RespondToPermissionResponse
-	(*AnswerQuestionRequest)(nil),            // 96: harness.agent.v1.AnswerQuestionRequest
-	(*QuestionAnswer)(nil),                   // 97: harness.agent.v1.QuestionAnswer
-	(*AnswerQuestionResponse)(nil),           // 98: harness.agent.v1.AnswerQuestionResponse
-	(*SetModelRequest)(nil),                  // 99: harness.agent.v1.SetModelRequest
-	(*SetModelResponse)(nil),                 // 100: harness.agent.v1.SetModelResponse
-	(*SetAutoContinueRequest)(nil),           // 101: harness.agent.v1.SetAutoContinueRequest
-	(*SetAutoContinueResponse)(nil),          // 102: harness.agent.v1.SetAutoContinueResponse
-	(*SetEffortRequest)(nil),                 // 103: harness.agent.v1.SetEffortRequest
-	(*SetEffortResponse)(nil),                // 104: harness.agent.v1.SetEffortResponse
-	(*SetPermissionModeRequest)(nil),         // 105: harness.agent.v1.SetPermissionModeRequest
-	(*SetPermissionModeResponse)(nil),        // 106: harness.agent.v1.SetPermissionModeResponse
-	(*SuggestFilesRequest)(nil),              // 107: harness.agent.v1.SuggestFilesRequest
-	(*SuggestFilesResponse)(nil),             // 108: harness.agent.v1.SuggestFilesResponse
-	(*RespondToPlanRequest)(nil),             // 109: harness.agent.v1.RespondToPlanRequest
-	(*RespondToPlanResponse)(nil),            // 110: harness.agent.v1.RespondToPlanResponse
-	(*ListCheckpointsRequest)(nil),           // 111: harness.agent.v1.ListCheckpointsRequest
-	(*ListCheckpointsResponse)(nil),          // 112: harness.agent.v1.ListCheckpointsResponse
-	(*RewindRequest)(nil),                    // 113: harness.agent.v1.RewindRequest
-	(*RewindResponse)(nil),                   // 114: harness.agent.v1.RewindResponse
-	(*CompactRequest)(nil),                   // 115: harness.agent.v1.CompactRequest
-	(*CompactResponse)(nil),                  // 116: harness.agent.v1.CompactResponse
-	(*GetContextUsageRequest)(nil),           // 117: harness.agent.v1.GetContextUsageRequest
-	(*GetContextUsageResponse)(nil),          // 118: harness.agent.v1.GetContextUsageResponse
-	(*ContextUsage)(nil),                     // 119: harness.agent.v1.ContextUsage
-	(*UserPreferences)(nil),                  // 120: harness.agent.v1.UserPreferences
-	(*ModelTuning)(nil),                      // 121: harness.agent.v1.ModelTuning
-	(*SkillSwitch)(nil),                      // 122: harness.agent.v1.SkillSwitch
-	(*GetUserPreferencesRequest)(nil),        // 123: harness.agent.v1.GetUserPreferencesRequest
-	(*GetUserPreferencesResponse)(nil),       // 124: harness.agent.v1.GetUserPreferencesResponse
-	(*ChatDefaults)(nil),                     // 125: harness.agent.v1.ChatDefaults
-	(*UpdateUserPreferencesRequest)(nil),     // 126: harness.agent.v1.UpdateUserPreferencesRequest
-	(*UpdateUserPreferencesResponse)(nil),    // 127: harness.agent.v1.UpdateUserPreferencesResponse
-	(*BackgroundTask)(nil),                   // 128: harness.agent.v1.BackgroundTask
-	(*ListTasksRequest)(nil),                 // 129: harness.agent.v1.ListTasksRequest
-	(*ListTasksResponse)(nil),                // 130: harness.agent.v1.ListTasksResponse
-	(*StopTaskRequest)(nil),                  // 131: harness.agent.v1.StopTaskRequest
-	(*StopTaskResponse)(nil),                 // 132: harness.agent.v1.StopTaskResponse
-	(*CloseSessionRequest)(nil),              // 133: harness.agent.v1.CloseSessionRequest
-	(*CloseSessionResponse)(nil),             // 134: harness.agent.v1.CloseSessionResponse
-	(*GetWorkspaceTrustRequest)(nil),         // 135: harness.agent.v1.GetWorkspaceTrustRequest
-	(*GetWorkspaceTrustResponse)(nil),        // 136: harness.agent.v1.GetWorkspaceTrustResponse
-	(*SetWorkspaceTrustRequest)(nil),         // 137: harness.agent.v1.SetWorkspaceTrustRequest
-	(*SetWorkspaceTrustResponse)(nil),        // 138: harness.agent.v1.SetWorkspaceTrustResponse
-	(*SetOutputStyleRequest)(nil),            // 139: harness.agent.v1.SetOutputStyleRequest
-	(*SetOutputStyleResponse)(nil),           // 140: harness.agent.v1.SetOutputStyleResponse
-	(*ListOutputStylesRequest)(nil),          // 141: harness.agent.v1.ListOutputStylesRequest
-	(*ListOutputStylesResponse)(nil),         // 142: harness.agent.v1.ListOutputStylesResponse
-	(*OutputStyleInfo)(nil),                  // 143: harness.agent.v1.OutputStyleInfo
-	(*Environment)(nil),                      // 144: harness.agent.v1.Environment
-	(*EnvironmentFolder)(nil),                // 145: harness.agent.v1.EnvironmentFolder
-	(*EnvironmentErrors)(nil),                // 146: harness.agent.v1.EnvironmentErrors
-	(*EnvironmentError)(nil),                 // 147: harness.agent.v1.EnvironmentError
-	(*GetEnvironmentRequest)(nil),            // 148: harness.agent.v1.GetEnvironmentRequest
-	(*GetEnvironmentResponse)(nil),           // 149: harness.agent.v1.GetEnvironmentResponse
-	(*UpdateEnvironmentRequest)(nil),         // 150: harness.agent.v1.UpdateEnvironmentRequest
-	(*UpdateEnvironmentResponse)(nil),        // 151: harness.agent.v1.UpdateEnvironmentResponse
-	(*GetFolderInfoRequest)(nil),             // 152: harness.agent.v1.GetFolderInfoRequest
-	(*GetFolderInfoResponse)(nil),            // 153: harness.agent.v1.GetFolderInfoResponse
-	(*SetSessionFolderRequest)(nil),          // 154: harness.agent.v1.SetSessionFolderRequest
-	(*SetSessionFolderResponse)(nil),         // 155: harness.agent.v1.SetSessionFolderResponse
-	(*AddSessionDirectoryRequest)(nil),       // 156: harness.agent.v1.AddSessionDirectoryRequest
-	(*AddSessionDirectoryResponse)(nil),      // 157: harness.agent.v1.AddSessionDirectoryResponse
-	(*ToolTitle)(nil),                        // 158: harness.agent.v1.ToolTitle
-	(*ToolBackground)(nil),                   // 159: harness.agent.v1.ToolBackground
-	(*BackgroundToolCallRequest)(nil),        // 160: harness.agent.v1.BackgroundToolCallRequest
-	(*BackgroundToolCallResponse)(nil),       // 161: harness.agent.v1.BackgroundToolCallResponse
-	(*SetSessionRelayRequest)(nil),           // 162: harness.agent.v1.SetSessionRelayRequest
-	(*SetSessionRelayResponse)(nil),          // 163: harness.agent.v1.SetSessionRelayResponse
-	(*ContextUsage_Entry)(nil),               // 164: harness.agent.v1.ContextUsage.Entry
-	(*ContextUsage_McpTool)(nil),             // 165: harness.agent.v1.ContextUsage.McpTool
-	(v1.Effort)(0),                           // 166: harness.llm.v1.Effort
-	(SessionFeature)(0),                      // 167: harness.agent.v1.SessionFeature
-	(*AcpSessionState)(nil),                  // 168: harness.agent.v1.AcpSessionState
-	(*UserShellStarted)(nil),                 // 169: harness.agent.v1.UserShellStarted
-	(*UserShellOutput)(nil),                  // 170: harness.agent.v1.UserShellOutput
-	(*UserShellFinished)(nil),                // 171: harness.agent.v1.UserShellFinished
-	(*BrowserAction)(nil),                    // 172: harness.agent.v1.BrowserAction
-	(*SubagentUpdated)(nil),                  // 173: harness.agent.v1.SubagentUpdated
-	(*SessionProposal)(nil),                  // 174: harness.agent.v1.SessionProposal
-	(*UserNotification)(nil),                 // 175: harness.agent.v1.UserNotification
-	(*ComputerAccessRequested)(nil),          // 176: harness.agent.v1.ComputerAccessRequested
-	(*ComputerAccessResolved)(nil),           // 177: harness.agent.v1.ComputerAccessResolved
-	(*ComputerUseState)(nil),                 // 178: harness.agent.v1.ComputerUseState
-	(*DeviceSettingsChanged)(nil),            // 179: harness.agent.v1.DeviceSettingsChanged
-	(*WorkflowUpdated)(nil),                  // 180: harness.agent.v1.WorkflowUpdated
-	(*HookRun)(nil),                          // 181: harness.agent.v1.HookRun
-	(*McpToolProgress)(nil),                  // 182: harness.agent.v1.McpToolProgress
-	(*McpListChanged)(nil),                   // 183: harness.agent.v1.McpListChanged
-	(*SlashCommandResult)(nil),               // 184: harness.agent.v1.SlashCommandResult
-	(*SkillInvoked)(nil),                     // 185: harness.agent.v1.SkillInvoked
-	(*BrowserSiteRequested)(nil),             // 186: harness.agent.v1.BrowserSiteRequested
-	(*BrowserSiteResolved)(nil),              // 187: harness.agent.v1.BrowserSiteResolved
-	(*GoalUpdated)(nil),                      // 188: harness.agent.v1.GoalUpdated
-	(*TaskGraphUpdated)(nil),                 // 189: harness.agent.v1.TaskGraphUpdated
-	(*WorktreeSetupUpdated)(nil),             // 190: harness.agent.v1.WorktreeSetupUpdated
-	(*VcsHooksSuggested)(nil),                // 191: harness.agent.v1.VcsHooksSuggested
-	(*DemoRecordingState)(nil),               // 192: harness.agent.v1.DemoRecordingState
-	(*DemoSkillReviewRequested)(nil),         // 193: harness.agent.v1.DemoSkillReviewRequested
-	(*DemoSkillReviewResolved)(nil),          // 194: harness.agent.v1.DemoSkillReviewResolved
-	(*SimulatorActivity)(nil),                // 195: harness.agent.v1.SimulatorActivity
-	(*v1.ContentBlock)(nil),                  // 196: harness.llm.v1.ContentBlock
-	(v1.StopReason)(0),                       // 197: harness.llm.v1.StopReason
-	(*v1.Usage)(nil),                         // 198: harness.llm.v1.Usage
-	(*SandboxPreferences)(nil),               // 199: harness.agent.v1.SandboxPreferences
-	(*ManagedPolicyView)(nil),                // 200: harness.agent.v1.ManagedPolicyView
-	(*GetSandboxStatusRequest)(nil),          // 201: harness.agent.v1.GetSandboxStatusRequest
-	(*ListHooksRequest)(nil),                 // 202: harness.agent.v1.ListHooksRequest
-	(*SetHooksTrustRequest)(nil),             // 203: harness.agent.v1.SetHooksTrustRequest
-	(*CreateTerminalRequest)(nil),            // 204: harness.agent.v1.CreateTerminalRequest
-	(*AttachTerminalRequest)(nil),            // 205: harness.agent.v1.AttachTerminalRequest
-	(*ListTerminalsRequest)(nil),             // 206: harness.agent.v1.ListTerminalsRequest
-	(*KillTerminalRequest)(nil),              // 207: harness.agent.v1.KillTerminalRequest
-	(*ResizeTerminalRequest)(nil),            // 208: harness.agent.v1.ResizeTerminalRequest
-	(*ListFileRootsRequest)(nil),             // 209: harness.agent.v1.ListFileRootsRequest
-	(*ListFilesRequest)(nil),                 // 210: harness.agent.v1.ListFilesRequest
-	(*ReadFileRequest)(nil),                  // 211: harness.agent.v1.ReadFileRequest
-	(*GetGitStatusRequest)(nil),              // 212: harness.agent.v1.GetGitStatusRequest
-	(*RunShellCommandRequest)(nil),           // 213: harness.agent.v1.RunShellCommandRequest
-	(*StopShellCommandRequest)(nil),          // 214: harness.agent.v1.StopShellCommandRequest
-	(*AnswerWorktreeSetupRequest)(nil),       // 215: harness.agent.v1.AnswerWorktreeSetupRequest
-	(*ListSideChatsRequest)(nil),             // 216: harness.agent.v1.ListSideChatsRequest
-	(*CreateSideChatRequest)(nil),            // 217: harness.agent.v1.CreateSideChatRequest
-	(*GetSideChatRequest)(nil),               // 218: harness.agent.v1.GetSideChatRequest
-	(*UpdateSideChatRequest)(nil),            // 219: harness.agent.v1.UpdateSideChatRequest
-	(*DeleteSideChatRequest)(nil),            // 220: harness.agent.v1.DeleteSideChatRequest
-	(*AskSideChatRequest)(nil),               // 221: harness.agent.v1.AskSideChatRequest
-	(*StopSideChatRequest)(nil),              // 222: harness.agent.v1.StopSideChatRequest
-	(*ListSpeechProvidersRequest)(nil),       // 223: harness.agent.v1.ListSpeechProvidersRequest
-	(*ListSpeechVoicesRequest)(nil),          // 224: harness.agent.v1.ListSpeechVoicesRequest
-	(*GetSpeechSettingsRequest)(nil),         // 225: harness.agent.v1.GetSpeechSettingsRequest
-	(*UpdateSpeechSettingsRequest)(nil),      // 226: harness.agent.v1.UpdateSpeechSettingsRequest
-	(*TranscribeAudioRequest)(nil),           // 227: harness.agent.v1.TranscribeAudioRequest
-	(*SynthesizeSpeechRequest)(nil),          // 228: harness.agent.v1.SynthesizeSpeechRequest
-	(*ListLocalSpeechModelsRequest)(nil),     // 229: harness.agent.v1.ListLocalSpeechModelsRequest
-	(*DownloadSpeechModelRequest)(nil),       // 230: harness.agent.v1.DownloadSpeechModelRequest
-	(*DeleteSpeechModelRequest)(nil),         // 231: harness.agent.v1.DeleteSpeechModelRequest
-	(*ListLocalProvidersRequest)(nil),        // 232: harness.agent.v1.ListLocalProvidersRequest
-	(*AddLocalProviderRequest)(nil),          // 233: harness.agent.v1.AddLocalProviderRequest
-	(*UpdateLocalProviderRequest)(nil),       // 234: harness.agent.v1.UpdateLocalProviderRequest
-	(*RemoveLocalProviderRequest)(nil),       // 235: harness.agent.v1.RemoveLocalProviderRequest
-	(*RefreshLocalProvidersRequest)(nil),     // 236: harness.agent.v1.RefreshLocalProvidersRequest
-	(*PullOllamaModelRequest)(nil),           // 237: harness.agent.v1.PullOllamaModelRequest
-	(*DeleteOllamaModelRequest)(nil),         // 238: harness.agent.v1.DeleteOllamaModelRequest
-	(*GetProviderLimitsRequest)(nil),         // 239: harness.agent.v1.GetProviderLimitsRequest
-	(*ListAcpAgentsRequest)(nil),             // 240: harness.agent.v1.ListAcpAgentsRequest
-	(*InstallAcpAgentRequest)(nil),           // 241: harness.agent.v1.InstallAcpAgentRequest
-	(*UpdateAcpAgentRequest)(nil),            // 242: harness.agent.v1.UpdateAcpAgentRequest
-	(*UninstallAcpAgentRequest)(nil),         // 243: harness.agent.v1.UninstallAcpAgentRequest
-	(*AuthenticateAcpAgentRequest)(nil),      // 244: harness.agent.v1.AuthenticateAcpAgentRequest
-	(*SetAcpModeRequest)(nil),                // 245: harness.agent.v1.SetAcpModeRequest
-	(*GetBrowserAvailabilityRequest)(nil),    // 246: harness.agent.v1.GetBrowserAvailabilityRequest
-	(*InstallBrowserRequest)(nil),            // 247: harness.agent.v1.InstallBrowserRequest
-	(*OpenBrowserRequest)(nil),               // 248: harness.agent.v1.OpenBrowserRequest
-	(*ListBrowserTabsRequest)(nil),           // 249: harness.agent.v1.ListBrowserTabsRequest
-	(*CloseBrowserRequest)(nil),              // 250: harness.agent.v1.CloseBrowserRequest
-	(*ClearBrowserDataRequest)(nil),          // 251: harness.agent.v1.ClearBrowserDataRequest
-	(*GetSessionDiffRequest)(nil),            // 252: harness.agent.v1.GetSessionDiffRequest
-	(*StopSubagentRequest)(nil),              // 253: harness.agent.v1.StopSubagentRequest
-	(*GetSubagentTranscriptRequest)(nil),     // 254: harness.agent.v1.GetSubagentTranscriptRequest
-	(*ResolveSessionProposalRequest)(nil),    // 255: harness.agent.v1.ResolveSessionProposalRequest
-	(*UpdateViewerPresenceRequest)(nil),      // 256: harness.agent.v1.UpdateViewerPresenceRequest
-	(*ReadSentFileRequest)(nil),              // 257: harness.agent.v1.ReadSentFileRequest
-	(*SetPrMonitorRequest)(nil),              // 258: harness.agent.v1.SetPrMonitorRequest
-	(*DraftPullRequestRequest)(nil),          // 259: harness.agent.v1.DraftPullRequestRequest
-	(*CreatePullRequestRequest)(nil),         // 260: harness.agent.v1.CreatePullRequestRequest
-	(*GetVcsStatusRequest)(nil),              // 261: harness.agent.v1.GetVcsStatusRequest
-	(*ListPreviewServersRequest)(nil),        // 262: harness.agent.v1.ListPreviewServersRequest
-	(*StopPreviewServerRequest)(nil),         // 263: harness.agent.v1.StopPreviewServerRequest
-	(*GetPreviewLogsRequest)(nil),            // 264: harness.agent.v1.GetPreviewLogsRequest
-	(*GetComputerUseStatusRequest)(nil),      // 265: harness.agent.v1.GetComputerUseStatusRequest
-	(*SetComputerUseEnabledRequest)(nil),     // 266: harness.agent.v1.SetComputerUseEnabledRequest
-	(*RespondToComputerAccessRequest)(nil),   // 267: harness.agent.v1.RespondToComputerAccessRequest
-	(*StopComputerUseRequest)(nil),           // 268: harness.agent.v1.StopComputerUseRequest
-	(*SetComputerUseProfileRequest)(nil),     // 269: harness.agent.v1.SetComputerUseProfileRequest
-	(*ListComputerUseAppsRequest)(nil),       // 270: harness.agent.v1.ListComputerUseAppsRequest
-	(*ListDemoRecordingAppsRequest)(nil),     // 271: harness.agent.v1.ListDemoRecordingAppsRequest
-	(*StartDemoRecordingRequest)(nil),        // 272: harness.agent.v1.StartDemoRecordingRequest
-	(*StopDemoRecordingRequest)(nil),         // 273: harness.agent.v1.StopDemoRecordingRequest
-	(*RespondToDemoSkillReviewRequest)(nil),  // 274: harness.agent.v1.RespondToDemoSkillReviewRequest
-	(*ListSimulatorsRequest)(nil),            // 275: harness.agent.v1.ListSimulatorsRequest
-	(*BootSimulatorRequest)(nil),             // 276: harness.agent.v1.BootSimulatorRequest
-	(*ShutdownSimulatorRequest)(nil),         // 277: harness.agent.v1.ShutdownSimulatorRequest
-	(*WatchSimulatorRequest)(nil),            // 278: harness.agent.v1.WatchSimulatorRequest
-	(*SimulatorInputRequest)(nil),            // 279: harness.agent.v1.SimulatorInputRequest
-	(*GetDeviceSettingsRequest)(nil),         // 280: harness.agent.v1.GetDeviceSettingsRequest
-	(*UpdateDeviceSettingsRequest)(nil),      // 281: harness.agent.v1.UpdateDeviceSettingsRequest
-	(*SetKeepAwakeRequest)(nil),              // 282: harness.agent.v1.SetKeepAwakeRequest
-	(*ListDiffBasesRequest)(nil),             // 283: harness.agent.v1.ListDiffBasesRequest
-	(*GetSessionFileDiffRequest)(nil),        // 284: harness.agent.v1.GetSessionFileDiffRequest
-	(*StopWorkflowRequest)(nil),              // 285: harness.agent.v1.StopWorkflowRequest
-	(*ScanClaudeImportRequest)(nil),          // 286: harness.agent.v1.ScanClaudeImportRequest
-	(*RunClaudeImportRequest)(nil),           // 287: harness.agent.v1.RunClaudeImportRequest
-	(*ScanProjectImportRequest)(nil),         // 288: harness.agent.v1.ScanProjectImportRequest
-	(*RunProjectImportRequest)(nil),          // 289: harness.agent.v1.RunProjectImportRequest
-	(*DismissProjectImportRequest)(nil),      // 290: harness.agent.v1.DismissProjectImportRequest
-	(*ListImportSourcesRequest)(nil),         // 291: harness.agent.v1.ListImportSourcesRequest
-	(*ScanImportSourceRequest)(nil),          // 292: harness.agent.v1.ScanImportSourceRequest
-	(*RunImportSourceRequest)(nil),           // 293: harness.agent.v1.RunImportSourceRequest
-	(*ListMcpServersRequest)(nil),            // 294: harness.agent.v1.ListMcpServersRequest
-	(*InspectMcpServerRequest)(nil),          // 295: harness.agent.v1.InspectMcpServerRequest
-	(*CreateMcpServerRequest)(nil),           // 296: harness.agent.v1.CreateMcpServerRequest
-	(*UpdateMcpServerRequest)(nil),           // 297: harness.agent.v1.UpdateMcpServerRequest
-	(*DeleteMcpServerRequest)(nil),           // 298: harness.agent.v1.DeleteMcpServerRequest
-	(*SetMcpServerApprovalRequest)(nil),      // 299: harness.agent.v1.SetMcpServerApprovalRequest
-	(*SetMcpToolRuleRequest)(nil),            // 300: harness.agent.v1.SetMcpToolRuleRequest
-	(*ListMcpCommandsRequest)(nil),           // 301: harness.agent.v1.ListMcpCommandsRequest
-	(*ListMcpResourcesRequest)(nil),          // 302: harness.agent.v1.ListMcpResourcesRequest
-	(*ListSlashCommandsRequest)(nil),         // 303: harness.agent.v1.ListSlashCommandsRequest
-	(*ListSessionToolsRequest)(nil),          // 304: harness.agent.v1.ListSessionToolsRequest
-	(*GetDiagnosticsRequest)(nil),            // 305: harness.agent.v1.GetDiagnosticsRequest
-	(*ListSchedulesRequest)(nil),             // 306: harness.agent.v1.ListSchedulesRequest
-	(*CreateScheduleRequest)(nil),            // 307: harness.agent.v1.CreateScheduleRequest
-	(*UpdateScheduleRequest)(nil),            // 308: harness.agent.v1.UpdateScheduleRequest
-	(*DeleteScheduleRequest)(nil),            // 309: harness.agent.v1.DeleteScheduleRequest
-	(*SetSchedulePausedRequest)(nil),         // 310: harness.agent.v1.SetSchedulePausedRequest
-	(*RunScheduleNowRequest)(nil),            // 311: harness.agent.v1.RunScheduleNowRequest
-	(*ListScheduleRunsRequest)(nil),          // 312: harness.agent.v1.ListScheduleRunsRequest
-	(*TrustScheduleRequest)(nil),             // 313: harness.agent.v1.TrustScheduleRequest
-	(*RotateScheduleWebhookRequest)(nil),     // 314: harness.agent.v1.RotateScheduleWebhookRequest
-	(*GetSandboxStatusResponse)(nil),         // 315: harness.agent.v1.GetSandboxStatusResponse
-	(*ListHooksResponse)(nil),                // 316: harness.agent.v1.ListHooksResponse
-	(*SetHooksTrustResponse)(nil),            // 317: harness.agent.v1.SetHooksTrustResponse
-	(*CreateTerminalResponse)(nil),           // 318: harness.agent.v1.CreateTerminalResponse
-	(*AttachTerminalResponse)(nil),           // 319: harness.agent.v1.AttachTerminalResponse
-	(*ListTerminalsResponse)(nil),            // 320: harness.agent.v1.ListTerminalsResponse
-	(*KillTerminalResponse)(nil),             // 321: harness.agent.v1.KillTerminalResponse
-	(*ResizeTerminalResponse)(nil),           // 322: harness.agent.v1.ResizeTerminalResponse
-	(*ListFileRootsResponse)(nil),            // 323: harness.agent.v1.ListFileRootsResponse
-	(*ListFilesResponse)(nil),                // 324: harness.agent.v1.ListFilesResponse
-	(*ReadFileResponse)(nil),                 // 325: harness.agent.v1.ReadFileResponse
-	(*GetGitStatusResponse)(nil),             // 326: harness.agent.v1.GetGitStatusResponse
-	(*RunShellCommandResponse)(nil),          // 327: harness.agent.v1.RunShellCommandResponse
-	(*StopShellCommandResponse)(nil),         // 328: harness.agent.v1.StopShellCommandResponse
-	(*AnswerWorktreeSetupResponse)(nil),      // 329: harness.agent.v1.AnswerWorktreeSetupResponse
-	(*ListSideChatsResponse)(nil),            // 330: harness.agent.v1.ListSideChatsResponse
-	(*CreateSideChatResponse)(nil),           // 331: harness.agent.v1.CreateSideChatResponse
-	(*GetSideChatResponse)(nil),              // 332: harness.agent.v1.GetSideChatResponse
-	(*UpdateSideChatResponse)(nil),           // 333: harness.agent.v1.UpdateSideChatResponse
-	(*DeleteSideChatResponse)(nil),           // 334: harness.agent.v1.DeleteSideChatResponse
-	(*AskSideChatResponse)(nil),              // 335: harness.agent.v1.AskSideChatResponse
-	(*StopSideChatResponse)(nil),             // 336: harness.agent.v1.StopSideChatResponse
-	(*ListSpeechProvidersResponse)(nil),      // 337: harness.agent.v1.ListSpeechProvidersResponse
-	(*ListSpeechVoicesResponse)(nil),         // 338: harness.agent.v1.ListSpeechVoicesResponse
-	(*GetSpeechSettingsResponse)(nil),        // 339: harness.agent.v1.GetSpeechSettingsResponse
-	(*UpdateSpeechSettingsResponse)(nil),     // 340: harness.agent.v1.UpdateSpeechSettingsResponse
-	(*TranscribeAudioResponse)(nil),          // 341: harness.agent.v1.TranscribeAudioResponse
-	(*SynthesizeSpeechResponse)(nil),         // 342: harness.agent.v1.SynthesizeSpeechResponse
-	(*ListLocalSpeechModelsResponse)(nil),    // 343: harness.agent.v1.ListLocalSpeechModelsResponse
-	(*DownloadSpeechModelResponse)(nil),      // 344: harness.agent.v1.DownloadSpeechModelResponse
-	(*DeleteSpeechModelResponse)(nil),        // 345: harness.agent.v1.DeleteSpeechModelResponse
-	(*ListLocalProvidersResponse)(nil),       // 346: harness.agent.v1.ListLocalProvidersResponse
-	(*AddLocalProviderResponse)(nil),         // 347: harness.agent.v1.AddLocalProviderResponse
-	(*UpdateLocalProviderResponse)(nil),      // 348: harness.agent.v1.UpdateLocalProviderResponse
-	(*RemoveLocalProviderResponse)(nil),      // 349: harness.agent.v1.RemoveLocalProviderResponse
-	(*RefreshLocalProvidersResponse)(nil),    // 350: harness.agent.v1.RefreshLocalProvidersResponse
-	(*PullOllamaModelResponse)(nil),          // 351: harness.agent.v1.PullOllamaModelResponse
-	(*DeleteOllamaModelResponse)(nil),        // 352: harness.agent.v1.DeleteOllamaModelResponse
-	(*GetProviderLimitsResponse)(nil),        // 353: harness.agent.v1.GetProviderLimitsResponse
-	(*ListAcpAgentsResponse)(nil),            // 354: harness.agent.v1.ListAcpAgentsResponse
-	(*InstallAcpAgentResponse)(nil),          // 355: harness.agent.v1.InstallAcpAgentResponse
-	(*UpdateAcpAgentResponse)(nil),           // 356: harness.agent.v1.UpdateAcpAgentResponse
-	(*UninstallAcpAgentResponse)(nil),        // 357: harness.agent.v1.UninstallAcpAgentResponse
-	(*AuthenticateAcpAgentResponse)(nil),     // 358: harness.agent.v1.AuthenticateAcpAgentResponse
-	(*SetAcpModeResponse)(nil),               // 359: harness.agent.v1.SetAcpModeResponse
-	(*GetBrowserAvailabilityResponse)(nil),   // 360: harness.agent.v1.GetBrowserAvailabilityResponse
-	(*InstallBrowserResponse)(nil),           // 361: harness.agent.v1.InstallBrowserResponse
-	(*OpenBrowserResponse)(nil),              // 362: harness.agent.v1.OpenBrowserResponse
-	(*ListBrowserTabsResponse)(nil),          // 363: harness.agent.v1.ListBrowserTabsResponse
-	(*CloseBrowserResponse)(nil),             // 364: harness.agent.v1.CloseBrowserResponse
-	(*ClearBrowserDataResponse)(nil),         // 365: harness.agent.v1.ClearBrowserDataResponse
-	(*GetSessionDiffResponse)(nil),           // 366: harness.agent.v1.GetSessionDiffResponse
-	(*StopSubagentResponse)(nil),             // 367: harness.agent.v1.StopSubagentResponse
-	(*GetSubagentTranscriptResponse)(nil),    // 368: harness.agent.v1.GetSubagentTranscriptResponse
-	(*ResolveSessionProposalResponse)(nil),   // 369: harness.agent.v1.ResolveSessionProposalResponse
-	(*UpdateViewerPresenceResponse)(nil),     // 370: harness.agent.v1.UpdateViewerPresenceResponse
-	(*ReadSentFileResponse)(nil),             // 371: harness.agent.v1.ReadSentFileResponse
-	(*SetPrMonitorResponse)(nil),             // 372: harness.agent.v1.SetPrMonitorResponse
-	(*DraftPullRequestResponse)(nil),         // 373: harness.agent.v1.DraftPullRequestResponse
-	(*CreatePullRequestResponse)(nil),        // 374: harness.agent.v1.CreatePullRequestResponse
-	(*GetVcsStatusResponse)(nil),             // 375: harness.agent.v1.GetVcsStatusResponse
-	(*ListPreviewServersResponse)(nil),       // 376: harness.agent.v1.ListPreviewServersResponse
-	(*StopPreviewServerResponse)(nil),        // 377: harness.agent.v1.StopPreviewServerResponse
-	(*GetPreviewLogsResponse)(nil),           // 378: harness.agent.v1.GetPreviewLogsResponse
-	(*GetComputerUseStatusResponse)(nil),     // 379: harness.agent.v1.GetComputerUseStatusResponse
-	(*SetComputerUseEnabledResponse)(nil),    // 380: harness.agent.v1.SetComputerUseEnabledResponse
-	(*RespondToComputerAccessResponse)(nil),  // 381: harness.agent.v1.RespondToComputerAccessResponse
-	(*StopComputerUseResponse)(nil),          // 382: harness.agent.v1.StopComputerUseResponse
-	(*SetComputerUseProfileResponse)(nil),    // 383: harness.agent.v1.SetComputerUseProfileResponse
-	(*ListComputerUseAppsResponse)(nil),      // 384: harness.agent.v1.ListComputerUseAppsResponse
-	(*ListDemoRecordingAppsResponse)(nil),    // 385: harness.agent.v1.ListDemoRecordingAppsResponse
-	(*StartDemoRecordingResponse)(nil),       // 386: harness.agent.v1.StartDemoRecordingResponse
-	(*StopDemoRecordingResponse)(nil),        // 387: harness.agent.v1.StopDemoRecordingResponse
-	(*RespondToDemoSkillReviewResponse)(nil), // 388: harness.agent.v1.RespondToDemoSkillReviewResponse
-	(*ListSimulatorsResponse)(nil),           // 389: harness.agent.v1.ListSimulatorsResponse
-	(*BootSimulatorResponse)(nil),            // 390: harness.agent.v1.BootSimulatorResponse
-	(*ShutdownSimulatorResponse)(nil),        // 391: harness.agent.v1.ShutdownSimulatorResponse
-	(*WatchSimulatorResponse)(nil),           // 392: harness.agent.v1.WatchSimulatorResponse
-	(*SimulatorInputResponse)(nil),           // 393: harness.agent.v1.SimulatorInputResponse
-	(*GetDeviceSettingsResponse)(nil),        // 394: harness.agent.v1.GetDeviceSettingsResponse
-	(*UpdateDeviceSettingsResponse)(nil),     // 395: harness.agent.v1.UpdateDeviceSettingsResponse
-	(*SetKeepAwakeResponse)(nil),             // 396: harness.agent.v1.SetKeepAwakeResponse
-	(*ListDiffBasesResponse)(nil),            // 397: harness.agent.v1.ListDiffBasesResponse
-	(*GetSessionFileDiffResponse)(nil),       // 398: harness.agent.v1.GetSessionFileDiffResponse
-	(*StopWorkflowResponse)(nil),             // 399: harness.agent.v1.StopWorkflowResponse
-	(*ScanClaudeImportResponse)(nil),         // 400: harness.agent.v1.ScanClaudeImportResponse
-	(*RunClaudeImportResponse)(nil),          // 401: harness.agent.v1.RunClaudeImportResponse
-	(*ScanProjectImportResponse)(nil),        // 402: harness.agent.v1.ScanProjectImportResponse
-	(*RunProjectImportResponse)(nil),         // 403: harness.agent.v1.RunProjectImportResponse
-	(*DismissProjectImportResponse)(nil),     // 404: harness.agent.v1.DismissProjectImportResponse
-	(*ListImportSourcesResponse)(nil),        // 405: harness.agent.v1.ListImportSourcesResponse
-	(*ScanImportSourceResponse)(nil),         // 406: harness.agent.v1.ScanImportSourceResponse
-	(*RunImportSourceResponse)(nil),          // 407: harness.agent.v1.RunImportSourceResponse
-	(*ListMcpServersResponse)(nil),           // 408: harness.agent.v1.ListMcpServersResponse
-	(*InspectMcpServerResponse)(nil),         // 409: harness.agent.v1.InspectMcpServerResponse
-	(*CreateMcpServerResponse)(nil),          // 410: harness.agent.v1.CreateMcpServerResponse
-	(*UpdateMcpServerResponse)(nil),          // 411: harness.agent.v1.UpdateMcpServerResponse
-	(*DeleteMcpServerResponse)(nil),          // 412: harness.agent.v1.DeleteMcpServerResponse
-	(*SetMcpServerApprovalResponse)(nil),     // 413: harness.agent.v1.SetMcpServerApprovalResponse
-	(*SetMcpToolRuleResponse)(nil),           // 414: harness.agent.v1.SetMcpToolRuleResponse
-	(*ListMcpCommandsResponse)(nil),          // 415: harness.agent.v1.ListMcpCommandsResponse
-	(*ListMcpResourcesResponse)(nil),         // 416: harness.agent.v1.ListMcpResourcesResponse
-	(*ListSlashCommandsResponse)(nil),        // 417: harness.agent.v1.ListSlashCommandsResponse
-	(*ListSessionToolsResponse)(nil),         // 418: harness.agent.v1.ListSessionToolsResponse
-	(*GetDiagnosticsResponse)(nil),           // 419: harness.agent.v1.GetDiagnosticsResponse
-	(*ListSchedulesResponse)(nil),            // 420: harness.agent.v1.ListSchedulesResponse
-	(*CreateScheduleResponse)(nil),           // 421: harness.agent.v1.CreateScheduleResponse
-	(*UpdateScheduleResponse)(nil),           // 422: harness.agent.v1.UpdateScheduleResponse
-	(*DeleteScheduleResponse)(nil),           // 423: harness.agent.v1.DeleteScheduleResponse
-	(*SetSchedulePausedResponse)(nil),        // 424: harness.agent.v1.SetSchedulePausedResponse
-	(*RunScheduleNowResponse)(nil),           // 425: harness.agent.v1.RunScheduleNowResponse
-	(*ListScheduleRunsResponse)(nil),         // 426: harness.agent.v1.ListScheduleRunsResponse
-	(*TrustScheduleResponse)(nil),            // 427: harness.agent.v1.TrustScheduleResponse
-	(*RotateScheduleWebhookResponse)(nil),    // 428: harness.agent.v1.RotateScheduleWebhookResponse
+	(CloudEnvironmentState)(0),               // 1: harness.agent.v1.CloudEnvironmentState
+	(SessionStatus)(0),                       // 2: harness.agent.v1.SessionStatus
+	(QuestionOutcome)(0),                     // 3: harness.agent.v1.QuestionOutcome
+	(BackgroundReason)(0),                    // 4: harness.agent.v1.BackgroundReason
+	(PullRequest_State)(0),                   // 5: harness.agent.v1.PullRequest.State
+	(Todo_Status)(0),                         // 6: harness.agent.v1.Todo.Status
+	(TaskFinished_Reason)(0),                 // 7: harness.agent.v1.TaskFinished.Reason
+	(Compacted_Trigger)(0),                   // 8: harness.agent.v1.Compacted.Trigger
+	(ShowRequested_Kind)(0),                  // 9: harness.agent.v1.ShowRequested.Kind
+	(QuestionItem_Type)(0),                   // 10: harness.agent.v1.QuestionItem.Type
+	(TurnFinished_Result)(0),                 // 11: harness.agent.v1.TurnFinished.Result
+	(UsageLimit_State)(0),                    // 12: harness.agent.v1.UsageLimit.State
+	(Notice_Level)(0),                        // 13: harness.agent.v1.Notice.Level
+	(SendUserMessageRequest_Delivery)(0),     // 14: harness.agent.v1.SendUserMessageRequest.Delivery
+	(RespondToPermissionRequest_Decision)(0), // 15: harness.agent.v1.RespondToPermissionRequest.Decision
+	(RespondToPlanRequest_Decision)(0),       // 16: harness.agent.v1.RespondToPlanRequest.Decision
+	(RewindRequest_Mode)(0),                  // 17: harness.agent.v1.RewindRequest.Mode
+	(ContextUsage_Category)(0),               // 18: harness.agent.v1.ContextUsage.Category
+	(*CreateObjectTicketRequest)(nil),        // 19: harness.agent.v1.CreateObjectTicketRequest
+	(*CreateObjectTicketResponse)(nil),       // 20: harness.agent.v1.CreateObjectTicketResponse
+	(*InitializeRequest)(nil),                // 21: harness.agent.v1.InitializeRequest
+	(*InitializeResponse)(nil),               // 22: harness.agent.v1.InitializeResponse
+	(*ModelInfo)(nil),                        // 23: harness.agent.v1.ModelInfo
+	(*SessionInfo)(nil),                      // 24: harness.agent.v1.SessionInfo
+	(*Worktree)(nil),                         // 25: harness.agent.v1.Worktree
+	(*DiffStats)(nil),                        // 26: harness.agent.v1.DiffStats
+	(*PullRequest)(nil),                      // 27: harness.agent.v1.PullRequest
+	(*CreateSessionRequest)(nil),             // 28: harness.agent.v1.CreateSessionRequest
+	(*WorktreeOptions)(nil),                  // 29: harness.agent.v1.WorktreeOptions
+	(*ListRecentFoldersRequest)(nil),         // 30: harness.agent.v1.ListRecentFoldersRequest
+	(*ListRecentFoldersResponse)(nil),        // 31: harness.agent.v1.ListRecentFoldersResponse
+	(*RecentFolder)(nil),                     // 32: harness.agent.v1.RecentFolder
+	(*ListDirectoryRequest)(nil),             // 33: harness.agent.v1.ListDirectoryRequest
+	(*ListDirectoryResponse)(nil),            // 34: harness.agent.v1.ListDirectoryResponse
+	(*DirectoryEntry)(nil),                   // 35: harness.agent.v1.DirectoryEntry
+	(*ListBranchesRequest)(nil),              // 36: harness.agent.v1.ListBranchesRequest
+	(*ListBranchesResponse)(nil),             // 37: harness.agent.v1.ListBranchesResponse
+	(*Branch)(nil),                           // 38: harness.agent.v1.Branch
+	(*CreateSessionResponse)(nil),            // 39: harness.agent.v1.CreateSessionResponse
+	(*ListSessionsRequest)(nil),              // 40: harness.agent.v1.ListSessionsRequest
+	(*ListSessionsResponse)(nil),             // 41: harness.agent.v1.ListSessionsResponse
+	(*UpdateSessionRequest)(nil),             // 42: harness.agent.v1.UpdateSessionRequest
+	(*UpdateSessionResponse)(nil),            // 43: harness.agent.v1.UpdateSessionResponse
+	(*DeleteSessionRequest)(nil),             // 44: harness.agent.v1.DeleteSessionRequest
+	(*DeleteSessionResponse)(nil),            // 45: harness.agent.v1.DeleteSessionResponse
+	(*SubscribeRequest)(nil),                 // 46: harness.agent.v1.SubscribeRequest
+	(*SubscribeResponse)(nil),                // 47: harness.agent.v1.SubscribeResponse
+	(*SessionEvent)(nil),                     // 48: harness.agent.v1.SessionEvent
+	(*SessionMoved)(nil),                     // 49: harness.agent.v1.SessionMoved
+	(*CheckSessionMoveRequest)(nil),          // 50: harness.agent.v1.CheckSessionMoveRequest
+	(*SessionMoveProblem)(nil),               // 51: harness.agent.v1.SessionMoveProblem
+	(*SessionMoveCheck)(nil),                 // 52: harness.agent.v1.SessionMoveCheck
+	(*CheckSessionMoveResponse)(nil),         // 53: harness.agent.v1.CheckSessionMoveResponse
+	(*MoveSessionRequest)(nil),               // 54: harness.agent.v1.MoveSessionRequest
+	(*MoveSessionResponse)(nil),              // 55: harness.agent.v1.MoveSessionResponse
+	(*AttemptCheck)(nil),                     // 56: harness.agent.v1.AttemptCheck
+	(*SessionAttempt)(nil),                   // 57: harness.agent.v1.SessionAttempt
+	(*HostWorkUpdated)(nil),                  // 58: harness.agent.v1.HostWorkUpdated
+	(*TurnStarted)(nil),                      // 59: harness.agent.v1.TurnStarted
+	(*TodosUpdated)(nil),                     // 60: harness.agent.v1.TodosUpdated
+	(*Todo)(nil),                             // 61: harness.agent.v1.Todo
+	(*PlanProposed)(nil),                     // 62: harness.agent.v1.PlanProposed
+	(*PlanResolved)(nil),                     // 63: harness.agent.v1.PlanResolved
+	(*TaskStarted)(nil),                      // 64: harness.agent.v1.TaskStarted
+	(*TaskOutput)(nil),                       // 65: harness.agent.v1.TaskOutput
+	(*TaskFinished)(nil),                     // 66: harness.agent.v1.TaskFinished
+	(*Checkpoint)(nil),                       // 67: harness.agent.v1.Checkpoint
+	(*CheckpointCreated)(nil),                // 68: harness.agent.v1.CheckpointCreated
+	(*Rewound)(nil),                          // 69: harness.agent.v1.Rewound
+	(*Compacted)(nil),                        // 70: harness.agent.v1.Compacted
+	(*PermissionModeChanged)(nil),            // 71: harness.agent.v1.PermissionModeChanged
+	(*ShowRequested)(nil),                    // 72: harness.agent.v1.ShowRequested
+	(*UserMessage)(nil),                      // 73: harness.agent.v1.UserMessage
+	(*AssistantDelta)(nil),                   // 74: harness.agent.v1.AssistantDelta
+	(*AssistantMessage)(nil),                 // 75: harness.agent.v1.AssistantMessage
+	(*ToolCallStarted)(nil),                  // 76: harness.agent.v1.ToolCallStarted
+	(*ToolCallFinished)(nil),                 // 77: harness.agent.v1.ToolCallFinished
+	(*PermissionRequest)(nil),                // 78: harness.agent.v1.PermissionRequest
+	(*PermissionResolved)(nil),               // 79: harness.agent.v1.PermissionResolved
+	(*QuestionResolved)(nil),                 // 80: harness.agent.v1.QuestionResolved
+	(*SessionEnded)(nil),                     // 81: harness.agent.v1.SessionEnded
+	(*Question)(nil),                         // 82: harness.agent.v1.Question
+	(*QuestionItem)(nil),                     // 83: harness.agent.v1.QuestionItem
+	(*QuestionOption)(nil),                   // 84: harness.agent.v1.QuestionOption
+	(*QueueChanged)(nil),                     // 85: harness.agent.v1.QueueChanged
+	(*TurnFinished)(nil),                     // 86: harness.agent.v1.TurnFinished
+	(*UsageLimit)(nil),                       // 87: harness.agent.v1.UsageLimit
+	(*Notice)(nil),                           // 88: harness.agent.v1.Notice
+	(*SendUserMessageRequest)(nil),           // 89: harness.agent.v1.SendUserMessageRequest
+	(*SendUserMessageResponse)(nil),          // 90: harness.agent.v1.SendUserMessageResponse
+	(*RemoveQueuedMessageRequest)(nil),       // 91: harness.agent.v1.RemoveQueuedMessageRequest
+	(*RemoveQueuedMessageResponse)(nil),      // 92: harness.agent.v1.RemoveQueuedMessageResponse
+	(*InterruptRequest)(nil),                 // 93: harness.agent.v1.InterruptRequest
+	(*InterruptResponse)(nil),                // 94: harness.agent.v1.InterruptResponse
+	(*RespondToPermissionRequest)(nil),       // 95: harness.agent.v1.RespondToPermissionRequest
+	(*RespondToPermissionResponse)(nil),      // 96: harness.agent.v1.RespondToPermissionResponse
+	(*AnswerQuestionRequest)(nil),            // 97: harness.agent.v1.AnswerQuestionRequest
+	(*QuestionAnswer)(nil),                   // 98: harness.agent.v1.QuestionAnswer
+	(*AnswerQuestionResponse)(nil),           // 99: harness.agent.v1.AnswerQuestionResponse
+	(*SetModelRequest)(nil),                  // 100: harness.agent.v1.SetModelRequest
+	(*SetModelResponse)(nil),                 // 101: harness.agent.v1.SetModelResponse
+	(*SetAutoContinueRequest)(nil),           // 102: harness.agent.v1.SetAutoContinueRequest
+	(*SetAutoContinueResponse)(nil),          // 103: harness.agent.v1.SetAutoContinueResponse
+	(*SetEffortRequest)(nil),                 // 104: harness.agent.v1.SetEffortRequest
+	(*SetEffortResponse)(nil),                // 105: harness.agent.v1.SetEffortResponse
+	(*SetPermissionModeRequest)(nil),         // 106: harness.agent.v1.SetPermissionModeRequest
+	(*SetPermissionModeResponse)(nil),        // 107: harness.agent.v1.SetPermissionModeResponse
+	(*SuggestFilesRequest)(nil),              // 108: harness.agent.v1.SuggestFilesRequest
+	(*SuggestFilesResponse)(nil),             // 109: harness.agent.v1.SuggestFilesResponse
+	(*RespondToPlanRequest)(nil),             // 110: harness.agent.v1.RespondToPlanRequest
+	(*RespondToPlanResponse)(nil),            // 111: harness.agent.v1.RespondToPlanResponse
+	(*ListCheckpointsRequest)(nil),           // 112: harness.agent.v1.ListCheckpointsRequest
+	(*ListCheckpointsResponse)(nil),          // 113: harness.agent.v1.ListCheckpointsResponse
+	(*RewindRequest)(nil),                    // 114: harness.agent.v1.RewindRequest
+	(*RewindResponse)(nil),                   // 115: harness.agent.v1.RewindResponse
+	(*CompactRequest)(nil),                   // 116: harness.agent.v1.CompactRequest
+	(*CompactResponse)(nil),                  // 117: harness.agent.v1.CompactResponse
+	(*GetContextUsageRequest)(nil),           // 118: harness.agent.v1.GetContextUsageRequest
+	(*GetContextUsageResponse)(nil),          // 119: harness.agent.v1.GetContextUsageResponse
+	(*ContextUsage)(nil),                     // 120: harness.agent.v1.ContextUsage
+	(*UserPreferences)(nil),                  // 121: harness.agent.v1.UserPreferences
+	(*ModelTuning)(nil),                      // 122: harness.agent.v1.ModelTuning
+	(*SkillSwitch)(nil),                      // 123: harness.agent.v1.SkillSwitch
+	(*GetUserPreferencesRequest)(nil),        // 124: harness.agent.v1.GetUserPreferencesRequest
+	(*GetUserPreferencesResponse)(nil),       // 125: harness.agent.v1.GetUserPreferencesResponse
+	(*ChatDefaults)(nil),                     // 126: harness.agent.v1.ChatDefaults
+	(*UpdateUserPreferencesRequest)(nil),     // 127: harness.agent.v1.UpdateUserPreferencesRequest
+	(*UpdateUserPreferencesResponse)(nil),    // 128: harness.agent.v1.UpdateUserPreferencesResponse
+	(*BackgroundTask)(nil),                   // 129: harness.agent.v1.BackgroundTask
+	(*ListTasksRequest)(nil),                 // 130: harness.agent.v1.ListTasksRequest
+	(*ListTasksResponse)(nil),                // 131: harness.agent.v1.ListTasksResponse
+	(*StopTaskRequest)(nil),                  // 132: harness.agent.v1.StopTaskRequest
+	(*StopTaskResponse)(nil),                 // 133: harness.agent.v1.StopTaskResponse
+	(*CloseSessionRequest)(nil),              // 134: harness.agent.v1.CloseSessionRequest
+	(*CloseSessionResponse)(nil),             // 135: harness.agent.v1.CloseSessionResponse
+	(*GetWorkspaceTrustRequest)(nil),         // 136: harness.agent.v1.GetWorkspaceTrustRequest
+	(*GetWorkspaceTrustResponse)(nil),        // 137: harness.agent.v1.GetWorkspaceTrustResponse
+	(*SetWorkspaceTrustRequest)(nil),         // 138: harness.agent.v1.SetWorkspaceTrustRequest
+	(*SetWorkspaceTrustResponse)(nil),        // 139: harness.agent.v1.SetWorkspaceTrustResponse
+	(*SetOutputStyleRequest)(nil),            // 140: harness.agent.v1.SetOutputStyleRequest
+	(*SetOutputStyleResponse)(nil),           // 141: harness.agent.v1.SetOutputStyleResponse
+	(*ListOutputStylesRequest)(nil),          // 142: harness.agent.v1.ListOutputStylesRequest
+	(*ListOutputStylesResponse)(nil),         // 143: harness.agent.v1.ListOutputStylesResponse
+	(*OutputStyleInfo)(nil),                  // 144: harness.agent.v1.OutputStyleInfo
+	(*Environment)(nil),                      // 145: harness.agent.v1.Environment
+	(*EnvironmentFolder)(nil),                // 146: harness.agent.v1.EnvironmentFolder
+	(*EnvironmentErrors)(nil),                // 147: harness.agent.v1.EnvironmentErrors
+	(*EnvironmentError)(nil),                 // 148: harness.agent.v1.EnvironmentError
+	(*GetEnvironmentRequest)(nil),            // 149: harness.agent.v1.GetEnvironmentRequest
+	(*GetEnvironmentResponse)(nil),           // 150: harness.agent.v1.GetEnvironmentResponse
+	(*UpdateEnvironmentRequest)(nil),         // 151: harness.agent.v1.UpdateEnvironmentRequest
+	(*UpdateEnvironmentResponse)(nil),        // 152: harness.agent.v1.UpdateEnvironmentResponse
+	(*GetFolderInfoRequest)(nil),             // 153: harness.agent.v1.GetFolderInfoRequest
+	(*GetFolderInfoResponse)(nil),            // 154: harness.agent.v1.GetFolderInfoResponse
+	(*SetSessionFolderRequest)(nil),          // 155: harness.agent.v1.SetSessionFolderRequest
+	(*SetSessionFolderResponse)(nil),         // 156: harness.agent.v1.SetSessionFolderResponse
+	(*AddSessionDirectoryRequest)(nil),       // 157: harness.agent.v1.AddSessionDirectoryRequest
+	(*AddSessionDirectoryResponse)(nil),      // 158: harness.agent.v1.AddSessionDirectoryResponse
+	(*ToolTitle)(nil),                        // 159: harness.agent.v1.ToolTitle
+	(*ToolBackground)(nil),                   // 160: harness.agent.v1.ToolBackground
+	(*BackgroundToolCallRequest)(nil),        // 161: harness.agent.v1.BackgroundToolCallRequest
+	(*BackgroundToolCallResponse)(nil),       // 162: harness.agent.v1.BackgroundToolCallResponse
+	(*SetSessionRelayRequest)(nil),           // 163: harness.agent.v1.SetSessionRelayRequest
+	(*SetSessionRelayResponse)(nil),          // 164: harness.agent.v1.SetSessionRelayResponse
+	(*ContextUsage_Entry)(nil),               // 165: harness.agent.v1.ContextUsage.Entry
+	(*ContextUsage_McpTool)(nil),             // 166: harness.agent.v1.ContextUsage.McpTool
+	(v1.Effort)(0),                           // 167: harness.llm.v1.Effort
+	(SessionFeature)(0),                      // 168: harness.agent.v1.SessionFeature
+	(*AcpSessionState)(nil),                  // 169: harness.agent.v1.AcpSessionState
+	(*UserShellStarted)(nil),                 // 170: harness.agent.v1.UserShellStarted
+	(*UserShellOutput)(nil),                  // 171: harness.agent.v1.UserShellOutput
+	(*UserShellFinished)(nil),                // 172: harness.agent.v1.UserShellFinished
+	(*BrowserAction)(nil),                    // 173: harness.agent.v1.BrowserAction
+	(*SubagentUpdated)(nil),                  // 174: harness.agent.v1.SubagentUpdated
+	(*SessionProposal)(nil),                  // 175: harness.agent.v1.SessionProposal
+	(*UserNotification)(nil),                 // 176: harness.agent.v1.UserNotification
+	(*ComputerAccessRequested)(nil),          // 177: harness.agent.v1.ComputerAccessRequested
+	(*ComputerAccessResolved)(nil),           // 178: harness.agent.v1.ComputerAccessResolved
+	(*ComputerUseState)(nil),                 // 179: harness.agent.v1.ComputerUseState
+	(*DeviceSettingsChanged)(nil),            // 180: harness.agent.v1.DeviceSettingsChanged
+	(*WorkflowUpdated)(nil),                  // 181: harness.agent.v1.WorkflowUpdated
+	(*HookRun)(nil),                          // 182: harness.agent.v1.HookRun
+	(*McpToolProgress)(nil),                  // 183: harness.agent.v1.McpToolProgress
+	(*McpListChanged)(nil),                   // 184: harness.agent.v1.McpListChanged
+	(*SlashCommandResult)(nil),               // 185: harness.agent.v1.SlashCommandResult
+	(*SkillInvoked)(nil),                     // 186: harness.agent.v1.SkillInvoked
+	(*BrowserSiteRequested)(nil),             // 187: harness.agent.v1.BrowserSiteRequested
+	(*BrowserSiteResolved)(nil),              // 188: harness.agent.v1.BrowserSiteResolved
+	(*GoalUpdated)(nil),                      // 189: harness.agent.v1.GoalUpdated
+	(*TaskGraphUpdated)(nil),                 // 190: harness.agent.v1.TaskGraphUpdated
+	(*WorktreeSetupUpdated)(nil),             // 191: harness.agent.v1.WorktreeSetupUpdated
+	(*VcsHooksSuggested)(nil),                // 192: harness.agent.v1.VcsHooksSuggested
+	(*DemoRecordingState)(nil),               // 193: harness.agent.v1.DemoRecordingState
+	(*DemoSkillReviewRequested)(nil),         // 194: harness.agent.v1.DemoSkillReviewRequested
+	(*DemoSkillReviewResolved)(nil),          // 195: harness.agent.v1.DemoSkillReviewResolved
+	(*SimulatorActivity)(nil),                // 196: harness.agent.v1.SimulatorActivity
+	(*v1.ContentBlock)(nil),                  // 197: harness.llm.v1.ContentBlock
+	(v1.StopReason)(0),                       // 198: harness.llm.v1.StopReason
+	(*v1.Usage)(nil),                         // 199: harness.llm.v1.Usage
+	(*SandboxPreferences)(nil),               // 200: harness.agent.v1.SandboxPreferences
+	(*ManagedPolicyView)(nil),                // 201: harness.agent.v1.ManagedPolicyView
+	(*GetSandboxStatusRequest)(nil),          // 202: harness.agent.v1.GetSandboxStatusRequest
+	(*ListHooksRequest)(nil),                 // 203: harness.agent.v1.ListHooksRequest
+	(*SetHooksTrustRequest)(nil),             // 204: harness.agent.v1.SetHooksTrustRequest
+	(*CreateTerminalRequest)(nil),            // 205: harness.agent.v1.CreateTerminalRequest
+	(*AttachTerminalRequest)(nil),            // 206: harness.agent.v1.AttachTerminalRequest
+	(*ListTerminalsRequest)(nil),             // 207: harness.agent.v1.ListTerminalsRequest
+	(*KillTerminalRequest)(nil),              // 208: harness.agent.v1.KillTerminalRequest
+	(*ResizeTerminalRequest)(nil),            // 209: harness.agent.v1.ResizeTerminalRequest
+	(*ListFileRootsRequest)(nil),             // 210: harness.agent.v1.ListFileRootsRequest
+	(*ListFilesRequest)(nil),                 // 211: harness.agent.v1.ListFilesRequest
+	(*ReadFileRequest)(nil),                  // 212: harness.agent.v1.ReadFileRequest
+	(*GetGitStatusRequest)(nil),              // 213: harness.agent.v1.GetGitStatusRequest
+	(*RunShellCommandRequest)(nil),           // 214: harness.agent.v1.RunShellCommandRequest
+	(*StopShellCommandRequest)(nil),          // 215: harness.agent.v1.StopShellCommandRequest
+	(*AnswerWorktreeSetupRequest)(nil),       // 216: harness.agent.v1.AnswerWorktreeSetupRequest
+	(*ListSideChatsRequest)(nil),             // 217: harness.agent.v1.ListSideChatsRequest
+	(*CreateSideChatRequest)(nil),            // 218: harness.agent.v1.CreateSideChatRequest
+	(*GetSideChatRequest)(nil),               // 219: harness.agent.v1.GetSideChatRequest
+	(*UpdateSideChatRequest)(nil),            // 220: harness.agent.v1.UpdateSideChatRequest
+	(*DeleteSideChatRequest)(nil),            // 221: harness.agent.v1.DeleteSideChatRequest
+	(*AskSideChatRequest)(nil),               // 222: harness.agent.v1.AskSideChatRequest
+	(*StopSideChatRequest)(nil),              // 223: harness.agent.v1.StopSideChatRequest
+	(*ListSpeechProvidersRequest)(nil),       // 224: harness.agent.v1.ListSpeechProvidersRequest
+	(*ListSpeechVoicesRequest)(nil),          // 225: harness.agent.v1.ListSpeechVoicesRequest
+	(*GetSpeechSettingsRequest)(nil),         // 226: harness.agent.v1.GetSpeechSettingsRequest
+	(*UpdateSpeechSettingsRequest)(nil),      // 227: harness.agent.v1.UpdateSpeechSettingsRequest
+	(*TranscribeAudioRequest)(nil),           // 228: harness.agent.v1.TranscribeAudioRequest
+	(*SynthesizeSpeechRequest)(nil),          // 229: harness.agent.v1.SynthesizeSpeechRequest
+	(*ListLocalSpeechModelsRequest)(nil),     // 230: harness.agent.v1.ListLocalSpeechModelsRequest
+	(*DownloadSpeechModelRequest)(nil),       // 231: harness.agent.v1.DownloadSpeechModelRequest
+	(*DeleteSpeechModelRequest)(nil),         // 232: harness.agent.v1.DeleteSpeechModelRequest
+	(*ListLocalProvidersRequest)(nil),        // 233: harness.agent.v1.ListLocalProvidersRequest
+	(*AddLocalProviderRequest)(nil),          // 234: harness.agent.v1.AddLocalProviderRequest
+	(*UpdateLocalProviderRequest)(nil),       // 235: harness.agent.v1.UpdateLocalProviderRequest
+	(*RemoveLocalProviderRequest)(nil),       // 236: harness.agent.v1.RemoveLocalProviderRequest
+	(*RefreshLocalProvidersRequest)(nil),     // 237: harness.agent.v1.RefreshLocalProvidersRequest
+	(*PullOllamaModelRequest)(nil),           // 238: harness.agent.v1.PullOllamaModelRequest
+	(*DeleteOllamaModelRequest)(nil),         // 239: harness.agent.v1.DeleteOllamaModelRequest
+	(*GetProviderLimitsRequest)(nil),         // 240: harness.agent.v1.GetProviderLimitsRequest
+	(*ListAcpAgentsRequest)(nil),             // 241: harness.agent.v1.ListAcpAgentsRequest
+	(*InstallAcpAgentRequest)(nil),           // 242: harness.agent.v1.InstallAcpAgentRequest
+	(*UpdateAcpAgentRequest)(nil),            // 243: harness.agent.v1.UpdateAcpAgentRequest
+	(*UninstallAcpAgentRequest)(nil),         // 244: harness.agent.v1.UninstallAcpAgentRequest
+	(*AuthenticateAcpAgentRequest)(nil),      // 245: harness.agent.v1.AuthenticateAcpAgentRequest
+	(*SetAcpModeRequest)(nil),                // 246: harness.agent.v1.SetAcpModeRequest
+	(*GetBrowserAvailabilityRequest)(nil),    // 247: harness.agent.v1.GetBrowserAvailabilityRequest
+	(*InstallBrowserRequest)(nil),            // 248: harness.agent.v1.InstallBrowserRequest
+	(*OpenBrowserRequest)(nil),               // 249: harness.agent.v1.OpenBrowserRequest
+	(*ListBrowserTabsRequest)(nil),           // 250: harness.agent.v1.ListBrowserTabsRequest
+	(*CloseBrowserRequest)(nil),              // 251: harness.agent.v1.CloseBrowserRequest
+	(*ClearBrowserDataRequest)(nil),          // 252: harness.agent.v1.ClearBrowserDataRequest
+	(*GetSessionDiffRequest)(nil),            // 253: harness.agent.v1.GetSessionDiffRequest
+	(*StopSubagentRequest)(nil),              // 254: harness.agent.v1.StopSubagentRequest
+	(*GetSubagentTranscriptRequest)(nil),     // 255: harness.agent.v1.GetSubagentTranscriptRequest
+	(*ResolveSessionProposalRequest)(nil),    // 256: harness.agent.v1.ResolveSessionProposalRequest
+	(*UpdateViewerPresenceRequest)(nil),      // 257: harness.agent.v1.UpdateViewerPresenceRequest
+	(*ReadSentFileRequest)(nil),              // 258: harness.agent.v1.ReadSentFileRequest
+	(*SetPrMonitorRequest)(nil),              // 259: harness.agent.v1.SetPrMonitorRequest
+	(*DraftPullRequestRequest)(nil),          // 260: harness.agent.v1.DraftPullRequestRequest
+	(*CreatePullRequestRequest)(nil),         // 261: harness.agent.v1.CreatePullRequestRequest
+	(*GetVcsStatusRequest)(nil),              // 262: harness.agent.v1.GetVcsStatusRequest
+	(*ListPreviewServersRequest)(nil),        // 263: harness.agent.v1.ListPreviewServersRequest
+	(*StopPreviewServerRequest)(nil),         // 264: harness.agent.v1.StopPreviewServerRequest
+	(*GetPreviewLogsRequest)(nil),            // 265: harness.agent.v1.GetPreviewLogsRequest
+	(*GetComputerUseStatusRequest)(nil),      // 266: harness.agent.v1.GetComputerUseStatusRequest
+	(*SetComputerUseEnabledRequest)(nil),     // 267: harness.agent.v1.SetComputerUseEnabledRequest
+	(*RespondToComputerAccessRequest)(nil),   // 268: harness.agent.v1.RespondToComputerAccessRequest
+	(*StopComputerUseRequest)(nil),           // 269: harness.agent.v1.StopComputerUseRequest
+	(*SetComputerUseProfileRequest)(nil),     // 270: harness.agent.v1.SetComputerUseProfileRequest
+	(*ListComputerUseAppsRequest)(nil),       // 271: harness.agent.v1.ListComputerUseAppsRequest
+	(*ListDemoRecordingAppsRequest)(nil),     // 272: harness.agent.v1.ListDemoRecordingAppsRequest
+	(*StartDemoRecordingRequest)(nil),        // 273: harness.agent.v1.StartDemoRecordingRequest
+	(*StopDemoRecordingRequest)(nil),         // 274: harness.agent.v1.StopDemoRecordingRequest
+	(*RespondToDemoSkillReviewRequest)(nil),  // 275: harness.agent.v1.RespondToDemoSkillReviewRequest
+	(*ListSimulatorsRequest)(nil),            // 276: harness.agent.v1.ListSimulatorsRequest
+	(*BootSimulatorRequest)(nil),             // 277: harness.agent.v1.BootSimulatorRequest
+	(*ShutdownSimulatorRequest)(nil),         // 278: harness.agent.v1.ShutdownSimulatorRequest
+	(*WatchSimulatorRequest)(nil),            // 279: harness.agent.v1.WatchSimulatorRequest
+	(*SimulatorInputRequest)(nil),            // 280: harness.agent.v1.SimulatorInputRequest
+	(*GetDeviceSettingsRequest)(nil),         // 281: harness.agent.v1.GetDeviceSettingsRequest
+	(*UpdateDeviceSettingsRequest)(nil),      // 282: harness.agent.v1.UpdateDeviceSettingsRequest
+	(*SetKeepAwakeRequest)(nil),              // 283: harness.agent.v1.SetKeepAwakeRequest
+	(*ListDiffBasesRequest)(nil),             // 284: harness.agent.v1.ListDiffBasesRequest
+	(*GetSessionFileDiffRequest)(nil),        // 285: harness.agent.v1.GetSessionFileDiffRequest
+	(*StopWorkflowRequest)(nil),              // 286: harness.agent.v1.StopWorkflowRequest
+	(*ScanClaudeImportRequest)(nil),          // 287: harness.agent.v1.ScanClaudeImportRequest
+	(*RunClaudeImportRequest)(nil),           // 288: harness.agent.v1.RunClaudeImportRequest
+	(*ScanProjectImportRequest)(nil),         // 289: harness.agent.v1.ScanProjectImportRequest
+	(*RunProjectImportRequest)(nil),          // 290: harness.agent.v1.RunProjectImportRequest
+	(*DismissProjectImportRequest)(nil),      // 291: harness.agent.v1.DismissProjectImportRequest
+	(*ListImportSourcesRequest)(nil),         // 292: harness.agent.v1.ListImportSourcesRequest
+	(*ScanImportSourceRequest)(nil),          // 293: harness.agent.v1.ScanImportSourceRequest
+	(*RunImportSourceRequest)(nil),           // 294: harness.agent.v1.RunImportSourceRequest
+	(*ListMcpServersRequest)(nil),            // 295: harness.agent.v1.ListMcpServersRequest
+	(*InspectMcpServerRequest)(nil),          // 296: harness.agent.v1.InspectMcpServerRequest
+	(*CreateMcpServerRequest)(nil),           // 297: harness.agent.v1.CreateMcpServerRequest
+	(*UpdateMcpServerRequest)(nil),           // 298: harness.agent.v1.UpdateMcpServerRequest
+	(*DeleteMcpServerRequest)(nil),           // 299: harness.agent.v1.DeleteMcpServerRequest
+	(*SetMcpServerApprovalRequest)(nil),      // 300: harness.agent.v1.SetMcpServerApprovalRequest
+	(*SetMcpToolRuleRequest)(nil),            // 301: harness.agent.v1.SetMcpToolRuleRequest
+	(*ListMcpCommandsRequest)(nil),           // 302: harness.agent.v1.ListMcpCommandsRequest
+	(*ListMcpResourcesRequest)(nil),          // 303: harness.agent.v1.ListMcpResourcesRequest
+	(*ListSlashCommandsRequest)(nil),         // 304: harness.agent.v1.ListSlashCommandsRequest
+	(*ListSessionToolsRequest)(nil),          // 305: harness.agent.v1.ListSessionToolsRequest
+	(*GetDiagnosticsRequest)(nil),            // 306: harness.agent.v1.GetDiagnosticsRequest
+	(*ListSchedulesRequest)(nil),             // 307: harness.agent.v1.ListSchedulesRequest
+	(*CreateScheduleRequest)(nil),            // 308: harness.agent.v1.CreateScheduleRequest
+	(*UpdateScheduleRequest)(nil),            // 309: harness.agent.v1.UpdateScheduleRequest
+	(*DeleteScheduleRequest)(nil),            // 310: harness.agent.v1.DeleteScheduleRequest
+	(*SetSchedulePausedRequest)(nil),         // 311: harness.agent.v1.SetSchedulePausedRequest
+	(*RunScheduleNowRequest)(nil),            // 312: harness.agent.v1.RunScheduleNowRequest
+	(*ListScheduleRunsRequest)(nil),          // 313: harness.agent.v1.ListScheduleRunsRequest
+	(*TrustScheduleRequest)(nil),             // 314: harness.agent.v1.TrustScheduleRequest
+	(*RotateScheduleWebhookRequest)(nil),     // 315: harness.agent.v1.RotateScheduleWebhookRequest
+	(*GetSandboxStatusResponse)(nil),         // 316: harness.agent.v1.GetSandboxStatusResponse
+	(*ListHooksResponse)(nil),                // 317: harness.agent.v1.ListHooksResponse
+	(*SetHooksTrustResponse)(nil),            // 318: harness.agent.v1.SetHooksTrustResponse
+	(*CreateTerminalResponse)(nil),           // 319: harness.agent.v1.CreateTerminalResponse
+	(*AttachTerminalResponse)(nil),           // 320: harness.agent.v1.AttachTerminalResponse
+	(*ListTerminalsResponse)(nil),            // 321: harness.agent.v1.ListTerminalsResponse
+	(*KillTerminalResponse)(nil),             // 322: harness.agent.v1.KillTerminalResponse
+	(*ResizeTerminalResponse)(nil),           // 323: harness.agent.v1.ResizeTerminalResponse
+	(*ListFileRootsResponse)(nil),            // 324: harness.agent.v1.ListFileRootsResponse
+	(*ListFilesResponse)(nil),                // 325: harness.agent.v1.ListFilesResponse
+	(*ReadFileResponse)(nil),                 // 326: harness.agent.v1.ReadFileResponse
+	(*GetGitStatusResponse)(nil),             // 327: harness.agent.v1.GetGitStatusResponse
+	(*RunShellCommandResponse)(nil),          // 328: harness.agent.v1.RunShellCommandResponse
+	(*StopShellCommandResponse)(nil),         // 329: harness.agent.v1.StopShellCommandResponse
+	(*AnswerWorktreeSetupResponse)(nil),      // 330: harness.agent.v1.AnswerWorktreeSetupResponse
+	(*ListSideChatsResponse)(nil),            // 331: harness.agent.v1.ListSideChatsResponse
+	(*CreateSideChatResponse)(nil),           // 332: harness.agent.v1.CreateSideChatResponse
+	(*GetSideChatResponse)(nil),              // 333: harness.agent.v1.GetSideChatResponse
+	(*UpdateSideChatResponse)(nil),           // 334: harness.agent.v1.UpdateSideChatResponse
+	(*DeleteSideChatResponse)(nil),           // 335: harness.agent.v1.DeleteSideChatResponse
+	(*AskSideChatResponse)(nil),              // 336: harness.agent.v1.AskSideChatResponse
+	(*StopSideChatResponse)(nil),             // 337: harness.agent.v1.StopSideChatResponse
+	(*ListSpeechProvidersResponse)(nil),      // 338: harness.agent.v1.ListSpeechProvidersResponse
+	(*ListSpeechVoicesResponse)(nil),         // 339: harness.agent.v1.ListSpeechVoicesResponse
+	(*GetSpeechSettingsResponse)(nil),        // 340: harness.agent.v1.GetSpeechSettingsResponse
+	(*UpdateSpeechSettingsResponse)(nil),     // 341: harness.agent.v1.UpdateSpeechSettingsResponse
+	(*TranscribeAudioResponse)(nil),          // 342: harness.agent.v1.TranscribeAudioResponse
+	(*SynthesizeSpeechResponse)(nil),         // 343: harness.agent.v1.SynthesizeSpeechResponse
+	(*ListLocalSpeechModelsResponse)(nil),    // 344: harness.agent.v1.ListLocalSpeechModelsResponse
+	(*DownloadSpeechModelResponse)(nil),      // 345: harness.agent.v1.DownloadSpeechModelResponse
+	(*DeleteSpeechModelResponse)(nil),        // 346: harness.agent.v1.DeleteSpeechModelResponse
+	(*ListLocalProvidersResponse)(nil),       // 347: harness.agent.v1.ListLocalProvidersResponse
+	(*AddLocalProviderResponse)(nil),         // 348: harness.agent.v1.AddLocalProviderResponse
+	(*UpdateLocalProviderResponse)(nil),      // 349: harness.agent.v1.UpdateLocalProviderResponse
+	(*RemoveLocalProviderResponse)(nil),      // 350: harness.agent.v1.RemoveLocalProviderResponse
+	(*RefreshLocalProvidersResponse)(nil),    // 351: harness.agent.v1.RefreshLocalProvidersResponse
+	(*PullOllamaModelResponse)(nil),          // 352: harness.agent.v1.PullOllamaModelResponse
+	(*DeleteOllamaModelResponse)(nil),        // 353: harness.agent.v1.DeleteOllamaModelResponse
+	(*GetProviderLimitsResponse)(nil),        // 354: harness.agent.v1.GetProviderLimitsResponse
+	(*ListAcpAgentsResponse)(nil),            // 355: harness.agent.v1.ListAcpAgentsResponse
+	(*InstallAcpAgentResponse)(nil),          // 356: harness.agent.v1.InstallAcpAgentResponse
+	(*UpdateAcpAgentResponse)(nil),           // 357: harness.agent.v1.UpdateAcpAgentResponse
+	(*UninstallAcpAgentResponse)(nil),        // 358: harness.agent.v1.UninstallAcpAgentResponse
+	(*AuthenticateAcpAgentResponse)(nil),     // 359: harness.agent.v1.AuthenticateAcpAgentResponse
+	(*SetAcpModeResponse)(nil),               // 360: harness.agent.v1.SetAcpModeResponse
+	(*GetBrowserAvailabilityResponse)(nil),   // 361: harness.agent.v1.GetBrowserAvailabilityResponse
+	(*InstallBrowserResponse)(nil),           // 362: harness.agent.v1.InstallBrowserResponse
+	(*OpenBrowserResponse)(nil),              // 363: harness.agent.v1.OpenBrowserResponse
+	(*ListBrowserTabsResponse)(nil),          // 364: harness.agent.v1.ListBrowserTabsResponse
+	(*CloseBrowserResponse)(nil),             // 365: harness.agent.v1.CloseBrowserResponse
+	(*ClearBrowserDataResponse)(nil),         // 366: harness.agent.v1.ClearBrowserDataResponse
+	(*GetSessionDiffResponse)(nil),           // 367: harness.agent.v1.GetSessionDiffResponse
+	(*StopSubagentResponse)(nil),             // 368: harness.agent.v1.StopSubagentResponse
+	(*GetSubagentTranscriptResponse)(nil),    // 369: harness.agent.v1.GetSubagentTranscriptResponse
+	(*ResolveSessionProposalResponse)(nil),   // 370: harness.agent.v1.ResolveSessionProposalResponse
+	(*UpdateViewerPresenceResponse)(nil),     // 371: harness.agent.v1.UpdateViewerPresenceResponse
+	(*ReadSentFileResponse)(nil),             // 372: harness.agent.v1.ReadSentFileResponse
+	(*SetPrMonitorResponse)(nil),             // 373: harness.agent.v1.SetPrMonitorResponse
+	(*DraftPullRequestResponse)(nil),         // 374: harness.agent.v1.DraftPullRequestResponse
+	(*CreatePullRequestResponse)(nil),        // 375: harness.agent.v1.CreatePullRequestResponse
+	(*GetVcsStatusResponse)(nil),             // 376: harness.agent.v1.GetVcsStatusResponse
+	(*ListPreviewServersResponse)(nil),       // 377: harness.agent.v1.ListPreviewServersResponse
+	(*StopPreviewServerResponse)(nil),        // 378: harness.agent.v1.StopPreviewServerResponse
+	(*GetPreviewLogsResponse)(nil),           // 379: harness.agent.v1.GetPreviewLogsResponse
+	(*GetComputerUseStatusResponse)(nil),     // 380: harness.agent.v1.GetComputerUseStatusResponse
+	(*SetComputerUseEnabledResponse)(nil),    // 381: harness.agent.v1.SetComputerUseEnabledResponse
+	(*RespondToComputerAccessResponse)(nil),  // 382: harness.agent.v1.RespondToComputerAccessResponse
+	(*StopComputerUseResponse)(nil),          // 383: harness.agent.v1.StopComputerUseResponse
+	(*SetComputerUseProfileResponse)(nil),    // 384: harness.agent.v1.SetComputerUseProfileResponse
+	(*ListComputerUseAppsResponse)(nil),      // 385: harness.agent.v1.ListComputerUseAppsResponse
+	(*ListDemoRecordingAppsResponse)(nil),    // 386: harness.agent.v1.ListDemoRecordingAppsResponse
+	(*StartDemoRecordingResponse)(nil),       // 387: harness.agent.v1.StartDemoRecordingResponse
+	(*StopDemoRecordingResponse)(nil),        // 388: harness.agent.v1.StopDemoRecordingResponse
+	(*RespondToDemoSkillReviewResponse)(nil), // 389: harness.agent.v1.RespondToDemoSkillReviewResponse
+	(*ListSimulatorsResponse)(nil),           // 390: harness.agent.v1.ListSimulatorsResponse
+	(*BootSimulatorResponse)(nil),            // 391: harness.agent.v1.BootSimulatorResponse
+	(*ShutdownSimulatorResponse)(nil),        // 392: harness.agent.v1.ShutdownSimulatorResponse
+	(*WatchSimulatorResponse)(nil),           // 393: harness.agent.v1.WatchSimulatorResponse
+	(*SimulatorInputResponse)(nil),           // 394: harness.agent.v1.SimulatorInputResponse
+	(*GetDeviceSettingsResponse)(nil),        // 395: harness.agent.v1.GetDeviceSettingsResponse
+	(*UpdateDeviceSettingsResponse)(nil),     // 396: harness.agent.v1.UpdateDeviceSettingsResponse
+	(*SetKeepAwakeResponse)(nil),             // 397: harness.agent.v1.SetKeepAwakeResponse
+	(*ListDiffBasesResponse)(nil),            // 398: harness.agent.v1.ListDiffBasesResponse
+	(*GetSessionFileDiffResponse)(nil),       // 399: harness.agent.v1.GetSessionFileDiffResponse
+	(*StopWorkflowResponse)(nil),             // 400: harness.agent.v1.StopWorkflowResponse
+	(*ScanClaudeImportResponse)(nil),         // 401: harness.agent.v1.ScanClaudeImportResponse
+	(*RunClaudeImportResponse)(nil),          // 402: harness.agent.v1.RunClaudeImportResponse
+	(*ScanProjectImportResponse)(nil),        // 403: harness.agent.v1.ScanProjectImportResponse
+	(*RunProjectImportResponse)(nil),         // 404: harness.agent.v1.RunProjectImportResponse
+	(*DismissProjectImportResponse)(nil),     // 405: harness.agent.v1.DismissProjectImportResponse
+	(*ListImportSourcesResponse)(nil),        // 406: harness.agent.v1.ListImportSourcesResponse
+	(*ScanImportSourceResponse)(nil),         // 407: harness.agent.v1.ScanImportSourceResponse
+	(*RunImportSourceResponse)(nil),          // 408: harness.agent.v1.RunImportSourceResponse
+	(*ListMcpServersResponse)(nil),           // 409: harness.agent.v1.ListMcpServersResponse
+	(*InspectMcpServerResponse)(nil),         // 410: harness.agent.v1.InspectMcpServerResponse
+	(*CreateMcpServerResponse)(nil),          // 411: harness.agent.v1.CreateMcpServerResponse
+	(*UpdateMcpServerResponse)(nil),          // 412: harness.agent.v1.UpdateMcpServerResponse
+	(*DeleteMcpServerResponse)(nil),          // 413: harness.agent.v1.DeleteMcpServerResponse
+	(*SetMcpServerApprovalResponse)(nil),     // 414: harness.agent.v1.SetMcpServerApprovalResponse
+	(*SetMcpToolRuleResponse)(nil),           // 415: harness.agent.v1.SetMcpToolRuleResponse
+	(*ListMcpCommandsResponse)(nil),          // 416: harness.agent.v1.ListMcpCommandsResponse
+	(*ListMcpResourcesResponse)(nil),         // 417: harness.agent.v1.ListMcpResourcesResponse
+	(*ListSlashCommandsResponse)(nil),        // 418: harness.agent.v1.ListSlashCommandsResponse
+	(*ListSessionToolsResponse)(nil),         // 419: harness.agent.v1.ListSessionToolsResponse
+	(*GetDiagnosticsResponse)(nil),           // 420: harness.agent.v1.GetDiagnosticsResponse
+	(*ListSchedulesResponse)(nil),            // 421: harness.agent.v1.ListSchedulesResponse
+	(*CreateScheduleResponse)(nil),           // 422: harness.agent.v1.CreateScheduleResponse
+	(*UpdateScheduleResponse)(nil),           // 423: harness.agent.v1.UpdateScheduleResponse
+	(*DeleteScheduleResponse)(nil),           // 424: harness.agent.v1.DeleteScheduleResponse
+	(*SetSchedulePausedResponse)(nil),        // 425: harness.agent.v1.SetSchedulePausedResponse
+	(*RunScheduleNowResponse)(nil),           // 426: harness.agent.v1.RunScheduleNowResponse
+	(*ListScheduleRunsResponse)(nil),         // 427: harness.agent.v1.ListScheduleRunsResponse
+	(*TrustScheduleResponse)(nil),            // 428: harness.agent.v1.TrustScheduleResponse
+	(*RotateScheduleWebhookResponse)(nil),    // 429: harness.agent.v1.RotateScheduleWebhookResponse
 }
 var file_harness_agent_v1_agent_proto_depIdxs = []int32{
 	0,   // 0: harness.agent.v1.InitializeResponse.permission_modes:type_name -> harness.agent.v1.PermissionMode
-	22,  // 1: harness.agent.v1.InitializeResponse.models:type_name -> harness.agent.v1.ModelInfo
+	23,  // 1: harness.agent.v1.InitializeResponse.models:type_name -> harness.agent.v1.ModelInfo
 	0,   // 2: harness.agent.v1.InitializeResponse.disabled_permission_modes:type_name -> harness.agent.v1.PermissionMode
-	166, // 3: harness.agent.v1.ModelInfo.efforts:type_name -> harness.llm.v1.Effort
-	166, // 4: harness.agent.v1.ModelInfo.default_effort:type_name -> harness.llm.v1.Effort
+	167, // 3: harness.agent.v1.ModelInfo.efforts:type_name -> harness.llm.v1.Effort
+	167, // 4: harness.agent.v1.ModelInfo.default_effort:type_name -> harness.llm.v1.Effort
 	0,   // 5: harness.agent.v1.SessionInfo.permission_mode:type_name -> harness.agent.v1.PermissionMode
-	1,   // 6: harness.agent.v1.SessionInfo.status:type_name -> harness.agent.v1.SessionStatus
-	25,  // 7: harness.agent.v1.SessionInfo.diff_stats:type_name -> harness.agent.v1.DiffStats
-	26,  // 8: harness.agent.v1.SessionInfo.pull_request:type_name -> harness.agent.v1.PullRequest
-	24,  // 9: harness.agent.v1.SessionInfo.worktree:type_name -> harness.agent.v1.Worktree
-	167, // 10: harness.agent.v1.SessionInfo.unsupported_features:type_name -> harness.agent.v1.SessionFeature
-	168, // 11: harness.agent.v1.SessionInfo.acp:type_name -> harness.agent.v1.AcpSessionState
-	86,  // 12: harness.agent.v1.SessionInfo.usage_limit:type_name -> harness.agent.v1.UsageLimit
-	48,  // 13: harness.agent.v1.SessionInfo.moved:type_name -> harness.agent.v1.SessionMoved
-	56,  // 14: harness.agent.v1.SessionInfo.attempt:type_name -> harness.agent.v1.SessionAttempt
-	4,   // 15: harness.agent.v1.PullRequest.state:type_name -> harness.agent.v1.PullRequest.State
-	0,   // 16: harness.agent.v1.CreateSessionRequest.permission_mode:type_name -> harness.agent.v1.PermissionMode
-	166, // 17: harness.agent.v1.CreateSessionRequest.effort:type_name -> harness.llm.v1.Effort
-	28,  // 18: harness.agent.v1.CreateSessionRequest.worktree:type_name -> harness.agent.v1.WorktreeOptions
-	31,  // 19: harness.agent.v1.ListRecentFoldersResponse.folders:type_name -> harness.agent.v1.RecentFolder
-	34,  // 20: harness.agent.v1.ListDirectoryResponse.entries:type_name -> harness.agent.v1.DirectoryEntry
-	37,  // 21: harness.agent.v1.ListBranchesResponse.branches:type_name -> harness.agent.v1.Branch
-	23,  // 22: harness.agent.v1.CreateSessionResponse.session:type_name -> harness.agent.v1.SessionInfo
-	23,  // 23: harness.agent.v1.ListSessionsResponse.sessions:type_name -> harness.agent.v1.SessionInfo
-	23,  // 24: harness.agent.v1.UpdateSessionResponse.session:type_name -> harness.agent.v1.SessionInfo
-	47,  // 25: harness.agent.v1.SubscribeResponse.event:type_name -> harness.agent.v1.SessionEvent
-	23,  // 26: harness.agent.v1.SubscribeResponse.session:type_name -> harness.agent.v1.SessionInfo
-	23,  // 27: harness.agent.v1.SessionEvent.session_updated:type_name -> harness.agent.v1.SessionInfo
-	72,  // 28: harness.agent.v1.SessionEvent.user_message:type_name -> harness.agent.v1.UserMessage
-	73,  // 29: harness.agent.v1.SessionEvent.assistant_delta:type_name -> harness.agent.v1.AssistantDelta
-	74,  // 30: harness.agent.v1.SessionEvent.assistant_message:type_name -> harness.agent.v1.AssistantMessage
-	75,  // 31: harness.agent.v1.SessionEvent.tool_call_started:type_name -> harness.agent.v1.ToolCallStarted
-	76,  // 32: harness.agent.v1.SessionEvent.tool_call_finished:type_name -> harness.agent.v1.ToolCallFinished
-	77,  // 33: harness.agent.v1.SessionEvent.permission_request:type_name -> harness.agent.v1.PermissionRequest
-	81,  // 34: harness.agent.v1.SessionEvent.question:type_name -> harness.agent.v1.Question
-	84,  // 35: harness.agent.v1.SessionEvent.queue_changed:type_name -> harness.agent.v1.QueueChanged
-	85,  // 36: harness.agent.v1.SessionEvent.turn_finished:type_name -> harness.agent.v1.TurnFinished
-	87,  // 37: harness.agent.v1.SessionEvent.notice:type_name -> harness.agent.v1.Notice
-	78,  // 38: harness.agent.v1.SessionEvent.permission_resolved:type_name -> harness.agent.v1.PermissionResolved
-	79,  // 39: harness.agent.v1.SessionEvent.question_resolved:type_name -> harness.agent.v1.QuestionResolved
-	80,  // 40: harness.agent.v1.SessionEvent.session_ended:type_name -> harness.agent.v1.SessionEnded
-	58,  // 41: harness.agent.v1.SessionEvent.turn_started:type_name -> harness.agent.v1.TurnStarted
-	59,  // 42: harness.agent.v1.SessionEvent.todos_updated:type_name -> harness.agent.v1.TodosUpdated
-	61,  // 43: harness.agent.v1.SessionEvent.plan_proposed:type_name -> harness.agent.v1.PlanProposed
-	62,  // 44: harness.agent.v1.SessionEvent.plan_resolved:type_name -> harness.agent.v1.PlanResolved
-	63,  // 45: harness.agent.v1.SessionEvent.task_started:type_name -> harness.agent.v1.TaskStarted
-	64,  // 46: harness.agent.v1.SessionEvent.task_output:type_name -> harness.agent.v1.TaskOutput
-	65,  // 47: harness.agent.v1.SessionEvent.task_finished:type_name -> harness.agent.v1.TaskFinished
-	67,  // 48: harness.agent.v1.SessionEvent.checkpoint_created:type_name -> harness.agent.v1.CheckpointCreated
-	68,  // 49: harness.agent.v1.SessionEvent.rewound:type_name -> harness.agent.v1.Rewound
-	69,  // 50: harness.agent.v1.SessionEvent.compacted:type_name -> harness.agent.v1.Compacted
-	70,  // 51: harness.agent.v1.SessionEvent.permission_mode_changed:type_name -> harness.agent.v1.PermissionModeChanged
-	71,  // 52: harness.agent.v1.SessionEvent.show_requested:type_name -> harness.agent.v1.ShowRequested
-	86,  // 53: harness.agent.v1.SessionEvent.usage_limit:type_name -> harness.agent.v1.UsageLimit
-	169, // 54: harness.agent.v1.SessionEvent.user_shell_started:type_name -> harness.agent.v1.UserShellStarted
-	170, // 55: harness.agent.v1.SessionEvent.user_shell_output:type_name -> harness.agent.v1.UserShellOutput
-	171, // 56: harness.agent.v1.SessionEvent.user_shell_finished:type_name -> harness.agent.v1.UserShellFinished
-	158, // 57: harness.agent.v1.SessionEvent.tool_title:type_name -> harness.agent.v1.ToolTitle
-	172, // 58: harness.agent.v1.SessionEvent.browser_action:type_name -> harness.agent.v1.BrowserAction
-	173, // 59: harness.agent.v1.SessionEvent.subagent_updated:type_name -> harness.agent.v1.SubagentUpdated
-	174, // 60: harness.agent.v1.SessionEvent.session_proposal:type_name -> harness.agent.v1.SessionProposal
-	175, // 61: harness.agent.v1.SessionEvent.user_notification:type_name -> harness.agent.v1.UserNotification
-	176, // 62: harness.agent.v1.SessionEvent.computer_access_requested:type_name -> harness.agent.v1.ComputerAccessRequested
-	177, // 63: harness.agent.v1.SessionEvent.computer_access_resolved:type_name -> harness.agent.v1.ComputerAccessResolved
-	178, // 64: harness.agent.v1.SessionEvent.computer_use_state:type_name -> harness.agent.v1.ComputerUseState
-	179, // 65: harness.agent.v1.SessionEvent.device_settings_changed:type_name -> harness.agent.v1.DeviceSettingsChanged
-	180, // 66: harness.agent.v1.SessionEvent.workflow_updated:type_name -> harness.agent.v1.WorkflowUpdated
-	181, // 67: harness.agent.v1.SessionEvent.hook_run:type_name -> harness.agent.v1.HookRun
-	182, // 68: harness.agent.v1.SessionEvent.mcp_tool_progress:type_name -> harness.agent.v1.McpToolProgress
-	183, // 69: harness.agent.v1.SessionEvent.mcp_list_changed:type_name -> harness.agent.v1.McpListChanged
-	184, // 70: harness.agent.v1.SessionEvent.slash_command_result:type_name -> harness.agent.v1.SlashCommandResult
-	185, // 71: harness.agent.v1.SessionEvent.skill_invoked:type_name -> harness.agent.v1.SkillInvoked
-	186, // 72: harness.agent.v1.SessionEvent.browser_site_requested:type_name -> harness.agent.v1.BrowserSiteRequested
-	187, // 73: harness.agent.v1.SessionEvent.browser_site_resolved:type_name -> harness.agent.v1.BrowserSiteResolved
-	188, // 74: harness.agent.v1.SessionEvent.goal_updated:type_name -> harness.agent.v1.GoalUpdated
-	189, // 75: harness.agent.v1.SessionEvent.task_graph_updated:type_name -> harness.agent.v1.TaskGraphUpdated
-	57,  // 76: harness.agent.v1.SessionEvent.host_work_updated:type_name -> harness.agent.v1.HostWorkUpdated
-	190, // 77: harness.agent.v1.SessionEvent.worktree_setup_updated:type_name -> harness.agent.v1.WorktreeSetupUpdated
-	191, // 78: harness.agent.v1.SessionEvent.vcs_hooks_suggested:type_name -> harness.agent.v1.VcsHooksSuggested
-	192, // 79: harness.agent.v1.SessionEvent.demo_recording_state:type_name -> harness.agent.v1.DemoRecordingState
-	193, // 80: harness.agent.v1.SessionEvent.demo_skill_review_requested:type_name -> harness.agent.v1.DemoSkillReviewRequested
-	194, // 81: harness.agent.v1.SessionEvent.demo_skill_review_resolved:type_name -> harness.agent.v1.DemoSkillReviewResolved
-	195, // 82: harness.agent.v1.SessionEvent.simulator_activity:type_name -> harness.agent.v1.SimulatorActivity
-	48,  // 83: harness.agent.v1.SessionEvent.session_moved:type_name -> harness.agent.v1.SessionMoved
-	55,  // 84: harness.agent.v1.SessionEvent.attempt_checked:type_name -> harness.agent.v1.AttemptCheck
-	50,  // 85: harness.agent.v1.SessionMoveCheck.problems:type_name -> harness.agent.v1.SessionMoveProblem
-	0,   // 86: harness.agent.v1.SessionMoveCheck.permission_mode:type_name -> harness.agent.v1.PermissionMode
-	51,  // 87: harness.agent.v1.CheckSessionMoveResponse.check:type_name -> harness.agent.v1.SessionMoveCheck
-	48,  // 88: harness.agent.v1.MoveSessionResponse.moved:type_name -> harness.agent.v1.SessionMoved
-	60,  // 89: harness.agent.v1.TodosUpdated.todos:type_name -> harness.agent.v1.Todo
-	5,   // 90: harness.agent.v1.Todo.status:type_name -> harness.agent.v1.Todo.Status
-	15,  // 91: harness.agent.v1.PlanResolved.decision:type_name -> harness.agent.v1.RespondToPlanRequest.Decision
-	6,   // 92: harness.agent.v1.TaskFinished.reason:type_name -> harness.agent.v1.TaskFinished.Reason
-	66,  // 93: harness.agent.v1.CheckpointCreated.checkpoint:type_name -> harness.agent.v1.Checkpoint
-	16,  // 94: harness.agent.v1.Rewound.mode:type_name -> harness.agent.v1.RewindRequest.Mode
-	7,   // 95: harness.agent.v1.Compacted.trigger:type_name -> harness.agent.v1.Compacted.Trigger
-	0,   // 96: harness.agent.v1.PermissionModeChanged.mode:type_name -> harness.agent.v1.PermissionMode
-	8,   // 97: harness.agent.v1.ShowRequested.kind:type_name -> harness.agent.v1.ShowRequested.Kind
-	196, // 98: harness.agent.v1.UserMessage.content:type_name -> harness.llm.v1.ContentBlock
-	196, // 99: harness.agent.v1.AssistantMessage.content:type_name -> harness.llm.v1.ContentBlock
-	197, // 100: harness.agent.v1.AssistantMessage.stop_reason:type_name -> harness.llm.v1.StopReason
-	198, // 101: harness.agent.v1.AssistantMessage.usage:type_name -> harness.llm.v1.Usage
-	196, // 102: harness.agent.v1.ToolCallFinished.content:type_name -> harness.llm.v1.ContentBlock
-	159, // 103: harness.agent.v1.ToolCallFinished.background:type_name -> harness.agent.v1.ToolBackground
-	14,  // 104: harness.agent.v1.PermissionResolved.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
-	2,   // 105: harness.agent.v1.QuestionResolved.outcome:type_name -> harness.agent.v1.QuestionOutcome
-	97,  // 106: harness.agent.v1.QuestionResolved.answers:type_name -> harness.agent.v1.QuestionAnswer
-	82,  // 107: harness.agent.v1.Question.items:type_name -> harness.agent.v1.QuestionItem
-	83,  // 108: harness.agent.v1.QuestionItem.options:type_name -> harness.agent.v1.QuestionOption
-	9,   // 109: harness.agent.v1.QuestionItem.type:type_name -> harness.agent.v1.QuestionItem.Type
-	72,  // 110: harness.agent.v1.QueueChanged.queued:type_name -> harness.agent.v1.UserMessage
-	10,  // 111: harness.agent.v1.TurnFinished.result:type_name -> harness.agent.v1.TurnFinished.Result
-	198, // 112: harness.agent.v1.TurnFinished.usage:type_name -> harness.llm.v1.Usage
-	11,  // 113: harness.agent.v1.UsageLimit.state:type_name -> harness.agent.v1.UsageLimit.State
-	12,  // 114: harness.agent.v1.Notice.level:type_name -> harness.agent.v1.Notice.Level
-	196, // 115: harness.agent.v1.SendUserMessageRequest.content:type_name -> harness.llm.v1.ContentBlock
-	13,  // 116: harness.agent.v1.SendUserMessageRequest.delivery:type_name -> harness.agent.v1.SendUserMessageRequest.Delivery
-	14,  // 117: harness.agent.v1.RespondToPermissionRequest.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
-	97,  // 118: harness.agent.v1.AnswerQuestionRequest.answers:type_name -> harness.agent.v1.QuestionAnswer
-	2,   // 119: harness.agent.v1.AnswerQuestionRequest.outcome:type_name -> harness.agent.v1.QuestionOutcome
-	166, // 120: harness.agent.v1.SetEffortRequest.effort:type_name -> harness.llm.v1.Effort
-	0,   // 121: harness.agent.v1.SetPermissionModeRequest.mode:type_name -> harness.agent.v1.PermissionMode
-	15,  // 122: harness.agent.v1.RespondToPlanRequest.decision:type_name -> harness.agent.v1.RespondToPlanRequest.Decision
-	66,  // 123: harness.agent.v1.ListCheckpointsResponse.checkpoints:type_name -> harness.agent.v1.Checkpoint
-	16,  // 124: harness.agent.v1.RewindRequest.mode:type_name -> harness.agent.v1.RewindRequest.Mode
-	68,  // 125: harness.agent.v1.RewindResponse.result:type_name -> harness.agent.v1.Rewound
-	119, // 126: harness.agent.v1.GetContextUsageResponse.usage:type_name -> harness.agent.v1.ContextUsage
-	164, // 127: harness.agent.v1.ContextUsage.categories:type_name -> harness.agent.v1.ContextUsage.Entry
-	165, // 128: harness.agent.v1.ContextUsage.mcp_tools:type_name -> harness.agent.v1.ContextUsage.McpTool
-	199, // 129: harness.agent.v1.UserPreferences.sandbox:type_name -> harness.agent.v1.SandboxPreferences
-	200, // 130: harness.agent.v1.UserPreferences.managed_policy:type_name -> harness.agent.v1.ManagedPolicyView
-	121, // 131: harness.agent.v1.UserPreferences.model_tuning:type_name -> harness.agent.v1.ModelTuning
-	125, // 132: harness.agent.v1.UserPreferences.chat_defaults:type_name -> harness.agent.v1.ChatDefaults
-	120, // 133: harness.agent.v1.GetUserPreferencesResponse.preferences:type_name -> harness.agent.v1.UserPreferences
-	199, // 134: harness.agent.v1.UpdateUserPreferencesRequest.sandbox:type_name -> harness.agent.v1.SandboxPreferences
-	122, // 135: harness.agent.v1.UpdateUserPreferencesRequest.skill_switch:type_name -> harness.agent.v1.SkillSwitch
-	121, // 136: harness.agent.v1.UpdateUserPreferencesRequest.model_tuning:type_name -> harness.agent.v1.ModelTuning
-	125, // 137: harness.agent.v1.UpdateUserPreferencesRequest.chat_defaults:type_name -> harness.agent.v1.ChatDefaults
-	120, // 138: harness.agent.v1.UpdateUserPreferencesResponse.preferences:type_name -> harness.agent.v1.UserPreferences
-	6,   // 139: harness.agent.v1.BackgroundTask.finish_reason:type_name -> harness.agent.v1.TaskFinished.Reason
-	128, // 140: harness.agent.v1.ListTasksResponse.tasks:type_name -> harness.agent.v1.BackgroundTask
-	143, // 141: harness.agent.v1.ListOutputStylesResponse.styles:type_name -> harness.agent.v1.OutputStyleInfo
-	145, // 142: harness.agent.v1.Environment.additional_folders:type_name -> harness.agent.v1.EnvironmentFolder
-	147, // 143: harness.agent.v1.EnvironmentErrors.errors:type_name -> harness.agent.v1.EnvironmentError
-	144, // 144: harness.agent.v1.GetEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
-	144, // 145: harness.agent.v1.UpdateEnvironmentRequest.environment:type_name -> harness.agent.v1.Environment
-	144, // 146: harness.agent.v1.UpdateEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
-	23,  // 147: harness.agent.v1.SetSessionFolderResponse.session:type_name -> harness.agent.v1.SessionInfo
-	144, // 148: harness.agent.v1.AddSessionDirectoryResponse.environment:type_name -> harness.agent.v1.Environment
-	3,   // 149: harness.agent.v1.ToolBackground.reason:type_name -> harness.agent.v1.BackgroundReason
-	3,   // 150: harness.agent.v1.BackgroundToolCallRequest.reason:type_name -> harness.agent.v1.BackgroundReason
-	23,  // 151: harness.agent.v1.SetSessionRelayResponse.session:type_name -> harness.agent.v1.SessionInfo
-	17,  // 152: harness.agent.v1.ContextUsage.Entry.category:type_name -> harness.agent.v1.ContextUsage.Category
-	20,  // 153: harness.agent.v1.AgentService.Initialize:input_type -> harness.agent.v1.InitializeRequest
-	27,  // 154: harness.agent.v1.AgentService.CreateSession:input_type -> harness.agent.v1.CreateSessionRequest
-	39,  // 155: harness.agent.v1.AgentService.ListSessions:input_type -> harness.agent.v1.ListSessionsRequest
-	41,  // 156: harness.agent.v1.AgentService.UpdateSession:input_type -> harness.agent.v1.UpdateSessionRequest
-	43,  // 157: harness.agent.v1.AgentService.DeleteSession:input_type -> harness.agent.v1.DeleteSessionRequest
-	29,  // 158: harness.agent.v1.AgentService.ListRecentFolders:input_type -> harness.agent.v1.ListRecentFoldersRequest
-	32,  // 159: harness.agent.v1.AgentService.ListDirectory:input_type -> harness.agent.v1.ListDirectoryRequest
-	35,  // 160: harness.agent.v1.AgentService.ListBranches:input_type -> harness.agent.v1.ListBranchesRequest
-	45,  // 161: harness.agent.v1.AgentService.Subscribe:input_type -> harness.agent.v1.SubscribeRequest
-	88,  // 162: harness.agent.v1.AgentService.SendUserMessage:input_type -> harness.agent.v1.SendUserMessageRequest
-	90,  // 163: harness.agent.v1.AgentService.RemoveQueuedMessage:input_type -> harness.agent.v1.RemoveQueuedMessageRequest
-	92,  // 164: harness.agent.v1.AgentService.Interrupt:input_type -> harness.agent.v1.InterruptRequest
-	94,  // 165: harness.agent.v1.AgentService.RespondToPermission:input_type -> harness.agent.v1.RespondToPermissionRequest
-	96,  // 166: harness.agent.v1.AgentService.AnswerQuestion:input_type -> harness.agent.v1.AnswerQuestionRequest
-	99,  // 167: harness.agent.v1.AgentService.SetModel:input_type -> harness.agent.v1.SetModelRequest
-	103, // 168: harness.agent.v1.AgentService.SetEffort:input_type -> harness.agent.v1.SetEffortRequest
-	105, // 169: harness.agent.v1.AgentService.SetPermissionMode:input_type -> harness.agent.v1.SetPermissionModeRequest
-	139, // 170: harness.agent.v1.AgentService.SetOutputStyle:input_type -> harness.agent.v1.SetOutputStyleRequest
-	141, // 171: harness.agent.v1.AgentService.ListOutputStyles:input_type -> harness.agent.v1.ListOutputStylesRequest
-	107, // 172: harness.agent.v1.AgentService.SuggestFiles:input_type -> harness.agent.v1.SuggestFilesRequest
-	109, // 173: harness.agent.v1.AgentService.RespondToPlan:input_type -> harness.agent.v1.RespondToPlanRequest
-	111, // 174: harness.agent.v1.AgentService.ListCheckpoints:input_type -> harness.agent.v1.ListCheckpointsRequest
-	113, // 175: harness.agent.v1.AgentService.Rewind:input_type -> harness.agent.v1.RewindRequest
-	115, // 176: harness.agent.v1.AgentService.Compact:input_type -> harness.agent.v1.CompactRequest
-	117, // 177: harness.agent.v1.AgentService.GetContextUsage:input_type -> harness.agent.v1.GetContextUsageRequest
-	123, // 178: harness.agent.v1.AgentService.GetUserPreferences:input_type -> harness.agent.v1.GetUserPreferencesRequest
-	126, // 179: harness.agent.v1.AgentService.UpdateUserPreferences:input_type -> harness.agent.v1.UpdateUserPreferencesRequest
-	201, // 180: harness.agent.v1.AgentService.GetSandboxStatus:input_type -> harness.agent.v1.GetSandboxStatusRequest
-	202, // 181: harness.agent.v1.AgentService.ListHooks:input_type -> harness.agent.v1.ListHooksRequest
-	203, // 182: harness.agent.v1.AgentService.SetHooksTrust:input_type -> harness.agent.v1.SetHooksTrustRequest
-	129, // 183: harness.agent.v1.AgentService.ListTasks:input_type -> harness.agent.v1.ListTasksRequest
-	131, // 184: harness.agent.v1.AgentService.StopTask:input_type -> harness.agent.v1.StopTaskRequest
-	133, // 185: harness.agent.v1.AgentService.CloseSession:input_type -> harness.agent.v1.CloseSessionRequest
-	135, // 186: harness.agent.v1.AgentService.GetWorkspaceTrust:input_type -> harness.agent.v1.GetWorkspaceTrustRequest
-	137, // 187: harness.agent.v1.AgentService.SetWorkspaceTrust:input_type -> harness.agent.v1.SetWorkspaceTrustRequest
-	204, // 188: harness.agent.v1.AgentService.CreateTerminal:input_type -> harness.agent.v1.CreateTerminalRequest
-	205, // 189: harness.agent.v1.AgentService.AttachTerminal:input_type -> harness.agent.v1.AttachTerminalRequest
-	206, // 190: harness.agent.v1.AgentService.ListTerminals:input_type -> harness.agent.v1.ListTerminalsRequest
-	207, // 191: harness.agent.v1.AgentService.KillTerminal:input_type -> harness.agent.v1.KillTerminalRequest
-	208, // 192: harness.agent.v1.AgentService.ResizeTerminal:input_type -> harness.agent.v1.ResizeTerminalRequest
-	148, // 193: harness.agent.v1.AgentService.GetEnvironment:input_type -> harness.agent.v1.GetEnvironmentRequest
-	150, // 194: harness.agent.v1.AgentService.UpdateEnvironment:input_type -> harness.agent.v1.UpdateEnvironmentRequest
-	152, // 195: harness.agent.v1.AgentService.GetFolderInfo:input_type -> harness.agent.v1.GetFolderInfoRequest
-	154, // 196: harness.agent.v1.AgentService.SetSessionFolder:input_type -> harness.agent.v1.SetSessionFolderRequest
-	156, // 197: harness.agent.v1.AgentService.AddSessionDirectory:input_type -> harness.agent.v1.AddSessionDirectoryRequest
-	209, // 198: harness.agent.v1.AgentService.ListFileRoots:input_type -> harness.agent.v1.ListFileRootsRequest
-	210, // 199: harness.agent.v1.AgentService.ListFiles:input_type -> harness.agent.v1.ListFilesRequest
-	211, // 200: harness.agent.v1.AgentService.ReadFile:input_type -> harness.agent.v1.ReadFileRequest
-	212, // 201: harness.agent.v1.AgentService.GetGitStatus:input_type -> harness.agent.v1.GetGitStatusRequest
-	213, // 202: harness.agent.v1.AgentService.RunShellCommand:input_type -> harness.agent.v1.RunShellCommandRequest
-	214, // 203: harness.agent.v1.AgentService.StopShellCommand:input_type -> harness.agent.v1.StopShellCommandRequest
-	215, // 204: harness.agent.v1.AgentService.AnswerWorktreeSetup:input_type -> harness.agent.v1.AnswerWorktreeSetupRequest
-	216, // 205: harness.agent.v1.AgentService.ListSideChats:input_type -> harness.agent.v1.ListSideChatsRequest
-	217, // 206: harness.agent.v1.AgentService.CreateSideChat:input_type -> harness.agent.v1.CreateSideChatRequest
-	218, // 207: harness.agent.v1.AgentService.GetSideChat:input_type -> harness.agent.v1.GetSideChatRequest
-	219, // 208: harness.agent.v1.AgentService.UpdateSideChat:input_type -> harness.agent.v1.UpdateSideChatRequest
-	220, // 209: harness.agent.v1.AgentService.DeleteSideChat:input_type -> harness.agent.v1.DeleteSideChatRequest
-	221, // 210: harness.agent.v1.AgentService.AskSideChat:input_type -> harness.agent.v1.AskSideChatRequest
-	222, // 211: harness.agent.v1.AgentService.StopSideChat:input_type -> harness.agent.v1.StopSideChatRequest
-	223, // 212: harness.agent.v1.AgentService.ListSpeechProviders:input_type -> harness.agent.v1.ListSpeechProvidersRequest
-	224, // 213: harness.agent.v1.AgentService.ListSpeechVoices:input_type -> harness.agent.v1.ListSpeechVoicesRequest
-	225, // 214: harness.agent.v1.AgentService.GetSpeechSettings:input_type -> harness.agent.v1.GetSpeechSettingsRequest
-	226, // 215: harness.agent.v1.AgentService.UpdateSpeechSettings:input_type -> harness.agent.v1.UpdateSpeechSettingsRequest
-	227, // 216: harness.agent.v1.AgentService.TranscribeAudio:input_type -> harness.agent.v1.TranscribeAudioRequest
-	228, // 217: harness.agent.v1.AgentService.SynthesizeSpeech:input_type -> harness.agent.v1.SynthesizeSpeechRequest
-	229, // 218: harness.agent.v1.AgentService.ListLocalSpeechModels:input_type -> harness.agent.v1.ListLocalSpeechModelsRequest
-	230, // 219: harness.agent.v1.AgentService.DownloadSpeechModel:input_type -> harness.agent.v1.DownloadSpeechModelRequest
-	231, // 220: harness.agent.v1.AgentService.DeleteSpeechModel:input_type -> harness.agent.v1.DeleteSpeechModelRequest
-	232, // 221: harness.agent.v1.AgentService.ListLocalProviders:input_type -> harness.agent.v1.ListLocalProvidersRequest
-	233, // 222: harness.agent.v1.AgentService.AddLocalProvider:input_type -> harness.agent.v1.AddLocalProviderRequest
-	234, // 223: harness.agent.v1.AgentService.UpdateLocalProvider:input_type -> harness.agent.v1.UpdateLocalProviderRequest
-	235, // 224: harness.agent.v1.AgentService.RemoveLocalProvider:input_type -> harness.agent.v1.RemoveLocalProviderRequest
-	236, // 225: harness.agent.v1.AgentService.RefreshLocalProviders:input_type -> harness.agent.v1.RefreshLocalProvidersRequest
-	237, // 226: harness.agent.v1.AgentService.PullOllamaModel:input_type -> harness.agent.v1.PullOllamaModelRequest
-	238, // 227: harness.agent.v1.AgentService.DeleteOllamaModel:input_type -> harness.agent.v1.DeleteOllamaModelRequest
-	239, // 228: harness.agent.v1.AgentService.GetProviderLimits:input_type -> harness.agent.v1.GetProviderLimitsRequest
-	160, // 229: harness.agent.v1.AgentService.BackgroundToolCall:input_type -> harness.agent.v1.BackgroundToolCallRequest
-	240, // 230: harness.agent.v1.AgentService.ListAcpAgents:input_type -> harness.agent.v1.ListAcpAgentsRequest
-	241, // 231: harness.agent.v1.AgentService.InstallAcpAgent:input_type -> harness.agent.v1.InstallAcpAgentRequest
-	242, // 232: harness.agent.v1.AgentService.UpdateAcpAgent:input_type -> harness.agent.v1.UpdateAcpAgentRequest
-	243, // 233: harness.agent.v1.AgentService.UninstallAcpAgent:input_type -> harness.agent.v1.UninstallAcpAgentRequest
-	244, // 234: harness.agent.v1.AgentService.AuthenticateAcpAgent:input_type -> harness.agent.v1.AuthenticateAcpAgentRequest
-	245, // 235: harness.agent.v1.AgentService.SetAcpMode:input_type -> harness.agent.v1.SetAcpModeRequest
-	162, // 236: harness.agent.v1.AgentService.SetSessionRelay:input_type -> harness.agent.v1.SetSessionRelayRequest
-	246, // 237: harness.agent.v1.AgentService.GetBrowserAvailability:input_type -> harness.agent.v1.GetBrowserAvailabilityRequest
-	247, // 238: harness.agent.v1.AgentService.InstallBrowser:input_type -> harness.agent.v1.InstallBrowserRequest
-	248, // 239: harness.agent.v1.AgentService.OpenBrowser:input_type -> harness.agent.v1.OpenBrowserRequest
-	249, // 240: harness.agent.v1.AgentService.ListBrowserTabs:input_type -> harness.agent.v1.ListBrowserTabsRequest
-	250, // 241: harness.agent.v1.AgentService.CloseBrowser:input_type -> harness.agent.v1.CloseBrowserRequest
-	251, // 242: harness.agent.v1.AgentService.ClearBrowserData:input_type -> harness.agent.v1.ClearBrowserDataRequest
-	101, // 243: harness.agent.v1.AgentService.SetAutoContinue:input_type -> harness.agent.v1.SetAutoContinueRequest
-	252, // 244: harness.agent.v1.AgentService.GetSessionDiff:input_type -> harness.agent.v1.GetSessionDiffRequest
-	49,  // 245: harness.agent.v1.AgentService.CheckSessionMove:input_type -> harness.agent.v1.CheckSessionMoveRequest
-	53,  // 246: harness.agent.v1.AgentService.MoveSession:input_type -> harness.agent.v1.MoveSessionRequest
-	253, // 247: harness.agent.v1.AgentService.StopSubagent:input_type -> harness.agent.v1.StopSubagentRequest
-	254, // 248: harness.agent.v1.AgentService.GetSubagentTranscript:input_type -> harness.agent.v1.GetSubagentTranscriptRequest
-	255, // 249: harness.agent.v1.AgentService.ResolveSessionProposal:input_type -> harness.agent.v1.ResolveSessionProposalRequest
-	256, // 250: harness.agent.v1.AgentService.UpdateViewerPresence:input_type -> harness.agent.v1.UpdateViewerPresenceRequest
-	257, // 251: harness.agent.v1.AgentService.ReadSentFile:input_type -> harness.agent.v1.ReadSentFileRequest
-	258, // 252: harness.agent.v1.AgentService.SetPrMonitor:input_type -> harness.agent.v1.SetPrMonitorRequest
-	259, // 253: harness.agent.v1.AgentService.DraftPullRequest:input_type -> harness.agent.v1.DraftPullRequestRequest
-	260, // 254: harness.agent.v1.AgentService.CreatePullRequest:input_type -> harness.agent.v1.CreatePullRequestRequest
-	261, // 255: harness.agent.v1.AgentService.GetVcsStatus:input_type -> harness.agent.v1.GetVcsStatusRequest
-	262, // 256: harness.agent.v1.AgentService.ListPreviewServers:input_type -> harness.agent.v1.ListPreviewServersRequest
-	263, // 257: harness.agent.v1.AgentService.StopPreviewServer:input_type -> harness.agent.v1.StopPreviewServerRequest
-	264, // 258: harness.agent.v1.AgentService.GetPreviewLogs:input_type -> harness.agent.v1.GetPreviewLogsRequest
-	265, // 259: harness.agent.v1.AgentService.GetComputerUseStatus:input_type -> harness.agent.v1.GetComputerUseStatusRequest
-	266, // 260: harness.agent.v1.AgentService.SetComputerUseEnabled:input_type -> harness.agent.v1.SetComputerUseEnabledRequest
-	267, // 261: harness.agent.v1.AgentService.RespondToComputerAccess:input_type -> harness.agent.v1.RespondToComputerAccessRequest
-	268, // 262: harness.agent.v1.AgentService.StopComputerUse:input_type -> harness.agent.v1.StopComputerUseRequest
-	269, // 263: harness.agent.v1.AgentService.SetComputerUseProfile:input_type -> harness.agent.v1.SetComputerUseProfileRequest
-	270, // 264: harness.agent.v1.AgentService.ListComputerUseApps:input_type -> harness.agent.v1.ListComputerUseAppsRequest
-	271, // 265: harness.agent.v1.AgentService.ListDemoRecordingApps:input_type -> harness.agent.v1.ListDemoRecordingAppsRequest
-	272, // 266: harness.agent.v1.AgentService.StartDemoRecording:input_type -> harness.agent.v1.StartDemoRecordingRequest
-	273, // 267: harness.agent.v1.AgentService.StopDemoRecording:input_type -> harness.agent.v1.StopDemoRecordingRequest
-	274, // 268: harness.agent.v1.AgentService.RespondToDemoSkillReview:input_type -> harness.agent.v1.RespondToDemoSkillReviewRequest
-	275, // 269: harness.agent.v1.AgentService.ListSimulators:input_type -> harness.agent.v1.ListSimulatorsRequest
-	276, // 270: harness.agent.v1.AgentService.BootSimulator:input_type -> harness.agent.v1.BootSimulatorRequest
-	277, // 271: harness.agent.v1.AgentService.ShutdownSimulator:input_type -> harness.agent.v1.ShutdownSimulatorRequest
-	278, // 272: harness.agent.v1.AgentService.WatchSimulator:input_type -> harness.agent.v1.WatchSimulatorRequest
-	279, // 273: harness.agent.v1.AgentService.SimulatorInput:input_type -> harness.agent.v1.SimulatorInputRequest
-	280, // 274: harness.agent.v1.AgentService.GetDeviceSettings:input_type -> harness.agent.v1.GetDeviceSettingsRequest
-	281, // 275: harness.agent.v1.AgentService.UpdateDeviceSettings:input_type -> harness.agent.v1.UpdateDeviceSettingsRequest
-	282, // 276: harness.agent.v1.AgentService.SetKeepAwake:input_type -> harness.agent.v1.SetKeepAwakeRequest
-	283, // 277: harness.agent.v1.AgentService.ListDiffBases:input_type -> harness.agent.v1.ListDiffBasesRequest
-	284, // 278: harness.agent.v1.AgentService.GetSessionFileDiff:input_type -> harness.agent.v1.GetSessionFileDiffRequest
-	18,  // 279: harness.agent.v1.AgentService.CreateObjectTicket:input_type -> harness.agent.v1.CreateObjectTicketRequest
-	285, // 280: harness.agent.v1.AgentService.StopWorkflow:input_type -> harness.agent.v1.StopWorkflowRequest
-	286, // 281: harness.agent.v1.AgentService.ScanClaudeImport:input_type -> harness.agent.v1.ScanClaudeImportRequest
-	287, // 282: harness.agent.v1.AgentService.RunClaudeImport:input_type -> harness.agent.v1.RunClaudeImportRequest
-	288, // 283: harness.agent.v1.AgentService.ScanProjectImport:input_type -> harness.agent.v1.ScanProjectImportRequest
-	289, // 284: harness.agent.v1.AgentService.RunProjectImport:input_type -> harness.agent.v1.RunProjectImportRequest
-	290, // 285: harness.agent.v1.AgentService.DismissProjectImport:input_type -> harness.agent.v1.DismissProjectImportRequest
-	291, // 286: harness.agent.v1.AgentService.ListImportSources:input_type -> harness.agent.v1.ListImportSourcesRequest
-	292, // 287: harness.agent.v1.AgentService.ScanImportSource:input_type -> harness.agent.v1.ScanImportSourceRequest
-	293, // 288: harness.agent.v1.AgentService.RunImportSource:input_type -> harness.agent.v1.RunImportSourceRequest
-	294, // 289: harness.agent.v1.AgentService.ListMcpServers:input_type -> harness.agent.v1.ListMcpServersRequest
-	295, // 290: harness.agent.v1.AgentService.InspectMcpServer:input_type -> harness.agent.v1.InspectMcpServerRequest
-	296, // 291: harness.agent.v1.AgentService.CreateMcpServer:input_type -> harness.agent.v1.CreateMcpServerRequest
-	297, // 292: harness.agent.v1.AgentService.UpdateMcpServer:input_type -> harness.agent.v1.UpdateMcpServerRequest
-	298, // 293: harness.agent.v1.AgentService.DeleteMcpServer:input_type -> harness.agent.v1.DeleteMcpServerRequest
-	299, // 294: harness.agent.v1.AgentService.SetMcpServerApproval:input_type -> harness.agent.v1.SetMcpServerApprovalRequest
-	300, // 295: harness.agent.v1.AgentService.SetMcpToolRule:input_type -> harness.agent.v1.SetMcpToolRuleRequest
-	301, // 296: harness.agent.v1.AgentService.ListMcpCommands:input_type -> harness.agent.v1.ListMcpCommandsRequest
-	302, // 297: harness.agent.v1.AgentService.ListMcpResources:input_type -> harness.agent.v1.ListMcpResourcesRequest
-	303, // 298: harness.agent.v1.AgentService.ListSlashCommands:input_type -> harness.agent.v1.ListSlashCommandsRequest
-	304, // 299: harness.agent.v1.AgentService.ListSessionTools:input_type -> harness.agent.v1.ListSessionToolsRequest
-	305, // 300: harness.agent.v1.AgentService.GetDiagnostics:input_type -> harness.agent.v1.GetDiagnosticsRequest
-	306, // 301: harness.agent.v1.AgentService.ListSchedules:input_type -> harness.agent.v1.ListSchedulesRequest
-	307, // 302: harness.agent.v1.AgentService.CreateSchedule:input_type -> harness.agent.v1.CreateScheduleRequest
-	308, // 303: harness.agent.v1.AgentService.UpdateSchedule:input_type -> harness.agent.v1.UpdateScheduleRequest
-	309, // 304: harness.agent.v1.AgentService.DeleteSchedule:input_type -> harness.agent.v1.DeleteScheduleRequest
-	310, // 305: harness.agent.v1.AgentService.SetSchedulePaused:input_type -> harness.agent.v1.SetSchedulePausedRequest
-	311, // 306: harness.agent.v1.AgentService.RunScheduleNow:input_type -> harness.agent.v1.RunScheduleNowRequest
-	312, // 307: harness.agent.v1.AgentService.ListScheduleRuns:input_type -> harness.agent.v1.ListScheduleRunsRequest
-	313, // 308: harness.agent.v1.AgentService.TrustSchedule:input_type -> harness.agent.v1.TrustScheduleRequest
-	314, // 309: harness.agent.v1.AgentService.RotateScheduleWebhook:input_type -> harness.agent.v1.RotateScheduleWebhookRequest
-	21,  // 310: harness.agent.v1.AgentService.Initialize:output_type -> harness.agent.v1.InitializeResponse
-	38,  // 311: harness.agent.v1.AgentService.CreateSession:output_type -> harness.agent.v1.CreateSessionResponse
-	40,  // 312: harness.agent.v1.AgentService.ListSessions:output_type -> harness.agent.v1.ListSessionsResponse
-	42,  // 313: harness.agent.v1.AgentService.UpdateSession:output_type -> harness.agent.v1.UpdateSessionResponse
-	44,  // 314: harness.agent.v1.AgentService.DeleteSession:output_type -> harness.agent.v1.DeleteSessionResponse
-	30,  // 315: harness.agent.v1.AgentService.ListRecentFolders:output_type -> harness.agent.v1.ListRecentFoldersResponse
-	33,  // 316: harness.agent.v1.AgentService.ListDirectory:output_type -> harness.agent.v1.ListDirectoryResponse
-	36,  // 317: harness.agent.v1.AgentService.ListBranches:output_type -> harness.agent.v1.ListBranchesResponse
-	46,  // 318: harness.agent.v1.AgentService.Subscribe:output_type -> harness.agent.v1.SubscribeResponse
-	89,  // 319: harness.agent.v1.AgentService.SendUserMessage:output_type -> harness.agent.v1.SendUserMessageResponse
-	91,  // 320: harness.agent.v1.AgentService.RemoveQueuedMessage:output_type -> harness.agent.v1.RemoveQueuedMessageResponse
-	93,  // 321: harness.agent.v1.AgentService.Interrupt:output_type -> harness.agent.v1.InterruptResponse
-	95,  // 322: harness.agent.v1.AgentService.RespondToPermission:output_type -> harness.agent.v1.RespondToPermissionResponse
-	98,  // 323: harness.agent.v1.AgentService.AnswerQuestion:output_type -> harness.agent.v1.AnswerQuestionResponse
-	100, // 324: harness.agent.v1.AgentService.SetModel:output_type -> harness.agent.v1.SetModelResponse
-	104, // 325: harness.agent.v1.AgentService.SetEffort:output_type -> harness.agent.v1.SetEffortResponse
-	106, // 326: harness.agent.v1.AgentService.SetPermissionMode:output_type -> harness.agent.v1.SetPermissionModeResponse
-	140, // 327: harness.agent.v1.AgentService.SetOutputStyle:output_type -> harness.agent.v1.SetOutputStyleResponse
-	142, // 328: harness.agent.v1.AgentService.ListOutputStyles:output_type -> harness.agent.v1.ListOutputStylesResponse
-	108, // 329: harness.agent.v1.AgentService.SuggestFiles:output_type -> harness.agent.v1.SuggestFilesResponse
-	110, // 330: harness.agent.v1.AgentService.RespondToPlan:output_type -> harness.agent.v1.RespondToPlanResponse
-	112, // 331: harness.agent.v1.AgentService.ListCheckpoints:output_type -> harness.agent.v1.ListCheckpointsResponse
-	114, // 332: harness.agent.v1.AgentService.Rewind:output_type -> harness.agent.v1.RewindResponse
-	116, // 333: harness.agent.v1.AgentService.Compact:output_type -> harness.agent.v1.CompactResponse
-	118, // 334: harness.agent.v1.AgentService.GetContextUsage:output_type -> harness.agent.v1.GetContextUsageResponse
-	124, // 335: harness.agent.v1.AgentService.GetUserPreferences:output_type -> harness.agent.v1.GetUserPreferencesResponse
-	127, // 336: harness.agent.v1.AgentService.UpdateUserPreferences:output_type -> harness.agent.v1.UpdateUserPreferencesResponse
-	315, // 337: harness.agent.v1.AgentService.GetSandboxStatus:output_type -> harness.agent.v1.GetSandboxStatusResponse
-	316, // 338: harness.agent.v1.AgentService.ListHooks:output_type -> harness.agent.v1.ListHooksResponse
-	317, // 339: harness.agent.v1.AgentService.SetHooksTrust:output_type -> harness.agent.v1.SetHooksTrustResponse
-	130, // 340: harness.agent.v1.AgentService.ListTasks:output_type -> harness.agent.v1.ListTasksResponse
-	132, // 341: harness.agent.v1.AgentService.StopTask:output_type -> harness.agent.v1.StopTaskResponse
-	134, // 342: harness.agent.v1.AgentService.CloseSession:output_type -> harness.agent.v1.CloseSessionResponse
-	136, // 343: harness.agent.v1.AgentService.GetWorkspaceTrust:output_type -> harness.agent.v1.GetWorkspaceTrustResponse
-	138, // 344: harness.agent.v1.AgentService.SetWorkspaceTrust:output_type -> harness.agent.v1.SetWorkspaceTrustResponse
-	318, // 345: harness.agent.v1.AgentService.CreateTerminal:output_type -> harness.agent.v1.CreateTerminalResponse
-	319, // 346: harness.agent.v1.AgentService.AttachTerminal:output_type -> harness.agent.v1.AttachTerminalResponse
-	320, // 347: harness.agent.v1.AgentService.ListTerminals:output_type -> harness.agent.v1.ListTerminalsResponse
-	321, // 348: harness.agent.v1.AgentService.KillTerminal:output_type -> harness.agent.v1.KillTerminalResponse
-	322, // 349: harness.agent.v1.AgentService.ResizeTerminal:output_type -> harness.agent.v1.ResizeTerminalResponse
-	149, // 350: harness.agent.v1.AgentService.GetEnvironment:output_type -> harness.agent.v1.GetEnvironmentResponse
-	151, // 351: harness.agent.v1.AgentService.UpdateEnvironment:output_type -> harness.agent.v1.UpdateEnvironmentResponse
-	153, // 352: harness.agent.v1.AgentService.GetFolderInfo:output_type -> harness.agent.v1.GetFolderInfoResponse
-	155, // 353: harness.agent.v1.AgentService.SetSessionFolder:output_type -> harness.agent.v1.SetSessionFolderResponse
-	157, // 354: harness.agent.v1.AgentService.AddSessionDirectory:output_type -> harness.agent.v1.AddSessionDirectoryResponse
-	323, // 355: harness.agent.v1.AgentService.ListFileRoots:output_type -> harness.agent.v1.ListFileRootsResponse
-	324, // 356: harness.agent.v1.AgentService.ListFiles:output_type -> harness.agent.v1.ListFilesResponse
-	325, // 357: harness.agent.v1.AgentService.ReadFile:output_type -> harness.agent.v1.ReadFileResponse
-	326, // 358: harness.agent.v1.AgentService.GetGitStatus:output_type -> harness.agent.v1.GetGitStatusResponse
-	327, // 359: harness.agent.v1.AgentService.RunShellCommand:output_type -> harness.agent.v1.RunShellCommandResponse
-	328, // 360: harness.agent.v1.AgentService.StopShellCommand:output_type -> harness.agent.v1.StopShellCommandResponse
-	329, // 361: harness.agent.v1.AgentService.AnswerWorktreeSetup:output_type -> harness.agent.v1.AnswerWorktreeSetupResponse
-	330, // 362: harness.agent.v1.AgentService.ListSideChats:output_type -> harness.agent.v1.ListSideChatsResponse
-	331, // 363: harness.agent.v1.AgentService.CreateSideChat:output_type -> harness.agent.v1.CreateSideChatResponse
-	332, // 364: harness.agent.v1.AgentService.GetSideChat:output_type -> harness.agent.v1.GetSideChatResponse
-	333, // 365: harness.agent.v1.AgentService.UpdateSideChat:output_type -> harness.agent.v1.UpdateSideChatResponse
-	334, // 366: harness.agent.v1.AgentService.DeleteSideChat:output_type -> harness.agent.v1.DeleteSideChatResponse
-	335, // 367: harness.agent.v1.AgentService.AskSideChat:output_type -> harness.agent.v1.AskSideChatResponse
-	336, // 368: harness.agent.v1.AgentService.StopSideChat:output_type -> harness.agent.v1.StopSideChatResponse
-	337, // 369: harness.agent.v1.AgentService.ListSpeechProviders:output_type -> harness.agent.v1.ListSpeechProvidersResponse
-	338, // 370: harness.agent.v1.AgentService.ListSpeechVoices:output_type -> harness.agent.v1.ListSpeechVoicesResponse
-	339, // 371: harness.agent.v1.AgentService.GetSpeechSettings:output_type -> harness.agent.v1.GetSpeechSettingsResponse
-	340, // 372: harness.agent.v1.AgentService.UpdateSpeechSettings:output_type -> harness.agent.v1.UpdateSpeechSettingsResponse
-	341, // 373: harness.agent.v1.AgentService.TranscribeAudio:output_type -> harness.agent.v1.TranscribeAudioResponse
-	342, // 374: harness.agent.v1.AgentService.SynthesizeSpeech:output_type -> harness.agent.v1.SynthesizeSpeechResponse
-	343, // 375: harness.agent.v1.AgentService.ListLocalSpeechModels:output_type -> harness.agent.v1.ListLocalSpeechModelsResponse
-	344, // 376: harness.agent.v1.AgentService.DownloadSpeechModel:output_type -> harness.agent.v1.DownloadSpeechModelResponse
-	345, // 377: harness.agent.v1.AgentService.DeleteSpeechModel:output_type -> harness.agent.v1.DeleteSpeechModelResponse
-	346, // 378: harness.agent.v1.AgentService.ListLocalProviders:output_type -> harness.agent.v1.ListLocalProvidersResponse
-	347, // 379: harness.agent.v1.AgentService.AddLocalProvider:output_type -> harness.agent.v1.AddLocalProviderResponse
-	348, // 380: harness.agent.v1.AgentService.UpdateLocalProvider:output_type -> harness.agent.v1.UpdateLocalProviderResponse
-	349, // 381: harness.agent.v1.AgentService.RemoveLocalProvider:output_type -> harness.agent.v1.RemoveLocalProviderResponse
-	350, // 382: harness.agent.v1.AgentService.RefreshLocalProviders:output_type -> harness.agent.v1.RefreshLocalProvidersResponse
-	351, // 383: harness.agent.v1.AgentService.PullOllamaModel:output_type -> harness.agent.v1.PullOllamaModelResponse
-	352, // 384: harness.agent.v1.AgentService.DeleteOllamaModel:output_type -> harness.agent.v1.DeleteOllamaModelResponse
-	353, // 385: harness.agent.v1.AgentService.GetProviderLimits:output_type -> harness.agent.v1.GetProviderLimitsResponse
-	161, // 386: harness.agent.v1.AgentService.BackgroundToolCall:output_type -> harness.agent.v1.BackgroundToolCallResponse
-	354, // 387: harness.agent.v1.AgentService.ListAcpAgents:output_type -> harness.agent.v1.ListAcpAgentsResponse
-	355, // 388: harness.agent.v1.AgentService.InstallAcpAgent:output_type -> harness.agent.v1.InstallAcpAgentResponse
-	356, // 389: harness.agent.v1.AgentService.UpdateAcpAgent:output_type -> harness.agent.v1.UpdateAcpAgentResponse
-	357, // 390: harness.agent.v1.AgentService.UninstallAcpAgent:output_type -> harness.agent.v1.UninstallAcpAgentResponse
-	358, // 391: harness.agent.v1.AgentService.AuthenticateAcpAgent:output_type -> harness.agent.v1.AuthenticateAcpAgentResponse
-	359, // 392: harness.agent.v1.AgentService.SetAcpMode:output_type -> harness.agent.v1.SetAcpModeResponse
-	163, // 393: harness.agent.v1.AgentService.SetSessionRelay:output_type -> harness.agent.v1.SetSessionRelayResponse
-	360, // 394: harness.agent.v1.AgentService.GetBrowserAvailability:output_type -> harness.agent.v1.GetBrowserAvailabilityResponse
-	361, // 395: harness.agent.v1.AgentService.InstallBrowser:output_type -> harness.agent.v1.InstallBrowserResponse
-	362, // 396: harness.agent.v1.AgentService.OpenBrowser:output_type -> harness.agent.v1.OpenBrowserResponse
-	363, // 397: harness.agent.v1.AgentService.ListBrowserTabs:output_type -> harness.agent.v1.ListBrowserTabsResponse
-	364, // 398: harness.agent.v1.AgentService.CloseBrowser:output_type -> harness.agent.v1.CloseBrowserResponse
-	365, // 399: harness.agent.v1.AgentService.ClearBrowserData:output_type -> harness.agent.v1.ClearBrowserDataResponse
-	102, // 400: harness.agent.v1.AgentService.SetAutoContinue:output_type -> harness.agent.v1.SetAutoContinueResponse
-	366, // 401: harness.agent.v1.AgentService.GetSessionDiff:output_type -> harness.agent.v1.GetSessionDiffResponse
-	52,  // 402: harness.agent.v1.AgentService.CheckSessionMove:output_type -> harness.agent.v1.CheckSessionMoveResponse
-	54,  // 403: harness.agent.v1.AgentService.MoveSession:output_type -> harness.agent.v1.MoveSessionResponse
-	367, // 404: harness.agent.v1.AgentService.StopSubagent:output_type -> harness.agent.v1.StopSubagentResponse
-	368, // 405: harness.agent.v1.AgentService.GetSubagentTranscript:output_type -> harness.agent.v1.GetSubagentTranscriptResponse
-	369, // 406: harness.agent.v1.AgentService.ResolveSessionProposal:output_type -> harness.agent.v1.ResolveSessionProposalResponse
-	370, // 407: harness.agent.v1.AgentService.UpdateViewerPresence:output_type -> harness.agent.v1.UpdateViewerPresenceResponse
-	371, // 408: harness.agent.v1.AgentService.ReadSentFile:output_type -> harness.agent.v1.ReadSentFileResponse
-	372, // 409: harness.agent.v1.AgentService.SetPrMonitor:output_type -> harness.agent.v1.SetPrMonitorResponse
-	373, // 410: harness.agent.v1.AgentService.DraftPullRequest:output_type -> harness.agent.v1.DraftPullRequestResponse
-	374, // 411: harness.agent.v1.AgentService.CreatePullRequest:output_type -> harness.agent.v1.CreatePullRequestResponse
-	375, // 412: harness.agent.v1.AgentService.GetVcsStatus:output_type -> harness.agent.v1.GetVcsStatusResponse
-	376, // 413: harness.agent.v1.AgentService.ListPreviewServers:output_type -> harness.agent.v1.ListPreviewServersResponse
-	377, // 414: harness.agent.v1.AgentService.StopPreviewServer:output_type -> harness.agent.v1.StopPreviewServerResponse
-	378, // 415: harness.agent.v1.AgentService.GetPreviewLogs:output_type -> harness.agent.v1.GetPreviewLogsResponse
-	379, // 416: harness.agent.v1.AgentService.GetComputerUseStatus:output_type -> harness.agent.v1.GetComputerUseStatusResponse
-	380, // 417: harness.agent.v1.AgentService.SetComputerUseEnabled:output_type -> harness.agent.v1.SetComputerUseEnabledResponse
-	381, // 418: harness.agent.v1.AgentService.RespondToComputerAccess:output_type -> harness.agent.v1.RespondToComputerAccessResponse
-	382, // 419: harness.agent.v1.AgentService.StopComputerUse:output_type -> harness.agent.v1.StopComputerUseResponse
-	383, // 420: harness.agent.v1.AgentService.SetComputerUseProfile:output_type -> harness.agent.v1.SetComputerUseProfileResponse
-	384, // 421: harness.agent.v1.AgentService.ListComputerUseApps:output_type -> harness.agent.v1.ListComputerUseAppsResponse
-	385, // 422: harness.agent.v1.AgentService.ListDemoRecordingApps:output_type -> harness.agent.v1.ListDemoRecordingAppsResponse
-	386, // 423: harness.agent.v1.AgentService.StartDemoRecording:output_type -> harness.agent.v1.StartDemoRecordingResponse
-	387, // 424: harness.agent.v1.AgentService.StopDemoRecording:output_type -> harness.agent.v1.StopDemoRecordingResponse
-	388, // 425: harness.agent.v1.AgentService.RespondToDemoSkillReview:output_type -> harness.agent.v1.RespondToDemoSkillReviewResponse
-	389, // 426: harness.agent.v1.AgentService.ListSimulators:output_type -> harness.agent.v1.ListSimulatorsResponse
-	390, // 427: harness.agent.v1.AgentService.BootSimulator:output_type -> harness.agent.v1.BootSimulatorResponse
-	391, // 428: harness.agent.v1.AgentService.ShutdownSimulator:output_type -> harness.agent.v1.ShutdownSimulatorResponse
-	392, // 429: harness.agent.v1.AgentService.WatchSimulator:output_type -> harness.agent.v1.WatchSimulatorResponse
-	393, // 430: harness.agent.v1.AgentService.SimulatorInput:output_type -> harness.agent.v1.SimulatorInputResponse
-	394, // 431: harness.agent.v1.AgentService.GetDeviceSettings:output_type -> harness.agent.v1.GetDeviceSettingsResponse
-	395, // 432: harness.agent.v1.AgentService.UpdateDeviceSettings:output_type -> harness.agent.v1.UpdateDeviceSettingsResponse
-	396, // 433: harness.agent.v1.AgentService.SetKeepAwake:output_type -> harness.agent.v1.SetKeepAwakeResponse
-	397, // 434: harness.agent.v1.AgentService.ListDiffBases:output_type -> harness.agent.v1.ListDiffBasesResponse
-	398, // 435: harness.agent.v1.AgentService.GetSessionFileDiff:output_type -> harness.agent.v1.GetSessionFileDiffResponse
-	19,  // 436: harness.agent.v1.AgentService.CreateObjectTicket:output_type -> harness.agent.v1.CreateObjectTicketResponse
-	399, // 437: harness.agent.v1.AgentService.StopWorkflow:output_type -> harness.agent.v1.StopWorkflowResponse
-	400, // 438: harness.agent.v1.AgentService.ScanClaudeImport:output_type -> harness.agent.v1.ScanClaudeImportResponse
-	401, // 439: harness.agent.v1.AgentService.RunClaudeImport:output_type -> harness.agent.v1.RunClaudeImportResponse
-	402, // 440: harness.agent.v1.AgentService.ScanProjectImport:output_type -> harness.agent.v1.ScanProjectImportResponse
-	403, // 441: harness.agent.v1.AgentService.RunProjectImport:output_type -> harness.agent.v1.RunProjectImportResponse
-	404, // 442: harness.agent.v1.AgentService.DismissProjectImport:output_type -> harness.agent.v1.DismissProjectImportResponse
-	405, // 443: harness.agent.v1.AgentService.ListImportSources:output_type -> harness.agent.v1.ListImportSourcesResponse
-	406, // 444: harness.agent.v1.AgentService.ScanImportSource:output_type -> harness.agent.v1.ScanImportSourceResponse
-	407, // 445: harness.agent.v1.AgentService.RunImportSource:output_type -> harness.agent.v1.RunImportSourceResponse
-	408, // 446: harness.agent.v1.AgentService.ListMcpServers:output_type -> harness.agent.v1.ListMcpServersResponse
-	409, // 447: harness.agent.v1.AgentService.InspectMcpServer:output_type -> harness.agent.v1.InspectMcpServerResponse
-	410, // 448: harness.agent.v1.AgentService.CreateMcpServer:output_type -> harness.agent.v1.CreateMcpServerResponse
-	411, // 449: harness.agent.v1.AgentService.UpdateMcpServer:output_type -> harness.agent.v1.UpdateMcpServerResponse
-	412, // 450: harness.agent.v1.AgentService.DeleteMcpServer:output_type -> harness.agent.v1.DeleteMcpServerResponse
-	413, // 451: harness.agent.v1.AgentService.SetMcpServerApproval:output_type -> harness.agent.v1.SetMcpServerApprovalResponse
-	414, // 452: harness.agent.v1.AgentService.SetMcpToolRule:output_type -> harness.agent.v1.SetMcpToolRuleResponse
-	415, // 453: harness.agent.v1.AgentService.ListMcpCommands:output_type -> harness.agent.v1.ListMcpCommandsResponse
-	416, // 454: harness.agent.v1.AgentService.ListMcpResources:output_type -> harness.agent.v1.ListMcpResourcesResponse
-	417, // 455: harness.agent.v1.AgentService.ListSlashCommands:output_type -> harness.agent.v1.ListSlashCommandsResponse
-	418, // 456: harness.agent.v1.AgentService.ListSessionTools:output_type -> harness.agent.v1.ListSessionToolsResponse
-	419, // 457: harness.agent.v1.AgentService.GetDiagnostics:output_type -> harness.agent.v1.GetDiagnosticsResponse
-	420, // 458: harness.agent.v1.AgentService.ListSchedules:output_type -> harness.agent.v1.ListSchedulesResponse
-	421, // 459: harness.agent.v1.AgentService.CreateSchedule:output_type -> harness.agent.v1.CreateScheduleResponse
-	422, // 460: harness.agent.v1.AgentService.UpdateSchedule:output_type -> harness.agent.v1.UpdateScheduleResponse
-	423, // 461: harness.agent.v1.AgentService.DeleteSchedule:output_type -> harness.agent.v1.DeleteScheduleResponse
-	424, // 462: harness.agent.v1.AgentService.SetSchedulePaused:output_type -> harness.agent.v1.SetSchedulePausedResponse
-	425, // 463: harness.agent.v1.AgentService.RunScheduleNow:output_type -> harness.agent.v1.RunScheduleNowResponse
-	426, // 464: harness.agent.v1.AgentService.ListScheduleRuns:output_type -> harness.agent.v1.ListScheduleRunsResponse
-	427, // 465: harness.agent.v1.AgentService.TrustSchedule:output_type -> harness.agent.v1.TrustScheduleResponse
-	428, // 466: harness.agent.v1.AgentService.RotateScheduleWebhook:output_type -> harness.agent.v1.RotateScheduleWebhookResponse
-	310, // [310:467] is the sub-list for method output_type
-	153, // [153:310] is the sub-list for method input_type
-	153, // [153:153] is the sub-list for extension type_name
-	153, // [153:153] is the sub-list for extension extendee
-	0,   // [0:153] is the sub-list for field type_name
+	2,   // 6: harness.agent.v1.SessionInfo.status:type_name -> harness.agent.v1.SessionStatus
+	26,  // 7: harness.agent.v1.SessionInfo.diff_stats:type_name -> harness.agent.v1.DiffStats
+	27,  // 8: harness.agent.v1.SessionInfo.pull_request:type_name -> harness.agent.v1.PullRequest
+	25,  // 9: harness.agent.v1.SessionInfo.worktree:type_name -> harness.agent.v1.Worktree
+	168, // 10: harness.agent.v1.SessionInfo.unsupported_features:type_name -> harness.agent.v1.SessionFeature
+	169, // 11: harness.agent.v1.SessionInfo.acp:type_name -> harness.agent.v1.AcpSessionState
+	87,  // 12: harness.agent.v1.SessionInfo.usage_limit:type_name -> harness.agent.v1.UsageLimit
+	49,  // 13: harness.agent.v1.SessionInfo.moved:type_name -> harness.agent.v1.SessionMoved
+	57,  // 14: harness.agent.v1.SessionInfo.attempt:type_name -> harness.agent.v1.SessionAttempt
+	1,   // 15: harness.agent.v1.SessionInfo.cloud_environment:type_name -> harness.agent.v1.CloudEnvironmentState
+	5,   // 16: harness.agent.v1.PullRequest.state:type_name -> harness.agent.v1.PullRequest.State
+	0,   // 17: harness.agent.v1.CreateSessionRequest.permission_mode:type_name -> harness.agent.v1.PermissionMode
+	167, // 18: harness.agent.v1.CreateSessionRequest.effort:type_name -> harness.llm.v1.Effort
+	29,  // 19: harness.agent.v1.CreateSessionRequest.worktree:type_name -> harness.agent.v1.WorktreeOptions
+	32,  // 20: harness.agent.v1.ListRecentFoldersResponse.folders:type_name -> harness.agent.v1.RecentFolder
+	35,  // 21: harness.agent.v1.ListDirectoryResponse.entries:type_name -> harness.agent.v1.DirectoryEntry
+	38,  // 22: harness.agent.v1.ListBranchesResponse.branches:type_name -> harness.agent.v1.Branch
+	24,  // 23: harness.agent.v1.CreateSessionResponse.session:type_name -> harness.agent.v1.SessionInfo
+	24,  // 24: harness.agent.v1.ListSessionsResponse.sessions:type_name -> harness.agent.v1.SessionInfo
+	24,  // 25: harness.agent.v1.UpdateSessionResponse.session:type_name -> harness.agent.v1.SessionInfo
+	48,  // 26: harness.agent.v1.SubscribeResponse.event:type_name -> harness.agent.v1.SessionEvent
+	24,  // 27: harness.agent.v1.SubscribeResponse.session:type_name -> harness.agent.v1.SessionInfo
+	24,  // 28: harness.agent.v1.SessionEvent.session_updated:type_name -> harness.agent.v1.SessionInfo
+	73,  // 29: harness.agent.v1.SessionEvent.user_message:type_name -> harness.agent.v1.UserMessage
+	74,  // 30: harness.agent.v1.SessionEvent.assistant_delta:type_name -> harness.agent.v1.AssistantDelta
+	75,  // 31: harness.agent.v1.SessionEvent.assistant_message:type_name -> harness.agent.v1.AssistantMessage
+	76,  // 32: harness.agent.v1.SessionEvent.tool_call_started:type_name -> harness.agent.v1.ToolCallStarted
+	77,  // 33: harness.agent.v1.SessionEvent.tool_call_finished:type_name -> harness.agent.v1.ToolCallFinished
+	78,  // 34: harness.agent.v1.SessionEvent.permission_request:type_name -> harness.agent.v1.PermissionRequest
+	82,  // 35: harness.agent.v1.SessionEvent.question:type_name -> harness.agent.v1.Question
+	85,  // 36: harness.agent.v1.SessionEvent.queue_changed:type_name -> harness.agent.v1.QueueChanged
+	86,  // 37: harness.agent.v1.SessionEvent.turn_finished:type_name -> harness.agent.v1.TurnFinished
+	88,  // 38: harness.agent.v1.SessionEvent.notice:type_name -> harness.agent.v1.Notice
+	79,  // 39: harness.agent.v1.SessionEvent.permission_resolved:type_name -> harness.agent.v1.PermissionResolved
+	80,  // 40: harness.agent.v1.SessionEvent.question_resolved:type_name -> harness.agent.v1.QuestionResolved
+	81,  // 41: harness.agent.v1.SessionEvent.session_ended:type_name -> harness.agent.v1.SessionEnded
+	59,  // 42: harness.agent.v1.SessionEvent.turn_started:type_name -> harness.agent.v1.TurnStarted
+	60,  // 43: harness.agent.v1.SessionEvent.todos_updated:type_name -> harness.agent.v1.TodosUpdated
+	62,  // 44: harness.agent.v1.SessionEvent.plan_proposed:type_name -> harness.agent.v1.PlanProposed
+	63,  // 45: harness.agent.v1.SessionEvent.plan_resolved:type_name -> harness.agent.v1.PlanResolved
+	64,  // 46: harness.agent.v1.SessionEvent.task_started:type_name -> harness.agent.v1.TaskStarted
+	65,  // 47: harness.agent.v1.SessionEvent.task_output:type_name -> harness.agent.v1.TaskOutput
+	66,  // 48: harness.agent.v1.SessionEvent.task_finished:type_name -> harness.agent.v1.TaskFinished
+	68,  // 49: harness.agent.v1.SessionEvent.checkpoint_created:type_name -> harness.agent.v1.CheckpointCreated
+	69,  // 50: harness.agent.v1.SessionEvent.rewound:type_name -> harness.agent.v1.Rewound
+	70,  // 51: harness.agent.v1.SessionEvent.compacted:type_name -> harness.agent.v1.Compacted
+	71,  // 52: harness.agent.v1.SessionEvent.permission_mode_changed:type_name -> harness.agent.v1.PermissionModeChanged
+	72,  // 53: harness.agent.v1.SessionEvent.show_requested:type_name -> harness.agent.v1.ShowRequested
+	87,  // 54: harness.agent.v1.SessionEvent.usage_limit:type_name -> harness.agent.v1.UsageLimit
+	170, // 55: harness.agent.v1.SessionEvent.user_shell_started:type_name -> harness.agent.v1.UserShellStarted
+	171, // 56: harness.agent.v1.SessionEvent.user_shell_output:type_name -> harness.agent.v1.UserShellOutput
+	172, // 57: harness.agent.v1.SessionEvent.user_shell_finished:type_name -> harness.agent.v1.UserShellFinished
+	159, // 58: harness.agent.v1.SessionEvent.tool_title:type_name -> harness.agent.v1.ToolTitle
+	173, // 59: harness.agent.v1.SessionEvent.browser_action:type_name -> harness.agent.v1.BrowserAction
+	174, // 60: harness.agent.v1.SessionEvent.subagent_updated:type_name -> harness.agent.v1.SubagentUpdated
+	175, // 61: harness.agent.v1.SessionEvent.session_proposal:type_name -> harness.agent.v1.SessionProposal
+	176, // 62: harness.agent.v1.SessionEvent.user_notification:type_name -> harness.agent.v1.UserNotification
+	177, // 63: harness.agent.v1.SessionEvent.computer_access_requested:type_name -> harness.agent.v1.ComputerAccessRequested
+	178, // 64: harness.agent.v1.SessionEvent.computer_access_resolved:type_name -> harness.agent.v1.ComputerAccessResolved
+	179, // 65: harness.agent.v1.SessionEvent.computer_use_state:type_name -> harness.agent.v1.ComputerUseState
+	180, // 66: harness.agent.v1.SessionEvent.device_settings_changed:type_name -> harness.agent.v1.DeviceSettingsChanged
+	181, // 67: harness.agent.v1.SessionEvent.workflow_updated:type_name -> harness.agent.v1.WorkflowUpdated
+	182, // 68: harness.agent.v1.SessionEvent.hook_run:type_name -> harness.agent.v1.HookRun
+	183, // 69: harness.agent.v1.SessionEvent.mcp_tool_progress:type_name -> harness.agent.v1.McpToolProgress
+	184, // 70: harness.agent.v1.SessionEvent.mcp_list_changed:type_name -> harness.agent.v1.McpListChanged
+	185, // 71: harness.agent.v1.SessionEvent.slash_command_result:type_name -> harness.agent.v1.SlashCommandResult
+	186, // 72: harness.agent.v1.SessionEvent.skill_invoked:type_name -> harness.agent.v1.SkillInvoked
+	187, // 73: harness.agent.v1.SessionEvent.browser_site_requested:type_name -> harness.agent.v1.BrowserSiteRequested
+	188, // 74: harness.agent.v1.SessionEvent.browser_site_resolved:type_name -> harness.agent.v1.BrowserSiteResolved
+	189, // 75: harness.agent.v1.SessionEvent.goal_updated:type_name -> harness.agent.v1.GoalUpdated
+	190, // 76: harness.agent.v1.SessionEvent.task_graph_updated:type_name -> harness.agent.v1.TaskGraphUpdated
+	58,  // 77: harness.agent.v1.SessionEvent.host_work_updated:type_name -> harness.agent.v1.HostWorkUpdated
+	191, // 78: harness.agent.v1.SessionEvent.worktree_setup_updated:type_name -> harness.agent.v1.WorktreeSetupUpdated
+	192, // 79: harness.agent.v1.SessionEvent.vcs_hooks_suggested:type_name -> harness.agent.v1.VcsHooksSuggested
+	193, // 80: harness.agent.v1.SessionEvent.demo_recording_state:type_name -> harness.agent.v1.DemoRecordingState
+	194, // 81: harness.agent.v1.SessionEvent.demo_skill_review_requested:type_name -> harness.agent.v1.DemoSkillReviewRequested
+	195, // 82: harness.agent.v1.SessionEvent.demo_skill_review_resolved:type_name -> harness.agent.v1.DemoSkillReviewResolved
+	196, // 83: harness.agent.v1.SessionEvent.simulator_activity:type_name -> harness.agent.v1.SimulatorActivity
+	49,  // 84: harness.agent.v1.SessionEvent.session_moved:type_name -> harness.agent.v1.SessionMoved
+	56,  // 85: harness.agent.v1.SessionEvent.attempt_checked:type_name -> harness.agent.v1.AttemptCheck
+	51,  // 86: harness.agent.v1.SessionMoveCheck.problems:type_name -> harness.agent.v1.SessionMoveProblem
+	0,   // 87: harness.agent.v1.SessionMoveCheck.permission_mode:type_name -> harness.agent.v1.PermissionMode
+	52,  // 88: harness.agent.v1.CheckSessionMoveResponse.check:type_name -> harness.agent.v1.SessionMoveCheck
+	49,  // 89: harness.agent.v1.MoveSessionResponse.moved:type_name -> harness.agent.v1.SessionMoved
+	61,  // 90: harness.agent.v1.TodosUpdated.todos:type_name -> harness.agent.v1.Todo
+	6,   // 91: harness.agent.v1.Todo.status:type_name -> harness.agent.v1.Todo.Status
+	16,  // 92: harness.agent.v1.PlanResolved.decision:type_name -> harness.agent.v1.RespondToPlanRequest.Decision
+	7,   // 93: harness.agent.v1.TaskFinished.reason:type_name -> harness.agent.v1.TaskFinished.Reason
+	67,  // 94: harness.agent.v1.CheckpointCreated.checkpoint:type_name -> harness.agent.v1.Checkpoint
+	17,  // 95: harness.agent.v1.Rewound.mode:type_name -> harness.agent.v1.RewindRequest.Mode
+	8,   // 96: harness.agent.v1.Compacted.trigger:type_name -> harness.agent.v1.Compacted.Trigger
+	0,   // 97: harness.agent.v1.PermissionModeChanged.mode:type_name -> harness.agent.v1.PermissionMode
+	9,   // 98: harness.agent.v1.ShowRequested.kind:type_name -> harness.agent.v1.ShowRequested.Kind
+	197, // 99: harness.agent.v1.UserMessage.content:type_name -> harness.llm.v1.ContentBlock
+	197, // 100: harness.agent.v1.AssistantMessage.content:type_name -> harness.llm.v1.ContentBlock
+	198, // 101: harness.agent.v1.AssistantMessage.stop_reason:type_name -> harness.llm.v1.StopReason
+	199, // 102: harness.agent.v1.AssistantMessage.usage:type_name -> harness.llm.v1.Usage
+	197, // 103: harness.agent.v1.ToolCallFinished.content:type_name -> harness.llm.v1.ContentBlock
+	160, // 104: harness.agent.v1.ToolCallFinished.background:type_name -> harness.agent.v1.ToolBackground
+	15,  // 105: harness.agent.v1.PermissionResolved.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
+	3,   // 106: harness.agent.v1.QuestionResolved.outcome:type_name -> harness.agent.v1.QuestionOutcome
+	98,  // 107: harness.agent.v1.QuestionResolved.answers:type_name -> harness.agent.v1.QuestionAnswer
+	83,  // 108: harness.agent.v1.Question.items:type_name -> harness.agent.v1.QuestionItem
+	84,  // 109: harness.agent.v1.QuestionItem.options:type_name -> harness.agent.v1.QuestionOption
+	10,  // 110: harness.agent.v1.QuestionItem.type:type_name -> harness.agent.v1.QuestionItem.Type
+	73,  // 111: harness.agent.v1.QueueChanged.queued:type_name -> harness.agent.v1.UserMessage
+	11,  // 112: harness.agent.v1.TurnFinished.result:type_name -> harness.agent.v1.TurnFinished.Result
+	199, // 113: harness.agent.v1.TurnFinished.usage:type_name -> harness.llm.v1.Usage
+	12,  // 114: harness.agent.v1.UsageLimit.state:type_name -> harness.agent.v1.UsageLimit.State
+	13,  // 115: harness.agent.v1.Notice.level:type_name -> harness.agent.v1.Notice.Level
+	197, // 116: harness.agent.v1.SendUserMessageRequest.content:type_name -> harness.llm.v1.ContentBlock
+	14,  // 117: harness.agent.v1.SendUserMessageRequest.delivery:type_name -> harness.agent.v1.SendUserMessageRequest.Delivery
+	15,  // 118: harness.agent.v1.RespondToPermissionRequest.decision:type_name -> harness.agent.v1.RespondToPermissionRequest.Decision
+	98,  // 119: harness.agent.v1.AnswerQuestionRequest.answers:type_name -> harness.agent.v1.QuestionAnswer
+	3,   // 120: harness.agent.v1.AnswerQuestionRequest.outcome:type_name -> harness.agent.v1.QuestionOutcome
+	167, // 121: harness.agent.v1.SetEffortRequest.effort:type_name -> harness.llm.v1.Effort
+	0,   // 122: harness.agent.v1.SetPermissionModeRequest.mode:type_name -> harness.agent.v1.PermissionMode
+	16,  // 123: harness.agent.v1.RespondToPlanRequest.decision:type_name -> harness.agent.v1.RespondToPlanRequest.Decision
+	67,  // 124: harness.agent.v1.ListCheckpointsResponse.checkpoints:type_name -> harness.agent.v1.Checkpoint
+	17,  // 125: harness.agent.v1.RewindRequest.mode:type_name -> harness.agent.v1.RewindRequest.Mode
+	69,  // 126: harness.agent.v1.RewindResponse.result:type_name -> harness.agent.v1.Rewound
+	120, // 127: harness.agent.v1.GetContextUsageResponse.usage:type_name -> harness.agent.v1.ContextUsage
+	165, // 128: harness.agent.v1.ContextUsage.categories:type_name -> harness.agent.v1.ContextUsage.Entry
+	166, // 129: harness.agent.v1.ContextUsage.mcp_tools:type_name -> harness.agent.v1.ContextUsage.McpTool
+	200, // 130: harness.agent.v1.UserPreferences.sandbox:type_name -> harness.agent.v1.SandboxPreferences
+	201, // 131: harness.agent.v1.UserPreferences.managed_policy:type_name -> harness.agent.v1.ManagedPolicyView
+	122, // 132: harness.agent.v1.UserPreferences.model_tuning:type_name -> harness.agent.v1.ModelTuning
+	126, // 133: harness.agent.v1.UserPreferences.chat_defaults:type_name -> harness.agent.v1.ChatDefaults
+	121, // 134: harness.agent.v1.GetUserPreferencesResponse.preferences:type_name -> harness.agent.v1.UserPreferences
+	200, // 135: harness.agent.v1.UpdateUserPreferencesRequest.sandbox:type_name -> harness.agent.v1.SandboxPreferences
+	123, // 136: harness.agent.v1.UpdateUserPreferencesRequest.skill_switch:type_name -> harness.agent.v1.SkillSwitch
+	122, // 137: harness.agent.v1.UpdateUserPreferencesRequest.model_tuning:type_name -> harness.agent.v1.ModelTuning
+	126, // 138: harness.agent.v1.UpdateUserPreferencesRequest.chat_defaults:type_name -> harness.agent.v1.ChatDefaults
+	121, // 139: harness.agent.v1.UpdateUserPreferencesResponse.preferences:type_name -> harness.agent.v1.UserPreferences
+	7,   // 140: harness.agent.v1.BackgroundTask.finish_reason:type_name -> harness.agent.v1.TaskFinished.Reason
+	129, // 141: harness.agent.v1.ListTasksResponse.tasks:type_name -> harness.agent.v1.BackgroundTask
+	144, // 142: harness.agent.v1.ListOutputStylesResponse.styles:type_name -> harness.agent.v1.OutputStyleInfo
+	146, // 143: harness.agent.v1.Environment.additional_folders:type_name -> harness.agent.v1.EnvironmentFolder
+	148, // 144: harness.agent.v1.EnvironmentErrors.errors:type_name -> harness.agent.v1.EnvironmentError
+	145, // 145: harness.agent.v1.GetEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
+	145, // 146: harness.agent.v1.UpdateEnvironmentRequest.environment:type_name -> harness.agent.v1.Environment
+	145, // 147: harness.agent.v1.UpdateEnvironmentResponse.environment:type_name -> harness.agent.v1.Environment
+	24,  // 148: harness.agent.v1.SetSessionFolderResponse.session:type_name -> harness.agent.v1.SessionInfo
+	145, // 149: harness.agent.v1.AddSessionDirectoryResponse.environment:type_name -> harness.agent.v1.Environment
+	4,   // 150: harness.agent.v1.ToolBackground.reason:type_name -> harness.agent.v1.BackgroundReason
+	4,   // 151: harness.agent.v1.BackgroundToolCallRequest.reason:type_name -> harness.agent.v1.BackgroundReason
+	24,  // 152: harness.agent.v1.SetSessionRelayResponse.session:type_name -> harness.agent.v1.SessionInfo
+	18,  // 153: harness.agent.v1.ContextUsage.Entry.category:type_name -> harness.agent.v1.ContextUsage.Category
+	21,  // 154: harness.agent.v1.AgentService.Initialize:input_type -> harness.agent.v1.InitializeRequest
+	28,  // 155: harness.agent.v1.AgentService.CreateSession:input_type -> harness.agent.v1.CreateSessionRequest
+	40,  // 156: harness.agent.v1.AgentService.ListSessions:input_type -> harness.agent.v1.ListSessionsRequest
+	42,  // 157: harness.agent.v1.AgentService.UpdateSession:input_type -> harness.agent.v1.UpdateSessionRequest
+	44,  // 158: harness.agent.v1.AgentService.DeleteSession:input_type -> harness.agent.v1.DeleteSessionRequest
+	30,  // 159: harness.agent.v1.AgentService.ListRecentFolders:input_type -> harness.agent.v1.ListRecentFoldersRequest
+	33,  // 160: harness.agent.v1.AgentService.ListDirectory:input_type -> harness.agent.v1.ListDirectoryRequest
+	36,  // 161: harness.agent.v1.AgentService.ListBranches:input_type -> harness.agent.v1.ListBranchesRequest
+	46,  // 162: harness.agent.v1.AgentService.Subscribe:input_type -> harness.agent.v1.SubscribeRequest
+	89,  // 163: harness.agent.v1.AgentService.SendUserMessage:input_type -> harness.agent.v1.SendUserMessageRequest
+	91,  // 164: harness.agent.v1.AgentService.RemoveQueuedMessage:input_type -> harness.agent.v1.RemoveQueuedMessageRequest
+	93,  // 165: harness.agent.v1.AgentService.Interrupt:input_type -> harness.agent.v1.InterruptRequest
+	95,  // 166: harness.agent.v1.AgentService.RespondToPermission:input_type -> harness.agent.v1.RespondToPermissionRequest
+	97,  // 167: harness.agent.v1.AgentService.AnswerQuestion:input_type -> harness.agent.v1.AnswerQuestionRequest
+	100, // 168: harness.agent.v1.AgentService.SetModel:input_type -> harness.agent.v1.SetModelRequest
+	104, // 169: harness.agent.v1.AgentService.SetEffort:input_type -> harness.agent.v1.SetEffortRequest
+	106, // 170: harness.agent.v1.AgentService.SetPermissionMode:input_type -> harness.agent.v1.SetPermissionModeRequest
+	140, // 171: harness.agent.v1.AgentService.SetOutputStyle:input_type -> harness.agent.v1.SetOutputStyleRequest
+	142, // 172: harness.agent.v1.AgentService.ListOutputStyles:input_type -> harness.agent.v1.ListOutputStylesRequest
+	108, // 173: harness.agent.v1.AgentService.SuggestFiles:input_type -> harness.agent.v1.SuggestFilesRequest
+	110, // 174: harness.agent.v1.AgentService.RespondToPlan:input_type -> harness.agent.v1.RespondToPlanRequest
+	112, // 175: harness.agent.v1.AgentService.ListCheckpoints:input_type -> harness.agent.v1.ListCheckpointsRequest
+	114, // 176: harness.agent.v1.AgentService.Rewind:input_type -> harness.agent.v1.RewindRequest
+	116, // 177: harness.agent.v1.AgentService.Compact:input_type -> harness.agent.v1.CompactRequest
+	118, // 178: harness.agent.v1.AgentService.GetContextUsage:input_type -> harness.agent.v1.GetContextUsageRequest
+	124, // 179: harness.agent.v1.AgentService.GetUserPreferences:input_type -> harness.agent.v1.GetUserPreferencesRequest
+	127, // 180: harness.agent.v1.AgentService.UpdateUserPreferences:input_type -> harness.agent.v1.UpdateUserPreferencesRequest
+	202, // 181: harness.agent.v1.AgentService.GetSandboxStatus:input_type -> harness.agent.v1.GetSandboxStatusRequest
+	203, // 182: harness.agent.v1.AgentService.ListHooks:input_type -> harness.agent.v1.ListHooksRequest
+	204, // 183: harness.agent.v1.AgentService.SetHooksTrust:input_type -> harness.agent.v1.SetHooksTrustRequest
+	130, // 184: harness.agent.v1.AgentService.ListTasks:input_type -> harness.agent.v1.ListTasksRequest
+	132, // 185: harness.agent.v1.AgentService.StopTask:input_type -> harness.agent.v1.StopTaskRequest
+	134, // 186: harness.agent.v1.AgentService.CloseSession:input_type -> harness.agent.v1.CloseSessionRequest
+	136, // 187: harness.agent.v1.AgentService.GetWorkspaceTrust:input_type -> harness.agent.v1.GetWorkspaceTrustRequest
+	138, // 188: harness.agent.v1.AgentService.SetWorkspaceTrust:input_type -> harness.agent.v1.SetWorkspaceTrustRequest
+	205, // 189: harness.agent.v1.AgentService.CreateTerminal:input_type -> harness.agent.v1.CreateTerminalRequest
+	206, // 190: harness.agent.v1.AgentService.AttachTerminal:input_type -> harness.agent.v1.AttachTerminalRequest
+	207, // 191: harness.agent.v1.AgentService.ListTerminals:input_type -> harness.agent.v1.ListTerminalsRequest
+	208, // 192: harness.agent.v1.AgentService.KillTerminal:input_type -> harness.agent.v1.KillTerminalRequest
+	209, // 193: harness.agent.v1.AgentService.ResizeTerminal:input_type -> harness.agent.v1.ResizeTerminalRequest
+	149, // 194: harness.agent.v1.AgentService.GetEnvironment:input_type -> harness.agent.v1.GetEnvironmentRequest
+	151, // 195: harness.agent.v1.AgentService.UpdateEnvironment:input_type -> harness.agent.v1.UpdateEnvironmentRequest
+	153, // 196: harness.agent.v1.AgentService.GetFolderInfo:input_type -> harness.agent.v1.GetFolderInfoRequest
+	155, // 197: harness.agent.v1.AgentService.SetSessionFolder:input_type -> harness.agent.v1.SetSessionFolderRequest
+	157, // 198: harness.agent.v1.AgentService.AddSessionDirectory:input_type -> harness.agent.v1.AddSessionDirectoryRequest
+	210, // 199: harness.agent.v1.AgentService.ListFileRoots:input_type -> harness.agent.v1.ListFileRootsRequest
+	211, // 200: harness.agent.v1.AgentService.ListFiles:input_type -> harness.agent.v1.ListFilesRequest
+	212, // 201: harness.agent.v1.AgentService.ReadFile:input_type -> harness.agent.v1.ReadFileRequest
+	213, // 202: harness.agent.v1.AgentService.GetGitStatus:input_type -> harness.agent.v1.GetGitStatusRequest
+	214, // 203: harness.agent.v1.AgentService.RunShellCommand:input_type -> harness.agent.v1.RunShellCommandRequest
+	215, // 204: harness.agent.v1.AgentService.StopShellCommand:input_type -> harness.agent.v1.StopShellCommandRequest
+	216, // 205: harness.agent.v1.AgentService.AnswerWorktreeSetup:input_type -> harness.agent.v1.AnswerWorktreeSetupRequest
+	217, // 206: harness.agent.v1.AgentService.ListSideChats:input_type -> harness.agent.v1.ListSideChatsRequest
+	218, // 207: harness.agent.v1.AgentService.CreateSideChat:input_type -> harness.agent.v1.CreateSideChatRequest
+	219, // 208: harness.agent.v1.AgentService.GetSideChat:input_type -> harness.agent.v1.GetSideChatRequest
+	220, // 209: harness.agent.v1.AgentService.UpdateSideChat:input_type -> harness.agent.v1.UpdateSideChatRequest
+	221, // 210: harness.agent.v1.AgentService.DeleteSideChat:input_type -> harness.agent.v1.DeleteSideChatRequest
+	222, // 211: harness.agent.v1.AgentService.AskSideChat:input_type -> harness.agent.v1.AskSideChatRequest
+	223, // 212: harness.agent.v1.AgentService.StopSideChat:input_type -> harness.agent.v1.StopSideChatRequest
+	224, // 213: harness.agent.v1.AgentService.ListSpeechProviders:input_type -> harness.agent.v1.ListSpeechProvidersRequest
+	225, // 214: harness.agent.v1.AgentService.ListSpeechVoices:input_type -> harness.agent.v1.ListSpeechVoicesRequest
+	226, // 215: harness.agent.v1.AgentService.GetSpeechSettings:input_type -> harness.agent.v1.GetSpeechSettingsRequest
+	227, // 216: harness.agent.v1.AgentService.UpdateSpeechSettings:input_type -> harness.agent.v1.UpdateSpeechSettingsRequest
+	228, // 217: harness.agent.v1.AgentService.TranscribeAudio:input_type -> harness.agent.v1.TranscribeAudioRequest
+	229, // 218: harness.agent.v1.AgentService.SynthesizeSpeech:input_type -> harness.agent.v1.SynthesizeSpeechRequest
+	230, // 219: harness.agent.v1.AgentService.ListLocalSpeechModels:input_type -> harness.agent.v1.ListLocalSpeechModelsRequest
+	231, // 220: harness.agent.v1.AgentService.DownloadSpeechModel:input_type -> harness.agent.v1.DownloadSpeechModelRequest
+	232, // 221: harness.agent.v1.AgentService.DeleteSpeechModel:input_type -> harness.agent.v1.DeleteSpeechModelRequest
+	233, // 222: harness.agent.v1.AgentService.ListLocalProviders:input_type -> harness.agent.v1.ListLocalProvidersRequest
+	234, // 223: harness.agent.v1.AgentService.AddLocalProvider:input_type -> harness.agent.v1.AddLocalProviderRequest
+	235, // 224: harness.agent.v1.AgentService.UpdateLocalProvider:input_type -> harness.agent.v1.UpdateLocalProviderRequest
+	236, // 225: harness.agent.v1.AgentService.RemoveLocalProvider:input_type -> harness.agent.v1.RemoveLocalProviderRequest
+	237, // 226: harness.agent.v1.AgentService.RefreshLocalProviders:input_type -> harness.agent.v1.RefreshLocalProvidersRequest
+	238, // 227: harness.agent.v1.AgentService.PullOllamaModel:input_type -> harness.agent.v1.PullOllamaModelRequest
+	239, // 228: harness.agent.v1.AgentService.DeleteOllamaModel:input_type -> harness.agent.v1.DeleteOllamaModelRequest
+	240, // 229: harness.agent.v1.AgentService.GetProviderLimits:input_type -> harness.agent.v1.GetProviderLimitsRequest
+	161, // 230: harness.agent.v1.AgentService.BackgroundToolCall:input_type -> harness.agent.v1.BackgroundToolCallRequest
+	241, // 231: harness.agent.v1.AgentService.ListAcpAgents:input_type -> harness.agent.v1.ListAcpAgentsRequest
+	242, // 232: harness.agent.v1.AgentService.InstallAcpAgent:input_type -> harness.agent.v1.InstallAcpAgentRequest
+	243, // 233: harness.agent.v1.AgentService.UpdateAcpAgent:input_type -> harness.agent.v1.UpdateAcpAgentRequest
+	244, // 234: harness.agent.v1.AgentService.UninstallAcpAgent:input_type -> harness.agent.v1.UninstallAcpAgentRequest
+	245, // 235: harness.agent.v1.AgentService.AuthenticateAcpAgent:input_type -> harness.agent.v1.AuthenticateAcpAgentRequest
+	246, // 236: harness.agent.v1.AgentService.SetAcpMode:input_type -> harness.agent.v1.SetAcpModeRequest
+	163, // 237: harness.agent.v1.AgentService.SetSessionRelay:input_type -> harness.agent.v1.SetSessionRelayRequest
+	247, // 238: harness.agent.v1.AgentService.GetBrowserAvailability:input_type -> harness.agent.v1.GetBrowserAvailabilityRequest
+	248, // 239: harness.agent.v1.AgentService.InstallBrowser:input_type -> harness.agent.v1.InstallBrowserRequest
+	249, // 240: harness.agent.v1.AgentService.OpenBrowser:input_type -> harness.agent.v1.OpenBrowserRequest
+	250, // 241: harness.agent.v1.AgentService.ListBrowserTabs:input_type -> harness.agent.v1.ListBrowserTabsRequest
+	251, // 242: harness.agent.v1.AgentService.CloseBrowser:input_type -> harness.agent.v1.CloseBrowserRequest
+	252, // 243: harness.agent.v1.AgentService.ClearBrowserData:input_type -> harness.agent.v1.ClearBrowserDataRequest
+	102, // 244: harness.agent.v1.AgentService.SetAutoContinue:input_type -> harness.agent.v1.SetAutoContinueRequest
+	253, // 245: harness.agent.v1.AgentService.GetSessionDiff:input_type -> harness.agent.v1.GetSessionDiffRequest
+	50,  // 246: harness.agent.v1.AgentService.CheckSessionMove:input_type -> harness.agent.v1.CheckSessionMoveRequest
+	54,  // 247: harness.agent.v1.AgentService.MoveSession:input_type -> harness.agent.v1.MoveSessionRequest
+	254, // 248: harness.agent.v1.AgentService.StopSubagent:input_type -> harness.agent.v1.StopSubagentRequest
+	255, // 249: harness.agent.v1.AgentService.GetSubagentTranscript:input_type -> harness.agent.v1.GetSubagentTranscriptRequest
+	256, // 250: harness.agent.v1.AgentService.ResolveSessionProposal:input_type -> harness.agent.v1.ResolveSessionProposalRequest
+	257, // 251: harness.agent.v1.AgentService.UpdateViewerPresence:input_type -> harness.agent.v1.UpdateViewerPresenceRequest
+	258, // 252: harness.agent.v1.AgentService.ReadSentFile:input_type -> harness.agent.v1.ReadSentFileRequest
+	259, // 253: harness.agent.v1.AgentService.SetPrMonitor:input_type -> harness.agent.v1.SetPrMonitorRequest
+	260, // 254: harness.agent.v1.AgentService.DraftPullRequest:input_type -> harness.agent.v1.DraftPullRequestRequest
+	261, // 255: harness.agent.v1.AgentService.CreatePullRequest:input_type -> harness.agent.v1.CreatePullRequestRequest
+	262, // 256: harness.agent.v1.AgentService.GetVcsStatus:input_type -> harness.agent.v1.GetVcsStatusRequest
+	263, // 257: harness.agent.v1.AgentService.ListPreviewServers:input_type -> harness.agent.v1.ListPreviewServersRequest
+	264, // 258: harness.agent.v1.AgentService.StopPreviewServer:input_type -> harness.agent.v1.StopPreviewServerRequest
+	265, // 259: harness.agent.v1.AgentService.GetPreviewLogs:input_type -> harness.agent.v1.GetPreviewLogsRequest
+	266, // 260: harness.agent.v1.AgentService.GetComputerUseStatus:input_type -> harness.agent.v1.GetComputerUseStatusRequest
+	267, // 261: harness.agent.v1.AgentService.SetComputerUseEnabled:input_type -> harness.agent.v1.SetComputerUseEnabledRequest
+	268, // 262: harness.agent.v1.AgentService.RespondToComputerAccess:input_type -> harness.agent.v1.RespondToComputerAccessRequest
+	269, // 263: harness.agent.v1.AgentService.StopComputerUse:input_type -> harness.agent.v1.StopComputerUseRequest
+	270, // 264: harness.agent.v1.AgentService.SetComputerUseProfile:input_type -> harness.agent.v1.SetComputerUseProfileRequest
+	271, // 265: harness.agent.v1.AgentService.ListComputerUseApps:input_type -> harness.agent.v1.ListComputerUseAppsRequest
+	272, // 266: harness.agent.v1.AgentService.ListDemoRecordingApps:input_type -> harness.agent.v1.ListDemoRecordingAppsRequest
+	273, // 267: harness.agent.v1.AgentService.StartDemoRecording:input_type -> harness.agent.v1.StartDemoRecordingRequest
+	274, // 268: harness.agent.v1.AgentService.StopDemoRecording:input_type -> harness.agent.v1.StopDemoRecordingRequest
+	275, // 269: harness.agent.v1.AgentService.RespondToDemoSkillReview:input_type -> harness.agent.v1.RespondToDemoSkillReviewRequest
+	276, // 270: harness.agent.v1.AgentService.ListSimulators:input_type -> harness.agent.v1.ListSimulatorsRequest
+	277, // 271: harness.agent.v1.AgentService.BootSimulator:input_type -> harness.agent.v1.BootSimulatorRequest
+	278, // 272: harness.agent.v1.AgentService.ShutdownSimulator:input_type -> harness.agent.v1.ShutdownSimulatorRequest
+	279, // 273: harness.agent.v1.AgentService.WatchSimulator:input_type -> harness.agent.v1.WatchSimulatorRequest
+	280, // 274: harness.agent.v1.AgentService.SimulatorInput:input_type -> harness.agent.v1.SimulatorInputRequest
+	281, // 275: harness.agent.v1.AgentService.GetDeviceSettings:input_type -> harness.agent.v1.GetDeviceSettingsRequest
+	282, // 276: harness.agent.v1.AgentService.UpdateDeviceSettings:input_type -> harness.agent.v1.UpdateDeviceSettingsRequest
+	283, // 277: harness.agent.v1.AgentService.SetKeepAwake:input_type -> harness.agent.v1.SetKeepAwakeRequest
+	284, // 278: harness.agent.v1.AgentService.ListDiffBases:input_type -> harness.agent.v1.ListDiffBasesRequest
+	285, // 279: harness.agent.v1.AgentService.GetSessionFileDiff:input_type -> harness.agent.v1.GetSessionFileDiffRequest
+	19,  // 280: harness.agent.v1.AgentService.CreateObjectTicket:input_type -> harness.agent.v1.CreateObjectTicketRequest
+	286, // 281: harness.agent.v1.AgentService.StopWorkflow:input_type -> harness.agent.v1.StopWorkflowRequest
+	287, // 282: harness.agent.v1.AgentService.ScanClaudeImport:input_type -> harness.agent.v1.ScanClaudeImportRequest
+	288, // 283: harness.agent.v1.AgentService.RunClaudeImport:input_type -> harness.agent.v1.RunClaudeImportRequest
+	289, // 284: harness.agent.v1.AgentService.ScanProjectImport:input_type -> harness.agent.v1.ScanProjectImportRequest
+	290, // 285: harness.agent.v1.AgentService.RunProjectImport:input_type -> harness.agent.v1.RunProjectImportRequest
+	291, // 286: harness.agent.v1.AgentService.DismissProjectImport:input_type -> harness.agent.v1.DismissProjectImportRequest
+	292, // 287: harness.agent.v1.AgentService.ListImportSources:input_type -> harness.agent.v1.ListImportSourcesRequest
+	293, // 288: harness.agent.v1.AgentService.ScanImportSource:input_type -> harness.agent.v1.ScanImportSourceRequest
+	294, // 289: harness.agent.v1.AgentService.RunImportSource:input_type -> harness.agent.v1.RunImportSourceRequest
+	295, // 290: harness.agent.v1.AgentService.ListMcpServers:input_type -> harness.agent.v1.ListMcpServersRequest
+	296, // 291: harness.agent.v1.AgentService.InspectMcpServer:input_type -> harness.agent.v1.InspectMcpServerRequest
+	297, // 292: harness.agent.v1.AgentService.CreateMcpServer:input_type -> harness.agent.v1.CreateMcpServerRequest
+	298, // 293: harness.agent.v1.AgentService.UpdateMcpServer:input_type -> harness.agent.v1.UpdateMcpServerRequest
+	299, // 294: harness.agent.v1.AgentService.DeleteMcpServer:input_type -> harness.agent.v1.DeleteMcpServerRequest
+	300, // 295: harness.agent.v1.AgentService.SetMcpServerApproval:input_type -> harness.agent.v1.SetMcpServerApprovalRequest
+	301, // 296: harness.agent.v1.AgentService.SetMcpToolRule:input_type -> harness.agent.v1.SetMcpToolRuleRequest
+	302, // 297: harness.agent.v1.AgentService.ListMcpCommands:input_type -> harness.agent.v1.ListMcpCommandsRequest
+	303, // 298: harness.agent.v1.AgentService.ListMcpResources:input_type -> harness.agent.v1.ListMcpResourcesRequest
+	304, // 299: harness.agent.v1.AgentService.ListSlashCommands:input_type -> harness.agent.v1.ListSlashCommandsRequest
+	305, // 300: harness.agent.v1.AgentService.ListSessionTools:input_type -> harness.agent.v1.ListSessionToolsRequest
+	306, // 301: harness.agent.v1.AgentService.GetDiagnostics:input_type -> harness.agent.v1.GetDiagnosticsRequest
+	307, // 302: harness.agent.v1.AgentService.ListSchedules:input_type -> harness.agent.v1.ListSchedulesRequest
+	308, // 303: harness.agent.v1.AgentService.CreateSchedule:input_type -> harness.agent.v1.CreateScheduleRequest
+	309, // 304: harness.agent.v1.AgentService.UpdateSchedule:input_type -> harness.agent.v1.UpdateScheduleRequest
+	310, // 305: harness.agent.v1.AgentService.DeleteSchedule:input_type -> harness.agent.v1.DeleteScheduleRequest
+	311, // 306: harness.agent.v1.AgentService.SetSchedulePaused:input_type -> harness.agent.v1.SetSchedulePausedRequest
+	312, // 307: harness.agent.v1.AgentService.RunScheduleNow:input_type -> harness.agent.v1.RunScheduleNowRequest
+	313, // 308: harness.agent.v1.AgentService.ListScheduleRuns:input_type -> harness.agent.v1.ListScheduleRunsRequest
+	314, // 309: harness.agent.v1.AgentService.TrustSchedule:input_type -> harness.agent.v1.TrustScheduleRequest
+	315, // 310: harness.agent.v1.AgentService.RotateScheduleWebhook:input_type -> harness.agent.v1.RotateScheduleWebhookRequest
+	22,  // 311: harness.agent.v1.AgentService.Initialize:output_type -> harness.agent.v1.InitializeResponse
+	39,  // 312: harness.agent.v1.AgentService.CreateSession:output_type -> harness.agent.v1.CreateSessionResponse
+	41,  // 313: harness.agent.v1.AgentService.ListSessions:output_type -> harness.agent.v1.ListSessionsResponse
+	43,  // 314: harness.agent.v1.AgentService.UpdateSession:output_type -> harness.agent.v1.UpdateSessionResponse
+	45,  // 315: harness.agent.v1.AgentService.DeleteSession:output_type -> harness.agent.v1.DeleteSessionResponse
+	31,  // 316: harness.agent.v1.AgentService.ListRecentFolders:output_type -> harness.agent.v1.ListRecentFoldersResponse
+	34,  // 317: harness.agent.v1.AgentService.ListDirectory:output_type -> harness.agent.v1.ListDirectoryResponse
+	37,  // 318: harness.agent.v1.AgentService.ListBranches:output_type -> harness.agent.v1.ListBranchesResponse
+	47,  // 319: harness.agent.v1.AgentService.Subscribe:output_type -> harness.agent.v1.SubscribeResponse
+	90,  // 320: harness.agent.v1.AgentService.SendUserMessage:output_type -> harness.agent.v1.SendUserMessageResponse
+	92,  // 321: harness.agent.v1.AgentService.RemoveQueuedMessage:output_type -> harness.agent.v1.RemoveQueuedMessageResponse
+	94,  // 322: harness.agent.v1.AgentService.Interrupt:output_type -> harness.agent.v1.InterruptResponse
+	96,  // 323: harness.agent.v1.AgentService.RespondToPermission:output_type -> harness.agent.v1.RespondToPermissionResponse
+	99,  // 324: harness.agent.v1.AgentService.AnswerQuestion:output_type -> harness.agent.v1.AnswerQuestionResponse
+	101, // 325: harness.agent.v1.AgentService.SetModel:output_type -> harness.agent.v1.SetModelResponse
+	105, // 326: harness.agent.v1.AgentService.SetEffort:output_type -> harness.agent.v1.SetEffortResponse
+	107, // 327: harness.agent.v1.AgentService.SetPermissionMode:output_type -> harness.agent.v1.SetPermissionModeResponse
+	141, // 328: harness.agent.v1.AgentService.SetOutputStyle:output_type -> harness.agent.v1.SetOutputStyleResponse
+	143, // 329: harness.agent.v1.AgentService.ListOutputStyles:output_type -> harness.agent.v1.ListOutputStylesResponse
+	109, // 330: harness.agent.v1.AgentService.SuggestFiles:output_type -> harness.agent.v1.SuggestFilesResponse
+	111, // 331: harness.agent.v1.AgentService.RespondToPlan:output_type -> harness.agent.v1.RespondToPlanResponse
+	113, // 332: harness.agent.v1.AgentService.ListCheckpoints:output_type -> harness.agent.v1.ListCheckpointsResponse
+	115, // 333: harness.agent.v1.AgentService.Rewind:output_type -> harness.agent.v1.RewindResponse
+	117, // 334: harness.agent.v1.AgentService.Compact:output_type -> harness.agent.v1.CompactResponse
+	119, // 335: harness.agent.v1.AgentService.GetContextUsage:output_type -> harness.agent.v1.GetContextUsageResponse
+	125, // 336: harness.agent.v1.AgentService.GetUserPreferences:output_type -> harness.agent.v1.GetUserPreferencesResponse
+	128, // 337: harness.agent.v1.AgentService.UpdateUserPreferences:output_type -> harness.agent.v1.UpdateUserPreferencesResponse
+	316, // 338: harness.agent.v1.AgentService.GetSandboxStatus:output_type -> harness.agent.v1.GetSandboxStatusResponse
+	317, // 339: harness.agent.v1.AgentService.ListHooks:output_type -> harness.agent.v1.ListHooksResponse
+	318, // 340: harness.agent.v1.AgentService.SetHooksTrust:output_type -> harness.agent.v1.SetHooksTrustResponse
+	131, // 341: harness.agent.v1.AgentService.ListTasks:output_type -> harness.agent.v1.ListTasksResponse
+	133, // 342: harness.agent.v1.AgentService.StopTask:output_type -> harness.agent.v1.StopTaskResponse
+	135, // 343: harness.agent.v1.AgentService.CloseSession:output_type -> harness.agent.v1.CloseSessionResponse
+	137, // 344: harness.agent.v1.AgentService.GetWorkspaceTrust:output_type -> harness.agent.v1.GetWorkspaceTrustResponse
+	139, // 345: harness.agent.v1.AgentService.SetWorkspaceTrust:output_type -> harness.agent.v1.SetWorkspaceTrustResponse
+	319, // 346: harness.agent.v1.AgentService.CreateTerminal:output_type -> harness.agent.v1.CreateTerminalResponse
+	320, // 347: harness.agent.v1.AgentService.AttachTerminal:output_type -> harness.agent.v1.AttachTerminalResponse
+	321, // 348: harness.agent.v1.AgentService.ListTerminals:output_type -> harness.agent.v1.ListTerminalsResponse
+	322, // 349: harness.agent.v1.AgentService.KillTerminal:output_type -> harness.agent.v1.KillTerminalResponse
+	323, // 350: harness.agent.v1.AgentService.ResizeTerminal:output_type -> harness.agent.v1.ResizeTerminalResponse
+	150, // 351: harness.agent.v1.AgentService.GetEnvironment:output_type -> harness.agent.v1.GetEnvironmentResponse
+	152, // 352: harness.agent.v1.AgentService.UpdateEnvironment:output_type -> harness.agent.v1.UpdateEnvironmentResponse
+	154, // 353: harness.agent.v1.AgentService.GetFolderInfo:output_type -> harness.agent.v1.GetFolderInfoResponse
+	156, // 354: harness.agent.v1.AgentService.SetSessionFolder:output_type -> harness.agent.v1.SetSessionFolderResponse
+	158, // 355: harness.agent.v1.AgentService.AddSessionDirectory:output_type -> harness.agent.v1.AddSessionDirectoryResponse
+	324, // 356: harness.agent.v1.AgentService.ListFileRoots:output_type -> harness.agent.v1.ListFileRootsResponse
+	325, // 357: harness.agent.v1.AgentService.ListFiles:output_type -> harness.agent.v1.ListFilesResponse
+	326, // 358: harness.agent.v1.AgentService.ReadFile:output_type -> harness.agent.v1.ReadFileResponse
+	327, // 359: harness.agent.v1.AgentService.GetGitStatus:output_type -> harness.agent.v1.GetGitStatusResponse
+	328, // 360: harness.agent.v1.AgentService.RunShellCommand:output_type -> harness.agent.v1.RunShellCommandResponse
+	329, // 361: harness.agent.v1.AgentService.StopShellCommand:output_type -> harness.agent.v1.StopShellCommandResponse
+	330, // 362: harness.agent.v1.AgentService.AnswerWorktreeSetup:output_type -> harness.agent.v1.AnswerWorktreeSetupResponse
+	331, // 363: harness.agent.v1.AgentService.ListSideChats:output_type -> harness.agent.v1.ListSideChatsResponse
+	332, // 364: harness.agent.v1.AgentService.CreateSideChat:output_type -> harness.agent.v1.CreateSideChatResponse
+	333, // 365: harness.agent.v1.AgentService.GetSideChat:output_type -> harness.agent.v1.GetSideChatResponse
+	334, // 366: harness.agent.v1.AgentService.UpdateSideChat:output_type -> harness.agent.v1.UpdateSideChatResponse
+	335, // 367: harness.agent.v1.AgentService.DeleteSideChat:output_type -> harness.agent.v1.DeleteSideChatResponse
+	336, // 368: harness.agent.v1.AgentService.AskSideChat:output_type -> harness.agent.v1.AskSideChatResponse
+	337, // 369: harness.agent.v1.AgentService.StopSideChat:output_type -> harness.agent.v1.StopSideChatResponse
+	338, // 370: harness.agent.v1.AgentService.ListSpeechProviders:output_type -> harness.agent.v1.ListSpeechProvidersResponse
+	339, // 371: harness.agent.v1.AgentService.ListSpeechVoices:output_type -> harness.agent.v1.ListSpeechVoicesResponse
+	340, // 372: harness.agent.v1.AgentService.GetSpeechSettings:output_type -> harness.agent.v1.GetSpeechSettingsResponse
+	341, // 373: harness.agent.v1.AgentService.UpdateSpeechSettings:output_type -> harness.agent.v1.UpdateSpeechSettingsResponse
+	342, // 374: harness.agent.v1.AgentService.TranscribeAudio:output_type -> harness.agent.v1.TranscribeAudioResponse
+	343, // 375: harness.agent.v1.AgentService.SynthesizeSpeech:output_type -> harness.agent.v1.SynthesizeSpeechResponse
+	344, // 376: harness.agent.v1.AgentService.ListLocalSpeechModels:output_type -> harness.agent.v1.ListLocalSpeechModelsResponse
+	345, // 377: harness.agent.v1.AgentService.DownloadSpeechModel:output_type -> harness.agent.v1.DownloadSpeechModelResponse
+	346, // 378: harness.agent.v1.AgentService.DeleteSpeechModel:output_type -> harness.agent.v1.DeleteSpeechModelResponse
+	347, // 379: harness.agent.v1.AgentService.ListLocalProviders:output_type -> harness.agent.v1.ListLocalProvidersResponse
+	348, // 380: harness.agent.v1.AgentService.AddLocalProvider:output_type -> harness.agent.v1.AddLocalProviderResponse
+	349, // 381: harness.agent.v1.AgentService.UpdateLocalProvider:output_type -> harness.agent.v1.UpdateLocalProviderResponse
+	350, // 382: harness.agent.v1.AgentService.RemoveLocalProvider:output_type -> harness.agent.v1.RemoveLocalProviderResponse
+	351, // 383: harness.agent.v1.AgentService.RefreshLocalProviders:output_type -> harness.agent.v1.RefreshLocalProvidersResponse
+	352, // 384: harness.agent.v1.AgentService.PullOllamaModel:output_type -> harness.agent.v1.PullOllamaModelResponse
+	353, // 385: harness.agent.v1.AgentService.DeleteOllamaModel:output_type -> harness.agent.v1.DeleteOllamaModelResponse
+	354, // 386: harness.agent.v1.AgentService.GetProviderLimits:output_type -> harness.agent.v1.GetProviderLimitsResponse
+	162, // 387: harness.agent.v1.AgentService.BackgroundToolCall:output_type -> harness.agent.v1.BackgroundToolCallResponse
+	355, // 388: harness.agent.v1.AgentService.ListAcpAgents:output_type -> harness.agent.v1.ListAcpAgentsResponse
+	356, // 389: harness.agent.v1.AgentService.InstallAcpAgent:output_type -> harness.agent.v1.InstallAcpAgentResponse
+	357, // 390: harness.agent.v1.AgentService.UpdateAcpAgent:output_type -> harness.agent.v1.UpdateAcpAgentResponse
+	358, // 391: harness.agent.v1.AgentService.UninstallAcpAgent:output_type -> harness.agent.v1.UninstallAcpAgentResponse
+	359, // 392: harness.agent.v1.AgentService.AuthenticateAcpAgent:output_type -> harness.agent.v1.AuthenticateAcpAgentResponse
+	360, // 393: harness.agent.v1.AgentService.SetAcpMode:output_type -> harness.agent.v1.SetAcpModeResponse
+	164, // 394: harness.agent.v1.AgentService.SetSessionRelay:output_type -> harness.agent.v1.SetSessionRelayResponse
+	361, // 395: harness.agent.v1.AgentService.GetBrowserAvailability:output_type -> harness.agent.v1.GetBrowserAvailabilityResponse
+	362, // 396: harness.agent.v1.AgentService.InstallBrowser:output_type -> harness.agent.v1.InstallBrowserResponse
+	363, // 397: harness.agent.v1.AgentService.OpenBrowser:output_type -> harness.agent.v1.OpenBrowserResponse
+	364, // 398: harness.agent.v1.AgentService.ListBrowserTabs:output_type -> harness.agent.v1.ListBrowserTabsResponse
+	365, // 399: harness.agent.v1.AgentService.CloseBrowser:output_type -> harness.agent.v1.CloseBrowserResponse
+	366, // 400: harness.agent.v1.AgentService.ClearBrowserData:output_type -> harness.agent.v1.ClearBrowserDataResponse
+	103, // 401: harness.agent.v1.AgentService.SetAutoContinue:output_type -> harness.agent.v1.SetAutoContinueResponse
+	367, // 402: harness.agent.v1.AgentService.GetSessionDiff:output_type -> harness.agent.v1.GetSessionDiffResponse
+	53,  // 403: harness.agent.v1.AgentService.CheckSessionMove:output_type -> harness.agent.v1.CheckSessionMoveResponse
+	55,  // 404: harness.agent.v1.AgentService.MoveSession:output_type -> harness.agent.v1.MoveSessionResponse
+	368, // 405: harness.agent.v1.AgentService.StopSubagent:output_type -> harness.agent.v1.StopSubagentResponse
+	369, // 406: harness.agent.v1.AgentService.GetSubagentTranscript:output_type -> harness.agent.v1.GetSubagentTranscriptResponse
+	370, // 407: harness.agent.v1.AgentService.ResolveSessionProposal:output_type -> harness.agent.v1.ResolveSessionProposalResponse
+	371, // 408: harness.agent.v1.AgentService.UpdateViewerPresence:output_type -> harness.agent.v1.UpdateViewerPresenceResponse
+	372, // 409: harness.agent.v1.AgentService.ReadSentFile:output_type -> harness.agent.v1.ReadSentFileResponse
+	373, // 410: harness.agent.v1.AgentService.SetPrMonitor:output_type -> harness.agent.v1.SetPrMonitorResponse
+	374, // 411: harness.agent.v1.AgentService.DraftPullRequest:output_type -> harness.agent.v1.DraftPullRequestResponse
+	375, // 412: harness.agent.v1.AgentService.CreatePullRequest:output_type -> harness.agent.v1.CreatePullRequestResponse
+	376, // 413: harness.agent.v1.AgentService.GetVcsStatus:output_type -> harness.agent.v1.GetVcsStatusResponse
+	377, // 414: harness.agent.v1.AgentService.ListPreviewServers:output_type -> harness.agent.v1.ListPreviewServersResponse
+	378, // 415: harness.agent.v1.AgentService.StopPreviewServer:output_type -> harness.agent.v1.StopPreviewServerResponse
+	379, // 416: harness.agent.v1.AgentService.GetPreviewLogs:output_type -> harness.agent.v1.GetPreviewLogsResponse
+	380, // 417: harness.agent.v1.AgentService.GetComputerUseStatus:output_type -> harness.agent.v1.GetComputerUseStatusResponse
+	381, // 418: harness.agent.v1.AgentService.SetComputerUseEnabled:output_type -> harness.agent.v1.SetComputerUseEnabledResponse
+	382, // 419: harness.agent.v1.AgentService.RespondToComputerAccess:output_type -> harness.agent.v1.RespondToComputerAccessResponse
+	383, // 420: harness.agent.v1.AgentService.StopComputerUse:output_type -> harness.agent.v1.StopComputerUseResponse
+	384, // 421: harness.agent.v1.AgentService.SetComputerUseProfile:output_type -> harness.agent.v1.SetComputerUseProfileResponse
+	385, // 422: harness.agent.v1.AgentService.ListComputerUseApps:output_type -> harness.agent.v1.ListComputerUseAppsResponse
+	386, // 423: harness.agent.v1.AgentService.ListDemoRecordingApps:output_type -> harness.agent.v1.ListDemoRecordingAppsResponse
+	387, // 424: harness.agent.v1.AgentService.StartDemoRecording:output_type -> harness.agent.v1.StartDemoRecordingResponse
+	388, // 425: harness.agent.v1.AgentService.StopDemoRecording:output_type -> harness.agent.v1.StopDemoRecordingResponse
+	389, // 426: harness.agent.v1.AgentService.RespondToDemoSkillReview:output_type -> harness.agent.v1.RespondToDemoSkillReviewResponse
+	390, // 427: harness.agent.v1.AgentService.ListSimulators:output_type -> harness.agent.v1.ListSimulatorsResponse
+	391, // 428: harness.agent.v1.AgentService.BootSimulator:output_type -> harness.agent.v1.BootSimulatorResponse
+	392, // 429: harness.agent.v1.AgentService.ShutdownSimulator:output_type -> harness.agent.v1.ShutdownSimulatorResponse
+	393, // 430: harness.agent.v1.AgentService.WatchSimulator:output_type -> harness.agent.v1.WatchSimulatorResponse
+	394, // 431: harness.agent.v1.AgentService.SimulatorInput:output_type -> harness.agent.v1.SimulatorInputResponse
+	395, // 432: harness.agent.v1.AgentService.GetDeviceSettings:output_type -> harness.agent.v1.GetDeviceSettingsResponse
+	396, // 433: harness.agent.v1.AgentService.UpdateDeviceSettings:output_type -> harness.agent.v1.UpdateDeviceSettingsResponse
+	397, // 434: harness.agent.v1.AgentService.SetKeepAwake:output_type -> harness.agent.v1.SetKeepAwakeResponse
+	398, // 435: harness.agent.v1.AgentService.ListDiffBases:output_type -> harness.agent.v1.ListDiffBasesResponse
+	399, // 436: harness.agent.v1.AgentService.GetSessionFileDiff:output_type -> harness.agent.v1.GetSessionFileDiffResponse
+	20,  // 437: harness.agent.v1.AgentService.CreateObjectTicket:output_type -> harness.agent.v1.CreateObjectTicketResponse
+	400, // 438: harness.agent.v1.AgentService.StopWorkflow:output_type -> harness.agent.v1.StopWorkflowResponse
+	401, // 439: harness.agent.v1.AgentService.ScanClaudeImport:output_type -> harness.agent.v1.ScanClaudeImportResponse
+	402, // 440: harness.agent.v1.AgentService.RunClaudeImport:output_type -> harness.agent.v1.RunClaudeImportResponse
+	403, // 441: harness.agent.v1.AgentService.ScanProjectImport:output_type -> harness.agent.v1.ScanProjectImportResponse
+	404, // 442: harness.agent.v1.AgentService.RunProjectImport:output_type -> harness.agent.v1.RunProjectImportResponse
+	405, // 443: harness.agent.v1.AgentService.DismissProjectImport:output_type -> harness.agent.v1.DismissProjectImportResponse
+	406, // 444: harness.agent.v1.AgentService.ListImportSources:output_type -> harness.agent.v1.ListImportSourcesResponse
+	407, // 445: harness.agent.v1.AgentService.ScanImportSource:output_type -> harness.agent.v1.ScanImportSourceResponse
+	408, // 446: harness.agent.v1.AgentService.RunImportSource:output_type -> harness.agent.v1.RunImportSourceResponse
+	409, // 447: harness.agent.v1.AgentService.ListMcpServers:output_type -> harness.agent.v1.ListMcpServersResponse
+	410, // 448: harness.agent.v1.AgentService.InspectMcpServer:output_type -> harness.agent.v1.InspectMcpServerResponse
+	411, // 449: harness.agent.v1.AgentService.CreateMcpServer:output_type -> harness.agent.v1.CreateMcpServerResponse
+	412, // 450: harness.agent.v1.AgentService.UpdateMcpServer:output_type -> harness.agent.v1.UpdateMcpServerResponse
+	413, // 451: harness.agent.v1.AgentService.DeleteMcpServer:output_type -> harness.agent.v1.DeleteMcpServerResponse
+	414, // 452: harness.agent.v1.AgentService.SetMcpServerApproval:output_type -> harness.agent.v1.SetMcpServerApprovalResponse
+	415, // 453: harness.agent.v1.AgentService.SetMcpToolRule:output_type -> harness.agent.v1.SetMcpToolRuleResponse
+	416, // 454: harness.agent.v1.AgentService.ListMcpCommands:output_type -> harness.agent.v1.ListMcpCommandsResponse
+	417, // 455: harness.agent.v1.AgentService.ListMcpResources:output_type -> harness.agent.v1.ListMcpResourcesResponse
+	418, // 456: harness.agent.v1.AgentService.ListSlashCommands:output_type -> harness.agent.v1.ListSlashCommandsResponse
+	419, // 457: harness.agent.v1.AgentService.ListSessionTools:output_type -> harness.agent.v1.ListSessionToolsResponse
+	420, // 458: harness.agent.v1.AgentService.GetDiagnostics:output_type -> harness.agent.v1.GetDiagnosticsResponse
+	421, // 459: harness.agent.v1.AgentService.ListSchedules:output_type -> harness.agent.v1.ListSchedulesResponse
+	422, // 460: harness.agent.v1.AgentService.CreateSchedule:output_type -> harness.agent.v1.CreateScheduleResponse
+	423, // 461: harness.agent.v1.AgentService.UpdateSchedule:output_type -> harness.agent.v1.UpdateScheduleResponse
+	424, // 462: harness.agent.v1.AgentService.DeleteSchedule:output_type -> harness.agent.v1.DeleteScheduleResponse
+	425, // 463: harness.agent.v1.AgentService.SetSchedulePaused:output_type -> harness.agent.v1.SetSchedulePausedResponse
+	426, // 464: harness.agent.v1.AgentService.RunScheduleNow:output_type -> harness.agent.v1.RunScheduleNowResponse
+	427, // 465: harness.agent.v1.AgentService.ListScheduleRuns:output_type -> harness.agent.v1.ListScheduleRunsResponse
+	428, // 466: harness.agent.v1.AgentService.TrustSchedule:output_type -> harness.agent.v1.TrustScheduleResponse
+	429, // 467: harness.agent.v1.AgentService.RotateScheduleWebhook:output_type -> harness.agent.v1.RotateScheduleWebhookResponse
+	311, // [311:468] is the sub-list for method output_type
+	154, // [154:311] is the sub-list for method input_type
+	154, // [154:154] is the sub-list for extension type_name
+	154, // [154:154] is the sub-list for extension extendee
+	0,   // [0:154] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_agent_proto_init() }
@@ -14246,7 +14335,7 @@ func file_harness_agent_v1_agent_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_agent_proto_rawDesc), len(file_harness_agent_v1_agent_proto_rawDesc)),
-			NumEnums:      18,
+			NumEnums:      19,
 			NumMessages:   148,
 			NumExtensions: 0,
 			NumServices:   1,

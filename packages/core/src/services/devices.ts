@@ -175,7 +175,7 @@ export async function pollDeviceToken(deviceCode: string | undefined, userAgent?
 }
 
 /** A device for an always-on host, with a token nobody has to confirm in a browser: the person asking is signed in already. */
-export async function createHostDevice(userId: string, name: string, kind: "host" | "host_worker" | "host_supervisor", clientName: string): Promise<{ deviceId: string; deviceToken: string }> {
+export async function createHostDevice(userId: string, name: string, kind: "host" | "host_worker" | "host_supervisor" | "host_runner" | "host_cloud", clientName: string): Promise<{ deviceId: string; deviceToken: string }> {
   const deviceToken = newToken("hdt");
   const deviceId = newId("dev");
   const now = new Date();

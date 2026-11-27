@@ -4,16 +4,80 @@
 import { createClient, type Client, type Transport } from '@connectrpc/connect'
 import { AgentService, PermissionMode, type AttemptCheck } from '~/gen/harness/agent/v1/agent_pb'
 import { Effort } from '~/gen/harness/llm/v1/content_pb'
-import { AgentHostIsolation, AgentHostScope, AttemptState as PbAttemptState, HostsService, HostWorkLanding, HostWorkState, LocalAttemptsService, type AgentHost, type AttemptGroup, type HostWork } from '~/gen/harness/relay/v1/hosts_pb'
-import { permissionModeName } from '~/lib/session/reducer'
+import { AgentHostIsolation, AgentHostScope, AttemptState as PbAttemptState, HostsService, HostWorkLanding, HostWorkState, LocalAttemptsService, type AgentHost, type AttemptGroup, type CloudRunnerConfig, type CloudSession, type HostWork } from '~/gen/harness/relay/v1/hosts_pb'
+import { cloudEnvironmentName, permissionModeName } from '~/lib/session/reducer'
 import type { AttemptCheckVM } from '~/lib/session/types'
-import type { AttemptGroupView, AttemptState, HostChanges, HostsApi, HostView, HostWorkView, MoveOptions, NewHost, StartAttempts, StartWork, WorkLanding, WorkState } from './types'
+import { CLOUD_HOST, type AttemptGroupView, type AttemptState, type CloudSessionView, type HostChanges, type HostsApi, type HostView, type HostWorkView, type MoveOptions, type NewHost, type RunnerConfigView, type StartAttempts, type StartWork, type WorkLanding, type WorkState } from './types'
+
+export function runnerConfigView(c: CloudRunnerConfig): RunnerConfigView {
+  return {
+    image: c.image,
+    allowedImages: c.allowedImages,
+    runtime: c.runtime,
+    cpuMillis: c.cpuMillis,
+    memoryBytes: Number(c.memoryBytes),
+    diskBytes: Number(c.diskBytes),
+    pids: c.pids,
+    idleTimeoutSeconds: c.idleTimeoutSeconds,
+    maxLifetimeSeconds: c.maxLifetimeSeconds,
+    cacheMaxBytes: Number(c.cacheMaxBytes),
+    cacheScope: c.cacheScope === 'runner' ? 'runner' : 'user',
+    storageOptSize: c.storageOptSize
+  }
+}
+
+function runnerConfigProto(c: RunnerConfigView) {
+  return {
+    image: c.image.trim(),
+    allowedImages: c.allowedImages.map(s => s.trim()).filter(Boolean),
+    runtime: c.runtime.trim(),
+    cpuMillis: c.cpuMillis,
+    memoryBytes: BigInt(Math.round(c.memoryBytes)),
+    diskBytes: BigInt(Math.round(c.diskBytes)),
+    pids: c.pids,
+    idleTimeoutSeconds: c.idleTimeoutSeconds,
+    maxLifetimeSeconds: c.maxLifetimeSeconds,
+    cacheMaxBytes: BigInt(Math.round(c.cacheMaxBytes)),
+    cacheScope: c.cacheScope,
+    storageOptSize: c.storageOptSize
+  }
+}
+
+export function cloudSessionView(c: CloudSession): CloudSessionView {
+  return {
+    id: c.id,
+    hostName: c.hostName,
+    userName: c.userName,
+    sessionId: c.sessionId,
+    state: cloudEnvironmentName(c.state),
+    image: c.image,
+    repositoryKey: c.repositoryKey,
+    error: c.error,
+    diskBytes: Number(c.diskBytes),
+    starts: c.starts,
+    startedAt: c.startedAt,
+    lastActiveAt: c.lastActiveAt
+  }
+}
+
+function scopeOf(s: AgentHostScope): HostView['scope'] {
+  return s === AgentHostScope.TEAM ? 'team' : s === AgentHostScope.CLOUD ? 'cloud' : 'user'
+}
+
+function isolationOf(i: AgentHostIsolation): HostView['isolation'] {
+  switch (i) {
+    case AgentHostIsolation.UID: return 'uid'
+    case AgentHostIsolation.NONE: return 'none'
+    case AgentHostIsolation.CONTAINER: return 'container'
+  }
+  return ''
+}
 
 export function hostView(h: AgentHost): HostView {
   return {
     id: h.id,
     name: h.name,
-    scope: h.scope === AgentHostScope.TEAM ? 'team' : 'user',
+    scope: scopeOf(h.scope),
     ownerName: h.ownerName,
     groupId: h.groupId,
     groupName: h.groupName,
@@ -24,7 +88,7 @@ export function hostView(h: AgentHost): HostView {
     maxSessionsPerUser: h.maxSessionsPerUser,
     workingSessions: h.workingSessions,
     queuedWork: h.queuedWork,
-    isolation: h.isolation === AgentHostIsolation.UID ? 'uid' : h.isolation === AgentHostIsolation.NONE ? 'none' : '',
+    isolation: isolationOf(h.isolation),
     sandboxDriver: h.sandboxDriver,
     os: h.os,
     arch: h.arch,
@@ -35,7 +99,9 @@ export function hostView(h: AgentHost): HostView {
     allowedRepositories: h.allowedRepositories,
     awayHost: h.awayHost,
     lastSeenAt: h.lastSeenAt,
-    workers: h.workers.map(w => ({ userId: w.userId, userName: w.userName, online: w.online, workingSessions: w.workingSessions }))
+    workers: h.workers.map(w => ({ userId: w.userId, userName: w.userName, online: w.online, workingSessions: w.workingSessions })),
+    cloud: h.cloud ? runnerConfigView(h.cloud) : null,
+    cloudStats: h.cloudStats ? { starting: h.cloudStats.starting, running: h.cloudStats.running, idle: h.cloudStats.idle, removed: h.cloudStats.removed, failed: h.cloudStats.failed } : null
   }
 }
 
@@ -61,7 +127,9 @@ export function workView(w: HostWork | undefined): HostWorkView {
     sessionId: w?.sessionId ?? '',
     pullRequestUrl: w?.pullRequestUrl ?? '',
     error: w?.error ?? '',
-    createdAt: w?.createdAt ?? ''
+    createdAt: w?.createdAt ?? '',
+    cloud: w?.cloud ?? false,
+    cloudState: w ? cloudEnvironmentName(w.cloudState) : ''
   }
 }
 
@@ -190,7 +258,8 @@ export class ConnectHostsApi implements HostsApi {
   async create(h: NewHost) {
     const res = await this.rpc.createAgentHost({
       name: h.name,
-      scope: h.team ? AgentHostScope.TEAM : AgentHostScope.USER,
+      scope: h.runner ? AgentHostScope.CLOUD : h.team ? AgentHostScope.TEAM : AgentHostScope.USER,
+      cloud: h.runner ? runnerConfigProto(h.runner) : undefined,
       groupId: h.groupId,
       maxSessions: h.maxSessions,
       maxSessionsPerUser: h.maxSessionsPerUser,
@@ -207,7 +276,9 @@ export class ConnectHostsApi implements HostsApi {
       maxSessions: c.maxSessions,
       maxSessionsPerUser: c.maxSessionsPerUser,
       setAllowedRepositories: c.allowedRepositories !== undefined,
-      allowedRepositories: c.allowedRepositories ?? []
+      allowedRepositories: c.allowedRepositories ?? [],
+      groupId: c.groupId,
+      cloud: c.runner ? runnerConfigProto(c.runner) : undefined
     })
     return hostView(res.host!)
   }
@@ -217,8 +288,10 @@ export class ConnectHostsApi implements HostsApi {
   }
 
   async start(w: StartWork) {
+    const cloud = w.hostId === CLOUD_HOST
     const res = await this.rpc.startHostWork({
-      hostId: w.hostId,
+      hostId: cloud ? '' : w.hostId,
+      cloud,
       repositoryKey: w.repositoryKey,
       baseRef: w.baseRef,
       prompt: w.prompt,
@@ -246,5 +319,13 @@ export class ConnectHostsApi implements HostsApi {
 
   async setAway(hostId: string) {
     await this.rpc.setAwayHost({ hostId })
+  }
+
+  async listCloudSessions(hostId = '') {
+    return (await this.rpc.listCloudSessions({ hostId })).sessions.map(cloudSessionView)
+  }
+
+  async stopCloudSession(id: string, end: boolean) {
+    return cloudSessionView((await this.rpc.stopCloudSession({ id, end })).session!)
   }
 }

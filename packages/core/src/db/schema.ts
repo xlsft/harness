@@ -110,7 +110,7 @@ export const device = pgTable(
     arch: text("arch"),
     userAgent: text("user_agent"),
     tokenHash: text("token_hash").notNull().unique(),
-    /** "" a person's machine; host | host_worker | host_supervisor: always-on hosts, with narrower rights (docs/design/hosts.md, decision 8). */
+    /** "" a person's machine; host | host_worker | host_supervisor | host_runner | host_cloud: always-on hosts and cloud sessions, with narrower rights (docs/design/hosts.md, decision 8). */
     kind: text("kind").notNull().default(""),
     createdAt: ts("created_at").notNull(),
     lastSeenAt: ts("last_seen_at"),
@@ -1010,6 +1010,8 @@ export const agentHost = pgTable(
     diskFreeBytes: int8("disk_free_bytes").notNull().default(0),
     lastSeenAt: ts("last_seen_at"),
     createdAt: ts("created_at").notNull(),
+    /** Runners (scope cloud): the CloudRunnerConfig as JSON (docs/design/cloud-sessions.md). */
+    cloudConfig: jsonb("cloud_config").notNull().default({}),
   },
   (t) => [index("agent_host_owner_idx").on(t.ownerUserId), index("agent_host_group_idx").on(t.groupId)],
 );
@@ -1140,6 +1142,51 @@ export const attempt = pgTable(
     updatedAt: ts("updated_at").notNull(),
   },
   (t) => [primaryKey({ columns: [t.groupId, t.index] })],
+);
+
+/**
+ * A cloud session: the container of one session on a runner (docs/design/cloud-sessions.md). The row outlives its
+ * containers; host_id is the runner of the current or last one and may change when the session comes back.
+ */
+export const cloudSession = pgTable(
+  "cloud_session",
+  {
+    id: text("id").primaryKey(),
+    hostId: text("host_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    workId: text("work_id").notNull(),
+    /** The session's device (kind host_cloud), "" until the first token. */
+    deviceId: text("device_id").notNull().default(""),
+    sessionId: text("session_id").notNull().default(""),
+    /** The CloudEnvironmentState number. */
+    state: integer("state").notNull(),
+    containerId: text("container_id").notNull().default(""),
+    image: text("image").notNull().default(""),
+    repositoryKey: text("repository_key").notNull().default(""),
+    error: text("error").notNull().default(""),
+    diskBytes: int8("disk_bytes").notNull().default(0),
+    starts: integer("starts").notNull().default(0),
+    /** Failed starts since the last container that registered. */
+    attempts: integer("attempts").notNull().default(0),
+    /** The container's daemon took the work since it registered. */
+    claimed: boolean("claimed").notNull().default(false),
+    workingSessions: integer("working_sessions").notNull().default(0),
+    startingSince: ts("starting_since"),
+    startedAt: ts("started_at"),
+    registeredAt: ts("registered_at"),
+    reportedAt: ts("reported_at"),
+    lastActiveAt: ts("last_active_at"),
+    createdAt: ts("created_at").notNull(),
+    updatedAt: ts("updated_at").notNull(),
+  },
+  (t) => [
+    index("cloud_session_host_idx").on(t.hostId, t.state),
+    index("cloud_session_user_idx").on(t.userId, t.state),
+    uniqueIndex("cloud_session_work_idx").on(t.workId),
+    index("cloud_session_device_idx").on(t.deviceId),
+  ],
 );
 
 /** A user's choice of the host that takes their work while their machines are away; host_id "" means none. No row: their personal host. */

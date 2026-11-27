@@ -1,0 +1,4 @@
+# The agent and runner images (deploy/Dockerfile.agent, deploy/Dockerfile.runner) need only the client's sources.
+*
+!packages/client/
+**/.DS_Store

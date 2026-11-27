@@ -84,8 +84,18 @@ type ManagedPolicy struct {
 	MaxParallelAttempts int32 `protobuf:"varint,361,opt,name=max_parallel_attempts,json=maxParallelAttempts,proto3" json:"max_parallel_attempts,omitempty"`
 	// attemptBudgetUsd: what one attempt may spend; 0, no cap.
 	AttemptBudgetUsd float64 `protobuf:"fixed64,362,opt,name=attempt_budget_usd,json=attemptBudgetUsd,proto3" json:"attempt_budget_usd,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Cloud sessions (docs/design/cloud-sessions.md), key "cloud" of the document. disabled: none for whom this targets.
+	CloudDisabled bool `protobuf:"varint,450,opt,name=cloud_disabled,json=cloudDisabled,proto3" json:"cloud_disabled,omitempty"`
+	// allowBypassPermissions: a cloud session may run in bypassPermissions. Off by default.
+	CloudBypassPermissionsAllowed bool `protobuf:"varint,451,opt,name=cloud_bypass_permissions_allowed,json=cloudBypassPermissionsAllowed,proto3" json:"cloud_bypass_permissions_allowed,omitempty"`
+	// egressAllow: the hosts a cloud session's container may reach, like the sandbox's allowed hosts ("*.example.com",
+	// "host:port"). Empty: the package registries and the code hosts of the server's connections.
+	CloudEgressAllow []string `protobuf:"bytes,452,rep,name=cloud_egress_allow,json=cloudEgressAllow,proto3" json:"cloud_egress_allow,omitempty"`
+	// maxSessionsPerUser / maxSessionsPerGroup: containers that exist at once, per user and per directory group. 0: no limit.
+	CloudMaxSessionsPerUser  int32 `protobuf:"varint,453,opt,name=cloud_max_sessions_per_user,json=cloudMaxSessionsPerUser,proto3" json:"cloud_max_sessions_per_user,omitempty"`
+	CloudMaxSessionsPerGroup int32 `protobuf:"varint,454,opt,name=cloud_max_sessions_per_group,json=cloudMaxSessionsPerGroup,proto3" json:"cloud_max_sessions_per_group,omitempty"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -331,6 +341,41 @@ func (x *ManagedPolicy) GetMaxParallelAttempts() int32 {
 func (x *ManagedPolicy) GetAttemptBudgetUsd() float64 {
 	if x != nil {
 		return x.AttemptBudgetUsd
+	}
+	return 0
+}
+
+func (x *ManagedPolicy) GetCloudDisabled() bool {
+	if x != nil {
+		return x.CloudDisabled
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetCloudBypassPermissionsAllowed() bool {
+	if x != nil {
+		return x.CloudBypassPermissionsAllowed
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetCloudEgressAllow() []string {
+	if x != nil {
+		return x.CloudEgressAllow
+	}
+	return nil
+}
+
+func (x *ManagedPolicy) GetCloudMaxSessionsPerUser() int32 {
+	if x != nil {
+		return x.CloudMaxSessionsPerUser
+	}
+	return 0
+}
+
+func (x *ManagedPolicy) GetCloudMaxSessionsPerGroup() int32 {
+	if x != nil {
+		return x.CloudMaxSessionsPerGroup
 	}
 	return 0
 }
@@ -593,7 +638,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\x92\f\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xb3\x0e\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -628,7 +673,12 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\x1bpersonal_chat_bots_disabled\x18\xfc\x02 \x01(\bR\x18personalChatBotsDisabled\x12\"\n" +
 	"\fmax_attempts\x18\xe8\x02 \x01(\x05R\vmaxAttempts\x123\n" +
 	"\x15max_parallel_attempts\x18\xe9\x02 \x01(\x05R\x13maxParallelAttempts\x12-\n" +
-	"\x12attempt_budget_usd\x18\xea\x02 \x01(\x01R\x10attemptBudgetUsdB\x16\n" +
+	"\x12attempt_budget_usd\x18\xea\x02 \x01(\x01R\x10attemptBudgetUsd\x12&\n" +
+	"\x0ecloud_disabled\x18\xc2\x03 \x01(\bR\rcloudDisabled\x12H\n" +
+	" cloud_bypass_permissions_allowed\x18\xc3\x03 \x01(\bR\x1dcloudBypassPermissionsAllowed\x12-\n" +
+	"\x12cloud_egress_allow\x18\xc4\x03 \x03(\tR\x10cloudEgressAllow\x12=\n" +
+	"\x1bcloud_max_sessions_per_user\x18\xc5\x03 \x01(\x05R\x17cloudMaxSessionsPerUser\x12?\n" +
+	"\x1ccloud_max_sessions_per_group\x18\xc6\x03 \x01(\x05R\x18cloudMaxSessionsPerGroupB\x16\n" +
 	"\x14_defer_builtin_tools\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +

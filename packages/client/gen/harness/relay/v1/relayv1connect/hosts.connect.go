@@ -85,6 +85,12 @@ const (
 	// HostsServiceDiscardAttemptsProcedure is the fully-qualified name of the HostsService's
 	// DiscardAttempts RPC.
 	HostsServiceDiscardAttemptsProcedure = "/harness.relay.v1.HostsService/DiscardAttempts"
+	// HostsServiceListCloudSessionsProcedure is the fully-qualified name of the HostsService's
+	// ListCloudSessions RPC.
+	HostsServiceListCloudSessionsProcedure = "/harness.relay.v1.HostsService/ListCloudSessions"
+	// HostsServiceStopCloudSessionProcedure is the fully-qualified name of the HostsService's
+	// StopCloudSession RPC.
+	HostsServiceStopCloudSessionProcedure = "/harness.relay.v1.HostsService/StopCloudSession"
 	// LocalAttemptsServiceStartLocalAttemptsProcedure is the fully-qualified name of the
 	// LocalAttemptsService's StartLocalAttempts RPC.
 	LocalAttemptsServiceStartLocalAttemptsProcedure = "/harness.relay.v1.LocalAttemptsService/StartLocalAttempts"
@@ -121,6 +127,15 @@ const (
 	// HostAgentServiceQueueMovedWorkProcedure is the fully-qualified name of the HostAgentService's
 	// QueueMovedWork RPC.
 	HostAgentServiceQueueMovedWorkProcedure = "/harness.relay.v1.HostAgentService/QueueMovedWork"
+	// HostAgentServicePollCloudRunnerProcedure is the fully-qualified name of the HostAgentService's
+	// PollCloudRunner RPC.
+	HostAgentServicePollCloudRunnerProcedure = "/harness.relay.v1.HostAgentService/PollCloudRunner"
+	// HostAgentServiceIssueCloudSessionTokenProcedure is the fully-qualified name of the
+	// HostAgentService's IssueCloudSessionToken RPC.
+	HostAgentServiceIssueCloudSessionTokenProcedure = "/harness.relay.v1.HostAgentService/IssueCloudSessionToken"
+	// HostAgentServiceUpdateCloudSessionProcedure is the fully-qualified name of the HostAgentService's
+	// UpdateCloudSession RPC.
+	HostAgentServiceUpdateCloudSessionProcedure = "/harness.relay.v1.HostAgentService/UpdateCloudSession"
 )
 
 // HostsServiceClient is a client for the harness.relay.v1.HostsService service.
@@ -158,6 +173,11 @@ type HostsServiceClient interface {
 	// are cancelled or handed to their daemon (ReportAgentHostResponse.discard_work_ids). A local group's are removed by its
 	// own client (LocalAttemptsService.DiscardAttempts), which reports them: here FAILED_PRECONDITION.
 	DiscardAttempts(context.Context, *connect.Request[v1.DiscardAttemptsRequest]) (*connect.Response[v1.DiscardAttemptsResponse], error)
+	// Cloud sessions (docs/design/cloud-sessions.md). With a host_id and a role that reads users: everyone's on that runner;
+	// otherwise the caller's own.
+	ListCloudSessions(context.Context, *connect.Request[v1.ListCloudSessionsRequest]) (*connect.Response[v1.ListCloudSessionsResponse], error)
+	// Removes a cloud session's container now (its owner, or `hosts.write`). The next message starts it again, unless end.
+	StopCloudSession(context.Context, *connect.Request[v1.StopCloudSessionRequest]) (*connect.Response[v1.StopCloudSessionResponse], error)
 }
 
 // NewHostsServiceClient constructs a client for the harness.relay.v1.HostsService service. By
@@ -267,6 +287,18 @@ func NewHostsServiceClient(httpClient connect.HTTPClient, baseURL string, opts .
 			connect.WithSchema(hostsServiceMethods.ByName("DiscardAttempts")),
 			connect.WithClientOptions(opts...),
 		),
+		listCloudSessions: connect.NewClient[v1.ListCloudSessionsRequest, v1.ListCloudSessionsResponse](
+			httpClient,
+			baseURL+HostsServiceListCloudSessionsProcedure,
+			connect.WithSchema(hostsServiceMethods.ByName("ListCloudSessions")),
+			connect.WithClientOptions(opts...),
+		),
+		stopCloudSession: connect.NewClient[v1.StopCloudSessionRequest, v1.StopCloudSessionResponse](
+			httpClient,
+			baseURL+HostsServiceStopCloudSessionProcedure,
+			connect.WithSchema(hostsServiceMethods.ByName("StopCloudSession")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -288,6 +320,8 @@ type hostsServiceClient struct {
 	reportAttempt     *connect.Client[v1.ReportAttemptRequest, v1.ReportAttemptResponse]
 	keepAttempt       *connect.Client[v1.KeepAttemptRequest, v1.KeepAttemptResponse]
 	discardAttempts   *connect.Client[v1.DiscardAttemptsRequest, v1.DiscardAttemptsResponse]
+	listCloudSessions *connect.Client[v1.ListCloudSessionsRequest, v1.ListCloudSessionsResponse]
+	stopCloudSession  *connect.Client[v1.StopCloudSessionRequest, v1.StopCloudSessionResponse]
 }
 
 // ListAgentHosts calls harness.relay.v1.HostsService.ListAgentHosts.
@@ -370,6 +404,16 @@ func (c *hostsServiceClient) DiscardAttempts(ctx context.Context, req *connect.R
 	return c.discardAttempts.CallUnary(ctx, req)
 }
 
+// ListCloudSessions calls harness.relay.v1.HostsService.ListCloudSessions.
+func (c *hostsServiceClient) ListCloudSessions(ctx context.Context, req *connect.Request[v1.ListCloudSessionsRequest]) (*connect.Response[v1.ListCloudSessionsResponse], error) {
+	return c.listCloudSessions.CallUnary(ctx, req)
+}
+
+// StopCloudSession calls harness.relay.v1.HostsService.StopCloudSession.
+func (c *hostsServiceClient) StopCloudSession(ctx context.Context, req *connect.Request[v1.StopCloudSessionRequest]) (*connect.Response[v1.StopCloudSessionResponse], error) {
+	return c.stopCloudSession.CallUnary(ctx, req)
+}
+
 // HostsServiceHandler is an implementation of the harness.relay.v1.HostsService service.
 type HostsServiceHandler interface {
 	// The hosts the caller may use: their own and those of their teams. With all (roles that read users): every host, with
@@ -405,6 +449,11 @@ type HostsServiceHandler interface {
 	// are cancelled or handed to their daemon (ReportAgentHostResponse.discard_work_ids). A local group's are removed by its
 	// own client (LocalAttemptsService.DiscardAttempts), which reports them: here FAILED_PRECONDITION.
 	DiscardAttempts(context.Context, *connect.Request[v1.DiscardAttemptsRequest]) (*connect.Response[v1.DiscardAttemptsResponse], error)
+	// Cloud sessions (docs/design/cloud-sessions.md). With a host_id and a role that reads users: everyone's on that runner;
+	// otherwise the caller's own.
+	ListCloudSessions(context.Context, *connect.Request[v1.ListCloudSessionsRequest]) (*connect.Response[v1.ListCloudSessionsResponse], error)
+	// Removes a cloud session's container now (its owner, or `hosts.write`). The next message starts it again, unless end.
+	StopCloudSession(context.Context, *connect.Request[v1.StopCloudSessionRequest]) (*connect.Response[v1.StopCloudSessionResponse], error)
 }
 
 // NewHostsServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -510,6 +559,18 @@ func NewHostsServiceHandler(svc HostsServiceHandler, opts ...connect.HandlerOpti
 		connect.WithSchema(hostsServiceMethods.ByName("DiscardAttempts")),
 		connect.WithHandlerOptions(opts...),
 	)
+	hostsServiceListCloudSessionsHandler := connect.NewUnaryHandler(
+		HostsServiceListCloudSessionsProcedure,
+		svc.ListCloudSessions,
+		connect.WithSchema(hostsServiceMethods.ByName("ListCloudSessions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	hostsServiceStopCloudSessionHandler := connect.NewUnaryHandler(
+		HostsServiceStopCloudSessionProcedure,
+		svc.StopCloudSession,
+		connect.WithSchema(hostsServiceMethods.ByName("StopCloudSession")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.relay.v1.HostsService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case HostsServiceListAgentHostsProcedure:
@@ -544,6 +605,10 @@ func NewHostsServiceHandler(svc HostsServiceHandler, opts ...connect.HandlerOpti
 			hostsServiceKeepAttemptHandler.ServeHTTP(w, r)
 		case HostsServiceDiscardAttemptsProcedure:
 			hostsServiceDiscardAttemptsHandler.ServeHTTP(w, r)
+		case HostsServiceListCloudSessionsProcedure:
+			hostsServiceListCloudSessionsHandler.ServeHTTP(w, r)
+		case HostsServiceStopCloudSessionProcedure:
+			hostsServiceStopCloudSessionHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -615,6 +680,14 @@ func (UnimplementedHostsServiceHandler) KeepAttempt(context.Context, *connect.Re
 
 func (UnimplementedHostsServiceHandler) DiscardAttempts(context.Context, *connect.Request[v1.DiscardAttemptsRequest]) (*connect.Response[v1.DiscardAttemptsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostsService.DiscardAttempts is not implemented"))
+}
+
+func (UnimplementedHostsServiceHandler) ListCloudSessions(context.Context, *connect.Request[v1.ListCloudSessionsRequest]) (*connect.Response[v1.ListCloudSessionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostsService.ListCloudSessions is not implemented"))
+}
+
+func (UnimplementedHostsServiceHandler) StopCloudSession(context.Context, *connect.Request[v1.StopCloudSessionRequest]) (*connect.Response[v1.StopCloudSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostsService.StopCloudSession is not implemented"))
 }
 
 // LocalAttemptsServiceClient is a client for the harness.relay.v1.LocalAttemptsService service.
@@ -737,6 +810,13 @@ type HostAgentServiceClient interface {
 	IssueMoveCredentials(context.Context, *connect.Request[v1.IssueMoveCredentialsRequest]) (*connect.Response[v1.IssueMoveCredentialsResponse], error)
 	// The laptop pushed the branch: the MOVE work goes to the queue.
 	QueueMovedWork(context.Context, *connect.Request[v1.QueueMovedWorkRequest]) (*connect.Response[v1.QueueMovedWorkResponse], error)
+	// Runner of cloud sessions: long poll with the list of its containers; says what to start and what to remove. Also the
+	// reconciler (docs/design/cloud-sessions.md, decision 4).
+	PollCloudRunner(context.Context, *connect.Request[v1.PollCloudRunnerRequest]) (*connect.Response[v1.PollCloudRunnerResponse], error)
+	// Runner: a fresh device token for a cloud session's container; the previous one stops working.
+	IssueCloudSessionToken(context.Context, *connect.Request[v1.IssueCloudSessionTokenRequest]) (*connect.Response[v1.IssueCloudSessionTokenResponse], error)
+	// Runner: what became of a container it was told to start or remove.
+	UpdateCloudSession(context.Context, *connect.Request[v1.UpdateCloudSessionRequest]) (*connect.Response[v1.UpdateCloudSessionResponse], error)
 }
 
 // NewHostAgentServiceClient constructs a client for the harness.relay.v1.HostAgentService service.
@@ -810,21 +890,42 @@ func NewHostAgentServiceClient(httpClient connect.HTTPClient, baseURL string, op
 			connect.WithSchema(hostAgentServiceMethods.ByName("QueueMovedWork")),
 			connect.WithClientOptions(opts...),
 		),
+		pollCloudRunner: connect.NewClient[v1.PollCloudRunnerRequest, v1.PollCloudRunnerResponse](
+			httpClient,
+			baseURL+HostAgentServicePollCloudRunnerProcedure,
+			connect.WithSchema(hostAgentServiceMethods.ByName("PollCloudRunner")),
+			connect.WithClientOptions(opts...),
+		),
+		issueCloudSessionToken: connect.NewClient[v1.IssueCloudSessionTokenRequest, v1.IssueCloudSessionTokenResponse](
+			httpClient,
+			baseURL+HostAgentServiceIssueCloudSessionTokenProcedure,
+			connect.WithSchema(hostAgentServiceMethods.ByName("IssueCloudSessionToken")),
+			connect.WithClientOptions(opts...),
+		),
+		updateCloudSession: connect.NewClient[v1.UpdateCloudSessionRequest, v1.UpdateCloudSessionResponse](
+			httpClient,
+			baseURL+HostAgentServiceUpdateCloudSessionProcedure,
+			connect.WithSchema(hostAgentServiceMethods.ByName("UpdateCloudSession")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // hostAgentServiceClient implements HostAgentServiceClient.
 type hostAgentServiceClient struct {
-	registerAgentHost    *connect.Client[v1.RegisterAgentHostRequest, v1.RegisterAgentHostResponse]
-	reportAgentHost      *connect.Client[v1.ReportAgentHostRequest, v1.ReportAgentHostResponse]
-	claimHostWork        *connect.Client[v1.ClaimHostWorkRequest, v1.ClaimHostWorkResponse]
-	updateHostWork       *connect.Client[v1.UpdateHostWorkRequest, v1.UpdateHostWorkResponse]
-	issueGitCredentials  *connect.Client[v1.IssueGitCredentialsRequest, v1.IssueGitCredentialsResponse]
-	openHostPullRequest  *connect.Client[v1.OpenHostPullRequestRequest, v1.OpenHostPullRequestResponse]
-	listWantedWorkers    *connect.Client[v1.ListWantedWorkersRequest, v1.ListWantedWorkersResponse]
-	issueWorkerToken     *connect.Client[v1.IssueWorkerTokenRequest, v1.IssueWorkerTokenResponse]
-	issueMoveCredentials *connect.Client[v1.IssueMoveCredentialsRequest, v1.IssueMoveCredentialsResponse]
-	queueMovedWork       *connect.Client[v1.QueueMovedWorkRequest, v1.QueueMovedWorkResponse]
+	registerAgentHost      *connect.Client[v1.RegisterAgentHostRequest, v1.RegisterAgentHostResponse]
+	reportAgentHost        *connect.Client[v1.ReportAgentHostRequest, v1.ReportAgentHostResponse]
+	claimHostWork          *connect.Client[v1.ClaimHostWorkRequest, v1.ClaimHostWorkResponse]
+	updateHostWork         *connect.Client[v1.UpdateHostWorkRequest, v1.UpdateHostWorkResponse]
+	issueGitCredentials    *connect.Client[v1.IssueGitCredentialsRequest, v1.IssueGitCredentialsResponse]
+	openHostPullRequest    *connect.Client[v1.OpenHostPullRequestRequest, v1.OpenHostPullRequestResponse]
+	listWantedWorkers      *connect.Client[v1.ListWantedWorkersRequest, v1.ListWantedWorkersResponse]
+	issueWorkerToken       *connect.Client[v1.IssueWorkerTokenRequest, v1.IssueWorkerTokenResponse]
+	issueMoveCredentials   *connect.Client[v1.IssueMoveCredentialsRequest, v1.IssueMoveCredentialsResponse]
+	queueMovedWork         *connect.Client[v1.QueueMovedWorkRequest, v1.QueueMovedWorkResponse]
+	pollCloudRunner        *connect.Client[v1.PollCloudRunnerRequest, v1.PollCloudRunnerResponse]
+	issueCloudSessionToken *connect.Client[v1.IssueCloudSessionTokenRequest, v1.IssueCloudSessionTokenResponse]
+	updateCloudSession     *connect.Client[v1.UpdateCloudSessionRequest, v1.UpdateCloudSessionResponse]
 }
 
 // RegisterAgentHost calls harness.relay.v1.HostAgentService.RegisterAgentHost.
@@ -877,6 +978,21 @@ func (c *hostAgentServiceClient) QueueMovedWork(ctx context.Context, req *connec
 	return c.queueMovedWork.CallUnary(ctx, req)
 }
 
+// PollCloudRunner calls harness.relay.v1.HostAgentService.PollCloudRunner.
+func (c *hostAgentServiceClient) PollCloudRunner(ctx context.Context, req *connect.Request[v1.PollCloudRunnerRequest]) (*connect.Response[v1.PollCloudRunnerResponse], error) {
+	return c.pollCloudRunner.CallUnary(ctx, req)
+}
+
+// IssueCloudSessionToken calls harness.relay.v1.HostAgentService.IssueCloudSessionToken.
+func (c *hostAgentServiceClient) IssueCloudSessionToken(ctx context.Context, req *connect.Request[v1.IssueCloudSessionTokenRequest]) (*connect.Response[v1.IssueCloudSessionTokenResponse], error) {
+	return c.issueCloudSessionToken.CallUnary(ctx, req)
+}
+
+// UpdateCloudSession calls harness.relay.v1.HostAgentService.UpdateCloudSession.
+func (c *hostAgentServiceClient) UpdateCloudSession(ctx context.Context, req *connect.Request[v1.UpdateCloudSessionRequest]) (*connect.Response[v1.UpdateCloudSessionResponse], error) {
+	return c.updateCloudSession.CallUnary(ctx, req)
+}
+
 // HostAgentServiceHandler is an implementation of the harness.relay.v1.HostAgentService service.
 type HostAgentServiceHandler interface {
 	// Says what this daemon is. Creates the host on the first call of a token made by `harness-client daemon login`.
@@ -900,6 +1016,13 @@ type HostAgentServiceHandler interface {
 	IssueMoveCredentials(context.Context, *connect.Request[v1.IssueMoveCredentialsRequest]) (*connect.Response[v1.IssueMoveCredentialsResponse], error)
 	// The laptop pushed the branch: the MOVE work goes to the queue.
 	QueueMovedWork(context.Context, *connect.Request[v1.QueueMovedWorkRequest]) (*connect.Response[v1.QueueMovedWorkResponse], error)
+	// Runner of cloud sessions: long poll with the list of its containers; says what to start and what to remove. Also the
+	// reconciler (docs/design/cloud-sessions.md, decision 4).
+	PollCloudRunner(context.Context, *connect.Request[v1.PollCloudRunnerRequest]) (*connect.Response[v1.PollCloudRunnerResponse], error)
+	// Runner: a fresh device token for a cloud session's container; the previous one stops working.
+	IssueCloudSessionToken(context.Context, *connect.Request[v1.IssueCloudSessionTokenRequest]) (*connect.Response[v1.IssueCloudSessionTokenResponse], error)
+	// Runner: what became of a container it was told to start or remove.
+	UpdateCloudSession(context.Context, *connect.Request[v1.UpdateCloudSessionRequest]) (*connect.Response[v1.UpdateCloudSessionResponse], error)
 }
 
 // NewHostAgentServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -969,6 +1092,24 @@ func NewHostAgentServiceHandler(svc HostAgentServiceHandler, opts ...connect.Han
 		connect.WithSchema(hostAgentServiceMethods.ByName("QueueMovedWork")),
 		connect.WithHandlerOptions(opts...),
 	)
+	hostAgentServicePollCloudRunnerHandler := connect.NewUnaryHandler(
+		HostAgentServicePollCloudRunnerProcedure,
+		svc.PollCloudRunner,
+		connect.WithSchema(hostAgentServiceMethods.ByName("PollCloudRunner")),
+		connect.WithHandlerOptions(opts...),
+	)
+	hostAgentServiceIssueCloudSessionTokenHandler := connect.NewUnaryHandler(
+		HostAgentServiceIssueCloudSessionTokenProcedure,
+		svc.IssueCloudSessionToken,
+		connect.WithSchema(hostAgentServiceMethods.ByName("IssueCloudSessionToken")),
+		connect.WithHandlerOptions(opts...),
+	)
+	hostAgentServiceUpdateCloudSessionHandler := connect.NewUnaryHandler(
+		HostAgentServiceUpdateCloudSessionProcedure,
+		svc.UpdateCloudSession,
+		connect.WithSchema(hostAgentServiceMethods.ByName("UpdateCloudSession")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.relay.v1.HostAgentService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case HostAgentServiceRegisterAgentHostProcedure:
@@ -991,6 +1132,12 @@ func NewHostAgentServiceHandler(svc HostAgentServiceHandler, opts ...connect.Han
 			hostAgentServiceIssueMoveCredentialsHandler.ServeHTTP(w, r)
 		case HostAgentServiceQueueMovedWorkProcedure:
 			hostAgentServiceQueueMovedWorkHandler.ServeHTTP(w, r)
+		case HostAgentServicePollCloudRunnerProcedure:
+			hostAgentServicePollCloudRunnerHandler.ServeHTTP(w, r)
+		case HostAgentServiceIssueCloudSessionTokenProcedure:
+			hostAgentServiceIssueCloudSessionTokenHandler.ServeHTTP(w, r)
+		case HostAgentServiceUpdateCloudSessionProcedure:
+			hostAgentServiceUpdateCloudSessionHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1038,4 +1185,16 @@ func (UnimplementedHostAgentServiceHandler) IssueMoveCredentials(context.Context
 
 func (UnimplementedHostAgentServiceHandler) QueueMovedWork(context.Context, *connect.Request[v1.QueueMovedWorkRequest]) (*connect.Response[v1.QueueMovedWorkResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostAgentService.QueueMovedWork is not implemented"))
+}
+
+func (UnimplementedHostAgentServiceHandler) PollCloudRunner(context.Context, *connect.Request[v1.PollCloudRunnerRequest]) (*connect.Response[v1.PollCloudRunnerResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostAgentService.PollCloudRunner is not implemented"))
+}
+
+func (UnimplementedHostAgentServiceHandler) IssueCloudSessionToken(context.Context, *connect.Request[v1.IssueCloudSessionTokenRequest]) (*connect.Response[v1.IssueCloudSessionTokenResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostAgentService.IssueCloudSessionToken is not implemented"))
+}
+
+func (UnimplementedHostAgentServiceHandler) UpdateCloudSession(context.Context, *connect.Request[v1.UpdateCloudSessionRequest]) (*connect.Response[v1.UpdateCloudSessionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.relay.v1.HostAgentService.UpdateCloudSession is not implemented"))
 }

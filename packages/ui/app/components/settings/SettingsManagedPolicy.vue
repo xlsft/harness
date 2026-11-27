@@ -23,6 +23,7 @@ const pluginsOn = ref('')
 const pluginsOff = ref('')
 const skillsAllowed = ref('')
 const skillsBlocked = ref('')
+const cloudEgress = ref('')
 const view = ref<ManagedPolicyView | null>(null)
 // Tool deferral: forced on, forced off, or each user's choice.
 const DEFER_CHOICES = [
@@ -56,6 +57,7 @@ function show(s: ManagedPolicyState) {
   pluginsOff.value = s.policy.blockedPlugins.join('\n')
   skillsAllowed.value = s.policy.allowedSkills.join('\n')
   skillsBlocked.value = s.policy.blockedSkills.join('\n')
+  cloudEgress.value = s.policy.cloudEgressAllow.join('\n')
 }
 
 onMounted(async () => {
@@ -84,7 +86,10 @@ async function save() {
       distributedPlugins: lines(pluginsOn.value),
       blockedPlugins: lines(pluginsOff.value),
       allowedSkills: lines(skillsAllowed.value),
-      blockedSkills: lines(skillsBlocked.value)
+      blockedSkills: lines(skillsBlocked.value),
+      cloudEgressAllow: lines(cloudEgress.value),
+      cloudMaxSessionsPerUser: Math.max(0, Math.round(Number(policy.value.cloudMaxSessionsPerUser) || 0)),
+      cloudMaxSessionsPerGroup: Math.max(0, Math.round(Number(policy.value.cloudMaxSessionsPerGroup) || 0))
     }))
     error.value = ''
     saved.value = true
@@ -259,6 +264,64 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
           :label="tt('Only hosts an admin registered')"
         />
       </div>
+
+      <h3 class="m-0 mt-2 text-[12.5px] font-semibold text-strong">
+        {{ tt('Cloud sessions') }}
+      </h3>
+      <div class="set-row">
+        <div class="set-label">
+          <span>{{ tt('No cloud sessions') }}</span>
+          <span class="set-desc">{{ tt('Nobody this policy is for starts a session on a cloud runner.') }}</span>
+        </div>
+        <HToggle
+          v-model="policy.cloudDisabled"
+          :disabled="!writable"
+          :label="tt('No cloud sessions')"
+        />
+      </div>
+      <div class="set-row">
+        <div class="set-label">
+          <span>{{ tt('Allow bypassPermissions in the cloud') }}</span>
+          <span class="set-desc">{{ tt('Off: a cloud session never runs without asking, whatever is chosen when it starts.') }}</span>
+        </div>
+        <HToggle
+          v-model="policy.cloudBypassPermissionsAllowed"
+          :disabled="!writable"
+          :label="tt('Allow bypassPermissions in the cloud')"
+        />
+      </div>
+      <div class="set-row">
+        <div class="set-label">
+          <span>{{ tt('Cloud sessions at once') }}</span>
+          <span class="set-desc">{{ tt('Containers that exist at once, per user and per group. 0: no limit.') }}</span>
+        </div>
+        <div class="flex gap-2">
+          <input
+            v-model.number="policy.cloudMaxSessionsPerUser"
+            type="number"
+            min="0"
+            :disabled="!writable"
+            :aria-label="tt('Per user')"
+            class="h-8 w-16 border border-accented bg-default px-2 text-[12px] text-strong outline-none focus:border-accent"
+          >
+          <input
+            v-model.number="policy.cloudMaxSessionsPerGroup"
+            type="number"
+            min="0"
+            :disabled="!writable"
+            :aria-label="tt('Per group')"
+            class="h-8 w-16 border border-accented bg-default px-2 text-[12px] text-strong outline-none focus:border-accent"
+          >
+        </div>
+      </div>
+      <label :class="label">
+        {{ tt('Hosts a cloud session may reach, one per line (example.com, *.example.com, example.com:8443). Empty: the package registries and your code hosts. Your server is always reachable.') }}
+        <textarea
+          v-model="cloudEgress"
+          :disabled="!writable"
+          :class="area"
+        />
+      </label>
 
       <h3 class="m-0 mt-2 text-[12.5px] font-semibold text-strong">
         {{ tt('MCP servers') }}

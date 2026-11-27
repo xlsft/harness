@@ -56,6 +56,7 @@ Usage:
   harness-client -p "<prompt>" [flags]  Run one headless turn
   harness-client ci <review|mention>    The PR review bot and the @mention trigger, for CI runners (docs/ci.md)
   harness-client daemon [help|...]      An always-on host: takes sessions, schedules and auto-fix jobs (docs/design/hosts.md)
+  harness-client runner [help|...]      A runner of cloud sessions: one container per session (docs/design/cloud-sessions.md)
   harness-client update [--check]       Replace this binary with the newest release (verified)
   harness-client plugin [help|...]      Install, approve and manage plugins and marketplaces
   harness-client version
@@ -114,6 +115,8 @@ func run(args []string) int {
 			return runInsights(args[1:])
 		case "daemon":
 			return runDaemon(ctx, args[1:])
+		case "runner":
+			return runRunner(ctx, args[1:])
 		case "version", "--version":
 			fmt.Println(config.UserAgent())
 			return 0

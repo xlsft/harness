@@ -75,6 +75,16 @@ message ManagedPolicy {
   int32 max_parallel_attempts = 361;
   // attemptBudgetUsd: what one attempt may spend; 0, no cap.
   double attempt_budget_usd = 362;
+  // Cloud sessions (docs/design/cloud-sessions.md), key "cloud" of the document. disabled: none for whom this targets.
+  bool cloud_disabled = 450;
+  // allowBypassPermissions: a cloud session may run in bypassPermissions. Off by default.
+  bool cloud_bypass_permissions_allowed = 451;
+  // egressAllow: the hosts a cloud session's container may reach, like the sandbox's allowed hosts ("*.example.com",
+  // "host:port"). Empty: the package registries and the code hosts of the server's connections.
+  repeated string cloud_egress_allow = 452;
+  // maxSessionsPerUser / maxSessionsPerGroup: containers that exist at once, per user and per directory group. 0: no limit.
+  int32 cloud_max_sessions_per_user = 453;
+  int32 cloud_max_sessions_per_group = 454;
 }
 
 message GetManagedPolicyRequest {}
