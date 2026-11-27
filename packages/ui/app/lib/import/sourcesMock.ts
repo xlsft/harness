@@ -9,6 +9,9 @@ const folderOnly = (id: string, name: string, logo: string, description: string)
   ({ id, name, logo, description, userLevel: false, folderLevel: true, detected: false, screen: '' })
 
 // As ListImportSources answers: the Claude Code imports first, then the engine's sources by name, Any folder last.
+const both = (id: string, name: string, logo: string, detected: boolean, description: string): ImportSourceInfo =>
+  ({ ...folderOnly(id, name, logo, description), userLevel: true, detected })
+
 export const MOCK_IMPORT_SOURCES: ImportSourceInfo[] = [
   { id: 'claude-code', name: 'Claude Code', logo: 'claude', userLevel: true, folderLevel: false, detected: true, screen: 'claude-code', description: tt('Memory, rules, settings, skills, agents, commands, output styles, workflows, MCP servers and sessions on this computer.') },
   { id: 'claude-project', name: 'A folder\'s Claude Code files', logo: 'claude', userLevel: false, folderLevel: true, detected: false, screen: 'claude-project', description: tt('CLAUDE.md and what is under .claude, into the folder\'s AGENTS.md and .harness.') },
@@ -16,14 +19,15 @@ export const MOCK_IMPORT_SOURCES: ImportSourceInfo[] = [
   { id: 'claude-desktop', name: 'Claude Desktop', logo: 'claude', userLevel: true, folderLevel: false, detected: true, screen: '', description: tt('MCP servers from claude_desktop_config.json, added on this device.') },
   folderOnly('cline', 'Cline', 'cline', 'A folder\'s Cline rules.'),
   folderOnly('continue', 'Continue', 'continue', 'A folder\'s Continue rules.'),
-  folderOnly('cursor', 'Cursor', 'cursor', 'A folder\'s Cursor rules, .cursorrules and .cursor/mcp.json.'),
-  folderOnly('gemini', 'Gemini CLI', 'gemini', 'A folder\'s GEMINI.md files and .gemini/settings.json MCP servers.'),
-  folderOnly('copilot', 'GitHub Copilot', 'github', 'A folder\'s Copilot instructions and .vscode/mcp.json.'),
+  both('cursor', 'Cursor', 'cursor', true, 'MCP servers and skills from ~/.cursor; a folder\'s Cursor rules, .cursorrules and .cursor/mcp.json.'),
+  both('codex', 'Codex CLI', 'codex', true, 'AGENTS.md, MCP servers, custom prompts, agents and skills from ~/.codex; a folder\'s AGENTS.override.md.'),
+  both('gemini', 'Gemini CLI', 'gemini', false, 'GEMINI.md, MCP servers, commands, agents, skills and extensions from ~/.gemini; a folder\'s GEMINI.md files and .gemini/settings.json.'),
+  both('copilot', 'GitHub Copilot', 'github', false, 'Instructions, prompts, agents, skills and MCP servers from ~/.copilot and VS Code\'s user data; a folder\'s Copilot instructions and .vscode/mcp.json.'),
   folderOnly('junie', 'Junie', 'junie', 'A folder\'s Junie guidelines.'),
   folderOnly('kilo', 'Kilo Code', 'kilo', 'A folder\'s Kilo Code rules.'),
   folderOnly('kiro', 'Kiro', 'kiro', 'A folder\'s Kiro steering files.'),
   folderOnly('roo', 'Roo Code', 'roo', 'A folder\'s Roo Code rules.'),
-  folderOnly('windsurf', 'Windsurf', 'windsurf', 'A folder\'s Windsurf rules and .windsurfrules.'),
+  both('windsurf', 'Windsurf', 'windsurf', false, 'Global rules, rules, skills, MCP servers and workflows of Windsurf and Devin Desktop; a folder\'s Windsurf rules and .windsurfrules.'),
   folderOnly('zed', 'Zed', 'zed', 'A folder\'s .rules file.'),
   folderOnly('folder', 'Any folder', '', 'Every other tool\'s instructions, rules and MCP configs in a folder, in one pass.')
 ]
@@ -53,7 +57,17 @@ const FOLDER: SourceItem[] = [
   it({ kind: 'rule', name: 'style', source: '.windsurf/rules/style.md', target: '.harness/rules/style.md', note: 'Windsurf used it when it judged it relevant; here it always applies' })
 ]
 
-const ITEMS: Record<string, SourceItem[]> = { 'claude-desktop': DESKTOP, 'folder': FOLDER, 'cursor': FOLDER.filter(i => i.source.startsWith('.cursor')) }
+const CODEX: SourceItem[] = [
+  it({ kind: 'instructions', name: 'AGENTS.md', source: '~/.codex/AGENTS.md', target: 'rule codex/AGENTS.md' }),
+  it({ kind: 'mcp', name: 'docs', source: '~/.codex/config.toml', target: 'MCP server docs on this device', hasSecrets: true }),
+  it({ kind: 'command', name: 'draftpr', source: '~/.codex/prompts/draftpr.md', target: 'command draftpr', note: 'Codex took FILES as KEY=value; here they are given in order' }),
+  it({ kind: 'agent', name: 'reviewer', source: '~/.codex/agents/reviewer.toml', target: 'agent reviewer' }),
+  it({ kind: 'skill', name: 'review', source: '~/.agents/skills/review', target: 'skill review' }),
+  it({ kind: 'settings', name: 'Codex settings', source: '~/.codex/config.toml', status: 'noted', note: 'model = gpt-6: models and permission modes are chosen in Settings' }),
+  it({ kind: 'session', name: 'Codex sessions', source: '~/.codex/sessions', status: 'noted', note: '12 session(s); sessions from this tool are not imported yet' })
+]
+
+const ITEMS: Record<string, SourceItem[]> = { 'claude-desktop': DESKTOP, 'folder': FOLDER, 'cursor': FOLDER.filter(i => i.source.startsWith('.cursor')), 'codex': CODEX }
 
 export interface MockImportSourcesOptions {
   // Delay per item; 0 runs it on microtasks (tests).

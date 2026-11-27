@@ -1,0 +1,5 @@
+{
+  // comment
+  "context": {"fileName": ["GEMINI.md", "TEAM.md"]},
+  "mcpServers": {"weather": {"url": "https://w.example.com/sse"}, "api": {"httpUrl": "https://api.example.com/mcp"}}
+}

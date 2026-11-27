@@ -278,7 +278,7 @@ func TestToolFolderSource(t *testing.T) {
 	if len(scan.Items) != 4 {
 		t.Errorf("cursor items: %+v", scan.Items)
 	}
-	if _, err := importer.ScanSource(context.Background(), Get("cursor"), "", importer.EngineOptions{}); err == nil {
+	if _, err := importer.ScanSource(context.Background(), Get("kiro"), "", importer.EngineOptions{}); err == nil {
 		t.Error("a folder-only source must ask for a folder")
 	}
 }
@@ -288,5 +288,179 @@ func TestStripJSONC(t *testing.T) {
 }`
 	if got := string(stripJSONC([]byte(in))); strings.Contains(got, "/* c */") || !strings.Contains(got, "x // not a comment") || strings.Contains(got, "2,]") {
 		t.Errorf("%s", got)
+	}
+}
+
+// userScan scans one source's user level in testdata/user.
+func userScan(t *testing.T, id string) map[string]importer.SourceItem {
+	t.Helper()
+	home, err := filepath.Abs(filepath.Join("testdata", "user"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	scan, err := importer.ScanSource(context.Background(), Get(id), "", importer.EngineOptions{Env: importer.Env{Home: home, GOOS: "darwin"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := map[string]importer.SourceItem{}
+	for _, it := range scan.Items {
+		out[string(it.Kind)+"/"+it.Name] = it
+	}
+	return out
+}
+
+// userFound reads one source's user level in testdata/user, as the reader returns it.
+func userFound(t *testing.T, id string) map[string]importer.Found {
+	t.Helper()
+	home, err := filepath.Abs(filepath.Join("testdata", "user"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	found, err := Get(id).ScanUser(context.Background(), importer.Env{Home: home, GOOS: "darwin"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := map[string]importer.Found{}
+	for _, f := range found {
+		out[string(f.Kind)+"/"+f.Name] = f
+	}
+	return out
+}
+
+func want(t *testing.T, found map[string]importer.Found, key string) importer.Found {
+	t.Helper()
+	f, ok := found[key]
+	if !ok {
+		keys := make([]string, 0, len(found))
+		for k := range found {
+			keys = append(keys, k)
+		}
+		t.Fatalf("no %s in %v", key, keys)
+	}
+	return f
+}
+
+func TestCodexUser(t *testing.T) {
+	f := userFound(t, "codex")
+	if s := want(t, f, "instructions/AGENTS.md").Text; s != "Use pnpm." {
+		t.Errorf("override not preferred: %q", s)
+	}
+	docs := want(t, f, "mcp/docs").MCP
+	if docs.Command != "npx" || docs.Env["DOCS_KEY"] != "test-token-value" || docs.Env["HOME_TOKEN"] != "${HOME_TOKEN}" || docs.Env["OTHER"] != "${OTHER}" {
+		t.Errorf("docs: %+v", docs)
+	}
+	remote := want(t, f, "mcp/remote")
+	if !remote.MCP.Disabled || remote.MCP.Headers["Authorization"] != "Bearer ${REMOTE_TOKEN}" || remote.MCP.Headers["X-Team"] != "${TEAM_ID}" || !strings.Contains(remote.Note, "search") {
+		t.Errorf("remote: %+v %s", remote.MCP, remote.Note)
+	}
+	if n := want(t, f, "settings/Codex settings").Note; !strings.Contains(n, "gpt-6") || !strings.Contains(n, "on-request") {
+		t.Errorf("settings note: %s", n)
+	}
+	want(t, f, "settings/Codex profile fast")
+	pr := want(t, f, "command/draftpr")
+	if !strings.Contains(pr.Text, "arguments:\n  - FILES") || !strings.Contains(pr.Text, "cost $5") || !strings.Contains(pr.Text, "description: Draft a PR") {
+		t.Errorf("prompt: %s", pr.Text)
+	}
+	if _, ok := f["command/nested/skip"]; ok {
+		t.Error("a nested prompt was read")
+	}
+	if a := want(t, f, "agent/reviewer"); !strings.Contains(a.Text, "Review carefully.") || !strings.Contains(a.Text, "description: Reviews diffs") {
+		t.Errorf("agent: %s", a.Text)
+	}
+	sk := want(t, f, "skill/review")
+	if len(sk.Files) != 1 || !sk.Files[0].Executable {
+		t.Errorf("skill files: %+v", sk.Files)
+	}
+	if _, ok := f["skill/.system"]; ok {
+		t.Error("the bundled skills were read")
+	}
+	if s := want(t, f, "session/Codex sessions"); !strings.Contains(s.Note, "1 session") {
+		t.Errorf("sessions: %s", s.Note)
+	}
+	for k, v := range f {
+		if strings.Contains(v.Text, "never-read") || strings.Contains(k, "auth") {
+			t.Errorf("auth.json was read: %s", k)
+		}
+	}
+	scan := userScan(t, "codex")
+	if it := scan["mcp/docs"]; it.Status != importer.StatusPlanned && !it.HasSecrets {
+		t.Errorf("docs scan: %+v", it)
+	}
+}
+
+func TestGeminiUser(t *testing.T) {
+	f := userFound(t, "gemini")
+	want(t, f, "instructions/GEMINI.md")
+	want(t, f, "instructions/TEAM.md")
+	if m := want(t, f, "mcp/weather").MCP; m.Transport != "sse" {
+		t.Errorf("weather: %+v", m)
+	}
+	if m := want(t, f, "mcp/api").MCP; m.Transport != "http" {
+		t.Errorf("api: %+v", m)
+	}
+	c := want(t, f, "command/git:commit")
+	if !strings.Contains(c.Text, "for $ARGUMENTS.") || !strings.Contains(c.Text, "!`git diff --staged`") || !strings.Contains(c.Text, "@{README.md}") || !strings.Contains(c.Note, "@{") {
+		t.Errorf("commit: %s / %s", c.Text, c.Note)
+	}
+	want(t, f, "command/plan")
+	if e := want(t, f, "command/tools.plan"); !strings.Contains(e.Text, "Extension plan $ARGUMENTS") {
+		t.Errorf("extension command: %s", e.Text)
+	}
+	if m := want(t, f, "mcp/local").MCP; !strings.HasSuffix(m.Args[0], "extensions/tools/server.js") || strings.Contains(m.Args[0], "${") {
+		t.Errorf("extension path: %+v", m.Args)
+	}
+	want(t, f, "instructions/tools/GEMINI.md")
+	want(t, f, "settings/tools TOOLS_KEY")
+	want(t, f, "agent/scout")
+	want(t, f, "skill/deploy")
+}
+
+func TestCursorUser(t *testing.T) {
+	f := userFound(t, "cursor")
+	if m := want(t, f, "mcp/linear").MCP; m.URL != "https://mcp.linear.app/sse" {
+		t.Errorf("linear: %+v", m)
+	}
+	want(t, f, "skill/notes")
+	if r := want(t, f, "instructions/User Rules"); r.Status != importer.StatusNoted {
+		t.Errorf("user rules: %+v", r)
+	}
+}
+
+func TestCopilotUser(t *testing.T) {
+	f := userFound(t, "copilot")
+	want(t, f, "instructions/copilot-instructions.md")
+	if r := want(t, f, "rule/go/style"); !strings.Contains(r.Text, `"**/*.go"`) {
+		t.Errorf("rule: %s", r.Text)
+	}
+	if a := want(t, f, "agent/planner"); strings.Contains(a.Text, "tools") || a.Note == "" {
+		t.Errorf("agent: %s / %s", a.Text, a.Note)
+	}
+	want(t, f, "mcp/gh")
+	if p := want(t, f, "command/review"); !strings.Contains(p.Text, "Review $ARGUMENTS in ${file}") || !strings.Contains(p.Note, "mode") {
+		t.Errorf("review: %s / %s", p.Text, p.Note)
+	}
+	if p := want(t, f, "command/pair"); !strings.Contains(p.Text, "Compare $a with $b") || !strings.Contains(p.Text, "arguments:\n  - a\n  - b") {
+		t.Errorf("pair: %s", p.Text)
+	}
+	want(t, f, "rule/ts")
+	want(t, f, "agent/old")
+	if m := want(t, f, "mcp/db").MCP; m.Env["PASS"] != "${input:db-pass}" {
+		t.Errorf("db: %+v", m)
+	}
+}
+
+func TestWindsurfUser(t *testing.T) {
+	f := userFound(t, "windsurf")
+	if g := want(t, f, "instructions/global_rules.md"); g.Text != "Windsurf global" {
+		t.Errorf("global: %q", g.Text)
+	}
+	if r := want(t, f, "rule/tests"); !strings.Contains(r.Text, `"**/*.test.ts"`) {
+		t.Errorf("rule: %s", r.Text)
+	}
+	if m := want(t, f, "mcp/search").MCP; m.URL != "https://s.example.com/mcp" {
+		t.Errorf("search: %+v", m)
+	}
+	if w := want(t, f, "command/release"); !strings.Contains(w.Text, "description: Ship it") {
+		t.Errorf("workflow: %s", w.Text)
 	}
 }

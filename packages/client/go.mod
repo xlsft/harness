@@ -4,6 +4,7 @@ go 1.26.3
 
 require (
 	connectrpc.com/connect v1.21.1
+	github.com/BurntSushi/toml v1.5.0
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.0
 	github.com/UserExistsError/conpty v0.1.4
 	github.com/bmatcuk/doublestar/v4 v4.10.4

@@ -1,0 +1,15 @@
+model = "gpt-6"
+approval_policy = "on-request"
+
+[mcp_servers.docs]
+command = "npx"
+args = ["-y", "docs-mcp"]
+env = { DOCS_KEY = "test-token-value" }
+env_vars = ["HOME_TOKEN", { name = "OTHER", source = "local" }]
+
+[mcp_servers.remote]
+url = "https://mcp.example.com/mcp"
+bearer_token_env_var = "REMOTE_TOKEN"
+env_http_headers = { "X-Team" = "TEAM_ID" }
+enabled = false
+enabled_tools = ["search"]

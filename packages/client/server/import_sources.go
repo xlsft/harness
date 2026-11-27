@@ -28,7 +28,8 @@ func importerEnv() (importer.Env, error) {
 	if err != nil {
 		return importer.Env{}, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no home directory: %w", err))
 	}
-	return importer.Env{Home: home, GOOS: runtime.GOOS, AppData: os.Getenv("APPDATA"), ConfigHome: os.Getenv("XDG_CONFIG_HOME")}, nil
+	return importer.Env{Home: home, GOOS: runtime.GOOS, AppData: os.Getenv("APPDATA"), ConfigHome: os.Getenv("XDG_CONFIG_HOME"),
+		CodexHome: os.Getenv("CODEX_HOME"), CopilotHome: os.Getenv("COPILOT_HOME")}, nil
 }
 
 // importMCPTarget is where imported MCP servers go: this device's own list.

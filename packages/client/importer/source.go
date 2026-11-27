@@ -84,6 +84,26 @@ type Env struct {
 	AppData string
 	// ConfigHome is $XDG_CONFIG_HOME on Linux; default Home/.config.
 	ConfigHome string
+	// CodexHome is $CODEX_HOME; default Home/.codex.
+	CodexHome string
+	// CopilotHome is $COPILOT_HOME; default Home/.copilot.
+	CopilotHome string
+}
+
+// Codex is Codex CLI's home folder.
+func (e Env) Codex() string {
+	if e.CodexHome != "" {
+		return e.CodexHome
+	}
+	return filepath.Join(e.Home, ".codex")
+}
+
+// Copilot is GitHub Copilot's user folder.
+func (e Env) Copilot() string {
+	if e.CopilotHome != "" {
+		return e.CopilotHome
+	}
+	return filepath.Join(e.Home, ".copilot")
 }
 
 // UserConfigDir is the per-user application config folder of the OS: ~/Library/Application Support on macOS,
@@ -98,6 +118,15 @@ func (e Env) UserConfigDir() string {
 		}
 		return filepath.Join(e.Home, "AppData", "Roaming")
 	}
+	if e.ConfigHome != "" {
+		return e.ConfigHome
+	}
+	return filepath.Join(e.Home, ".config")
+}
+
+// UserConfigDirXDG is ~/.config (or $XDG_CONFIG_HOME) on every system: where CLI tools keep their files, macOS
+// included.
+func (e Env) UserConfigDirXDG() string {
 	if e.ConfigHome != "" {
 		return e.ConfigHome
 	}

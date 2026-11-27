@@ -1,0 +1,1 @@
+{"servers": {"db": {"type": "stdio", "command": "db-mcp", "env": {"PASS": "${input:db-pass}"}}}, "inputs": []}

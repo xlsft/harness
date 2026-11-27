@@ -1,0 +1,4 @@
+description = "Commit"
+prompt = """Write a commit for {{args}}.
+Diff: !{git diff --staged}
+See @{README.md}"""

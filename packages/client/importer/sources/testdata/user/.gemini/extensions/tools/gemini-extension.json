@@ -1,0 +1,1 @@
+{"name":"tools","mcpServers":{"local":{"command":"node","args":["${extensionPath}${/}server.js"]}},"settings":[{"name":"Key","envVar":"TOOLS_KEY","sensitive":true}]}

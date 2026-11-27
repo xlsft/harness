@@ -53,7 +53,7 @@ describe('import sources', () => {
 
   it('mock: a folder source asks for a folder, and a run marks what it brought', async () => {
     const api = new MockImportSourcesApi({ tick: 0 })
-    await expect(api.scan('cursor')).rejects.toThrow(/folder/)
+    await expect(api.scan('kiro')).rejects.toThrow(/folder/)
     const scan = await api.scan('claude-desktop')
     const ids = [...defaultChoice(scan.items)]
     const progress: number[] = []

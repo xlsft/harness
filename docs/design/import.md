@@ -232,10 +232,28 @@ A reader with a different shape (sessions, a SQLite store) implements `importer.
 - [ ] Fixture tests under `testdata`; no test reads the real home or runs an import against it.
 - [ ] `gofmt`, `go vet`, `go test ./importer/...`.
 
+### User-level readers
+
+User-level helpers live in `importer/sources/user.go` (`readUser`, `userInstructions`, `userMCP`, `userMarkdown`,
+`userSkills`, `frontmatter`): every file is bounded in size and read without following links. `~/.agents/skills` is
+read by the Codex reader only, although Cursor, Gemini CLI and Devin read it too, so it is not imported three times.
+
+| Tool | Read from | Becomes |
+| --- | --- | --- |
+| Codex CLI | `$CODEX_HOME` (`~/.codex`): `AGENTS.override.md` else `AGENTS.md`; `config.toml` `[mcp_servers.*]` (`env_vars`, `bearer_token_env_var`, `env_http_headers` become `${VAR}`); `prompts/*.md` (top level); `agents/*.toml`; `~/.agents/skills` | instructions, MCP, commands (`$$` → `$`, named `$UPPER` → `arguments:`), agents (`developer_instructions` is the body), skills. `model`, `approval_policy`, `sandbox_mode`, `model_reasoning_effort` and `<name>.config.toml` profiles are listed to set by hand. Sessions are counted and listed. `auth.json` is never read |
+| Gemini CLI | `~/.gemini`: `settings.json` (`context.fileName`, `mcpServers`), the context files, `commands/**/*.toml`, `agents/*.md`, `skills/`, `extensions/*/gemini-extension.json` | instructions, MCP (bare `url` is SSE), commands (`git/commit.toml` → `git:commit`; `{{args}}` → `$ARGUMENTS`, `!{cmd}` → `` !`cmd` ``, `@{path}` kept with a note), agents, skills. Extensions: MCP with `${extensionPath}` expanded, context file, commands (prefixed `<ext>.` on a clash), `settings[].envVar` listed |
+| Cursor | `~/.cursor/mcp.json`, `~/.cursor/skills/` | MCP, skills. User Rules live in Cursor's settings: listed to copy by hand |
+| GitHub Copilot | `$COPILOT_HOME` (`~/.copilot`): `copilot-instructions.md`, `instructions/**/*.instructions.md`, `agents/*.agent.md`, `skills/`, `mcp-config.json`. VS Code user data (`Code[ - Insiders]/User` and each `profiles/<id>`): `prompts/*.prompt.md`, `*.instructions.md`, `*.agent.md`, `*.chatmode.md`, `mcp.json` (`servers`) | instructions, rules (`applyTo` → `paths`), agents (tools and model left out), skills, commands (one `${input:x}` → `$ARGUMENTS`, several → named arguments; `${file}` and the like kept with a note), MCP (`${input:id}` are secret references) |
+| Windsurf / Devin Desktop | `~/.devin/global_rules.md`, else `~/.windsurf/global_rules.md`, else `~/.codeium/windsurf/memories/global_rules.md`; `~/.devin/rules`, `~/.windsurf/rules`; `~/.config/devin/skills`, `~/.codeium/windsurf/skills`; `~/.config/devin/mcp_config.json`, else `~/.codeium/windsurf/mcp_config.json`; `~/.codeium/windsurf/global_workflows/*.md` | instructions, rules (trigger as in a folder), skills, MCP (`serverUrl` is HTTP), commands (workflows) |
+
+Sources: the URLs in each reader's header comment (checked 2026-11-27).
+
 ### Not done yet
 
-- User-level readers for Codex CLI, Gemini CLI, Cursor, Copilot, Windsurf, Cline, Roo/Kilo, Kiro, OpenCode, Continue,
-  Zed and Junie (their folder patterns are in place, except Codex and OpenCode, whose project instructions are AGENTS.md).
-- Sessions from other tools (`KindSession` is listed as manual).
+- User-level readers for Cline, Roo/Kilo, Kiro, OpenCode, Continue, Zed and Junie (their folder patterns are in place,
+  except OpenCode, whose project instructions are AGENTS.md).
+- Sessions from other tools (`KindSession` is listed as manual). Codex rollouts are counted; converting them needs the
+  engine's session support (`Found.Session`, mtime-based status, upload queue), see
+  `docs/handoff/worktree-agent-a9355fb33803dac6b.md`.
 - User-level settings mapping (listed as manual).
 - When the registry is unreachable, MCP names are checked against this device's servers only.

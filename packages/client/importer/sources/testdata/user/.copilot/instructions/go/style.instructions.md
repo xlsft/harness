@@ -1,0 +1,4 @@
+---
+applyTo: "**/*.go"
+---
+Go style
