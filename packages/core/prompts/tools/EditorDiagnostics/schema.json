@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "description": "One file to ask about, absolute or relative to the working directory. Leave out for every file."
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["error", "warning", "information", "hint"],
+      "description": "The least severe level to list. Default information."
+    }
+  },
+  "additionalProperties": false
+}

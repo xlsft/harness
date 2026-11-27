@@ -23,6 +23,8 @@ Transport, from runtime config:
 | `NUXT_PUBLIC_AGENT_URL` | — | AgentService base URL for `connect` |
 | `NUXT_PUBLIC_AGENT_TOKEN` | — | Bearer token of the client; an `?agentToken=` query parameter overrides it for the tab |
 
+In an editor extension (`packages/vscode`), the page gets its endpoint from `window.__HARNESS_IDE__` instead (`lib/ide.ts`), and a build with `HARNESS_UI_TARGET=ide` routes by hash and asks nothing of a server.
+
 Generated code (`app/gen`) comes from the root `buf.gen.yaml` (`buf generate` at the repository root, after `pnpm install` here for `protoc-gen-es`).
 
 ## Running against a real client

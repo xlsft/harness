@@ -205,6 +205,11 @@ type Settings struct {
 	LSPEnabled                bool
 	LSPDiagnostics            bool
 	LSPDiagnosticsStartServer bool
+	// IDEDiffs opens a file tool's prompt in an attached editor's diff too (ideDiffs, default true); IDEReviewAllEdits holds
+	// edits that would not ask for that diff as well (ideReviewAllEdits, default false). Per-user preferences, see
+	// UserPreferences; a project file can only turn them off.
+	IDEDiffs          bool
+	IDEReviewAllEdits bool
 	// LSPServers are command overrides and added languages by language id (lspServers). A project file's entries apply
 	// only in a trusted workspace: a repository must not choose a binary that runs on open.
 	LSPServers  map[string]LSPServer
@@ -391,6 +396,12 @@ const (
 	KeyLSPServers                = "lspServers"
 )
 
+// The settings keys of the editor integration.
+const (
+	KeyIDEDiffs          = "ideDiffs"
+	KeyIDEReviewAllEdits = "ideReviewAllEdits"
+)
+
 // KeyRemoteControl is the settings key of the remote control default (true when absent): false keeps new and
 // resumed sessions off the relay until the session switch turns it on; false in a policy document turns it off
 // for good (Settings.RemoteControlPolicyOff).
@@ -425,6 +436,7 @@ type layer struct {
 	projectOff                                    bool
 	includeGit, interruptReply, compactIdle       *bool
 	lspEnabled, lspDiagnostics, lspStartServer    *bool
+	ideDiffs, ideReviewAll                        *bool
 	speedTier, cacheTTL, advisorModel, imageModel *string
 	autoMemory, deferTools                        *bool
 	lspServers                                    map[string]LSPServer
@@ -463,7 +475,7 @@ func Load(ctx context.Context, o Options) (*Settings, error) {
 	}
 	s := &Settings{Trusted: o.Trusted, Env: map[string]string{}, Raw: map[string]json.RawMessage{},
 		CleanupPeriodDays: DefaultCleanupPeriodDays, IncludeGitInstructions: true, InterruptReply: true,
-		CompactIdleSessions: true, AutoMemoryEnabled: true, DeferBuiltinTools: true, LSPEnabled: true, LSPDiagnostics: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
+		CompactIdleSessions: true, AutoMemoryEnabled: true, DeferBuiltinTools: true, LSPEnabled: true, LSPDiagnostics: true, IDEDiffs: true, PRMonitorWakesPerHour: DefaultPRMonitorWakesPerHour,
 		SubagentMaxDepth: DefaultSubagentMaxDepth, SubagentMaxRunning: DefaultSubagentMaxRunning, WorkflowMaxAgents: DefaultWorkflowMaxAgents, GoalMaxTurns: DefaultGoalMaxTurns,
 		ProjectMaxWorkers: DefaultProjectMaxWorkers, Sandbox: Sandbox{Enabled: true, AllowLocalhost: true}}
 	var layers []*layer // highest precedence first

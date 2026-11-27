@@ -40,7 +40,7 @@ describe("bundle builder", () => {
       "Advisor", "Agent", "ArtifactPublish", "AskUserQuestion", "Bash", "BrowserClick", "BrowserConsole", "BrowserEval", "BrowserKey", "BrowserNavigate", "BrowserNetwork", "BrowserRecord",
       "BrowserScreenshot", "BrowserScroll", "BrowserSnapshot", "BrowserTabs", "BrowserType", "BrowserWait", "ChangeDirectory", "ComputerAccess", "ComputerActivate",
       "ComputerApps", "ComputerBatch", "ComputerClick", "ComputerDrag", "ComputerFind", "ComputerKey", "ComputerMenu", "ComputerScreenshot", "ComputerScroll",
-      "ComputerType", "DemoRecording", "DemoSkillSave", "DocumentEdit", "DocumentRead", "Edit", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "ImageGenerate", "Issues", "KeepAwake",
+      "ComputerType", "DemoRecording", "DemoSkillSave", "DocumentEdit", "DocumentRead", "Edit", "EditorDiagnostics", "EnterPlanMode", "EnterWorktree", "ExitPlanMode", "ExitWorktree", "Glob", "Grep", "ImageGenerate", "Issues", "KeepAwake",
       "KnowledgeRead", "KnowledgeSearch", "LS", "LSP", "ListAgents", "ListMcpResources", "MarkChapter", "McpAuthenticate", "Memory", "Monitor", "MultiEdit", "NotebookEdit",
       "NotebookRun", "OpenInEditor", "PowerShell", "PrAutoMerge", "PrBind", "PrMonitor", "PrStatus", "PrUnbind", "PreviewList", "PreviewLogs", "PreviewStart", "PreviewStop",
       "ProjectFinish", "ProjectStatus", "ProjectWorkerMerge", "ProjectWorkerStart", "ProposeBranch", "PushNotification", "Read", "ReadMcpResource", "ReadNotifications", "ReportFindings", "RequestDirectory", "RevealPath", "ScheduleCancel", "ScheduleList", "ScheduleWakeup", "SendMessage",

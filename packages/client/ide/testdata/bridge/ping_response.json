@@ -1,0 +1,7 @@
+{
+  "name": "Visual Studio Code",
+  "version": "1.100.0",
+  "workspaceFolders": [
+    "/repo"
+  ]
+}

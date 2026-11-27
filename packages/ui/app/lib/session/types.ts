@@ -679,6 +679,8 @@ export interface SessionState {
   hostWork: { branch: string, pullRequestUrl: string, error: string } | null
   // The last run of the test command of a best-of-N attempt (AttemptChecked).
   attemptCheck: AttemptCheckVM | null
+  /** A file tool's change waiting in the user's editor (packages/vscode); not kept across a reload. */
+  editorReview: { path: string, editor: string } | null
   // The session's runs of the Workflow tool (WorkflowUpdated), oldest first.
   workflows: Record<string, WorkflowVM>
   workflowOrder: string[]

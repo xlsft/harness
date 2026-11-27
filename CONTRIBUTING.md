@@ -11,6 +11,7 @@ A monorepo **without monorepo tooling**: every package builds on its own. Packag
 | `packages/cli` | Terminal frontend | Go 1.26, charm.land |
 | `packages/ui` | Desktop / mobile frontend | Node 24, pnpm, Nuxt 4 |
 | `packages/sdk-ts` | TypeScript SDK over headless `harness-client` | Node 24, no dependencies |
+| `packages/vscode` | Extension for VS Code and compatible editors; the design is in [docs/design/ide.md](docs/design/ide.md) | Node 24, pnpm, no runtime dependencies |
 | `ci/` | GitHub Action and GitLab CI template running `harness-client ci` | — |
 | `proto/` | RPC contracts (buf module) | buf |
 | `evals/` | Model eval suite | Go |

@@ -2,6 +2,7 @@
 // The web UI connects as configured (mock or a client URL). In the desktop shell it first checks the sign-in
 // with the shell, then asks it for the sidecar's endpoint (lib/desktop.ts).
 import { agentEndpoint, authStatus, guardQuit, isDesktop } from '~/lib/desktop'
+import { ideHost } from '~/lib/ide'
 import { ConnectTransport } from '~/lib/transport'
 import { browserClientEndpoint, forgetClientEndpoint } from '~/lib/web/endpoint'
 
@@ -19,7 +20,8 @@ useScreenReader().start()
 useHead({ htmlAttrs: { lang: currentLocale() } })
 const config = useRuntimeConfig()
 // Served by the server itself: a client to connect to, or the console for what needs none (components/WebConsole.vue).
-const web = !desktop && String(config.public.transport) === 'web'
+const ide = ideHost()
+const web = !desktop && !ide && String(config.public.transport) === 'web'
 const phase = ref<'checking' | 'signin' | 'ready' | 'web'>(desktop ? 'checking' : 'ready')
 const webError = ref('')
 
@@ -89,6 +91,10 @@ if (desktop) {
       }
     }
   }
+} else if (ide) {
+  // In an editor: the extension started or found the client and put its endpoint in the page.
+  await store.init(new ConnectTransport(ide.url, ide.token))
+  useIdeHost()
 } else {
   await store.init()
 }

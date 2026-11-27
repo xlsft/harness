@@ -141,6 +141,8 @@ type Env struct {
 	BeforeEditChecked func(path string) error
 	// Edits hears about files after the file tools wrote them (nil: nobody does).
 	Edits EditWatcher
+	// Editor is the extension of the editor the session runs under, when the integration is on (nil otherwise).
+	Editor EditorOpener
 	// Skills runs the skills of the Skill tool (nil: none).
 	Skills SkillRunner
 	// Agents is the session's set of subagents (nil disables the agent tools); AgentID is the subagent this Env
@@ -303,6 +305,13 @@ func (e *Env) afterEdit(ctx context.Context, path string) {
 	if e.Edits != nil {
 		e.Edits.FileEdited(ctx, e, path)
 	}
+}
+
+// EditorOpener opens files in the editor the session runs under.
+type EditorOpener interface {
+	// OpenInEditor opens path at line (0: wherever it was). attached is false when no editor answers for this session;
+	// name is what it calls itself.
+	OpenInEditor(ctx context.Context, path string, line int) (name string, attached bool, err error)
 }
 
 // Host is the session side of tools that change session state: permission

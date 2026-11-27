@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/xlsft/harness/packages/client/config"
+	"github.com/xlsft/harness/packages/client/origins"
 	"github.com/xlsft/harness/packages/client/server"
 )
 
@@ -45,6 +46,9 @@ func (t *tcpFlags) validate(socket string) error {
 	}
 	if *t.listen == "" {
 		return nil
+	}
+	if err := origins.Validate(t.origins()); err != nil {
+		return fmt.Errorf("--cors-origin: %w", err)
 	}
 	loopback, err := server.IsLoopbackAddr(*t.listen)
 	if err != nil {
@@ -84,6 +88,11 @@ func (t *tcpFlags) origins() []string {
 
 // tokenFile is where a generated token is written for local frontends.
 func tokenFile() string { return filepath.Join(config.Home(), "agent-token") }
+
+// endpointFile says where the client with a generated token listens, so that an editor can find it. The token stays in
+// tokenFile. A client given its token (the desktop app's, an editor's own) belongs to whoever started it and is not
+// announced.
+func endpointFile() string { return filepath.Join(config.Home(), "agent-endpoint") }
 
 // serveListeners serves srv on the unix socket and/or the TCP address until
 // ctx ends or one of them fails.
@@ -145,7 +154,12 @@ func (t *tcpFlags) options() (server.TCPOptions, func(), error) {
 		if err := server.WriteTokenFile(path, token); err != nil {
 			return server.TCPOptions{}, cleanup, fmt.Errorf("write token file: %w", err)
 		}
-		cleanup = func() { removeIfContains(path, token) }
+		cleanup = func() {
+			if data, err := os.ReadFile(path); err == nil && strings.TrimSpace(string(data)) == token {
+				_ = os.Remove(endpointFile())
+			}
+			removeIfContains(path, token)
+		}
 	}
 	origins := t.origins()
 	opts := server.TCPOptions{
@@ -156,6 +170,11 @@ func (t *tcpFlags) options() (server.TCPOptions, func(), error) {
 	}
 	opts.OnListen = func(addr net.Addr) {
 		url := "http://" + addr.String()
+		if generated {
+			if err := server.WriteTokenFile(endpointFile(), url); err != nil {
+				fmt.Fprintf(os.Stderr, "harness-client: could not announce the endpoint: %v\n", err)
+			}
+		}
 		if loopback, _ := server.IsLoopbackAddr(addr.String()); !loopback {
 			fmt.Fprintln(os.Stderr, "WARNING: ==================================================================")
 			fmt.Fprintf(os.Stderr, "WARNING: AgentService is listening on a NON-LOOPBACK address (%s).\n", addr)

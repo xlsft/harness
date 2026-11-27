@@ -10,6 +10,8 @@ All interaction between harness components goes over **gRPC-compatible RPC defin
 | `harness.llm.v1.GatewayService` | [gateway.proto](../../proto/harness/llm/v1/gateway.proto), [content.proto](../../proto/harness/llm/v1/content.proto) | core | client | M0 |
 | `harness.prompts.v1.PromptService` | [prompts.proto](../../proto/harness/prompts/v1/prompts.proto) | core | client | M0 |
 | `harness.agent.v1.AgentService` | [agent.proto](../../proto/harness/agent/v1/agent.proto) | client | desktop / web / mobile frontends, relay | draft |
+| `harness.agent.v1.IdeService` | [ide.proto](../../proto/harness/agent/v1/ide.proto) | client | editor extensions | draft |
+| `harness.ide.v1.EditorBridgeService` | [bridge.proto](../../proto/harness/ide/v1/bridge.proto) | editor extension, on loopback | client | draft ([design](../design/ide.md)) |
 | `harness.sync.v1.SyncService` | [sync.proto](../../proto/harness/sync/v1/sync.proto) | core | client, frontends, `harness import claude` | draft (M1) |
 | `harness.mcp.v1.McpService` | [mcp.proto](../../proto/harness/mcp/v1/mcp.proto) | core | client, frontends | draft (M2) |
 | `harness.relay.v1.RelayService` | [relay.proto](../../proto/harness/relay/v1/relay.proto) | core | client (host side), web / mobile (viewer side) | draft (M2) |

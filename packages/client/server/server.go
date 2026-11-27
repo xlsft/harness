@@ -312,6 +312,7 @@ func (s *Server) mux() *http.ServeMux {
 	extensionsPath, extensionsHandler := agentv1connect.NewExtensionsServiceHandler(s)
 	mux.Handle(extensionsPath, extensionsHandler)
 	s.registerLibrary(mux)
+	s.registerIde(mux)
 	if s.Core != nil {
 		s.Core.register(mux)
 	}
@@ -605,6 +606,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	}
 	ls.syncDiffStats(ls.diff)
 	sess.Permissions.SetAsker(ls)
+	ls.watchEditor()
 	sess.Agent.SetInteractor(ls)
 	ls.watchMcp()
 	ls.driver = agent.NewDriver(s.ctx, sess.Agent, ls.onResult)
@@ -899,6 +901,7 @@ func (s *Server) submitMessage(ls *liveSession, req *connect.Request[agentv1.Sen
 	if err != nil {
 		return nil, err
 	}
+	content = ls.expandEditorMentions(ls.ctx, content)
 	// "/compact [instructions]" compacts instead of starting a turn.
 	if len(content) == 1 && content[0].Type == llm.BlockText {
 		if instructions, ok := agent.CompactCommand(content[0].Text); ok {

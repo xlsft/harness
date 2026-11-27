@@ -7,6 +7,7 @@
 // user opens it. Requests already applied in this browser are remembered, so a reload does not reopen them.
 import type { ShowRequest, ShowTarget } from '~/lib/session/types'
 import { showPane } from '~/utils/show'
+import { ideHost } from '~/lib/ide'
 
 const STORAGE_KEY = 'harness-shown'
 // Applied request ids kept (oldest dropped first).
@@ -41,6 +42,16 @@ export function useShow() {
   const target = useState<ShowTarget | null>('show-target', () => null)
 
   function show(t: ShowTarget) {
+    // In an editor, a file and a file's changes open there, natively.
+    const host = ideHost()
+    if (host && t.kind === 'file') {
+      host.post({ type: 'open-file', path: t.path, line: t.lineStart, endLine: t.lineEnd })
+      return
+    }
+    if (host && t.kind === 'diff' && t.path) {
+      host.post({ type: 'open-diff', sessionId: useSessionStore().currentId, path: t.path })
+      return
+    }
     target.value = { ...t }
     openPane(showPane(t))
   }

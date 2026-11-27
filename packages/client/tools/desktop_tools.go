@@ -252,6 +252,16 @@ func (t *OpenInEditor) Run(ctx context.Context, env *Env, call Call) Result {
 	if st.IsDir() {
 		return ErrorResult("%s is a directory; OpenInEditor opens files (RevealPath shows a directory)", path)
 	}
+	if env.Editor != nil {
+		if name, attached, err := env.Editor.OpenInEditor(ctx, path, in.Line); attached {
+			if err != nil {
+				return ErrorResult("%s could not open %s: %v", name, path, err)
+			}
+			r := TextResult(fmt.Sprintf("Opened %s in %s.", path, name), map[string]any{"path": path, "editor": name, "line": in.Line})
+			r.Summary = "Opened " + filepath.Base(path)
+			return r
+		}
+	}
 	argv, lineApplied, err := d.editorArgv(path, in.Line)
 	if err != nil {
 		return ErrorResult("%v", err)

@@ -11,6 +11,7 @@ import "harness/agent/v1/diagnostics.proto";
 import "harness/agent/v1/doctor.proto";
 import "harness/agent/v1/files.proto";
 import "harness/agent/v1/hooks.proto";
+import "harness/agent/v1/ide.proto";
 import "harness/agent/v1/import.proto";
 import "harness/agent/v1/import_sources.proto";
 import "harness/agent/v1/inbox.proto";
@@ -988,6 +989,7 @@ message SessionEvent {
     AttemptCheck attempt_checked = 361;
     // The coordinator session's project run (project_runs.proto).
     ProjectRunUpdated project_run_updated = 310;
+    EditorReview editor_review = 240;
   }
 }
 
@@ -1780,6 +1782,12 @@ message UserPreferences {
   bool schedules_enabled = 18;
   // How many turns `/goal` may take when it names no cap (settings key goalMaxTurns), 1 to 200. Default 20.
   int32 goal_max_turns = 19;
+  // With an editor attached, a file tool's permission prompt also opens the native diff there (settings key ideDiffs).
+  // Default true.
+  bool ide_diffs = 36;
+  // With an editor attached, every edit of a file tool waits for an answer in its diff, also those the permission mode
+  // or a rule would allow (settings key ideReviewAllEdits). Default false. A rule that denies still denies.
+  bool ide_review_all_edits = 37;
   // What the organization's managed policy imposes on this user; read only (managed_policy.proto). Nothing in
   // UpdateUserPreferencesRequest can change it.
   ManagedPolicyView managed_policy = 16;
@@ -1885,6 +1893,8 @@ message UpdateUserPreferencesRequest {
   optional int32 project_max_workers = 50;
   // INVALID_ARGUMENT below 0.
   optional double project_budget_usd = 51;
+  optional bool ide_diffs = 36;
+  optional bool ide_review_all_edits = 37;
 }
 
 message UpdateUserPreferencesResponse {

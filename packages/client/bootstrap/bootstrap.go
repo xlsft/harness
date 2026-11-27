@@ -32,6 +32,7 @@ import (
 	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
 	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
 	"github.com/xlsft/harness/packages/client/hooks"
+	"github.com/xlsft/harness/packages/client/ide"
 	"github.com/xlsft/harness/packages/client/llm"
 	"github.com/xlsft/harness/packages/client/localmodels"
 	"github.com/xlsft/harness/packages/client/lsp"
@@ -168,6 +169,10 @@ type Options struct {
 	// Preview, when set, gives the session the Preview* tools: dev servers the client runs, across the session's
 	// close and resume.
 	Preview *preview.Manager
+	// IDE finds the editor of a session; nil: no editor integration (headless runs).
+	IDE *ide.Manager
+	// IDEConfig replaces the switches read from settings (tests).
+	IDEConfig func() IDEConfig
 	// Browser, when set, gives the session a browser (the Browser* tools; HARNESS_NO_BROWSER=1 leaves them out).
 	// The session's browser stops when the session closes.
 	Browser *browser.Manager
@@ -232,7 +237,10 @@ type Session struct {
 	// Workflows runs the scripts of the Workflow tool.
 	Workflows *workflow.Manager
 	// LSP runs the session's language servers (the LSP tool and the diagnostics after edits).
-	LSP *lsp.Manager
+	LSP       *lsp.Manager
+	ideConfig func() IDEConfig
+	// IDE finds this session's editor (nil: none, in a run without the integration).
+	IDE *ide.Manager
 	// MCP holds the session's MCP servers and tools (nil when MCP is off).
 	MCP *mcp.Manager
 	// Deferral holds the session's deferred tools, built-in and MCP, and the ones loaded (deferral.go).
@@ -685,6 +693,11 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.LSP = lsp.New(lsp.Options{Config: s.lspConfig, Trusted: s.lspTrusted, ReadDenied: func(p string) bool { return s.ToolEnv.ReadDenied != nil && s.ToolEnv.ReadDenied(p) }, Logger: log})
 	s.Tools.Register(s.LSP.Tool())
 	s.ToolEnv.Edits = s.LSP
+	if o.IDE != nil {
+		s.IDE, s.ideConfig = o.IDE, o.IDEConfig
+		s.Tools.Register(o.IDE.Tool(s.Dir))
+		s.ToolEnv.Editor = ideOpener{m: o.IDE, dir: s.Dir}
+	}
 	s.registerPRTools(o, log)
 	if o.Preview != nil {
 		for _, t := range o.Preview.Tools() {

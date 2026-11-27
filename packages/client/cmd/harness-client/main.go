@@ -28,6 +28,7 @@ import (
 	"github.com/xlsft/harness/packages/client/doctor"
 	"github.com/xlsft/harness/packages/client/extensions"
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
+	"github.com/xlsft/harness/packages/client/ide"
 	"github.com/xlsft/harness/packages/client/localmodels"
 	"github.com/xlsft/harness/packages/client/machineid"
 	"github.com/xlsft/harness/packages/client/mcp"
@@ -327,6 +328,7 @@ func cmdServe(ctx context.Context, args []string) int {
 	base.OutputStyle = *f.outputStyle
 	// Interactive frontends start sessions in auto mode unless the request or settings say otherwise.
 	base.FallbackPermissionMode = permissions.ModeAuto
+	base.IDE = &ide.Manager{}
 	srv := server.New(base)
 	srv.UserEmail = email
 	srv.SSHBinaries = sshBinaries

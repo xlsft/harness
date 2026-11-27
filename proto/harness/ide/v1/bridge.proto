@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package harness.ide.v1;
+
+// EditorBridgeService is served by an editor extension to the local client: what only the editor can do. It runs on
+// 127.0.0.1 with a bearer token, and the client finds it through a lock file (docs/design/ide.md). The wire format is
+// Connect unary with JSON, so an extension needs nothing beyond an HTTP server.
+service EditorBridgeService {
+  // Who answers: the client checks this before it trusts a lock file.
+  rpc Ping(PingRequest) returns (PingResponse);
+  // Opens a proposed change in the native diff editor and holds the call until the user answers or the diff is closed.
+  // The client cancels the call when the question was answered elsewhere; the editor then closes the diff.
+  rpc ShowDiff(ShowDiffRequest) returns (ShowDiffResponse);
+  // What the editor's problems panel lists.
+  rpc GetDiagnostics(GetDiagnosticsRequest) returns (GetDiagnosticsResponse);
+  // Opens a file, at a line when one is given.
+  rpc OpenFile(OpenFileRequest) returns (OpenFileResponse);
+  // The text of a file as the editor has it, unsaved changes included.
+  rpc ReadBuffer(ReadBufferRequest) returns (ReadBufferResponse);
+  // A file tool changed a file. Without a review so far, the editor can show the change.
+  rpc EditApplied(EditAppliedRequest) returns (EditAppliedResponse);
+}
+
+message PingRequest {}
+
+message PingResponse {
+  // For showing, such as "Visual Studio Code".
+  string name = 1;
+  string version = 2;
+  repeated string workspace_folders = 3;
+}
+
+message ShowDiffRequest {
+  // Identifies this diff in the editor. Unique per call.
+  string diff_id = 1;
+  string session_id = 2;
+  string tool_use_id = 3;
+  // Absolute.
+  string path = 4;
+  // False when the edit creates the file.
+  bool exists = 5;
+  string before = 6;
+  string after = 7;
+  // The tool that proposes the change, for the diff's title.
+  string tool_name = 8;
+}
+
+enum DiffOutcome {
+  DIFF_OUTCOME_UNSPECIFIED = 0;
+  DIFF_OUTCOME_ACCEPTED = 1;
+  DIFF_OUTCOME_REJECTED = 2;
+  // Closed without an answer: the question stays open elsewhere.
+  DIFF_OUTCOME_DISMISSED = 3;
+}
+
+message ShowDiffResponse {
+  DiffOutcome outcome = 1;
+  // REJECTED: why, when the user said. The model continues with it; without one the turn stops.
+  string comment = 2;
+}
+
+enum DiagnosticSeverity {
+  DIAGNOSTIC_SEVERITY_UNSPECIFIED = 0;
+  DIAGNOSTIC_SEVERITY_ERROR = 1;
+  DIAGNOSTIC_SEVERITY_WARNING = 2;
+  DIAGNOSTIC_SEVERITY_INFORMATION = 3;
+  DIAGNOSTIC_SEVERITY_HINT = 4;
+}
+
+message GetDiagnosticsRequest {
+  // Absolute. Empty means every file the editor has problems for.
+  repeated string paths = 1;
+}
+
+message Diagnostic {
+  // Absolute.
+  string path = 1;
+  // Counted from 1.
+  int32 line = 2;
+  int32 column = 3;
+  int32 end_line = 4;
+  int32 end_column = 5;
+  DiagnosticSeverity severity = 6;
+  string message = 7;
+  // What reported it, such as "ts" or "eslint".
+  string source = 8;
+  string code = 9;
+}
+
+message GetDiagnosticsResponse {
+  repeated Diagnostic diagnostics = 1;
+}
+
+message OpenFileRequest {
+  // Absolute.
+  string path = 1;
+  // Counted from 1; 0 opens the file where it was.
+  int32 line = 2;
+  // Inclusive; 0 selects nothing beyond the line.
+  int32 end_line = 3;
+}
+
+message OpenFileResponse {}
+
+message ReadBufferRequest {
+  // Absolute.
+  string path = 1;
+}
+
+message ReadBufferResponse {
+  // False when the editor does not have the file open; content is empty then.
+  bool open = 1;
+  string content = 2;
+  bool dirty = 3;
+}
+
+message EditAppliedRequest {
+  string session_id = 1;
+  string tool_use_id = 2;
+  // Absolute.
+  string path = 3;
+  // Someone already answered for this edit, in a diff or a prompt.
+  bool reviewed = 4;
+}
+
+message EditAppliedResponse {}

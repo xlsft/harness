@@ -12,6 +12,7 @@ import { BrowserSiteDecision } from '~/gen/harness/agent/v1/real_browser_pb'
 import { tt } from '~/utils/i18n'
 import { goalVM, taskNodeVM } from './teamwork'
 import { SessionProposal_State } from '~/gen/harness/agent/v1/session_links_pb'
+import { EditorReview_State } from '~/gen/harness/agent/v1/ide_pb'
 import { HookRun_Status } from '~/gen/harness/agent/v1/hooks_pb'
 import { WorktreeSetup_State, WorktreeSetupStep_Status, type WorktreeSetup } from '~/gen/harness/agent/v1/worktree_setup_pb'
 import { sessionNoteOf } from './links'
@@ -139,6 +140,7 @@ export function createSessionState(id: string, meta?: Partial<SessionMeta>): Ses
     hostWork: null,
     attemptCheck: null,
     taskGraph: [],
+    editorReview: null,
     proposals: {},
     queue: [],
     delivered: {},
@@ -832,6 +834,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
     }
 
     case 'turnFinished': {
+      s.editorReview = null
       s.browserAction = null
       const t = e.value
       const usage = usageOf(t.usage)
@@ -973,6 +976,11 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
     case 'hostWorkUpdated': {
       const w = e.value
       s.hostWork = { branch: w.branch, pullRequestUrl: w.pullRequestUrl, error: w.error }
+      break
+    }
+
+    case 'editorReview': {
+      s.editorReview = e.value.state === EditorReview_State.OPEN ? { path: e.value.path, editor: e.value.editor } : null
       break
     }
 

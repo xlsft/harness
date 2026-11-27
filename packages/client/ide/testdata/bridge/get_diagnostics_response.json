@@ -1,0 +1,15 @@
+{
+  "diagnostics": [
+    {
+      "path": "/repo/a.ts",
+      "line": 3,
+      "column": 7,
+      "endLine": 3,
+      "endColumn": 9,
+      "severity": "DIAGNOSTIC_SEVERITY_ERROR",
+      "message": "bad",
+      "source": "ts",
+      "code": "2322"
+    }
+  ]
+}

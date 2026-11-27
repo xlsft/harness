@@ -207,6 +207,9 @@ export interface UserPreferences {
   lspEnabled: boolean
   lspDiagnostics: boolean
   lspDiagnosticsStartServer: boolean
+  // An attached editor (Settings > Sessions): prompts open its diff; every edit waits for that diff.
+  ideDiffs: boolean
+  ideReviewAllEdits: boolean
   // The OS sandbox of the model's commands (settings key sandbox); applies from the next command. An update replaces it whole.
   sandbox: SandboxPreferences
   // Run the hooks of settings files (settings key disableAllHooks, inverted); reaches running sessions from their next hook.
