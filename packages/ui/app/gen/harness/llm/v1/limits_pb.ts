@@ -247,7 +247,7 @@ export type ProviderLimits = Message<"harness.llm.v1.ProviderLimits"> & {
   windowsUpdatedAt: string;
 
   /**
-   * "response_headers" for the windows; see ProviderBalance.source for the balance.
+   * Where the windows came from: "response_headers", or the plan's usage API (e.g. "kimi:/coding/v1/usages"); see ProviderBalance.source for the balance.
    *
    * @generated from field: string windows_source = 9;
    */

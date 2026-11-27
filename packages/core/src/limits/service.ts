@@ -1,8 +1,9 @@
 /**
  * Provider limits (harness.llm.v1.ProviderLimitsService): per LLM provider the caller can use, an optional
  * balance (limits/balance.ts: read from the provider, or estimated from an amount entered here), this month's spend
- * from our usage records with an optional budget, and the latest windows from response headers (limits/headers.ts),
- * side by side.
+ * from our usage records with an optional budget, and the plan's windows, side by side. Windows come from the plan's
+ * own usage API where it has one (limits/plan-usage.ts: Kimi Code), else from the latest response headers
+ * (limits/headers.ts).
  *
  * Only a plan's usage windows are `windows`, the ones every client shows. Rate limits (requests or tokens per minute) go
  * apart as `rate_windows`, which only the client's usage-limit watch reads (packages/client/usagelimit): it warns on
@@ -21,6 +22,7 @@ import { billingOf } from "../services/presets.ts";
 import { listProvidersForUser, loadProviderRuntime, providerForUser, type PublicProvider } from "../services/providers.ts";
 import { balanceAdapterFor, estimatedBalance, getBalance, type Balance, type FetchFn } from "./balance.ts";
 import { windowSnapshot, type LimitWindow } from "./headers.ts";
+import { getPlanUsage, planUsageAdapterFor } from "./plan-usage.ts";
 import { allowed, loadBalanceEstimates, loadBudgets, loadPolicies, policyOf, setBalanceEstimate, setBudget } from "./policy.ts";
 
 export interface Spend {
@@ -149,6 +151,16 @@ async function build(user: PublicUser, providers: PublicProvider[], deps: Limits
           if (out.windows.length) {
             out.windows_updated_at = snap.updated_at;
             out.windows_source = "response_headers";
+          }
+        }
+        if (p.api_key_set && p.enabled && planUsageAdapterFor(p.base_url)) {
+          const pending = getPlanUsage(await loadProviderRuntime(p.id), deps.fetch, now.getTime());
+          const plan = pending && (await pending);
+          // A failed or empty read keeps the header windows.
+          if (plan && plan.windows.length) {
+            out.windows = plan.windows;
+            out.windows_updated_at = plan.updated_at;
+            out.windows_source = plan.source;
           }
         }
       }

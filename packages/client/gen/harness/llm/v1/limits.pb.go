@@ -382,7 +382,7 @@ type ProviderLimits struct {
 	Windows []*LimitWindow `protobuf:"bytes,7,rep,name=windows,proto3" json:"windows,omitempty"`
 	// RFC 3339, UTC: when the windows were captured; empty without windows.
 	WindowsUpdatedAt string `protobuf:"bytes,8,opt,name=windows_updated_at,json=windowsUpdatedAt,proto3" json:"windows_updated_at,omitempty"`
-	// "response_headers" for the windows; see ProviderBalance.source for the balance.
+	// Where the windows came from: "response_headers", or the plan's usage API (e.g. "kimi:/coding/v1/usages"); see ProviderBalance.source for the balance.
 	WindowsSource string `protobuf:"bytes,9,opt,name=windows_source,json=windowsSource,proto3" json:"windows_source,omitempty"`
 	// The caller may enter a starting balance (SetProviderBalanceEstimate): a metered provider without a balance API
 	// that they may change.
