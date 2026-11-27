@@ -78,7 +78,8 @@ export function startClient(o: StartOptions): Promise<StartedClient> {
       clearTimeout(timer)
       reject(new ClientStartError(`could not run ${o.binary}: ${err.message}`, false))
     })
-    child.on('exit', (code) => {
+    // 'close', not 'exit': it comes after stdout and stderr are drained, so the error text is all there.
+    child.on('close', (code) => {
       if (!settled) {
         settled = true
         clearTimeout(timer)
