@@ -337,6 +337,7 @@
   "Categories",
   "Category",
   "Change",
+  "Change {0}",
   "Change folder…",
   "Change password",
   "Change picture",
@@ -1910,5 +1911,7 @@
   "Your workflow, unbounded.",
   "Yours",
   "Yours alone: your connections or company ones.",
-  "Yours or Discover"
+  "Yours or Discover",
+  "YouTrack with a token, a password or OAuth, for everyone on the server.",
+  "YouTrack with a token, a password or OAuth, from this device."
 ]
