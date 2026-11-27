@@ -63,16 +63,11 @@ async function signOut() {
       class="-ml-1.5 flex h-7 min-w-0 cursor-pointer items-center gap-2 px-1.5 text-left hover:bg-hover"
       :class="open ? 'bg-hover' : ''"
     >
-      <img
-        v-if="profile?.image"
+      <HAvatar
         :src="avatarUrl(profile)"
-        alt=""
-        class="size-[22px] shrink-0 rounded-chip object-cover"
-      >
-      <span
-        v-else
-        class="flex size-[22px] shrink-0 items-center justify-center rounded-chip bg-accent text-[10.5px] font-bold text-on-accent uppercase"
-      >{{ displayName.charAt(0) }}</span>
+        :name="displayName"
+        :seed="profile?.username || store.userEmail"
+      />
       <span class="flex min-w-0 items-baseline gap-1.5">
         <!-- The host gives way first, then the name. -->
         <span class="min-w-[4ch] truncate text-[12px] text-strong">{{ displayName }}</span>

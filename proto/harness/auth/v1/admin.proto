@@ -90,6 +90,8 @@ message AdminUser {
   bool mfa_enabled = 13;
   // Names of the groups the user belongs to (directory.proto).
   repeated string groups = 14;
+  // Avatar as a data URL (see UpdateMeRequest.image); empty when none is set. Lists show it beside the name.
+  string image = 15;
 }
 
 // One rule of a group to role mapping: members of `group` get `role`. Rules are checked in order and the first match

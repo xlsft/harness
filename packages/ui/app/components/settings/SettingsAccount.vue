@@ -185,7 +185,8 @@ const input = 'h-8 w-full border border-accented bg-default px-2.5 text-[12.5px]
       >
       <span
         v-else
-        class="flex size-full items-center justify-center bg-accent text-[24px] font-bold text-on-accent"
+        class="flex size-full items-center justify-center text-[24px] font-bold text-white"
+        :style="{ background: avatarColor(profile?.username || profile?.name || store.userEmail || '') }"
       >{{ initial }}</span>
       <span class="absolute inset-0 hidden items-center justify-center bg-ground/60 text-strong group-hover:flex">
         <HIcon

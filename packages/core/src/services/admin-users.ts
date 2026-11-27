@@ -17,6 +17,7 @@ import { groupNamesOf } from "./groups.ts";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
 import { revokeDevice } from "./devices.ts";
+import { avatarOf } from "./account.ts";
 
 export type { Role };
 
@@ -34,6 +35,8 @@ export interface AdminUserView {
   created_at: string;
   last_sign_in_at: string;
   last_seen_at: string;
+  /** Avatar as a data URL; "" when none. */
+  image: string;
 }
 
 type UserRow = typeof schema.user.$inferSelect;
@@ -113,9 +116,11 @@ async function views(users: UserRow[]): Promise<AdminUserView[]> {
         .groupBy(schema.device.userId)
     ).map((r) => [r.userId, r.seen]),
   );
+  const avatars = new Map(await Promise.all(users.map(async (u) => [u.id, (await avatarOf(u)).image] as const)));
   return users.map((u) => {
     const s = sessions.get(u.id);
     return {
+      image: avatars.get(u.id) ?? "",
       id: u.id,
       name: u.name,
       username: u.username ?? "",

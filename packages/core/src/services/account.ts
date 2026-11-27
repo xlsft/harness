@@ -128,7 +128,7 @@ async function storeAvatar(userId: string, dataUrl: string): Promise<string> {
 }
 
 /** The profile's avatar fields. A store that cannot be read costs the picture, not the profile. */
-async function avatarOf(u: UserRow): Promise<Pick<Profile, "image" | "image_object">> {
+export async function avatarOf(u: UserRow): Promise<Pick<Profile, "image" | "image_object">> {
   const image = u.image ?? "";
   if (!image.startsWith(OBJECT_PREFIX)) return { image };
   const sha256 = image.slice(OBJECT_PREFIX.length);
