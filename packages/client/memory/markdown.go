@@ -291,6 +291,16 @@ func SplitFrontmatter(markdown string) (fm, body string, ok bool) {
 	return frontmatter(markdown)
 }
 
+// FrontmatterList reads a list field ("a, b", "[a, b]" or a YAML block list) of markdown's frontmatter, for the
+// importer's readers of other tools' rule files.
+func FrontmatterList(markdown, key string) []string {
+	fm, _, ok := frontmatter(markdown)
+	if !ok {
+		return nil
+	}
+	return frontmatterList(fm, key)
+}
+
 // FrontmatterString is the exported form of frontmatterString for other
 // packages reading markdown with frontmatter (agents, output styles).
 func FrontmatterString(markdown, key string) string {
