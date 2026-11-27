@@ -162,6 +162,7 @@ export type PromptBundle = Message<"harness.prompts.v1.PromptBundle"> & {
    *   team_next_task        {{team}} {{tasks}}     a team member is told about free tasks
    *   team_message          {{from}} {{message}}   a subagent told the main agent something
    *   project_coordinator   {{run_id}} {{limits}} {{targets}}  the brief of a project run's coordinator session
+   *   delegate_started      {{run_id}} {{limits}} {{targets}} {{note}}  /delegate: this session leads helpers with the conversation as the brief
    *   project_run_resumed   {{status}}             a paused project run was resumed; where it stands
    *   side_chat            (none)                 not a reminder: the system prompt of side chats (AskSideChat)
    *   advisor              (none)                 not a reminder: the system prompt of the model behind the Advisor tool

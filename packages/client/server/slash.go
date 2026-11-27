@@ -74,6 +74,7 @@ func builtinCommands() []builtinCommand {
 		{name: bootstrap.CommandRecap, description: "Say where this session stands: done, in progress, next", hint: "[what to focus on]", needsSession: true, prompt: true},
 		{name: "plan", description: "Enter plan mode: read and propose, change nothing", hint: "[off]", needsSession: true, run: runPlan},
 		{name: "goal", description: "Keep working until a condition holds, with a cap on the turns", hint: "[--max N] <condition> | stop | resume", needsSession: true, run: runGoal},
+		{name: "delegate", description: "Hand what you agreed here to helpers that work in parallel in the background", hint: "[--workers N] [--budget USD] [what to add] | status | pause | resume | stop", needsSession: true, run: runDelegate},
 		{name: "loop", description: "Repeat a prompt or command here, on an interval or at the model's pace", hint: "[interval] <prompt or /command> | stop | list", needsSession: true, run: runLoop},
 		{name: "schedule", description: "Open Scheduled: tasks that run by themselves", run: runScheduleCommand},
 		{name: "move", description: "Move this session to one of your always-on hosts (asks first)", needsSession: true, run: runMoveCommand},

@@ -240,6 +240,28 @@ func runTitle(goal string) string {
 	return t
 }
 
+// beginRun records a run that the open session ls coordinates and gives it the coordinator's tools. The caller briefs it.
+func (s *Server) beginRun(ctx context.Context, ls *liveSession, goal, title string, limits *agentv1.ProjectRunLimits) (*agentv1.ProjectRun, error) {
+	now := nowRFC()
+	host, _ := os.Hostname()
+	run := &agentv1.ProjectRun{Id: projectRunPrefix + uuid.NewString(), Goal: goal, Title: title, Cwd: ls.sess.Dir(), CoordinatorSessionId: ls.sess.ID,
+		State: agentv1.ProjectRunState_PROJECT_RUN_STATE_PLANNING, Limits: effectiveLimits(ls.sess.Settings, limits), Usage: &agentv1.ProjectUsage{},
+		PermissionMode: string(ls.sess.Permissions.Mode()), DeviceId: s.DeviceID, DeviceName: host, CreatedAt: now, UpdatedAt: now}
+	run.Targets = s.projectTargets(ctx, run)
+	if err := saveRun(run); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the run: %w", err))
+	}
+	r := &s.runs
+	r.mu.Lock()
+	r.loadLocked()
+	r.byID[run.GetId()] = run
+	snap := proto.Clone(run).(*agentv1.ProjectRun)
+	r.mu.Unlock()
+	ls.sess.Coordinator.Store(true)
+	s.publishRun(snap)
+	return snap, nil
+}
+
 // CreateProjectRun implements AgentService: opens the coordinator session, records the run and gives it the goal.
 func (s *Server) CreateProjectRun(ctx context.Context, req *connect.Request[agentv1.CreateProjectRunRequest]) (*connect.Response[agentv1.CreateProjectRunResponse], error) {
 	m := req.Msg
@@ -281,34 +303,19 @@ func (s *Server) CreateProjectRun(ctx context.Context, req *connect.Request[agen
 	if title == "" {
 		title = runTitle(goal)
 	}
-	now := nowRFC()
-	host, _ := os.Hostname()
-	run := &agentv1.ProjectRun{Id: projectRunPrefix + uuid.NewString(), Goal: goal, Title: title, Cwd: ls.sess.Dir(), CoordinatorSessionId: sid,
-		State: agentv1.ProjectRunState_PROJECT_RUN_STATE_PLANNING, Limits: effectiveLimits(ls.sess.Settings, m.GetLimits()), Usage: &agentv1.ProjectUsage{},
-		PermissionMode: string(ls.sess.Permissions.Mode()), DeviceId: s.DeviceID, DeviceName: host, CreatedAt: now, UpdatedAt: now}
-	run.Targets = s.projectTargets(ctx, run)
-	if err := saveRun(run); err != nil {
+	snap, err := s.beginRun(ctx, ls, goal, title, m.GetLimits())
+	if err != nil {
 		s.closeLive(sid, "project run not saved")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save the run: %w", err))
+		return nil, err
 	}
-	r := &s.runs
-	r.mu.Lock()
-	r.loadLocked()
-	r.byID[run.GetId()] = run
-	r.mu.Unlock()
-	ls.sess.Coordinator.Store(true)
 	if err := ls.setCustomTitle("Project: " + title); err != nil {
 		s.log().Warn("project run: title not recorded", "err", err)
 	}
-	ls.sess.Agent.Remind(agent.ReminderProjectCoordinator, map[string]string{"run_id": run.GetId(), "limits": limitsText(run.GetLimits()), "targets": targetsText(run.GetTargets())})
+	ls.sess.Agent.Remind(agent.ReminderProjectCoordinator, map[string]string{"run_id": snap.GetId(), "limits": limitsText(snap.GetLimits()), "targets": targetsText(snap.GetTargets())})
 	if _, err := s.submitMessage(ls, connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: sid, Uuid: uuid.NewString(),
 		Content: pbconv.Blocks([]llm.ContentBlock{llm.TextBlock(goal)})})); err != nil {
 		return nil, err
 	}
-	r.mu.Lock()
-	snap := proto.Clone(run).(*agentv1.ProjectRun)
-	r.mu.Unlock()
-	s.publishRun(snap)
 	return connect.NewResponse(&agentv1.CreateProjectRunResponse{Run: snap}), nil
 }
 
