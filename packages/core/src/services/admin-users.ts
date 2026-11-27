@@ -210,6 +210,11 @@ export async function resetPassword(userId: string, opts: { password?: string; g
   return { generated_password: generated };
 }
 
+/** The role of a user (not_found when there is none). */
+export async function userRole(userId: string): Promise<Role> {
+  return normalizeRole((await findUser(userId)).role);
+}
+
 export async function setRole(userId: string, role: Role): Promise<AdminUserView> {
   const u = await findUser(userId);
   parseRole(role);

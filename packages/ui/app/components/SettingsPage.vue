@@ -37,6 +37,7 @@ const SECTIONS = [
   { key: 'computer', label: tt('Computer use'), icon: 'monitor', group: 'ai' },
   { key: 'ssh', label: tt('SSH hosts'), icon: 'terminal', group: 'ai' },
   { key: 'users', label: tt('Users'), icon: 'list', group: 'server' },
+  { key: 'roles', label: tt('Roles'), icon: 'shield', group: 'server' },
   { key: 'ldap', label: 'LDAP', icon: 'branch', group: 'server' },
   { key: 'sso', label: 'SSO', icon: 'globe', group: 'server' },
   { key: 'provisioning', label: tt('Provisioning'), icon: 'refresh', group: 'server' },
@@ -48,7 +49,7 @@ const SECTIONS = [
 type Section = typeof SECTIONS[number]['key']
 
 // Server sections follow what the user's role allows (the server enforces it too).
-const CAPABILITY: Partial<Record<Section, string>> = { users: 'users.read', ldap: 'sign_in.read', sso: 'sign_in.read', provisioning: 'sign_in.read', audit: 'audit.read', policy: 'policy.read', chat: 'policy.write' }
+const CAPABILITY: Partial<Record<Section, string>> = { users: 'users.read', roles: 'roles.read', ldap: 'sign_in.read', sso: 'sign_in.read', provisioning: 'sign_in.read', audit: 'audit.read', policy: 'policy.read', chat: 'policy.write' }
 // Without the right to read it, the managed policy still shows when it imposes something on this user.
 const policyApplies = ref(false)
 const managed = ref<ManagedPolicyView | null>(null)
@@ -63,7 +64,7 @@ onMounted(async () => {
     // Then it does not show here; the client enforces it all the same.
   }
 })
-const SERVER_ONLY: Section[] = ['account', 'usage', 'models', 'images', 'hosts', 'users', 'ldap', 'sso', 'provisioning', 'audit', 'policy']
+const SERVER_ONLY: Section[] = ['account', 'usage', 'models', 'images', 'hosts', 'users', 'roles', 'ldap', 'sso', 'provisioning', 'audit', 'policy']
 // What each section holds, so the filter finds "theme" under Appearance and "LDAP" under Users.
 const KEYWORDS: Record<Section, string> = {
   usage: 'tokens cost spend money statistics chart',
@@ -87,6 +88,7 @@ const KEYWORDS: Record<Section, string> = {
   computer: 'computer use desktop apps control screen recording accessibility permissions click type your chrome real browser sites',
   ssh: 'ssh hosts remote machine server tunnel known hosts key',
   account: 'sign out server user',
+  roles: 'roles permissions custom role admin auditor billing access',
   users: 'admin users roles passwords quotas limits spend budget groups auditor billing',
   ldap: 'ldap directory active directory sign in bind',
   sso: 'sso single sign-on oidc saml identity provider okta entra two-factor mfa totp require',
@@ -272,6 +274,8 @@ const notifications = computed({
       <SettingsSshHosts v-else-if="section === 'ssh'" />
 
       <SettingsUsers v-else-if="section === 'users'" />
+
+      <SettingsRoles v-else-if="section === 'roles'" />
 
       <SettingsLdap v-else-if="section === 'ldap'" />
 

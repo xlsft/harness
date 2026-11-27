@@ -386,7 +386,7 @@ export async function setManagedPolicy(p: Principal, input: ManagedPolicy): Prom
       baseVersion: row?.version ?? 0,
       source: "admin:managed-policy",
       targetRoles: (row?.targetRoles as string[] | undefined) ?? [],
-    });
+    }, "policy.write");
     if ("document" in r) return { policy: managedOf(parse(r.document)), updated_at: r.document.updatedAt.toISOString() };
   }
   throw new ApiError("conflict", "The policy changed concurrently; try again");

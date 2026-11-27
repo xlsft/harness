@@ -14,6 +14,16 @@ export interface GroupView {
   name: string;
   source: string;
   member_ids: string[];
+  /** Where the group is used, when asked for (listGroups({ usage: true })). */
+  usage?: GroupUsage;
+}
+
+export interface GroupUsage {
+  has_quota: boolean;
+  /** Global projects shared with the group; personal ones stay their owners' business. */
+  projects: { id: string; name: string }[];
+  /** Team hosts of the group. */
+  hosts: { id: string; name: string }[];
 }
 
 const g = schema.directoryGroup;
@@ -32,9 +42,38 @@ async function view(rows: GroupRow[]): Promise<GroupView[]> {
   return rows.map((r) => ({ id: r.id, name: r.name, source: r.source, member_ids: members.filter((x) => x.groupId === r.id).map((x) => x.userId) }));
 }
 
-export async function listGroups(): Promise<GroupView[]> {
+export async function listGroups(opts: { usage?: boolean } = {}): Promise<GroupView[]> {
   await ensureDb();
-  return view(await getDb().select().from(g).orderBy(asc(g.name), asc(g.id)));
+  const groups = await view(await getDb().select().from(g).orderBy(asc(g.name), asc(g.id)));
+  if (!opts.usage || !groups.length) return groups;
+  const ids = groups.map((x) => x.id);
+  const db = getDb();
+  const { getQuotaConfig } = await import("./quotas.ts");
+  const [quotas, projects, hosts] = await Promise.all([
+    getQuotaConfig(),
+    db
+      .select({ groupId: schema.projectShare.subjectId, id: schema.project.id, name: schema.project.name })
+      .from(schema.projectShare)
+      .innerJoin(schema.project, eq(schema.project.id, schema.projectShare.projectId))
+      .where(and(eq(schema.projectShare.subject, "group"), inArray(schema.projectShare.subjectId, ids), eq(schema.project.scope, "global")))
+      .orderBy(asc(schema.project.name)),
+    db
+      .select({ groupId: schema.agentHost.groupId, id: schema.agentHost.id, name: schema.agentHost.name })
+      .from(schema.agentHost)
+      .where(and(eq(schema.agentHost.scope, "team"), inArray(schema.agentHost.groupId, ids)))
+      .orderBy(asc(schema.agentHost.name)),
+  ]);
+  return groups.map((x) => {
+    const q = quotas.groups?.[x.id];
+    return {
+      ...x,
+      usage: {
+        has_quota: !!q && Object.keys(q).length > 0,
+        projects: projects.filter((p) => p.groupId === x.id).map(({ id, name }) => ({ id, name: name ?? id })),
+        hosts: hosts.filter((h) => h.groupId === x.id).map(({ id, name }) => ({ id, name })),
+      },
+    };
+  });
 }
 
 export async function getGroup(id: string): Promise<GroupView> {

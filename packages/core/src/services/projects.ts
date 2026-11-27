@@ -9,6 +9,7 @@
 import { and, asc, eq, inArray, or, sql, type SQL } from "drizzle-orm";
 import { record } from "../audit/log.ts";
 import { ensureDb, getDb, schema } from "../db/index.ts";
+import { can, roleExists } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId } from "../lib/ids.ts";
 import { connectionsById, openProvider, providerMessage, requireConnection } from "../tracker/connections.ts";
@@ -90,7 +91,7 @@ export async function levels(p: Principal): Promise<Map<string, Level>> {
     const cur = out.get(id);
     if (!cur || RANK[level] > RANK[cur]) out.set(id, level);
   };
-  const owned: SQL = p.user.role === "admin" ? or(eq(pr.ownerId, p.user.id), eq(pr.scope, "global"))! : eq(pr.ownerId, p.user.id);
+  const owned: SQL = can(p.user, "projects.write") ? or(eq(pr.ownerId, p.user.id), eq(pr.scope, "global"))! : eq(pr.ownerId, p.user.id);
   for (const r of await db.select({ id: pr.id }).from(pr).where(owned)) give(r.id, "manage");
   const groups = (await groupsOfUser(p.user.id)).map((g) => g.id);
   const shares = await db
@@ -206,7 +207,7 @@ async function resolveShares(shares: ShareInput[]): Promise<ShareInput[]> {
       if (!row) throw new ApiError("invalid_request", `No group ${s.subjectId}`);
       out.push({ ...s, subjectId: row.id });
     } else if (s.subject === "role") {
-      if (s.subjectId !== "admin" && s.subjectId !== "user") throw new ApiError("invalid_request", "A role is admin or user");
+      if (!roleExists(s.subjectId)) throw new ApiError("invalid_request", `No role ${s.subjectId}`);
       out.push(s);
     } else {
       if (s.subjectId) throw new ApiError("invalid_request", "A share with everyone names nobody");
@@ -228,7 +229,7 @@ export async function createProject(
   },
 ): Promise<ProjectView> {
   await ensureDb();
-  if (input.scope === "global" && p.user.role !== "admin") throw new ApiError("permission", "Only admins create global projects");
+  if (input.scope === "global" && !can(p.user, "projects.write")) throw new ApiError("permission", "Your role does not allow global projects (projects.write)");
   if (input.connection?.scope === "device" && input.scope !== "personal") throw new ApiError("invalid_request", "A project on a connection of your device can only be personal");
   if (input.connection && !input.externalKey) throw new ApiError("invalid_request", "Choose the provider's project");
   if (input.connection?.scope === "admin" && !(await connectionsById([input.connection.id])).has(input.connection.id)) throw new ApiError("invalid_request", `No connection ${input.connection.id}`);
@@ -363,7 +364,7 @@ export async function listProjectMembers(p: Principal, id: string): Promise<Memb
     if (everyone) give(x.id, everyone.level as Level);
     const byRole = roleShares.find((r) => r.subjectId === (x.role ?? "user"));
     if (byRole) give(x.id, byRole.level as Level);
-    if (row.scope === "global" && x.role === "admin") give(x.id, "manage");
+    if (row.scope === "global" && can({ role: x.role ?? "user" }, "projects.write")) give(x.id, "manage");
   }
   if (!out.size) return [];
   const users = await db.select({ id: u.id, name: u.name, email: u.email }).from(u).where(inArray(u.id, [...out.keys()]));

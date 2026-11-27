@@ -6,6 +6,7 @@ import { defineHandler, type H3Event } from "h3";
 import { record } from "../audit/log.ts";
 import { getAuth } from "../auth/better-auth.ts";
 import { need, type Capability } from "../auth/roles.ts";
+import { rolesFresh } from "../services/roles.ts";
 import { ApiError, asApiError } from "../lib/errors.ts";
 import { authenticateAccessToken, toPublicUser, type Principal } from "../services/devices.ts";
 
@@ -50,6 +51,7 @@ export async function readJson<T = Record<string, unknown>>(event: H3Event): Pro
 
 /** Bearer access token (clients) or Better Auth session cookie (web UI). */
 export async function getPrincipal(event: H3Event): Promise<Principal | undefined> {
+  await rolesFresh();
   const authz = event.req.headers.get("authorization");
   if (authz) {
     const m = /^Bearer\s+(.+)$/i.exec(authz.trim());
@@ -69,13 +71,6 @@ export async function getPrincipal(event: H3Event): Promise<Principal | undefine
 export async function requirePrincipal(event: H3Event): Promise<Principal> {
   const p = await getPrincipal(event);
   if (!p) throw new ApiError("authentication", "Missing or invalid credentials");
-  return p;
-}
-
-export async function requireAdmin(event: H3Event): Promise<Principal> {
-  const p = await requirePrincipal(event);
-  if (p.user.role !== "admin") throw new ApiError("permission", "Admin role required");
-  (event.context as { auditPrincipal?: Principal }).auditPrincipal = p;
   return p;
 }
 

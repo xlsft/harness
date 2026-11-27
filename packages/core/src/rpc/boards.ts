@@ -1,4 +1,5 @@
 /** Connect implementation of harness.library.v1 BoardService and TrackerConnectionService: proto <-> src/services/boards.ts and src/tracker. */
+import { can } from "../auth/roles.ts";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import {
@@ -324,7 +325,7 @@ async function linkedIssue(p: Principal, v: CardView): Promise<{ issue?: Message
   try {
     return { issue: issueToProto(await openProvider(conn).get(v.row.externalId)), issueError: "" };
   } catch (err) {
-    return { issueError: p.user.role === "admin" || err instanceof TrackerError ? providerMessage(err) : "The issue could not be read" };
+    return { issueError: can(p.user, "connections.write") || err instanceof TrackerError ? providerMessage(err) : "The issue could not be read" };
   }
 }
 
@@ -332,7 +333,7 @@ export function registerBoardServices(router: ConnectRouter): void {
   router.service(TrackerConnectionService, {
     listTrackerConnections: guard(async (_req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      const admin = p.user.role === "admin";
+      const admin = can(p.user, "connections.write");
       const rows = await listConnections();
       // A disabled connection is an admin's matter: nobody else can pick it.
       return { connections: rows.filter((r) => admin || r.enabled).map((r) => connectionToProto(r, admin)), providers: PROVIDERS.map(capabilitiesToProto) };

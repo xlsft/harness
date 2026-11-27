@@ -131,7 +131,7 @@ const (
 	ProjectShareSubject_PROJECT_SHARE_SUBJECT_UNSPECIFIED ProjectShareSubject = 0
 	ProjectShareSubject_PROJECT_SHARE_SUBJECT_USER        ProjectShareSubject = 1
 	ProjectShareSubject_PROJECT_SHARE_SUBJECT_GROUP       ProjectShareSubject = 2
-	// subject_id is a role: "admin" or "user".
+	// subject_id is a role id (roles.proto): a built-in ("admin", "user", "auditor", "billing") or a custom role.
 	ProjectShareSubject_PROJECT_SHARE_SUBJECT_ROLE ProjectShareSubject = 3
 	// Everyone on the server; subject_id is empty.
 	ProjectShareSubject_PROJECT_SHARE_SUBJECT_EVERYONE ProjectShareSubject = 4

@@ -13,6 +13,7 @@
 import { and, eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { GetUserAuthStatusResponse_State, ProviderType } from "../gen/harness/vcs/v1/vcs_pb.ts";
+import { can } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { Principal, PublicUser } from "../services/devices.ts";
 import { sessionView } from "../services/sessions.ts";
@@ -179,7 +180,7 @@ async function bind(p: Principal, repositoryKey: string, mode: "read" | "write")
   }
   const sys = systemClient(conn);
   if (!sys) throw new ApiError("needs_auth", `Connect your ${name} account (StartUserAuth) first`);
-  if (p.user.role !== "admin" && !(await ownsSessionOn(p.user.id, repo.key))) {
+  if (!can(p.user, "connections.write") && !(await ownsSessionOn(p.user.id, repo.key))) {
     throw new ApiError("needs_auth", `Connect your ${name} account (StartUserAuth) to access ${repo.key}`);
   }
   return { repo, conn, client: sys, asUser: false };
@@ -237,7 +238,7 @@ export async function listRepositories(p: Principal, connectionId: string, query
   const conn = await getConnectionRow(connectionId);
   const own = await userClient(conn, p.user.id);
   if (own) return own.listRepositories(query, pageToken);
-  if (p.user.role !== "admin") throw new ApiError("needs_auth", `Connect your ${providerName(conn.type)} account (StartUserAuth) to list repositories`);
+  if (!can(p.user, "connections.write")) throw new ApiError("needs_auth", `Connect your ${providerName(conn.type)} account (StartUserAuth) to list repositories`);
   const sys = systemClient(conn);
   if (!sys) throw new ApiError("failed_precondition", "The connection has no app credentials or access token");
   return sys.listRepositories(query, pageToken);
@@ -412,7 +413,7 @@ export async function canAccessRepo(user: PublicUser, repositoryKey: string): Pr
 
 /** Admins see every event; users see events of their sessions, their own device reports, and repos they can access. */
 export async function eventVisibleTo(user: PublicUser, row: EventRow): Promise<boolean> {
-  if (user.role === "admin") return true;
+  if (can(user, "connections.write")) return true;
   if (row.actorUserId === user.id) return true;
   if (sessionsOf(row).some((s) => s.userId === user.id)) return true;
   return canAccessRepo(user, row.repositoryKey);

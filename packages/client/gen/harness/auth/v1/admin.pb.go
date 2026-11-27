@@ -96,7 +96,10 @@ type AdminUser struct {
 	// Names of the groups the user belongs to (directory.proto).
 	Groups []string `protobuf:"bytes,14,rep,name=groups,proto3" json:"groups,omitempty"`
 	// Avatar as a data URL (see UpdateMeRequest.image); empty when none is set. Lists show it beside the name.
-	Image         string `protobuf:"bytes,15,opt,name=image,proto3" json:"image,omitempty"`
+	Image string `protobuf:"bytes,15,opt,name=image,proto3" json:"image,omitempty"`
+	// The role by id and its display name (see User.role_id). A custom role reads as ROLE_UNSPECIFIED in `role`.
+	RoleId        string `protobuf:"bytes,16,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
+	RoleName      string `protobuf:"bytes,17,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -236,13 +239,29 @@ func (x *AdminUser) GetImage() string {
 	return ""
 }
 
+func (x *AdminUser) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
+}
+
+func (x *AdminUser) GetRoleName() string {
+	if x != nil {
+		return x.RoleName
+	}
+	return ""
+}
+
 // One rule of a group to role mapping: members of `group` get `role`. Rules are checked in order and the first match
 // wins; somebody who matches none gets ROLE_USER. Used by LDAP (group DNs), SSO (group names from the identity
 // provider's token or assertion) and SCIM (group display names).
 type GroupRoleMapping struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Group         string                 `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
-	Role          User_Role              `protobuf:"varint,2,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Group string                 `protobuf:"bytes,1,opt,name=group,proto3" json:"group,omitempty"`
+	Role  User_Role              `protobuf:"varint,2,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
+	// The role by id (roles.proto); when set it wins over `role`, which is how a custom role is mapped.
+	RoleId        string `protobuf:"bytes,3,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -289,6 +308,13 @@ func (x *GroupRoleMapping) GetRole() User_Role {
 		return x.Role
 	}
 	return User_ROLE_UNSPECIFIED
+}
+
+func (x *GroupRoleMapping) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
 }
 
 type ListUsersRequest struct {
@@ -399,7 +425,9 @@ type CreateUserRequest struct {
 	GeneratePassword bool      `protobuf:"varint,5,opt,name=generate_password,json=generatePassword,proto3" json:"generate_password,omitempty"`
 	Role             User_Role `protobuf:"varint,6,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
 	// Pre-provisions a directory user (no local password): they sign in through LDAP with `username`.
-	Ldap          bool `protobuf:"varint,7,opt,name=ldap,proto3" json:"ldap,omitempty"`
+	Ldap bool `protobuf:"varint,7,opt,name=ldap,proto3" json:"ldap,omitempty"`
+	// The role by id (roles.proto); when set it wins over `role`. The caller must hold every permission of the role.
+	RoleId        string `protobuf:"bytes,8,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -481,6 +509,13 @@ func (x *CreateUserRequest) GetLdap() bool {
 		return x.Ldap
 	}
 	return false
+}
+
+func (x *CreateUserRequest) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
 }
 
 type CreateUserResponse struct {
@@ -651,9 +686,12 @@ func (x *ResetPasswordResponse) GetGeneratedPassword() string {
 }
 
 type SetRoleRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	Role          User_Role              `protobuf:"varint,2,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	UserId string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Role   User_Role              `protobuf:"varint,2,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
+	// The role by id (roles.proto); when set it wins over `role`. The caller must hold every permission of both the
+	// user's current role and the new one.
+	RoleId        string `protobuf:"bytes,3,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -700,6 +738,13 @@ func (x *SetRoleRequest) GetRole() User_Role {
 		return x.Role
 	}
 	return User_ROLE_UNSPECIFIED
+}
+
+func (x *SetRoleRequest) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
 }
 
 type SetRoleResponse struct {
@@ -1960,6 +2005,7 @@ type TestLdapUserResponse struct {
 	UserId string `protobuf:"bytes,10,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	// The role admin_group_dn and role_mappings give them.
 	Role          User_Role `protobuf:"varint,11,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
+	RoleId        string    `protobuf:"bytes,12,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2069,6 +2115,13 @@ func (x *TestLdapUserResponse) GetRole() User_Role {
 		return x.Role
 	}
 	return User_ROLE_UNSPECIFIED
+}
+
+func (x *TestLdapUserResponse) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
 }
 
 type PermissionModePolicy struct {
@@ -2501,7 +2554,7 @@ var File_harness_auth_v1_admin_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"\n" +
-	"\x1bharness/auth/v1/admin.proto\x12\x0fharness.auth.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1aharness/auth/v1/auth.proto\x1a#harness/auth/v1/limits_policy.proto\"\xdb\x03\n" +
+	"\x1bharness/auth/v1/admin.proto\x12\x0fharness.auth.v1\x1a\x1charness/agent/v1/agent.proto\x1a\x1aharness/auth/v1/auth.proto\x1a#harness/auth/v1/limits_policy.proto\"\x91\x04\n" +
 	"\tAdminUser\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
@@ -2521,15 +2574,18 @@ const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"\vmfa_enabled\x18\r \x01(\bR\n" +
 	"mfaEnabled\x12\x16\n" +
 	"\x06groups\x18\x0e \x03(\tR\x06groups\x12\x14\n" +
-	"\x05image\x18\x0f \x01(\tR\x05image\"X\n" +
+	"\x05image\x18\x0f \x01(\tR\x05image\x12\x17\n" +
+	"\arole_id\x18\x10 \x01(\tR\x06roleId\x12\x1b\n" +
+	"\trole_name\x18\x11 \x01(\tR\broleName\"q\n" +
 	"\x10GroupRoleMapping\x12\x14\n" +
 	"\x05group\x18\x01 \x01(\tR\x05group\x12.\n" +
-	"\x04role\x18\x02 \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\">\n" +
+	"\x04role\x18\x02 \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\x12\x17\n" +
+	"\arole_id\x18\x03 \x01(\tR\x06roleId\">\n" +
 	"\x10ListUsersRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\"E\n" +
 	"\x11ListUsersResponse\x120\n" +
-	"\x05users\x18\x01 \x03(\v2\x1a.harness.auth.v1.AdminUserR\x05users\"\xe6\x01\n" +
+	"\x05users\x18\x01 \x03(\v2\x1a.harness.auth.v1.AdminUserR\x05users\"\xff\x01\n" +
 	"\x11CreateUserRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x14\n" +
@@ -2537,7 +2593,8 @@ const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"\bpassword\x18\x04 \x01(\tR\bpassword\x12+\n" +
 	"\x11generate_password\x18\x05 \x01(\bR\x10generatePassword\x12.\n" +
 	"\x04role\x18\x06 \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\x12\x12\n" +
-	"\x04ldap\x18\a \x01(\bR\x04ldap\"s\n" +
+	"\x04ldap\x18\a \x01(\bR\x04ldap\x12\x17\n" +
+	"\arole_id\x18\b \x01(\tR\x06roleId\"s\n" +
 	"\x12CreateUserResponse\x12.\n" +
 	"\x04user\x18\x01 \x01(\v2\x1a.harness.auth.v1.AdminUserR\x04user\x12-\n" +
 	"\x12generated_password\x18\x02 \x01(\tR\x11generatedPassword\"\x90\x01\n" +
@@ -2547,10 +2604,11 @@ const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"\bgenerate\x18\x03 \x01(\bR\bgenerate\x12'\n" +
 	"\x0frevoke_sessions\x18\x04 \x01(\bR\x0erevokeSessions\"F\n" +
 	"\x15ResetPasswordResponse\x12-\n" +
-	"\x12generated_password\x18\x01 \x01(\tR\x11generatedPassword\"Y\n" +
+	"\x12generated_password\x18\x01 \x01(\tR\x11generatedPassword\"r\n" +
 	"\x0eSetRoleRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12.\n" +
-	"\x04role\x18\x02 \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\"A\n" +
+	"\x04role\x18\x02 \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\x12\x17\n" +
+	"\arole_id\x18\x03 \x01(\tR\x06roleId\"A\n" +
 	"\x0fSetRoleResponse\x12.\n" +
 	"\x04user\x18\x01 \x01(\v2\x1a.harness.auth.v1.AdminUserR\x04user\"a\n" +
 	"\x12SetDisabledRequest\x12\x17\n" +
@@ -2635,7 +2693,7 @@ const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"\x03url\x18\x03 \x01(\tR\x03url\"`\n" +
 	"\x13TestLdapUserRequest\x123\n" +
 	"\x06config\x18\x01 \x01(\v2\x1b.harness.auth.v1.LdapConfigR\x06config\x12\x14\n" +
-	"\x05login\x18\x02 \x01(\tR\x05login\"\xad\x02\n" +
+	"\x05login\x18\x02 \x01(\tR\x05login\"\xc6\x02\n" +
 	"\x14TestLdapUserResponse\x12\x14\n" +
 	"\x05found\x18\x01 \x01(\bR\x05found\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x0e\n" +
@@ -2648,7 +2706,8 @@ const file_harness_auth_v1_admin_proto_rawDesc = "" +
 	"\x05admin\x18\t \x01(\bR\x05admin\x12\x17\n" +
 	"\auser_id\x18\n" +
 	" \x01(\tR\x06userId\x12.\n" +
-	"\x04role\x18\v \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\"_\n" +
+	"\x04role\x18\v \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\x12\x17\n" +
+	"\arole_id\x18\f \x01(\tR\x06roleId\"_\n" +
 	"\x14PermissionModePolicy\x12G\n" +
 	"\x0edisabled_modes\x18\x01 \x03(\x0e2 .harness.agent.v1.PermissionModeR\rdisabledModes\" \n" +
 	"\x1eGetPermissionModePolicyRequest\"`\n" +

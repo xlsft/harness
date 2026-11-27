@@ -8,7 +8,7 @@ import { config } from "../env.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId, newToken, newUserCode, normalizeUserCode, sha256 } from "../lib/ids.ts";
 import { deviceBlockedByPolicy } from "../auth/mfa.ts";
-import { can, normalizeRole, type Role } from "../auth/roles.ts";
+import { assertMayGrant, can, normalizeRole, type Role } from "../auth/roles.ts";
 
 export const DEVICE_CODE_TTL_SEC = 600;
 export const POLL_INTERVAL_SEC = 5;
@@ -344,7 +344,12 @@ export async function revokeDeviceFor(p: Principal, deviceId: string): Promise<v
   if (!deviceId) throw new ApiError("invalid_request", "device_id is required");
   await ensureDb();
   const d = await getDb().query.device.findFirst({ where: eq(schema.device.id, deviceId) });
-  if (!d || (d.userId !== p.user.id && p.user.role !== "admin")) throw new ApiError("not_found", "Device not found");
+  if (!d || (d.userId !== p.user.id && !can(p.user, "users.write"))) throw new ApiError("not_found", "Device not found");
+  if (d.userId !== p.user.id) {
+    // Another user's device: only with every permission that user's role has (as for AdminService).
+    const owner = await getDb().query.user.findFirst({ where: eq(schema.user.id, d.userId), columns: { role: true } });
+    assertMayGrant(p.user, normalizeRole(owner?.role));
+  }
   if (d.id === p.deviceId) throw new ApiError("failed_precondition", "This is the device you are using; sign out on it instead");
   if (!d.revokedAt) await revokeDevice(deviceId);
 }

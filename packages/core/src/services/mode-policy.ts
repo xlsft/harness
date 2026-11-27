@@ -113,7 +113,7 @@ export async function setModePolicy(p: Principal, modes: string[]): Promise<Mode
       baseVersion: row?.version ?? 0,
       source: "admin:permission-mode-policy",
       targetRoles: (row?.targetRoles as string[] | undefined) ?? [],
-    });
+    }, "policy.write");
     if ("document" in r) return disabledModesOf(parse(r.document));
   }
   throw new ApiError("conflict", "The policy changed concurrently; try again");

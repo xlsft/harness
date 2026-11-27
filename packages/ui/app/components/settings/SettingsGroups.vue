@@ -2,7 +2,6 @@
 // Settings > Users, under the list: groups and the quotas per group and per role, and the budget of one session. Local groups
 // are edited here; those from SCIM, an identity provider or LDAP follow their source, but can carry a quota all the same.
 import type { GroupView, QuotaLimits, Quotas } from '~/lib/enterprise/types'
-import { ROLE_LABEL } from '~/lib/enterprise/types'
 import type { UserRole, UserView } from '~/lib/users/types'
 
 const props = defineProps<{ users: UserView[] }>()
@@ -94,7 +93,9 @@ async function saveBudget() {
 }
 
 const SOURCE: Record<string, string> = { scim: 'SCIM', sso: 'identity provider', ldap: 'LDAP' }
-const ROLES: UserRole[] = ['user', 'admin', 'auditor', 'billing']
+const roles = useRoles()
+const ROLES = computed(() => roles.roles.value.map(r => r.id))
+onMounted(() => roles.load())
 const memberNames = (g: GroupView) => g.memberIds.map(id => props.users.find(u => u.id === id)?.name ?? id)
 </script>
 
@@ -126,10 +127,10 @@ const memberNames = (g: GroupView) => g.memberIds.map(id => props.users.find(u =
         :key="r"
         class="flex flex-wrap items-center gap-3"
       >
-        <span class="w-[70px] text-[12px] text-toned">{{ ROLE_LABEL[r] }}</span>
+        <span class="w-[70px] text-[12px] text-toned">{{ roles.label(r) }}</span>
         <SettingsQuotaForm
           :limits="quotas.roles[r] ?? {}"
-          :name="ROLE_LABEL[r]"
+          :name="roles.label(r)"
           :readonly="!canQuotas"
           @save="saveRole(r, $event)"
         />

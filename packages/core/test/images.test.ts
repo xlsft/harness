@@ -316,7 +316,7 @@ describe("ImageService and GenerateImages", () => {
     const gw = ts.as(user.accessToken).gateway;
     expect((await gw.listModels({})).imageModels.map((m) => m.id)).toEqual(["img-std"]);
     await expect(gw.generateImages({ model: "img-admins", prompt: "x" })).rejects.toThrow(/not available/);
-    await expect(mine.setImageDefault({ modelId: "img-std" })).rejects.toThrow(/Admin/);
+    await expect(mine.setImageDefault({ modelId: "img-std" })).rejects.toThrow(/permission/);
     await expect(mine.updateImageModel({ modelId: "img-std", enabled: false })).rejects.toThrow(/admins/);
     // Opening the allowlist to users makes the model theirs to use.
     await images.updateImageModel({ modelId: "img-admins", roles: { roles: [] } });

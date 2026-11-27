@@ -60,9 +60,11 @@ func (*GetMyAccessRequest) Descriptor() ([]byte, []int) {
 type GetMyAccessResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Role  User_Role              `protobuf:"varint,1,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
-	// users.read, users.write, audit.read, usage.read, quotas.read, quotas.write, policy.read, policy.write, sign_in.read,
-	// sign_in.write, directory.read, directory.write, limits.read, limits.write.
-	Capabilities  []string `protobuf:"bytes,2,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	// The permissions of the caller's role (roles.proto, RoleService.ListPermissions lists the catalog).
+	Capabilities []string `protobuf:"bytes,2,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	// The caller's role by id and name (see User.role_id).
+	RoleId        string `protobuf:"bytes,3,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
+	RoleName      string `protobuf:"bytes,4,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -111,13 +113,29 @@ func (x *GetMyAccessResponse) GetCapabilities() []string {
 	return nil
 }
 
+func (x *GetMyAccessResponse) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
+}
+
+func (x *GetMyAccessResponse) GetRoleName() string {
+	if x != nil {
+		return x.RoleName
+	}
+	return ""
+}
+
 type Group struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name  string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// "local", "scim", "sso" or "ldap".
-	Source        string   `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
-	MemberIds     []string `protobuf:"bytes,4,rep,name=member_ids,json=memberIds,proto3" json:"member_ids,omitempty"`
+	Source    string   `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
+	MemberIds []string `protobuf:"bytes,4,rep,name=member_ids,json=memberIds,proto3" json:"member_ids,omitempty"`
+	// Where the group is used: whether it has a spend limit, the projects shared with it and the team hosts it owns.
+	Usage         *GroupUsage `protobuf:"bytes,5,opt,name=usage,proto3" json:"usage,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -180,6 +198,125 @@ func (x *Group) GetMemberIds() []string {
 	return nil
 }
 
+func (x *Group) GetUsage() *GroupUsage {
+	if x != nil {
+		return x.Usage
+	}
+	return nil
+}
+
+type GroupUsage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	HasQuota      bool                   `protobuf:"varint,1,opt,name=has_quota,json=hasQuota,proto3" json:"has_quota,omitempty"`
+	Projects      []*GroupUsageItem      `protobuf:"bytes,2,rep,name=projects,proto3" json:"projects,omitempty"`
+	Hosts         []*GroupUsageItem      `protobuf:"bytes,3,rep,name=hosts,proto3" json:"hosts,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GroupUsage) Reset() {
+	*x = GroupUsage{}
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GroupUsage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GroupUsage) ProtoMessage() {}
+
+func (x *GroupUsage) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GroupUsage.ProtoReflect.Descriptor instead.
+func (*GroupUsage) Descriptor() ([]byte, []int) {
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GroupUsage) GetHasQuota() bool {
+	if x != nil {
+		return x.HasQuota
+	}
+	return false
+}
+
+func (x *GroupUsage) GetProjects() []*GroupUsageItem {
+	if x != nil {
+		return x.Projects
+	}
+	return nil
+}
+
+func (x *GroupUsage) GetHosts() []*GroupUsageItem {
+	if x != nil {
+		return x.Hosts
+	}
+	return nil
+}
+
+type GroupUsageItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GroupUsageItem) Reset() {
+	*x = GroupUsageItem{}
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GroupUsageItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GroupUsageItem) ProtoMessage() {}
+
+func (x *GroupUsageItem) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GroupUsageItem.ProtoReflect.Descriptor instead.
+func (*GroupUsageItem) Descriptor() ([]byte, []int) {
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GroupUsageItem) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *GroupUsageItem) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 type ListGroupsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -188,7 +325,7 @@ type ListGroupsRequest struct {
 
 func (x *ListGroupsRequest) Reset() {
 	*x = ListGroupsRequest{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[3]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -200,7 +337,7 @@ func (x *ListGroupsRequest) String() string {
 func (*ListGroupsRequest) ProtoMessage() {}
 
 func (x *ListGroupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[3]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -213,7 +350,7 @@ func (x *ListGroupsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGroupsRequest.ProtoReflect.Descriptor instead.
 func (*ListGroupsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{3}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{5}
 }
 
 type ListGroupsResponse struct {
@@ -225,7 +362,7 @@ type ListGroupsResponse struct {
 
 func (x *ListGroupsResponse) Reset() {
 	*x = ListGroupsResponse{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[4]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -237,7 +374,7 @@ func (x *ListGroupsResponse) String() string {
 func (*ListGroupsResponse) ProtoMessage() {}
 
 func (x *ListGroupsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[4]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -250,7 +387,7 @@ func (x *ListGroupsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGroupsResponse.ProtoReflect.Descriptor instead.
 func (*ListGroupsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{4}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ListGroupsResponse) GetGroups() []*Group {
@@ -269,7 +406,7 @@ type CreateGroupRequest struct {
 
 func (x *CreateGroupRequest) Reset() {
 	*x = CreateGroupRequest{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[5]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -281,7 +418,7 @@ func (x *CreateGroupRequest) String() string {
 func (*CreateGroupRequest) ProtoMessage() {}
 
 func (x *CreateGroupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[5]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -294,7 +431,7 @@ func (x *CreateGroupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateGroupRequest.ProtoReflect.Descriptor instead.
 func (*CreateGroupRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{5}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateGroupRequest) GetName() string {
@@ -313,7 +450,7 @@ type CreateGroupResponse struct {
 
 func (x *CreateGroupResponse) Reset() {
 	*x = CreateGroupResponse{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[6]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -325,7 +462,7 @@ func (x *CreateGroupResponse) String() string {
 func (*CreateGroupResponse) ProtoMessage() {}
 
 func (x *CreateGroupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[6]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -338,7 +475,7 @@ func (x *CreateGroupResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateGroupResponse.ProtoReflect.Descriptor instead.
 func (*CreateGroupResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{6}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CreateGroupResponse) GetGroup() *Group {
@@ -358,7 +495,7 @@ type RenameGroupRequest struct {
 
 func (x *RenameGroupRequest) Reset() {
 	*x = RenameGroupRequest{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[7]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -370,7 +507,7 @@ func (x *RenameGroupRequest) String() string {
 func (*RenameGroupRequest) ProtoMessage() {}
 
 func (x *RenameGroupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[7]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -383,7 +520,7 @@ func (x *RenameGroupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameGroupRequest.ProtoReflect.Descriptor instead.
 func (*RenameGroupRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{7}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RenameGroupRequest) GetId() string {
@@ -409,7 +546,7 @@ type RenameGroupResponse struct {
 
 func (x *RenameGroupResponse) Reset() {
 	*x = RenameGroupResponse{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[8]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -421,7 +558,7 @@ func (x *RenameGroupResponse) String() string {
 func (*RenameGroupResponse) ProtoMessage() {}
 
 func (x *RenameGroupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[8]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -434,7 +571,7 @@ func (x *RenameGroupResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RenameGroupResponse.ProtoReflect.Descriptor instead.
 func (*RenameGroupResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{8}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RenameGroupResponse) GetGroup() *Group {
@@ -453,7 +590,7 @@ type DeleteGroupRequest struct {
 
 func (x *DeleteGroupRequest) Reset() {
 	*x = DeleteGroupRequest{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[9]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -465,7 +602,7 @@ func (x *DeleteGroupRequest) String() string {
 func (*DeleteGroupRequest) ProtoMessage() {}
 
 func (x *DeleteGroupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[9]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -478,7 +615,7 @@ func (x *DeleteGroupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGroupRequest.ProtoReflect.Descriptor instead.
 func (*DeleteGroupRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{9}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DeleteGroupRequest) GetId() string {
@@ -496,7 +633,7 @@ type DeleteGroupResponse struct {
 
 func (x *DeleteGroupResponse) Reset() {
 	*x = DeleteGroupResponse{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[10]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -508,7 +645,7 @@ func (x *DeleteGroupResponse) String() string {
 func (*DeleteGroupResponse) ProtoMessage() {}
 
 func (x *DeleteGroupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[10]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -521,7 +658,7 @@ func (x *DeleteGroupResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGroupResponse.ProtoReflect.Descriptor instead.
 func (*DeleteGroupResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{10}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{12}
 }
 
 type SetGroupMembersRequest struct {
@@ -534,7 +671,7 @@ type SetGroupMembersRequest struct {
 
 func (x *SetGroupMembersRequest) Reset() {
 	*x = SetGroupMembersRequest{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[11]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -546,7 +683,7 @@ func (x *SetGroupMembersRequest) String() string {
 func (*SetGroupMembersRequest) ProtoMessage() {}
 
 func (x *SetGroupMembersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[11]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -559,7 +696,7 @@ func (x *SetGroupMembersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetGroupMembersRequest.ProtoReflect.Descriptor instead.
 func (*SetGroupMembersRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{11}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SetGroupMembersRequest) GetId() string {
@@ -585,7 +722,7 @@ type SetGroupMembersResponse struct {
 
 func (x *SetGroupMembersResponse) Reset() {
 	*x = SetGroupMembersResponse{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[12]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -597,7 +734,7 @@ func (x *SetGroupMembersResponse) String() string {
 func (*SetGroupMembersResponse) ProtoMessage() {}
 
 func (x *SetGroupMembersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[12]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -610,7 +747,7 @@ func (x *SetGroupMembersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetGroupMembersResponse.ProtoReflect.Descriptor instead.
 func (*SetGroupMembersResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{12}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *SetGroupMembersResponse) GetGroup() *Group {
@@ -633,7 +770,7 @@ type ScimToken struct {
 
 func (x *ScimToken) Reset() {
 	*x = ScimToken{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[13]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -645,7 +782,7 @@ func (x *ScimToken) String() string {
 func (*ScimToken) ProtoMessage() {}
 
 func (x *ScimToken) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[13]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -658,7 +795,7 @@ func (x *ScimToken) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScimToken.ProtoReflect.Descriptor instead.
 func (*ScimToken) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{13}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ScimToken) GetId() string {
@@ -699,7 +836,7 @@ type ScimSettings struct {
 
 func (x *ScimSettings) Reset() {
 	*x = ScimSettings{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[14]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -711,7 +848,7 @@ func (x *ScimSettings) String() string {
 func (*ScimSettings) ProtoMessage() {}
 
 func (x *ScimSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[14]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -724,7 +861,7 @@ func (x *ScimSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScimSettings.ProtoReflect.Descriptor instead.
 func (*ScimSettings) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{14}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ScimSettings) GetRoleMappings() []*GroupRoleMapping {
@@ -742,7 +879,7 @@ type GetScimSettingsRequest struct {
 
 func (x *GetScimSettingsRequest) Reset() {
 	*x = GetScimSettingsRequest{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[15]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -754,7 +891,7 @@ func (x *GetScimSettingsRequest) String() string {
 func (*GetScimSettingsRequest) ProtoMessage() {}
 
 func (x *GetScimSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[15]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -767,7 +904,7 @@ func (x *GetScimSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetScimSettingsRequest.ProtoReflect.Descriptor instead.
 func (*GetScimSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{15}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{17}
 }
 
 type GetScimSettingsResponse struct {
@@ -782,7 +919,7 @@ type GetScimSettingsResponse struct {
 
 func (x *GetScimSettingsResponse) Reset() {
 	*x = GetScimSettingsResponse{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[16]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -794,7 +931,7 @@ func (x *GetScimSettingsResponse) String() string {
 func (*GetScimSettingsResponse) ProtoMessage() {}
 
 func (x *GetScimSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[16]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -807,7 +944,7 @@ func (x *GetScimSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetScimSettingsResponse.ProtoReflect.Descriptor instead.
 func (*GetScimSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{16}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetScimSettingsResponse) GetSettings() *ScimSettings {
@@ -840,7 +977,7 @@ type SetScimSettingsRequest struct {
 
 func (x *SetScimSettingsRequest) Reset() {
 	*x = SetScimSettingsRequest{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[17]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -852,7 +989,7 @@ func (x *SetScimSettingsRequest) String() string {
 func (*SetScimSettingsRequest) ProtoMessage() {}
 
 func (x *SetScimSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[17]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -865,7 +1002,7 @@ func (x *SetScimSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetScimSettingsRequest.ProtoReflect.Descriptor instead.
 func (*SetScimSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{17}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *SetScimSettingsRequest) GetSettings() *ScimSettings {
@@ -884,7 +1021,7 @@ type SetScimSettingsResponse struct {
 
 func (x *SetScimSettingsResponse) Reset() {
 	*x = SetScimSettingsResponse{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[18]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -896,7 +1033,7 @@ func (x *SetScimSettingsResponse) String() string {
 func (*SetScimSettingsResponse) ProtoMessage() {}
 
 func (x *SetScimSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[18]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -909,7 +1046,7 @@ func (x *SetScimSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetScimSettingsResponse.ProtoReflect.Descriptor instead.
 func (*SetScimSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{18}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *SetScimSettingsResponse) GetSettings() *ScimSettings {
@@ -928,7 +1065,7 @@ type CreateScimTokenRequest struct {
 
 func (x *CreateScimTokenRequest) Reset() {
 	*x = CreateScimTokenRequest{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[19]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -940,7 +1077,7 @@ func (x *CreateScimTokenRequest) String() string {
 func (*CreateScimTokenRequest) ProtoMessage() {}
 
 func (x *CreateScimTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[19]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -953,7 +1090,7 @@ func (x *CreateScimTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateScimTokenRequest.ProtoReflect.Descriptor instead.
 func (*CreateScimTokenRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{19}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *CreateScimTokenRequest) GetName() string {
@@ -974,7 +1111,7 @@ type CreateScimTokenResponse struct {
 
 func (x *CreateScimTokenResponse) Reset() {
 	*x = CreateScimTokenResponse{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[20]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -986,7 +1123,7 @@ func (x *CreateScimTokenResponse) String() string {
 func (*CreateScimTokenResponse) ProtoMessage() {}
 
 func (x *CreateScimTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[20]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -999,7 +1136,7 @@ func (x *CreateScimTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateScimTokenResponse.ProtoReflect.Descriptor instead.
 func (*CreateScimTokenResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{20}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *CreateScimTokenResponse) GetToken() *ScimToken {
@@ -1025,7 +1162,7 @@ type RevokeScimTokenRequest struct {
 
 func (x *RevokeScimTokenRequest) Reset() {
 	*x = RevokeScimTokenRequest{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[21]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1037,7 +1174,7 @@ func (x *RevokeScimTokenRequest) String() string {
 func (*RevokeScimTokenRequest) ProtoMessage() {}
 
 func (x *RevokeScimTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[21]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1050,7 +1187,7 @@ func (x *RevokeScimTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeScimTokenRequest.ProtoReflect.Descriptor instead.
 func (*RevokeScimTokenRequest) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{21}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *RevokeScimTokenRequest) GetId() string {
@@ -1068,7 +1205,7 @@ type RevokeScimTokenResponse struct {
 
 func (x *RevokeScimTokenResponse) Reset() {
 	*x = RevokeScimTokenResponse{}
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[22]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1080,7 +1217,7 @@ func (x *RevokeScimTokenResponse) String() string {
 func (*RevokeScimTokenResponse) ProtoMessage() {}
 
 func (x *RevokeScimTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_auth_v1_directory_proto_msgTypes[22]
+	mi := &file_harness_auth_v1_directory_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1093,7 +1230,7 @@ func (x *RevokeScimTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeScimTokenResponse.ProtoReflect.Descriptor instead.
 func (*RevokeScimTokenResponse) Descriptor() ([]byte, []int) {
-	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{22}
+	return file_harness_auth_v1_directory_proto_rawDescGZIP(), []int{24}
 }
 
 var File_harness_auth_v1_directory_proto protoreflect.FileDescriptor
@@ -1101,16 +1238,27 @@ var File_harness_auth_v1_directory_proto protoreflect.FileDescriptor
 const file_harness_auth_v1_directory_proto_rawDesc = "" +
 	"\n" +
 	"\x1fharness/auth/v1/directory.proto\x12\x0fharness.auth.v1\x1a\x1bharness/auth/v1/admin.proto\x1a\x1aharness/auth/v1/auth.proto\"\x14\n" +
-	"\x12GetMyAccessRequest\"i\n" +
+	"\x12GetMyAccessRequest\"\x9f\x01\n" +
 	"\x13GetMyAccessResponse\x12.\n" +
 	"\x04role\x18\x01 \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\x12\"\n" +
-	"\fcapabilities\x18\x02 \x03(\tR\fcapabilities\"b\n" +
+	"\fcapabilities\x18\x02 \x03(\tR\fcapabilities\x12\x17\n" +
+	"\arole_id\x18\x03 \x01(\tR\x06roleId\x12\x1b\n" +
+	"\trole_name\x18\x04 \x01(\tR\broleName\"\x95\x01\n" +
 	"\x05Group\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x16\n" +
 	"\x06source\x18\x03 \x01(\tR\x06source\x12\x1d\n" +
 	"\n" +
-	"member_ids\x18\x04 \x03(\tR\tmemberIds\"\x13\n" +
+	"member_ids\x18\x04 \x03(\tR\tmemberIds\x121\n" +
+	"\x05usage\x18\x05 \x01(\v2\x1b.harness.auth.v1.GroupUsageR\x05usage\"\x9d\x01\n" +
+	"\n" +
+	"GroupUsage\x12\x1b\n" +
+	"\thas_quota\x18\x01 \x01(\bR\bhasQuota\x12;\n" +
+	"\bprojects\x18\x02 \x03(\v2\x1f.harness.auth.v1.GroupUsageItemR\bprojects\x125\n" +
+	"\x05hosts\x18\x03 \x03(\v2\x1f.harness.auth.v1.GroupUsageItemR\x05hosts\"4\n" +
+	"\x0eGroupUsageItem\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"\x13\n" +
 	"\x11ListGroupsRequest\"D\n" +
 	"\x12ListGroupsResponse\x12.\n" +
 	"\x06groups\x18\x01 \x03(\v2\x16.harness.auth.v1.GroupR\x06groups\"(\n" +
@@ -1183,71 +1331,76 @@ func file_harness_auth_v1_directory_proto_rawDescGZIP() []byte {
 	return file_harness_auth_v1_directory_proto_rawDescData
 }
 
-var file_harness_auth_v1_directory_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_harness_auth_v1_directory_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_harness_auth_v1_directory_proto_goTypes = []any{
 	(*GetMyAccessRequest)(nil),      // 0: harness.auth.v1.GetMyAccessRequest
 	(*GetMyAccessResponse)(nil),     // 1: harness.auth.v1.GetMyAccessResponse
 	(*Group)(nil),                   // 2: harness.auth.v1.Group
-	(*ListGroupsRequest)(nil),       // 3: harness.auth.v1.ListGroupsRequest
-	(*ListGroupsResponse)(nil),      // 4: harness.auth.v1.ListGroupsResponse
-	(*CreateGroupRequest)(nil),      // 5: harness.auth.v1.CreateGroupRequest
-	(*CreateGroupResponse)(nil),     // 6: harness.auth.v1.CreateGroupResponse
-	(*RenameGroupRequest)(nil),      // 7: harness.auth.v1.RenameGroupRequest
-	(*RenameGroupResponse)(nil),     // 8: harness.auth.v1.RenameGroupResponse
-	(*DeleteGroupRequest)(nil),      // 9: harness.auth.v1.DeleteGroupRequest
-	(*DeleteGroupResponse)(nil),     // 10: harness.auth.v1.DeleteGroupResponse
-	(*SetGroupMembersRequest)(nil),  // 11: harness.auth.v1.SetGroupMembersRequest
-	(*SetGroupMembersResponse)(nil), // 12: harness.auth.v1.SetGroupMembersResponse
-	(*ScimToken)(nil),               // 13: harness.auth.v1.ScimToken
-	(*ScimSettings)(nil),            // 14: harness.auth.v1.ScimSettings
-	(*GetScimSettingsRequest)(nil),  // 15: harness.auth.v1.GetScimSettingsRequest
-	(*GetScimSettingsResponse)(nil), // 16: harness.auth.v1.GetScimSettingsResponse
-	(*SetScimSettingsRequest)(nil),  // 17: harness.auth.v1.SetScimSettingsRequest
-	(*SetScimSettingsResponse)(nil), // 18: harness.auth.v1.SetScimSettingsResponse
-	(*CreateScimTokenRequest)(nil),  // 19: harness.auth.v1.CreateScimTokenRequest
-	(*CreateScimTokenResponse)(nil), // 20: harness.auth.v1.CreateScimTokenResponse
-	(*RevokeScimTokenRequest)(nil),  // 21: harness.auth.v1.RevokeScimTokenRequest
-	(*RevokeScimTokenResponse)(nil), // 22: harness.auth.v1.RevokeScimTokenResponse
-	(User_Role)(0),                  // 23: harness.auth.v1.User.Role
-	(*GroupRoleMapping)(nil),        // 24: harness.auth.v1.GroupRoleMapping
+	(*GroupUsage)(nil),              // 3: harness.auth.v1.GroupUsage
+	(*GroupUsageItem)(nil),          // 4: harness.auth.v1.GroupUsageItem
+	(*ListGroupsRequest)(nil),       // 5: harness.auth.v1.ListGroupsRequest
+	(*ListGroupsResponse)(nil),      // 6: harness.auth.v1.ListGroupsResponse
+	(*CreateGroupRequest)(nil),      // 7: harness.auth.v1.CreateGroupRequest
+	(*CreateGroupResponse)(nil),     // 8: harness.auth.v1.CreateGroupResponse
+	(*RenameGroupRequest)(nil),      // 9: harness.auth.v1.RenameGroupRequest
+	(*RenameGroupResponse)(nil),     // 10: harness.auth.v1.RenameGroupResponse
+	(*DeleteGroupRequest)(nil),      // 11: harness.auth.v1.DeleteGroupRequest
+	(*DeleteGroupResponse)(nil),     // 12: harness.auth.v1.DeleteGroupResponse
+	(*SetGroupMembersRequest)(nil),  // 13: harness.auth.v1.SetGroupMembersRequest
+	(*SetGroupMembersResponse)(nil), // 14: harness.auth.v1.SetGroupMembersResponse
+	(*ScimToken)(nil),               // 15: harness.auth.v1.ScimToken
+	(*ScimSettings)(nil),            // 16: harness.auth.v1.ScimSettings
+	(*GetScimSettingsRequest)(nil),  // 17: harness.auth.v1.GetScimSettingsRequest
+	(*GetScimSettingsResponse)(nil), // 18: harness.auth.v1.GetScimSettingsResponse
+	(*SetScimSettingsRequest)(nil),  // 19: harness.auth.v1.SetScimSettingsRequest
+	(*SetScimSettingsResponse)(nil), // 20: harness.auth.v1.SetScimSettingsResponse
+	(*CreateScimTokenRequest)(nil),  // 21: harness.auth.v1.CreateScimTokenRequest
+	(*CreateScimTokenResponse)(nil), // 22: harness.auth.v1.CreateScimTokenResponse
+	(*RevokeScimTokenRequest)(nil),  // 23: harness.auth.v1.RevokeScimTokenRequest
+	(*RevokeScimTokenResponse)(nil), // 24: harness.auth.v1.RevokeScimTokenResponse
+	(User_Role)(0),                  // 25: harness.auth.v1.User.Role
+	(*GroupRoleMapping)(nil),        // 26: harness.auth.v1.GroupRoleMapping
 }
 var file_harness_auth_v1_directory_proto_depIdxs = []int32{
-	23, // 0: harness.auth.v1.GetMyAccessResponse.role:type_name -> harness.auth.v1.User.Role
-	2,  // 1: harness.auth.v1.ListGroupsResponse.groups:type_name -> harness.auth.v1.Group
-	2,  // 2: harness.auth.v1.CreateGroupResponse.group:type_name -> harness.auth.v1.Group
-	2,  // 3: harness.auth.v1.RenameGroupResponse.group:type_name -> harness.auth.v1.Group
-	2,  // 4: harness.auth.v1.SetGroupMembersResponse.group:type_name -> harness.auth.v1.Group
-	24, // 5: harness.auth.v1.ScimSettings.role_mappings:type_name -> harness.auth.v1.GroupRoleMapping
-	14, // 6: harness.auth.v1.GetScimSettingsResponse.settings:type_name -> harness.auth.v1.ScimSettings
-	13, // 7: harness.auth.v1.GetScimSettingsResponse.tokens:type_name -> harness.auth.v1.ScimToken
-	14, // 8: harness.auth.v1.SetScimSettingsRequest.settings:type_name -> harness.auth.v1.ScimSettings
-	14, // 9: harness.auth.v1.SetScimSettingsResponse.settings:type_name -> harness.auth.v1.ScimSettings
-	13, // 10: harness.auth.v1.CreateScimTokenResponse.token:type_name -> harness.auth.v1.ScimToken
-	0,  // 11: harness.auth.v1.DirectoryService.GetMyAccess:input_type -> harness.auth.v1.GetMyAccessRequest
-	3,  // 12: harness.auth.v1.DirectoryService.ListGroups:input_type -> harness.auth.v1.ListGroupsRequest
-	5,  // 13: harness.auth.v1.DirectoryService.CreateGroup:input_type -> harness.auth.v1.CreateGroupRequest
-	7,  // 14: harness.auth.v1.DirectoryService.RenameGroup:input_type -> harness.auth.v1.RenameGroupRequest
-	9,  // 15: harness.auth.v1.DirectoryService.DeleteGroup:input_type -> harness.auth.v1.DeleteGroupRequest
-	11, // 16: harness.auth.v1.DirectoryService.SetGroupMembers:input_type -> harness.auth.v1.SetGroupMembersRequest
-	15, // 17: harness.auth.v1.DirectoryService.GetScimSettings:input_type -> harness.auth.v1.GetScimSettingsRequest
-	17, // 18: harness.auth.v1.DirectoryService.SetScimSettings:input_type -> harness.auth.v1.SetScimSettingsRequest
-	19, // 19: harness.auth.v1.DirectoryService.CreateScimToken:input_type -> harness.auth.v1.CreateScimTokenRequest
-	21, // 20: harness.auth.v1.DirectoryService.RevokeScimToken:input_type -> harness.auth.v1.RevokeScimTokenRequest
-	1,  // 21: harness.auth.v1.DirectoryService.GetMyAccess:output_type -> harness.auth.v1.GetMyAccessResponse
-	4,  // 22: harness.auth.v1.DirectoryService.ListGroups:output_type -> harness.auth.v1.ListGroupsResponse
-	6,  // 23: harness.auth.v1.DirectoryService.CreateGroup:output_type -> harness.auth.v1.CreateGroupResponse
-	8,  // 24: harness.auth.v1.DirectoryService.RenameGroup:output_type -> harness.auth.v1.RenameGroupResponse
-	10, // 25: harness.auth.v1.DirectoryService.DeleteGroup:output_type -> harness.auth.v1.DeleteGroupResponse
-	12, // 26: harness.auth.v1.DirectoryService.SetGroupMembers:output_type -> harness.auth.v1.SetGroupMembersResponse
-	16, // 27: harness.auth.v1.DirectoryService.GetScimSettings:output_type -> harness.auth.v1.GetScimSettingsResponse
-	18, // 28: harness.auth.v1.DirectoryService.SetScimSettings:output_type -> harness.auth.v1.SetScimSettingsResponse
-	20, // 29: harness.auth.v1.DirectoryService.CreateScimToken:output_type -> harness.auth.v1.CreateScimTokenResponse
-	22, // 30: harness.auth.v1.DirectoryService.RevokeScimToken:output_type -> harness.auth.v1.RevokeScimTokenResponse
-	21, // [21:31] is the sub-list for method output_type
-	11, // [11:21] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	25, // 0: harness.auth.v1.GetMyAccessResponse.role:type_name -> harness.auth.v1.User.Role
+	3,  // 1: harness.auth.v1.Group.usage:type_name -> harness.auth.v1.GroupUsage
+	4,  // 2: harness.auth.v1.GroupUsage.projects:type_name -> harness.auth.v1.GroupUsageItem
+	4,  // 3: harness.auth.v1.GroupUsage.hosts:type_name -> harness.auth.v1.GroupUsageItem
+	2,  // 4: harness.auth.v1.ListGroupsResponse.groups:type_name -> harness.auth.v1.Group
+	2,  // 5: harness.auth.v1.CreateGroupResponse.group:type_name -> harness.auth.v1.Group
+	2,  // 6: harness.auth.v1.RenameGroupResponse.group:type_name -> harness.auth.v1.Group
+	2,  // 7: harness.auth.v1.SetGroupMembersResponse.group:type_name -> harness.auth.v1.Group
+	26, // 8: harness.auth.v1.ScimSettings.role_mappings:type_name -> harness.auth.v1.GroupRoleMapping
+	16, // 9: harness.auth.v1.GetScimSettingsResponse.settings:type_name -> harness.auth.v1.ScimSettings
+	15, // 10: harness.auth.v1.GetScimSettingsResponse.tokens:type_name -> harness.auth.v1.ScimToken
+	16, // 11: harness.auth.v1.SetScimSettingsRequest.settings:type_name -> harness.auth.v1.ScimSettings
+	16, // 12: harness.auth.v1.SetScimSettingsResponse.settings:type_name -> harness.auth.v1.ScimSettings
+	15, // 13: harness.auth.v1.CreateScimTokenResponse.token:type_name -> harness.auth.v1.ScimToken
+	0,  // 14: harness.auth.v1.DirectoryService.GetMyAccess:input_type -> harness.auth.v1.GetMyAccessRequest
+	5,  // 15: harness.auth.v1.DirectoryService.ListGroups:input_type -> harness.auth.v1.ListGroupsRequest
+	7,  // 16: harness.auth.v1.DirectoryService.CreateGroup:input_type -> harness.auth.v1.CreateGroupRequest
+	9,  // 17: harness.auth.v1.DirectoryService.RenameGroup:input_type -> harness.auth.v1.RenameGroupRequest
+	11, // 18: harness.auth.v1.DirectoryService.DeleteGroup:input_type -> harness.auth.v1.DeleteGroupRequest
+	13, // 19: harness.auth.v1.DirectoryService.SetGroupMembers:input_type -> harness.auth.v1.SetGroupMembersRequest
+	17, // 20: harness.auth.v1.DirectoryService.GetScimSettings:input_type -> harness.auth.v1.GetScimSettingsRequest
+	19, // 21: harness.auth.v1.DirectoryService.SetScimSettings:input_type -> harness.auth.v1.SetScimSettingsRequest
+	21, // 22: harness.auth.v1.DirectoryService.CreateScimToken:input_type -> harness.auth.v1.CreateScimTokenRequest
+	23, // 23: harness.auth.v1.DirectoryService.RevokeScimToken:input_type -> harness.auth.v1.RevokeScimTokenRequest
+	1,  // 24: harness.auth.v1.DirectoryService.GetMyAccess:output_type -> harness.auth.v1.GetMyAccessResponse
+	6,  // 25: harness.auth.v1.DirectoryService.ListGroups:output_type -> harness.auth.v1.ListGroupsResponse
+	8,  // 26: harness.auth.v1.DirectoryService.CreateGroup:output_type -> harness.auth.v1.CreateGroupResponse
+	10, // 27: harness.auth.v1.DirectoryService.RenameGroup:output_type -> harness.auth.v1.RenameGroupResponse
+	12, // 28: harness.auth.v1.DirectoryService.DeleteGroup:output_type -> harness.auth.v1.DeleteGroupResponse
+	14, // 29: harness.auth.v1.DirectoryService.SetGroupMembers:output_type -> harness.auth.v1.SetGroupMembersResponse
+	18, // 30: harness.auth.v1.DirectoryService.GetScimSettings:output_type -> harness.auth.v1.GetScimSettingsResponse
+	20, // 31: harness.auth.v1.DirectoryService.SetScimSettings:output_type -> harness.auth.v1.SetScimSettingsResponse
+	22, // 32: harness.auth.v1.DirectoryService.CreateScimToken:output_type -> harness.auth.v1.CreateScimTokenResponse
+	24, // 33: harness.auth.v1.DirectoryService.RevokeScimToken:output_type -> harness.auth.v1.RevokeScimTokenResponse
+	24, // [24:34] is the sub-list for method output_type
+	14, // [14:24] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_harness_auth_v1_directory_proto_init() }
@@ -1263,7 +1416,7 @@ func file_harness_auth_v1_directory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_auth_v1_directory_proto_rawDesc), len(file_harness_auth_v1_directory_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   23,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

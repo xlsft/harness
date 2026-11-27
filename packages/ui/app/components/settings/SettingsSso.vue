@@ -5,7 +5,7 @@
 // the requirement to sign in through SSO, and the requirement of a second factor.
 import { emptySsoProvider, type MfaPolicy, type SsoProtocol, type SsoProviderView, type SsoSettings, type SsoTestResult } from '~/lib/enterprise/types'
 import type { UserRole } from '~/lib/users/types'
-import { ROLE_LABEL, lines } from '~/lib/enterprise/types'
+import { lines } from '~/lib/enterprise/types'
 
 const store = useSessionStore()
 const access = useAccess()
@@ -139,7 +139,9 @@ async function copy(text: string) {
 const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] text-strong outline-none focus:border-accent disabled:opacity-60'
 const area = 'min-h-[64px] w-full resize-y border border-accented bg-default px-2 py-1.5 font-mono text-[12px] text-strong outline-none focus:border-accent disabled:opacity-60'
 const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
-const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
+const roles = useRoles()
+const ROLES = computed(() => roles.roles.value.map(r => r.id))
+onMounted(() => roles.load())
 </script>
 
 <template>
@@ -554,7 +556,7 @@ const ROLES: UserRole[] = ['admin', 'auditor', 'billing', 'user']
               :checked="mfaPolicy.roles.includes(r)"
               :disabled="!writable"
               @change="toggleMfaRole(r)"
-            >{{ ROLE_LABEL[r] }}
+            >{{ roles.label(r) }}
           </label>
         </div>
       </div>

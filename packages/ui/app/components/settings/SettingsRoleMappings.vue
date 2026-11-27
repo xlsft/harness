@@ -1,13 +1,14 @@
 <script setup lang="ts">
 // Group to role rules, the same for LDAP, identity providers and SCIM: first match wins, no match means a plain user.
 import type { RoleMapping } from '~/lib/enterprise/types'
-import { ROLE_LABEL } from '~/lib/enterprise/types'
 import type { UserRole } from '~/lib/users/types'
 
 const props = defineProps<{ modelValue: RoleMapping[], placeholder?: string, readonly?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [RoleMapping[]] }>()
 
-const ROLES = (['admin', 'auditor', 'billing', 'user'] as UserRole[]).map(value => ({ value, label: ROLE_LABEL[value] }))
+const roles = useRoles()
+const ROLES = roles.options
+onMounted(() => roles.load())
 
 function set(i: number, patch: Partial<RoleMapping>) {
   emit('update:modelValue', props.modelValue.map((m, j) => j === i ? { ...m, ...patch } : m))
@@ -51,13 +52,13 @@ const input = 'h-8 min-w-0 flex-1 border border-accented bg-default px-2 text-[1
         :model-value="m.role"
         :aria-label="tt('Role of rule {0}', [i + 1])"
         :options="ROLES"
-        class="w-[110px]"
+        class="w-[140px]"
         @update:model-value="set(i, { role: $event as UserRole })"
       />
       <span
         v-else
         class="text-[12px] text-toned"
-      >{{ ROLE_LABEL[m.role] }}</span>
+      >{{ roles.label(m.role) }}</span>
       <template v-if="!readonly">
         <HIconBtn
           icon="up"

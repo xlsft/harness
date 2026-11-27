@@ -27,7 +27,7 @@ describe('roles and sources', () => {
 
   it('sends group rules without blanks, in order', () => {
     const pb = mappingsPb([{ group: ' a ', role: 'billing' }, { group: ' ', role: 'admin' }, { group: 'b', role: 'auditor' }])
-    expect(pb).toEqual([{ group: 'a', role: User_Role.BILLING }, { group: 'b', role: User_Role.AUDITOR }])
+    expect(pb).toEqual([{ group: 'a', role: User_Role.BILLING, roleId: 'billing' }, { group: 'b', role: User_Role.AUDITOR, roleId: 'auditor' }])
     expect(mappingsView([create(GroupRoleMappingSchema, { group: 'x', role: User_Role.ADMIN })])).toEqual([{ group: 'x', role: 'admin' }])
   })
 })

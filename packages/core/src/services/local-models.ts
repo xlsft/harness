@@ -74,7 +74,7 @@ export async function setLocalModelPolicy(p: Principal, allowed: boolean): Promi
       baseVersion: row?.version ?? 0,
       source: "admin:local-model-policy",
       targetRoles: (row?.targetRoles as string[] | undefined) ?? [],
-    });
+    }, "policy.write");
     if ("document" in r) return localModelsAllowedIn(parse(r.document.content));
   }
   throw new ApiError("conflict", "The policy changed concurrently; try again");

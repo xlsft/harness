@@ -3,6 +3,7 @@
  * "knowledge-secrets", AAD <id>:secrets), write-only. A connection with borrowConnectionId has none of its own: it signs in as that
  * company tracker connection, whose credentials are decrypted at every open and never copied. docs/design/tracker.md, section 6.
  */
+import { need } from "../auth/roles.ts";
 import { asc, eq } from "drizzle-orm";
 import { record } from "../audit/log.ts";
 import { ensureDb, getDb, schema } from "../db/index.ts";
@@ -27,7 +28,7 @@ const readSecrets = (row: Pick<KnowledgeConnectionRow, "id" | "secretsEnc">) => 
 const writeSecrets = (id: string, s: StoredCredentials) => writeSecretsWith(id, s, key());
 
 function requireAdmin(p: Principal): void {
-  if (p.user.role !== "admin") throw new ApiError("permission", "Only admins can manage company knowledge sources");
+  need(p.user, "connections.write");
 }
 
 function moduleOf(provider: string): KnowledgeModule {

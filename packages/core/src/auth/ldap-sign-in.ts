@@ -215,6 +215,8 @@ export function ldapSignIn(): BetterAuthPlugin {
         let unavailable = false;
         if (!user) {
           try {
+            // The role mapping is applied inside: the custom roles must be current.
+            await (await import("../services/roles.ts")).rolesFresh();
             const r = await authenticate(cfg, login, password);
             if (r.status === "ok") user = await provisionLdapUser(r.user, cfg, ctx.context.internalAdapter as unknown as AccountCreator);
             else if (r.status === "not_allowed") throw failed("Your directory account is not allowed to sign in here.", "FORBIDDEN");

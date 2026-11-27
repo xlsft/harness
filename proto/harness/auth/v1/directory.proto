@@ -29,9 +29,11 @@ message GetMyAccessRequest {}
 
 message GetMyAccessResponse {
   User.Role role = 1;
-  // users.read, users.write, audit.read, usage.read, quotas.read, quotas.write, policy.read, policy.write, sign_in.read,
-  // sign_in.write, directory.read, directory.write, limits.read, limits.write.
+  // The permissions of the caller's role (roles.proto, RoleService.ListPermissions lists the catalog).
   repeated string capabilities = 2;
+  // The caller's role by id and name (see User.role_id).
+  string role_id = 3;
+  string role_name = 4;
 }
 
 message Group {
@@ -40,6 +42,19 @@ message Group {
   // "local", "scim", "sso" or "ldap".
   string source = 3;
   repeated string member_ids = 4;
+  // Where the group is used: whether it has a spend limit, the projects shared with it and the team hosts it owns.
+  GroupUsage usage = 5;
+}
+
+message GroupUsage {
+  bool has_quota = 1;
+  repeated GroupUsageItem projects = 2;
+  repeated GroupUsageItem hosts = 3;
+}
+
+message GroupUsageItem {
+  string id = 1;
+  string name = 2;
 }
 
 message ListGroupsRequest {}

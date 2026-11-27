@@ -171,6 +171,10 @@ message User {
   harness.common.v1.ObjectRef image_object = 10;
   // Names of the groups the user belongs to (directory.proto), set by GetMe.
   repeated string groups = 11;
+  // The user's role by id (roles.proto): "user", "admin", "auditor", "billing" for the built-ins, "role_…" for a custom
+  // role. `role` stays for older readers: a custom role reads as ROLE_UNSPECIFIED there. role_name is its display name.
+  string role_id = 12;
+  string role_name = 13;
 }
 
 enum UserSource {

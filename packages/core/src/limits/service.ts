@@ -15,6 +15,7 @@
  */
 import { and, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
+import { can } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "../services/devices.ts";
 import { resolveModelForUser } from "../services/models.ts";
@@ -129,7 +130,7 @@ async function build(user: PublicUser, providers: PublicProvider[], deps: Limits
         windows_updated_at: "",
         windows_source: "",
         rate_windows: [],
-        balance_entry: takesEstimate(p) && (p.scope === "personal" || user.role === "admin"),
+        balance_entry: takesEstimate(p) && (p.scope === "personal" || can(user, "providers.write")),
       };
       if (balance && p.api_key_set && p.enabled) {
         const rt = await loadProviderRuntime(p.id);

@@ -1,7 +1,7 @@
 // In-memory EnterpriseApi for the mock transport: enough of the server's rules that the screens can be exercised without one.
 
 import type { UserRole } from '~/lib/users/types'
-import type { Access, AuditEventView, AuditFilter, EnterpriseApi, GroupView, ManagedPolicy, ManagedPolicyState, MfaPolicy, QuotaLimits, Quotas, RoleMapping, ScimState, SsoProviderView, SsoSettings, UserQuotaStatus } from './types'
+import type { PermissionView, RoleInput, RoleView, Access, AuditEventView, AuditFilter, EnterpriseApi, GroupView, ManagedPolicy, ManagedPolicyState, MfaPolicy, QuotaLimits, Quotas, RoleMapping, ScimState, SsoProviderView, SsoSettings, UserQuotaStatus } from './types'
 import { emptyManagedPolicy } from './types'
 
 const now = () => new Date().toISOString()
@@ -20,7 +20,7 @@ export class MockEnterpriseApi implements EnterpriseApi {
   private policy: ManagedPolicy = emptyManagedPolicy()
   private policyAt = ''
   // What the mock says the caller may do; a test can narrow it.
-  capabilities = ['users.read', 'users.write', 'audit.read', 'usage.read', 'quotas.read', 'quotas.write', 'policy.read', 'policy.write', 'sign_in.read', 'sign_in.write', 'directory.read', 'directory.write', 'limits.read', 'limits.write']
+  capabilities = ['users.read', 'users.write', 'audit.read', 'usage.read', 'quotas.read', 'quotas.write', 'policy.read', 'policy.write', 'sign_in.read', 'sign_in.write', 'directory.read', 'directory.write', 'limits.read', 'limits.write', 'roles.read', 'roles.write']
 
   private log(action: string, target = '', outcome = 'success') {
     this.events.unshift({ id: String(++this.seq), at: now(), action, outcome, actorId: 'usr_me', actor: 'you@example.com', actorIp: '127.0.0.1', targetType: '', targetId: target, target, details: '{}' })
@@ -28,6 +28,61 @@ export class MockEnterpriseApi implements EnterpriseApi {
 
   async access(): Promise<Access> {
     return { role: 'admin', capabilities: this.capabilities }
+  }
+
+  private permissions: PermissionView[] = [
+    ['users.read', 'users', 'Users', 'See users'],
+    ['users.write', 'users', 'Users', 'Manage users'],
+    ['roles.read', 'roles', 'Roles', 'See roles'],
+    ['roles.write', 'roles', 'Roles', 'Manage roles'],
+    ['usage.read', 'quotas', 'Usage and quotas', 'See usage'],
+    ['quotas.write', 'quotas', 'Usage and quotas', 'Set spend limits'],
+    ['audit.read', 'audit', 'Audit', 'Read the audit log']
+  ].map(([id, area, areaLabel, label]) => ({ id: id!, area: area!, areaLabel: areaLabel!, label: label!, description: '' }))
+
+  private roleList: RoleView[] = [
+    { id: 'user', name: 'User', description: 'Uses the product; no administration.', builtin: true, editable: false, permissions: [], memberCount: 3 },
+    { id: 'admin', name: 'Admin', description: 'Every permission.', builtin: true, editable: false, permissions: this.permissions.map(p => p.id), memberCount: 1 },
+    { id: 'auditor', name: 'Auditor', description: 'Reads what the server is administered with and changes nothing.', builtin: true, editable: false, permissions: ['users.read', 'roles.read', 'usage.read', 'audit.read'], memberCount: 0 },
+    { id: 'billing', name: 'Billing', description: 'Reads usage and sets spend quotas.', builtin: true, editable: false, permissions: ['usage.read', 'quotas.write'], memberCount: 0 }
+  ]
+
+  async listPermissions() {
+    return this.permissions
+  }
+
+  async listRoles() {
+    return this.roleList.map(r => ({ ...r }))
+  }
+
+  private checkRole(r: RoleInput, id = '') {
+    const name = r.name.trim()
+    if (!name) throw new Error('A role needs a name')
+    if (this.roleList.some(x => x.id !== id && x.name.toLowerCase() === name.toLowerCase())) throw new Error(`A role named ${name} already exists`)
+    return { name, description: r.description.trim(), permissions: [...new Set(r.permissions)].sort() }
+  }
+
+  async createRole(r: RoleInput) {
+    const role: RoleView = { id: `role_${++this.seq}`, builtin: false, editable: true, memberCount: 0, ...this.checkRole(r) }
+    this.roleList.push(role)
+    this.log('role.create', role.name)
+    return { ...role }
+  }
+
+  async updateRole(id: string, r: RoleInput) {
+    const role = this.roleList.find(x => x.id === id)
+    if (!role || role.builtin) throw new Error('Built-in roles cannot be changed')
+    Object.assign(role, this.checkRole(r, id))
+    this.log('role.update', role.name)
+    return { ...role }
+  }
+
+  async deleteRole(id: string, moveMembersToUser: boolean) {
+    const role = this.roleList.find(x => x.id === id)
+    if (!role || role.builtin) throw new Error('Built-in roles cannot be deleted')
+    if (role.memberCount && !moveMembersToUser) throw new Error(`${role.memberCount} users have this role`)
+    this.roleList = this.roleList.filter(x => x.id !== id)
+    this.log('role.delete', role.name)
   }
 
   async listSso() {

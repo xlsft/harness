@@ -28,8 +28,13 @@ func NewConnectService(baseURL string, httpClient *http.Client) *ConnectService 
 	return &ConnectService{rpc: authv1connect.NewDeviceAuthServiceClient(httpClient, baseURL, rpc.ClientOptions()...)}
 }
 
+// userFrom reads a user; the role is its id (built-in "admin", "user"... or a custom role's "role_..."), which wins over the
+// enum: a custom role reads as ROLE_UNSPECIFIED there.
 func userFrom(u *authv1.User) User {
-	role := strings.ToLower(strings.TrimPrefix(u.GetRole().String(), "ROLE_"))
+	role := u.GetRoleId()
+	if role == "" {
+		role = strings.ToLower(strings.TrimPrefix(u.GetRole().String(), "ROLE_"))
+	}
 	if role == "unspecified" {
 		role = ""
 	}

@@ -8,7 +8,7 @@
  * "image" slot; each user may pick another model for themselves in their synced settings (the client reads that).
  */
 import { and, asc, eq, isNull, or } from "drizzle-orm";
-import { ROLES } from "../auth/roles.ts";
+import { can, need, ROLES } from "../auth/roles.ts";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { backoffDelay } from "../services/gateway.ts";
 import { ApiError } from "../lib/errors.ts";
@@ -71,7 +71,7 @@ function usableBy(m: ModelRow, p: ProviderRow, user: PublicUser): boolean {
 
 function view(m: ModelRow, p: ProviderRow, user: PublicUser, usable: boolean): ImageModelView {
   const api = imageApiOf(p, m.upstreamModel);
-  const admin = user.role === "admin";
+  const admin = can(user, "providers.write");
   return {
     id: m.id,
     display_name: m.displayName,
@@ -92,7 +92,7 @@ function view(m: ModelRow, p: ProviderRow, user: PublicUser, usable: boolean): I
 /** The image models the user may see (admins: every global one too), global first, and the providers they may add to. */
 export async function getImageSettings(user: PublicUser) {
   await ensureDb();
-  const admin = user.role === "admin";
+  const admin = can(user, "providers.write");
   const policy = await serverPolicyFor(user);
   const rows = await getDb()
     .select()
@@ -124,7 +124,7 @@ export async function getImageSettings(user: PublicUser) {
 }
 
 function requireAdmin(user: PublicUser) {
-  if (user.role !== "admin") throw new ApiError("permission", "Admin role required");
+  need(user, "providers.write");
 }
 
 export async function setImageDefault(user: PublicUser, modelId: string): Promise<string> {
@@ -206,7 +206,7 @@ async function writableImageModel(user: PublicUser, modelId: string) {
   await ensureDb();
   const r = await rowsOf(modelId).catch(() => undefined);
   if (!r || r.model.kind !== "image" || (r.provider.ownerUserId && r.provider.ownerUserId !== user.id)) throw new ApiError("not_found", `Image model ${modelId} not found`);
-  if (!r.provider.ownerUserId && user.role !== "admin") throw new ApiError("permission", "Only admins can change global image models");
+  if (!r.provider.ownerUserId && !can(user, "providers.write")) throw new ApiError("permission", "Only admins can change global image models");
   return r;
 }
 

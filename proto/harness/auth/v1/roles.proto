@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+package harness.auth.v1;
+
+// RoleService: the roles of this server and the permissions they grant (docs/design/roles.md).
+//
+// A role is a named set of permissions from a fixed catalog the server enforces; nothing outside the catalog can be
+// granted, and an unknown permission is refused. Every user has exactly one role. The built-in roles have fixed ids:
+//   - "admin": every permission; it cannot be edited or deleted, and the last active admin cannot lose it;
+//   - "auditor": reads what the server is administered with (users, audit log, usage, quotas, policy, sign-in, groups,
+//     provider limits, hosts, roles) and changes nothing;
+//   - "billing": reads usage and sets spend quotas;
+//   - "user": no administration.
+// Custom roles have ids "role_…" given by the server. Built-ins other than admin cannot be edited either: create a custom
+// role instead.
+//
+// Reads: roles.read (or users.read / quotas.read, which need the role names). Writes: roles.write. Nobody can create,
+// change or delete a role, or give anybody a role, that has a permission they do not hold themselves.
+service RoleService {
+  // The permission catalog, grouped by area.
+  rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse);
+  // Every role, built-ins first, with its permissions and how many users have it.
+  rpc ListRoles(ListRolesRequest) returns (ListRolesResponse);
+  rpc CreateRole(CreateRoleRequest) returns (CreateRoleResponse);
+  // Renames, re-describes or changes the permissions of a custom role.
+  rpc UpdateRole(UpdateRoleRequest) returns (UpdateRoleResponse);
+  // Deletes a custom role. A role somebody has is refused (FAILED_PRECONDITION) unless move_members_to_user is set:
+  // then its members get the "user" role first.
+  rpc DeleteRole(DeleteRoleRequest) returns (DeleteRoleResponse);
+}
+
+message Permission {
+  // E.g. "users.read".
+  string id = 1;
+  // The area it belongs to, e.g. "users", "audit", "quotas"; area_label is its display name.
+  string area = 2;
+  string area_label = 3;
+  string label = 4;
+  string description = 5;
+}
+
+message Role {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  bool builtin = 4;
+  // Whether the caller may change it (custom, and every permission it has or gets is the caller's own).
+  bool editable = 5;
+  // Sorted permission ids.
+  repeated string permissions = 6;
+  int32 member_count = 7;
+  // RFC 3339, UTC; empty for built-ins.
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message ListPermissionsRequest {}
+
+message ListPermissionsResponse {
+  repeated Permission permissions = 1;
+}
+
+message ListRolesRequest {}
+
+message ListRolesResponse {
+  repeated Role roles = 1;
+}
+
+message CreateRoleRequest {
+  // 1 to 64 characters, unique among roles (case-insensitive), built-in names included.
+  string name = 1;
+  // Up to 500 characters.
+  string description = 2;
+  repeated string permissions = 3;
+}
+
+message CreateRoleResponse {
+  Role role = 1;
+}
+
+message UpdateRoleRequest {
+  string id = 1;
+  // Unset fields stay as they are.
+  optional string name = 2;
+  optional string description = 3;
+  // Replaces the permissions when set_permissions is true (so an empty list can clear them).
+  repeated string permissions = 4;
+  bool set_permissions = 5;
+}
+
+message UpdateRoleResponse {
+  Role role = 1;
+}
+
+message DeleteRoleRequest {
+  string id = 1;
+  // Confirms that the role's members move to the "user" role.
+  bool move_members_to_user = 2;
+}
+
+message DeleteRoleResponse {
+  // How many users were moved to "user".
+  int32 moved_members = 1;
+}

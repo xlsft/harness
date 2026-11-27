@@ -8,6 +8,7 @@
  */
 import { and, eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
+import { can, need } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import { assertResolvesPublic } from "../lib/ssrf.ts";
 import type { PublicUser } from "../services/devices.ts";
@@ -81,7 +82,7 @@ function view(v: VendorSpec, kind: Kind, row: Row | undefined, admin: boolean): 
 /** Every vendor for the kinds asked for (undefined: both), STT first. */
 export async function listSpeechProviders(user: PublicUser, kind?: Kind): Promise<{ providers: ProviderView[]; can_manage: boolean }> {
   const rows = await speechRows();
-  const admin = user.role === "admin";
+  const admin = can(user, "providers.write");
   const out: ProviderView[] = [];
   for (const k of kind ? [kind] : (["stt", "tts"] as const)) {
     for (const v of VENDORS) if (k === "stt" ? v.stt : v.tts) out.push(view(v, k, rows.get(v.id), admin));
@@ -90,7 +91,7 @@ export async function listSpeechProviders(user: PublicUser, kind?: Kind): Promis
 }
 
 function requireAdmin(user: PublicUser) {
-  if (user.role !== "admin") throw new ApiError("permission", "Admin role required");
+  need(user, "providers.write");
 }
 
 function vendorOrThrow(id: string): VendorSpec {

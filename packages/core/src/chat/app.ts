@@ -3,6 +3,7 @@
  * (each user, for themselves). Secrets are write-only and stored as one AES-256-GCM blob per app or bot (HKDF purpose
  * "chat-secrets", AAD "chat:<provider>:secrets" for the organization's app, "chat:<provider>:bot:<id>" for a personal bot).
  */
+import { need } from "../auth/roles.ts";
 import { randomBytes } from "node:crypto";
 import { and, eq, lt } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
@@ -67,7 +68,7 @@ function botSecrets(row: BotRow): AppSecrets {
 }
 
 function requireAdmin(p: Principal): void {
-  if (p.user.role !== "admin") throw new ApiError("permission", "Only admins can manage chat apps");
+  need(p.user, "connections.write");
 }
 
 export async function getAppRow(provider: number): Promise<AppRow | undefined> {

@@ -268,6 +268,12 @@ do, `packages/core/src/auth/roles.ts`, and refuses the rest).
 - **Rules**: the last active admin cannot be demoted, disabled or deleted, and nobody can disable or
   delete themselves. To hand over, make someone else an admin first.
 
+**Settings → Roles** lists the built-in roles (Admin, Auditor, Billing, User) and lets an admin define custom ones: a
+name, a description and permissions from a fixed catalog, grouped by area. A custom role can be given to users, used in
+group-to-role rules, the two-factor policy and per-role quotas like a built-in. Nobody can grant a permission they do not
+hold, built-ins cannot be changed, and deleting a role somebody has moves them to User after a confirmation. Details:
+[docs/design/roles.md](../docs/design/roles.md).
+
 ### LDAP / Active Directory
 
 Configured in the same section (stored in the server database; the search account's password is

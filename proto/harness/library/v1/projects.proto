@@ -48,7 +48,7 @@ enum ProjectShareSubject {
   PROJECT_SHARE_SUBJECT_UNSPECIFIED = 0;
   PROJECT_SHARE_SUBJECT_USER = 1;
   PROJECT_SHARE_SUBJECT_GROUP = 2;
-  // subject_id is a role: "admin" or "user".
+  // subject_id is a role id (roles.proto): a built-in ("admin", "user", "auditor", "billing") or a custom role.
   PROJECT_SHARE_SUBJECT_ROLE = 3;
   // Everyone on the server; subject_id is empty.
   PROJECT_SHARE_SUBJECT_EVERYONE = 4;

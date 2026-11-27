@@ -487,8 +487,9 @@ type MfaPolicy struct {
 	// Everybody must have a factor. Those without one enroll at their next sign-in, and their connected devices stop
 	// refreshing tokens until they did.
 	Required bool `protobuf:"varint,1,opt,name=required,proto3" json:"required,omitempty"`
-	// Only these roles (empty: every role).
-	Roles []User_Role `protobuf:"varint,2,rep,packed,name=roles,proto3,enum=harness.auth.v1.User_Role" json:"roles,omitempty"`
+	// Only these roles (empty: every role). Built-ins only; role_ids carries every role, custom ones too, and wins when set.
+	Roles   []User_Role `protobuf:"varint,2,rep,packed,name=roles,proto3,enum=harness.auth.v1.User_Role" json:"roles,omitempty"`
+	RoleIds []string    `protobuf:"bytes,4,rep,name=role_ids,json=roleIds,proto3" json:"role_ids,omitempty"`
 	// People signing in through SSO are not asked again: their identity provider is responsible for the second factor.
 	ExemptSso     bool `protobuf:"varint,3,opt,name=exempt_sso,json=exemptSso,proto3" json:"exempt_sso,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -535,6 +536,13 @@ func (x *MfaPolicy) GetRequired() bool {
 func (x *MfaPolicy) GetRoles() []User_Role {
 	if x != nil {
 		return x.Roles
+	}
+	return nil
+}
+
+func (x *MfaPolicy) GetRoleIds() []string {
+	if x != nil {
+		return x.RoleIds
 	}
 	return nil
 }
@@ -821,10 +829,11 @@ const file_harness_auth_v1_mfa_proto_rawDesc = "" +
 	"\x1eRegenerateRecoveryCodesRequest\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\tR\x04code\"H\n" +
 	"\x1fRegenerateRecoveryCodesResponse\x12%\n" +
-	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes\"x\n" +
+	"\x0erecovery_codes\x18\x01 \x03(\tR\rrecoveryCodes\"\x93\x01\n" +
 	"\tMfaPolicy\x12\x1a\n" +
 	"\brequired\x18\x01 \x01(\bR\brequired\x120\n" +
-	"\x05roles\x18\x02 \x03(\x0e2\x1a.harness.auth.v1.User.RoleR\x05roles\x12\x1d\n" +
+	"\x05roles\x18\x02 \x03(\x0e2\x1a.harness.auth.v1.User.RoleR\x05roles\x12\x19\n" +
+	"\brole_ids\x18\x04 \x03(\tR\aroleIds\x12\x1d\n" +
 	"\n" +
 	"exempt_sso\x18\x03 \x01(\bR\texemptSso\"\x15\n" +
 	"\x13GetMfaPolicyRequest\"J\n" +

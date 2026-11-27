@@ -3,6 +3,7 @@
  * quotas per user, group and role with the personal-provider rule, usage CSV, the managed policy (document contents and what
  * the server enforces itself), session-cookie access for the web console, and serving the built UI.
  */
+import { RoleService } from "../src/gen/harness/auth/v1/roles_pb.ts";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -215,7 +216,7 @@ describe("audit log", () => {
   });
 
   it("lists every audited method against the real services, so a rename cannot silently stop the logging", () => {
-    const services = [AdminService, AuditService, BillingService, DirectoryService, MfaService, PolicyService, SsoService, ProviderService, ProviderLimitsService, McpService, VcsService, SpeechService, SyncService, DeviceAuthService, HostsService, HostAgentService, ChatService];
+    const services = [AdminService, AuditService, BillingService, DirectoryService, MfaService, PolicyService, SsoService, ProviderService, ProviderLimitsService, McpService, VcsService, SpeechService, SyncService, DeviceAuthService, HostsService, HostAgentService, ChatService, RoleService];
     const known = new Set(services.flatMap((s) => s.methods.map((m) => `${s.typeName}/${m.name}`)));
     const missing = Object.keys(AUDITED).filter((k) => !known.has(k));
     expect(missing).toEqual([]);

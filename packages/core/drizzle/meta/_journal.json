@@ -176,6 +176,13 @@
       "when": 1795774069739,
       "tag": "0024_relay_inbox",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795774761406,
+      "tag": "0025_custom_roles",
+      "breakpoints": true
     }
   ]
 }

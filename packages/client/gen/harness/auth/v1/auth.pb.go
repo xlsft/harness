@@ -1182,7 +1182,11 @@ type User struct {
 	// route. image stays for frontends older than the store.
 	ImageObject *v1.ObjectRef `protobuf:"bytes,10,opt,name=image_object,json=imageObject,proto3" json:"image_object,omitempty"`
 	// Names of the groups the user belongs to (directory.proto), set by GetMe.
-	Groups        []string `protobuf:"bytes,11,rep,name=groups,proto3" json:"groups,omitempty"`
+	Groups []string `protobuf:"bytes,11,rep,name=groups,proto3" json:"groups,omitempty"`
+	// The user's role by id (roles.proto): "user", "admin", "auditor", "billing" for the built-ins, "role_…" for a custom
+	// role. `role` stays for older readers: a custom role reads as ROLE_UNSPECIFIED there. role_name is its display name.
+	RoleId        string `protobuf:"bytes,12,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
+	RoleName      string `protobuf:"bytes,13,opt,name=role_name,json=roleName,proto3" json:"role_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1292,6 +1296,20 @@ func (x *User) GetGroups() []string {
 		return x.Groups
 	}
 	return nil
+}
+
+func (x *User) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
+}
+
+func (x *User) GetRoleName() string {
+	if x != nil {
+		return x.RoleName
+	}
+	return ""
 }
 
 type Device struct {
@@ -1467,7 +1485,7 @@ const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"\x15revoke_other_sessions\x18\x03 \x01(\bR\x13revokeOtherSessions\"\x18\n" +
 	"\x16ChangePasswordResponse\"\x0f\n" +
 	"\rLogoutRequest\"\x10\n" +
-	"\x0eLogoutResponse\"\xd7\x03\n" +
+	"\x0eLogoutResponse\"\x8d\x04\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x12\n" +
@@ -1481,7 +1499,9 @@ const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"\x0flast_sign_in_at\x18\t \x01(\tR\flastSignInAt\x12?\n" +
 	"\fimage_object\x18\n" +
 	" \x01(\v2\x1c.harness.common.v1.ObjectRefR\vimageObject\x12\x16\n" +
-	"\x06groups\x18\v \x03(\tR\x06groups\"_\n" +
+	"\x06groups\x18\v \x03(\tR\x06groups\x12\x17\n" +
+	"\arole_id\x18\f \x01(\tR\x06roleId\x12\x1b\n" +
+	"\trole_name\x18\r \x01(\tR\broleName\"_\n" +
 	"\x04Role\x12\x14\n" +
 	"\x10ROLE_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tROLE_USER\x10\x01\x12\x0e\n" +

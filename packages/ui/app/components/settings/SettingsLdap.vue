@@ -3,7 +3,6 @@
 // checks the directory (and local accounts per the chosen order); a successful bind creates or updates the
 // local account. The search account's password is write-only. "Test connection" and "Test user lookup" run
 // against the form as it is, before saving.
-import { ROLE_LABEL } from '~/lib/enterprise/types'
 import type { LdapSettings, LdapUserLookup, UsersApi } from '~/lib/users/types'
 import { DEFAULT_LDAP_FILTER } from '~/lib/users/types'
 
@@ -38,7 +37,9 @@ function show(v: LdapSettings) {
   breakGlass.value = v.breakGlassLogins.join('\n')
 }
 
+const roles = useRoles()
 onMounted(async () => {
+  void roles.load()
   try {
     show(await api().getLdap())
   } catch (e) {
@@ -389,7 +390,7 @@ const area = 'min-h-16 w-[300px] border border-accented bg-default px-2 py-1.5 f
               <template v-if="lookup.found">
                 <span class="break-all text-muted">{{ lookup.dn }}</span>
                 <span class="text-muted">{{ [lookup.username, lookup.email, lookup.name].filter(Boolean).join(' · ') }}</span>
-                <span class="text-muted">{{ ROLE_LABEL[lookup.role] }} · {{ lookup.userId ? 'has an account here' : 'no account here yet' }}</span>
+                <span class="text-muted">{{ roles.label(lookup.role) }} · {{ lookup.userId ? 'has an account here' : 'no account here yet' }}</span>
                 <span
                   v-if="lookup.groups.length"
                   class="break-all text-dimmed"

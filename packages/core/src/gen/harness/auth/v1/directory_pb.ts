@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/auth/v1/directory.proto.
  */
 export const file_harness_auth_v1_directory: GenFile = /*@__PURE__*/
-  fileDesc("Ch9oYXJuZXNzL2F1dGgvdjEvZGlyZWN0b3J5LnByb3RvEg9oYXJuZXNzLmF1dGgudjEiFAoSR2V0TXlBY2Nlc3NSZXF1ZXN0IlUKE0dldE15QWNjZXNzUmVzcG9uc2USKAoEcm9sZRgBIAEoDjIaLmhhcm5lc3MuYXV0aC52MS5Vc2VyLlJvbGUSFAoMY2FwYWJpbGl0aWVzGAIgAygJIkUKBUdyb3VwEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDgoGc291cmNlGAMgASgJEhIKCm1lbWJlcl9pZHMYBCADKAkiEwoRTGlzdEdyb3Vwc1JlcXVlc3QiPAoSTGlzdEdyb3Vwc1Jlc3BvbnNlEiYKBmdyb3VwcxgBIAMoCzIWLmhhcm5lc3MuYXV0aC52MS5Hcm91cCIiChJDcmVhdGVHcm91cFJlcXVlc3QSDAoEbmFtZRgBIAEoCSI8ChNDcmVhdGVHcm91cFJlc3BvbnNlEiUKBWdyb3VwGAEgASgLMhYuaGFybmVzcy5hdXRoLnYxLkdyb3VwIi4KElJlbmFtZUdyb3VwUmVxdWVzdBIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJIjwKE1JlbmFtZUdyb3VwUmVzcG9uc2USJQoFZ3JvdXAYASABKAsyFi5oYXJuZXNzLmF1dGgudjEuR3JvdXAiIAoSRGVsZXRlR3JvdXBSZXF1ZXN0EgoKAmlkGAEgASgJIhUKE0RlbGV0ZUdyb3VwUmVzcG9uc2UiNgoWU2V0R3JvdXBNZW1iZXJzUmVxdWVzdBIKCgJpZBgBIAEoCRIQCgh1c2VyX2lkcxgCIAMoCSJAChdTZXRHcm91cE1lbWJlcnNSZXNwb25zZRIlCgVncm91cBgBIAEoCzIWLmhhcm5lc3MuYXV0aC52MS5Hcm91cCJPCglTY2ltVG9rZW4SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRISCgpjcmVhdGVkX2F0GAMgASgJEhQKDGxhc3RfdXNlZF9hdBgEIAEoCSJICgxTY2ltU2V0dGluZ3MSOAoNcm9sZV9tYXBwaW5ncxgBIAMoCzIhLmhhcm5lc3MuYXV0aC52MS5Hcm91cFJvbGVNYXBwaW5nIhgKFkdldFNjaW1TZXR0aW5nc1JlcXVlc3QiiAEKF0dldFNjaW1TZXR0aW5nc1Jlc3BvbnNlEi8KCHNldHRpbmdzGAEgASgLMh0uaGFybmVzcy5hdXRoLnYxLlNjaW1TZXR0aW5ncxIqCgZ0b2tlbnMYAiADKAsyGi5oYXJuZXNzLmF1dGgudjEuU2NpbVRva2VuEhAKCGJhc2VfdXJsGAMgASgJIkkKFlNldFNjaW1TZXR0aW5nc1JlcXVlc3QSLwoIc2V0dGluZ3MYASABKAsyHS5oYXJuZXNzLmF1dGgudjEuU2NpbVNldHRpbmdzIkoKF1NldFNjaW1TZXR0aW5nc1Jlc3BvbnNlEi8KCHNldHRpbmdzGAEgASgLMh0uaGFybmVzcy5hdXRoLnYxLlNjaW1TZXR0aW5ncyImChZDcmVhdGVTY2ltVG9rZW5SZXF1ZXN0EgwKBG5hbWUYASABKAkiUwoXQ3JlYXRlU2NpbVRva2VuUmVzcG9uc2USKQoFdG9rZW4YASABKAsyGi5oYXJuZXNzLmF1dGgudjEuU2NpbVRva2VuEg0KBXZhbHVlGAIgASgJIiQKFlJldm9rZVNjaW1Ub2tlblJlcXVlc3QSCgoCaWQYASABKAkiGQoXUmV2b2tlU2NpbVRva2VuUmVzcG9uc2UyzwcKEERpcmVjdG9yeVNlcnZpY2USWAoLR2V0TXlBY2Nlc3MSIy5oYXJuZXNzLmF1dGgudjEuR2V0TXlBY2Nlc3NSZXF1ZXN0GiQuaGFybmVzcy5hdXRoLnYxLkdldE15QWNjZXNzUmVzcG9uc2USVQoKTGlzdEdyb3VwcxIiLmhhcm5lc3MuYXV0aC52MS5MaXN0R3JvdXBzUmVxdWVzdBojLmhhcm5lc3MuYXV0aC52MS5MaXN0R3JvdXBzUmVzcG9uc2USWAoLQ3JlYXRlR3JvdXASIy5oYXJuZXNzLmF1dGgudjEuQ3JlYXRlR3JvdXBSZXF1ZXN0GiQuaGFybmVzcy5hdXRoLnYxLkNyZWF0ZUdyb3VwUmVzcG9uc2USWAoLUmVuYW1lR3JvdXASIy5oYXJuZXNzLmF1dGgudjEuUmVuYW1lR3JvdXBSZXF1ZXN0GiQuaGFybmVzcy5hdXRoLnYxLlJlbmFtZUdyb3VwUmVzcG9uc2USWAoLRGVsZXRlR3JvdXASIy5oYXJuZXNzLmF1dGgudjEuRGVsZXRlR3JvdXBSZXF1ZXN0GiQuaGFybmVzcy5hdXRoLnYxLkRlbGV0ZUdyb3VwUmVzcG9uc2USZAoPU2V0R3JvdXBNZW1iZXJzEicuaGFybmVzcy5hdXRoLnYxLlNldEdyb3VwTWVtYmVyc1JlcXVlc3QaKC5oYXJuZXNzLmF1dGgudjEuU2V0R3JvdXBNZW1iZXJzUmVzcG9uc2USZAoPR2V0U2NpbVNldHRpbmdzEicuaGFybmVzcy5hdXRoLnYxLkdldFNjaW1TZXR0aW5nc1JlcXVlc3QaKC5oYXJuZXNzLmF1dGgudjEuR2V0U2NpbVNldHRpbmdzUmVzcG9uc2USZAoPU2V0U2NpbVNldHRpbmdzEicuaGFybmVzcy5hdXRoLnYxLlNldFNjaW1TZXR0aW5nc1JlcXVlc3QaKC5oYXJuZXNzLmF1dGgudjEuU2V0U2NpbVNldHRpbmdzUmVzcG9uc2USZAoPQ3JlYXRlU2NpbVRva2VuEicuaGFybmVzcy5hdXRoLnYxLkNyZWF0ZVNjaW1Ub2tlblJlcXVlc3QaKC5oYXJuZXNzLmF1dGgudjEuQ3JlYXRlU2NpbVRva2VuUmVzcG9uc2USZAoPUmV2b2tlU2NpbVRva2VuEicuaGFybmVzcy5hdXRoLnYxLlJldm9rZVNjaW1Ub2tlblJlcXVlc3QaKC5oYXJuZXNzLmF1dGgudjEuUmV2b2tlU2NpbVRva2VuUmVzcG9uc2VCyAEKE2NvbS5oYXJuZXNzLmF1dGgudjFCDkRpcmVjdG9yeVByb3RvUAFaQ2dpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYXV0aC92MTthdXRodjGiAgNIQViqAg9IYXJuZXNzLkF1dGguVjHKAg9IYXJuZXNzXEF1dGhcVjHiAhtIYXJuZXNzXEF1dGhcVjFcR1BCTWV0YWRhdGHqAhFIYXJuZXNzOjpBdXRoOjpWMWIGcHJvdG8z", [file_harness_auth_v1_admin, file_harness_auth_v1_auth]);
+  fileDesc("Ch9oYXJuZXNzL2F1dGgvdjEvZGlyZWN0b3J5LnByb3RvEg9oYXJuZXNzLmF1dGgudjEiFAoSR2V0TXlBY2Nlc3NSZXF1ZXN0InkKE0dldE15QWNjZXNzUmVzcG9uc2USKAoEcm9sZRgBIAEoDjIaLmhhcm5lc3MuYXV0aC52MS5Vc2VyLlJvbGUSFAoMY2FwYWJpbGl0aWVzGAIgAygJEg8KB3JvbGVfaWQYAyABKAkSEQoJcm9sZV9uYW1lGAQgASgJInEKBUdyb3VwEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSDgoGc291cmNlGAMgASgJEhIKCm1lbWJlcl9pZHMYBCADKAkSKgoFdXNhZ2UYBSABKAsyGy5oYXJuZXNzLmF1dGgudjEuR3JvdXBVc2FnZSKCAQoKR3JvdXBVc2FnZRIRCgloYXNfcXVvdGEYASABKAgSMQoIcHJvamVjdHMYAiADKAsyHy5oYXJuZXNzLmF1dGgudjEuR3JvdXBVc2FnZUl0ZW0SLgoFaG9zdHMYAyADKAsyHy5oYXJuZXNzLmF1dGgudjEuR3JvdXBVc2FnZUl0ZW0iKgoOR3JvdXBVc2FnZUl0ZW0SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCSITChFMaXN0R3JvdXBzUmVxdWVzdCI8ChJMaXN0R3JvdXBzUmVzcG9uc2USJgoGZ3JvdXBzGAEgAygLMhYuaGFybmVzcy5hdXRoLnYxLkdyb3VwIiIKEkNyZWF0ZUdyb3VwUmVxdWVzdBIMCgRuYW1lGAEgASgJIjwKE0NyZWF0ZUdyb3VwUmVzcG9uc2USJQoFZ3JvdXAYASABKAsyFi5oYXJuZXNzLmF1dGgudjEuR3JvdXAiLgoSUmVuYW1lR3JvdXBSZXF1ZXN0EgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkiPAoTUmVuYW1lR3JvdXBSZXNwb25zZRIlCgVncm91cBgBIAEoCzIWLmhhcm5lc3MuYXV0aC52MS5Hcm91cCIgChJEZWxldGVHcm91cFJlcXVlc3QSCgoCaWQYASABKAkiFQoTRGVsZXRlR3JvdXBSZXNwb25zZSI2ChZTZXRHcm91cE1lbWJlcnNSZXF1ZXN0EgoKAmlkGAEgASgJEhAKCHVzZXJfaWRzGAIgAygJIkAKF1NldEdyb3VwTWVtYmVyc1Jlc3BvbnNlEiUKBWdyb3VwGAEgASgLMhYuaGFybmVzcy5hdXRoLnYxLkdyb3VwIk8KCVNjaW1Ub2tlbhIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhIKCmNyZWF0ZWRfYXQYAyABKAkSFAoMbGFzdF91c2VkX2F0GAQgASgJIkgKDFNjaW1TZXR0aW5ncxI4Cg1yb2xlX21hcHBpbmdzGAEgAygLMiEuaGFybmVzcy5hdXRoLnYxLkdyb3VwUm9sZU1hcHBpbmciGAoWR2V0U2NpbVNldHRpbmdzUmVxdWVzdCKIAQoXR2V0U2NpbVNldHRpbmdzUmVzcG9uc2USLwoIc2V0dGluZ3MYASABKAsyHS5oYXJuZXNzLmF1dGgudjEuU2NpbVNldHRpbmdzEioKBnRva2VucxgCIAMoCzIaLmhhcm5lc3MuYXV0aC52MS5TY2ltVG9rZW4SEAoIYmFzZV91cmwYAyABKAkiSQoWU2V0U2NpbVNldHRpbmdzUmVxdWVzdBIvCghzZXR0aW5ncxgBIAEoCzIdLmhhcm5lc3MuYXV0aC52MS5TY2ltU2V0dGluZ3MiSgoXU2V0U2NpbVNldHRpbmdzUmVzcG9uc2USLwoIc2V0dGluZ3MYASABKAsyHS5oYXJuZXNzLmF1dGgudjEuU2NpbVNldHRpbmdzIiYKFkNyZWF0ZVNjaW1Ub2tlblJlcXVlc3QSDAoEbmFtZRgBIAEoCSJTChdDcmVhdGVTY2ltVG9rZW5SZXNwb25zZRIpCgV0b2tlbhgBIAEoCzIaLmhhcm5lc3MuYXV0aC52MS5TY2ltVG9rZW4SDQoFdmFsdWUYAiABKAkiJAoWUmV2b2tlU2NpbVRva2VuUmVxdWVzdBIKCgJpZBgBIAEoCSIZChdSZXZva2VTY2ltVG9rZW5SZXNwb25zZTLPBwoQRGlyZWN0b3J5U2VydmljZRJYCgtHZXRNeUFjY2VzcxIjLmhhcm5lc3MuYXV0aC52MS5HZXRNeUFjY2Vzc1JlcXVlc3QaJC5oYXJuZXNzLmF1dGgudjEuR2V0TXlBY2Nlc3NSZXNwb25zZRJVCgpMaXN0R3JvdXBzEiIuaGFybmVzcy5hdXRoLnYxLkxpc3RHcm91cHNSZXF1ZXN0GiMuaGFybmVzcy5hdXRoLnYxLkxpc3RHcm91cHNSZXNwb25zZRJYCgtDcmVhdGVHcm91cBIjLmhhcm5lc3MuYXV0aC52MS5DcmVhdGVHcm91cFJlcXVlc3QaJC5oYXJuZXNzLmF1dGgudjEuQ3JlYXRlR3JvdXBSZXNwb25zZRJYCgtSZW5hbWVHcm91cBIjLmhhcm5lc3MuYXV0aC52MS5SZW5hbWVHcm91cFJlcXVlc3QaJC5oYXJuZXNzLmF1dGgudjEuUmVuYW1lR3JvdXBSZXNwb25zZRJYCgtEZWxldGVHcm91cBIjLmhhcm5lc3MuYXV0aC52MS5EZWxldGVHcm91cFJlcXVlc3QaJC5oYXJuZXNzLmF1dGgudjEuRGVsZXRlR3JvdXBSZXNwb25zZRJkCg9TZXRHcm91cE1lbWJlcnMSJy5oYXJuZXNzLmF1dGgudjEuU2V0R3JvdXBNZW1iZXJzUmVxdWVzdBooLmhhcm5lc3MuYXV0aC52MS5TZXRHcm91cE1lbWJlcnNSZXNwb25zZRJkCg9HZXRTY2ltU2V0dGluZ3MSJy5oYXJuZXNzLmF1dGgudjEuR2V0U2NpbVNldHRpbmdzUmVxdWVzdBooLmhhcm5lc3MuYXV0aC52MS5HZXRTY2ltU2V0dGluZ3NSZXNwb25zZRJkCg9TZXRTY2ltU2V0dGluZ3MSJy5oYXJuZXNzLmF1dGgudjEuU2V0U2NpbVNldHRpbmdzUmVxdWVzdBooLmhhcm5lc3MuYXV0aC52MS5TZXRTY2ltU2V0dGluZ3NSZXNwb25zZRJkCg9DcmVhdGVTY2ltVG9rZW4SJy5oYXJuZXNzLmF1dGgudjEuQ3JlYXRlU2NpbVRva2VuUmVxdWVzdBooLmhhcm5lc3MuYXV0aC52MS5DcmVhdGVTY2ltVG9rZW5SZXNwb25zZRJkCg9SZXZva2VTY2ltVG9rZW4SJy5oYXJuZXNzLmF1dGgudjEuUmV2b2tlU2NpbVRva2VuUmVxdWVzdBooLmhhcm5lc3MuYXV0aC52MS5SZXZva2VTY2ltVG9rZW5SZXNwb25zZULIAQoTY29tLmhhcm5lc3MuYXV0aC52MUIORGlyZWN0b3J5UHJvdG9QAVpDZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9hdXRoL3YxO2F1dGh2MaICA0hBWKoCD0hhcm5lc3MuQXV0aC5WMcoCD0hhcm5lc3NcQXV0aFxWMeICG0hhcm5lc3NcQXV0aFxWMVxHUEJNZXRhZGF0YeoCEUhhcm5lc3M6OkF1dGg6OlYxYgZwcm90bzM", [file_harness_auth_v1_admin, file_harness_auth_v1_auth]);
 
 /**
  * @generated from message harness.auth.v1.GetMyAccessRequest
@@ -39,12 +39,23 @@ export type GetMyAccessResponse = Message<"harness.auth.v1.GetMyAccessResponse">
   role: User_Role;
 
   /**
-   * users.read, users.write, audit.read, usage.read, quotas.read, quotas.write, policy.read, policy.write, sign_in.read,
-   * sign_in.write, directory.read, directory.write, limits.read, limits.write.
+   * The permissions of the caller's role (roles.proto, RoleService.ListPermissions lists the catalog).
    *
    * @generated from field: repeated string capabilities = 2;
    */
   capabilities: string[];
+
+  /**
+   * The caller's role by id and name (see User.role_id).
+   *
+   * @generated from field: string role_id = 3;
+   */
+  roleId: string;
+
+  /**
+   * @generated from field: string role_name = 4;
+   */
+  roleName: string;
 };
 
 /**
@@ -79,6 +90,13 @@ export type Group = Message<"harness.auth.v1.Group"> & {
    * @generated from field: repeated string member_ids = 4;
    */
   memberIds: string[];
+
+  /**
+   * Where the group is used: whether it has a spend limit, the projects shared with it and the team hosts it owns.
+   *
+   * @generated from field: harness.auth.v1.GroupUsage usage = 5;
+   */
+  usage?: GroupUsage | undefined;
 };
 
 /**
@@ -87,6 +105,55 @@ export type Group = Message<"harness.auth.v1.Group"> & {
  */
 export const GroupSchema: GenMessage<Group> = /*@__PURE__*/
   messageDesc(file_harness_auth_v1_directory, 2);
+
+/**
+ * @generated from message harness.auth.v1.GroupUsage
+ */
+export type GroupUsage = Message<"harness.auth.v1.GroupUsage"> & {
+  /**
+   * @generated from field: bool has_quota = 1;
+   */
+  hasQuota: boolean;
+
+  /**
+   * @generated from field: repeated harness.auth.v1.GroupUsageItem projects = 2;
+   */
+  projects: GroupUsageItem[];
+
+  /**
+   * @generated from field: repeated harness.auth.v1.GroupUsageItem hosts = 3;
+   */
+  hosts: GroupUsageItem[];
+};
+
+/**
+ * Describes the message harness.auth.v1.GroupUsage.
+ * Use `create(GroupUsageSchema)` to create a new message.
+ */
+export const GroupUsageSchema: GenMessage<GroupUsage> = /*@__PURE__*/
+  messageDesc(file_harness_auth_v1_directory, 3);
+
+/**
+ * @generated from message harness.auth.v1.GroupUsageItem
+ */
+export type GroupUsageItem = Message<"harness.auth.v1.GroupUsageItem"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message harness.auth.v1.GroupUsageItem.
+ * Use `create(GroupUsageItemSchema)` to create a new message.
+ */
+export const GroupUsageItemSchema: GenMessage<GroupUsageItem> = /*@__PURE__*/
+  messageDesc(file_harness_auth_v1_directory, 4);
 
 /**
  * @generated from message harness.auth.v1.ListGroupsRequest
@@ -99,7 +166,7 @@ export type ListGroupsRequest = Message<"harness.auth.v1.ListGroupsRequest"> & {
  * Use `create(ListGroupsRequestSchema)` to create a new message.
  */
 export const ListGroupsRequestSchema: GenMessage<ListGroupsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 3);
+  messageDesc(file_harness_auth_v1_directory, 5);
 
 /**
  * @generated from message harness.auth.v1.ListGroupsResponse
@@ -116,7 +183,7 @@ export type ListGroupsResponse = Message<"harness.auth.v1.ListGroupsResponse"> &
  * Use `create(ListGroupsResponseSchema)` to create a new message.
  */
 export const ListGroupsResponseSchema: GenMessage<ListGroupsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 4);
+  messageDesc(file_harness_auth_v1_directory, 6);
 
 /**
  * @generated from message harness.auth.v1.CreateGroupRequest
@@ -133,7 +200,7 @@ export type CreateGroupRequest = Message<"harness.auth.v1.CreateGroupRequest"> &
  * Use `create(CreateGroupRequestSchema)` to create a new message.
  */
 export const CreateGroupRequestSchema: GenMessage<CreateGroupRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 5);
+  messageDesc(file_harness_auth_v1_directory, 7);
 
 /**
  * @generated from message harness.auth.v1.CreateGroupResponse
@@ -150,7 +217,7 @@ export type CreateGroupResponse = Message<"harness.auth.v1.CreateGroupResponse">
  * Use `create(CreateGroupResponseSchema)` to create a new message.
  */
 export const CreateGroupResponseSchema: GenMessage<CreateGroupResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 6);
+  messageDesc(file_harness_auth_v1_directory, 8);
 
 /**
  * @generated from message harness.auth.v1.RenameGroupRequest
@@ -172,7 +239,7 @@ export type RenameGroupRequest = Message<"harness.auth.v1.RenameGroupRequest"> &
  * Use `create(RenameGroupRequestSchema)` to create a new message.
  */
 export const RenameGroupRequestSchema: GenMessage<RenameGroupRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 7);
+  messageDesc(file_harness_auth_v1_directory, 9);
 
 /**
  * @generated from message harness.auth.v1.RenameGroupResponse
@@ -189,7 +256,7 @@ export type RenameGroupResponse = Message<"harness.auth.v1.RenameGroupResponse">
  * Use `create(RenameGroupResponseSchema)` to create a new message.
  */
 export const RenameGroupResponseSchema: GenMessage<RenameGroupResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 8);
+  messageDesc(file_harness_auth_v1_directory, 10);
 
 /**
  * @generated from message harness.auth.v1.DeleteGroupRequest
@@ -206,7 +273,7 @@ export type DeleteGroupRequest = Message<"harness.auth.v1.DeleteGroupRequest"> &
  * Use `create(DeleteGroupRequestSchema)` to create a new message.
  */
 export const DeleteGroupRequestSchema: GenMessage<DeleteGroupRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 9);
+  messageDesc(file_harness_auth_v1_directory, 11);
 
 /**
  * @generated from message harness.auth.v1.DeleteGroupResponse
@@ -219,7 +286,7 @@ export type DeleteGroupResponse = Message<"harness.auth.v1.DeleteGroupResponse">
  * Use `create(DeleteGroupResponseSchema)` to create a new message.
  */
 export const DeleteGroupResponseSchema: GenMessage<DeleteGroupResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 10);
+  messageDesc(file_harness_auth_v1_directory, 12);
 
 /**
  * @generated from message harness.auth.v1.SetGroupMembersRequest
@@ -241,7 +308,7 @@ export type SetGroupMembersRequest = Message<"harness.auth.v1.SetGroupMembersReq
  * Use `create(SetGroupMembersRequestSchema)` to create a new message.
  */
 export const SetGroupMembersRequestSchema: GenMessage<SetGroupMembersRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 11);
+  messageDesc(file_harness_auth_v1_directory, 13);
 
 /**
  * @generated from message harness.auth.v1.SetGroupMembersResponse
@@ -258,7 +325,7 @@ export type SetGroupMembersResponse = Message<"harness.auth.v1.SetGroupMembersRe
  * Use `create(SetGroupMembersResponseSchema)` to create a new message.
  */
 export const SetGroupMembersResponseSchema: GenMessage<SetGroupMembersResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 12);
+  messageDesc(file_harness_auth_v1_directory, 14);
 
 /**
  * @generated from message harness.auth.v1.ScimToken
@@ -292,7 +359,7 @@ export type ScimToken = Message<"harness.auth.v1.ScimToken"> & {
  * Use `create(ScimTokenSchema)` to create a new message.
  */
 export const ScimTokenSchema: GenMessage<ScimToken> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 13);
+  messageDesc(file_harness_auth_v1_directory, 15);
 
 /**
  * @generated from message harness.auth.v1.ScimSettings
@@ -311,7 +378,7 @@ export type ScimSettings = Message<"harness.auth.v1.ScimSettings"> & {
  * Use `create(ScimSettingsSchema)` to create a new message.
  */
 export const ScimSettingsSchema: GenMessage<ScimSettings> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 14);
+  messageDesc(file_harness_auth_v1_directory, 16);
 
 /**
  * @generated from message harness.auth.v1.GetScimSettingsRequest
@@ -324,7 +391,7 @@ export type GetScimSettingsRequest = Message<"harness.auth.v1.GetScimSettingsReq
  * Use `create(GetScimSettingsRequestSchema)` to create a new message.
  */
 export const GetScimSettingsRequestSchema: GenMessage<GetScimSettingsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 15);
+  messageDesc(file_harness_auth_v1_directory, 17);
 
 /**
  * @generated from message harness.auth.v1.GetScimSettingsResponse
@@ -353,7 +420,7 @@ export type GetScimSettingsResponse = Message<"harness.auth.v1.GetScimSettingsRe
  * Use `create(GetScimSettingsResponseSchema)` to create a new message.
  */
 export const GetScimSettingsResponseSchema: GenMessage<GetScimSettingsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 16);
+  messageDesc(file_harness_auth_v1_directory, 18);
 
 /**
  * @generated from message harness.auth.v1.SetScimSettingsRequest
@@ -370,7 +437,7 @@ export type SetScimSettingsRequest = Message<"harness.auth.v1.SetScimSettingsReq
  * Use `create(SetScimSettingsRequestSchema)` to create a new message.
  */
 export const SetScimSettingsRequestSchema: GenMessage<SetScimSettingsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 17);
+  messageDesc(file_harness_auth_v1_directory, 19);
 
 /**
  * @generated from message harness.auth.v1.SetScimSettingsResponse
@@ -387,7 +454,7 @@ export type SetScimSettingsResponse = Message<"harness.auth.v1.SetScimSettingsRe
  * Use `create(SetScimSettingsResponseSchema)` to create a new message.
  */
 export const SetScimSettingsResponseSchema: GenMessage<SetScimSettingsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 18);
+  messageDesc(file_harness_auth_v1_directory, 20);
 
 /**
  * @generated from message harness.auth.v1.CreateScimTokenRequest
@@ -404,7 +471,7 @@ export type CreateScimTokenRequest = Message<"harness.auth.v1.CreateScimTokenReq
  * Use `create(CreateScimTokenRequestSchema)` to create a new message.
  */
 export const CreateScimTokenRequestSchema: GenMessage<CreateScimTokenRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 19);
+  messageDesc(file_harness_auth_v1_directory, 21);
 
 /**
  * @generated from message harness.auth.v1.CreateScimTokenResponse
@@ -428,7 +495,7 @@ export type CreateScimTokenResponse = Message<"harness.auth.v1.CreateScimTokenRe
  * Use `create(CreateScimTokenResponseSchema)` to create a new message.
  */
 export const CreateScimTokenResponseSchema: GenMessage<CreateScimTokenResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 20);
+  messageDesc(file_harness_auth_v1_directory, 22);
 
 /**
  * @generated from message harness.auth.v1.RevokeScimTokenRequest
@@ -445,7 +512,7 @@ export type RevokeScimTokenRequest = Message<"harness.auth.v1.RevokeScimTokenReq
  * Use `create(RevokeScimTokenRequestSchema)` to create a new message.
  */
 export const RevokeScimTokenRequestSchema: GenMessage<RevokeScimTokenRequest> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 21);
+  messageDesc(file_harness_auth_v1_directory, 23);
 
 /**
  * @generated from message harness.auth.v1.RevokeScimTokenResponse
@@ -458,7 +525,7 @@ export type RevokeScimTokenResponse = Message<"harness.auth.v1.RevokeScimTokenRe
  * Use `create(RevokeScimTokenResponseSchema)` to create a new message.
  */
 export const RevokeScimTokenResponseSchema: GenMessage<RevokeScimTokenResponse> = /*@__PURE__*/
-  messageDesc(file_harness_auth_v1_directory, 22);
+  messageDesc(file_harness_auth_v1_directory, 24);
 
 /**
  * DirectoryService: groups of users (for quotas and role mapping) and the tokens of SCIM provisioning clients. The SCIM

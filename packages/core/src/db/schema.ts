@@ -1829,6 +1829,22 @@ export const directoryGroupMember = pgTable(
   (t) => [primaryKey({ columns: [t.groupId, t.userId] }), index("directory_group_member_user_idx").on(t.userId)],
 );
 
+/**
+ * Custom roles (auth/roles.ts, services/roles.ts): a name and a set of permissions from the catalog. Built-in roles are
+ * not rows. user.role holds a role id: a built-in's ("admin", ...) or one of these ("role_…").
+ */
+export const customRole = pgTable("custom_role", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  /** lower(name), unique: names do not differ by case alone. */
+  nameKey: text("name_key").notNull().unique(),
+  description: text("description").notNull().default(""),
+  /** JSON: sorted permission ids from the catalog. */
+  permissions: jsonb("permissions").notNull().default([]),
+  createdAt: ts("created_at").notNull(),
+  updatedAt: ts("updated_at").notNull(),
+});
+
 /** Bearer tokens of SCIM provisioning clients; only the hash is kept. */
 export const scimToken = pgTable("scim_token", {
   id: text("id").primaryKey(),

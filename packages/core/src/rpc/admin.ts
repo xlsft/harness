@@ -11,7 +11,7 @@ import {
   type LdapConfig,
 } from "../gen/harness/auth/v1/admin_pb.ts";
 import { PermissionMode } from "../gen/harness/agent/v1/agent_pb.ts";
-import { User_Role, UserSource } from "../gen/harness/auth/v1/auth_pb.ts";
+import { UserSource } from "../gen/harness/auth/v1/auth_pb.ts";
 import {
   getLdapSettings,
   resolveLdapConfig,
@@ -22,7 +22,7 @@ import {
 } from "../auth/ldap-config.ts";
 import { findLdapUser } from "../auth/ldap-sign-in.ts";
 import { LdapUnavailableError, lookupUser, testConnection } from "../auth/ldap.ts";
-import { need, type Capability } from "../auth/roles.ts";
+import { assertMayGrant, need, type Capability } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import {
   createUser,
@@ -34,8 +34,8 @@ import {
   revokeUserSessions,
   setDisabled,
   setRole,
+  userRole,
   type AdminUserView,
-  type Role,
 } from "../services/admin-users.ts";
 import { getModePolicy, setModePolicy, type ModeName } from "../services/mode-policy.ts";
 import { getLocalModelPolicy, setLocalModelPolicy } from "../services/local-models.ts";
@@ -44,6 +44,9 @@ import { listPolicies as listLimitsPolicies, setPolicy as setLimitsPolicy } from
 import { policyFromProto, policyToProto } from "./limits.ts";
 import { requirePrincipal } from "./context.ts";
 import { guard } from "./errors.ts";
+import { mappingFromProto, mappingToProto, roleFields, roleFromProto, roleToProto } from "./roles.ts";
+
+export { roleFromProto, roleToProto };
 
 function userToProto(u: AdminUserView, selfId: string): Omit<AdminUser, "$typeName"> {
   return {
@@ -51,7 +54,7 @@ function userToProto(u: AdminUserView, selfId: string): Omit<AdminUser, "$typeNa
     name: u.name,
     username: u.username,
     email: u.email,
-    role: roleToProto(u.role),
+    ...roleFields(u.role),
     source: SOURCE_TO_PROTO[u.source],
     mfaEnabled: u.mfa_enabled,
     groups: u.groups,
@@ -66,18 +69,6 @@ function userToProto(u: AdminUserView, selfId: string): Omit<AdminUser, "$typeNa
 }
 
 const SOURCE_TO_PROTO = { local: UserSource.LOCAL, ldap: UserSource.LDAP, sso: UserSource.SSO, scim: UserSource.SCIM } as const;
-
-export function roleToProto(r: string): User_Role {
-  return { admin: User_Role.ADMIN, auditor: User_Role.AUDITOR, billing: User_Role.BILLING }[r] ?? User_Role.USER;
-}
-
-export function roleFromProto(r: User_Role): Role {
-  if (r === User_Role.ADMIN) return "admin";
-  if (r === User_Role.AUDITOR) return "auditor";
-  if (r === User_Role.BILLING) return "billing";
-  if (r === User_Role.USER || r === User_Role.UNSPECIFIED) return "user";
-  throw new ApiError("invalid_request", "Unknown role");
-}
 
 function ldapToProto(s: PublicLdapSettings): Omit<LdapConfig, "$typeName"> {
   return {
@@ -97,7 +88,7 @@ function ldapToProto(s: PublicLdapSettings): Omit<LdapConfig, "$typeName"> {
     nameAttribute: s.name_attribute,
     allowedGroupDn: s.allowed_group_dn,
     adminGroupDn: s.admin_group_dn,
-    roleMappings: s.role_mappings.map((m) => ({ group: m.group, role: roleToProto(m.role) })) as LdapConfig["roleMappings"],
+    roleMappings: s.role_mappings.map(mappingToProto) as LdapConfig["roleMappings"],
     autoCreateUsers: s.auto_create_users,
     localLogin: s.local_login === "break_glass" ? LdapLocalLogin.BREAK_GLASS : LdapLocalLogin.FALLBACK,
     breakGlassLogins: s.break_glass_logins,
@@ -123,7 +114,7 @@ function ldapFromProto(c: LdapConfig | undefined): LdapSettingsInput {
     name_attribute: c.nameAttribute,
     allowed_group_dn: c.allowedGroupDn,
     admin_group_dn: c.adminGroupDn,
-    role_mappings: c.roleMappings.map((m) => ({ group: m.group, role: roleFromProto(m.role) })),
+    role_mappings: c.roleMappings.map(mappingFromProto),
     auto_create_users: c.autoCreateUsers,
     local_login: c.localLogin === LdapLocalLogin.BREAK_GLASS ? "break_glass" : "fallback",
     break_glass_logins: c.breakGlassLogins,
@@ -167,6 +158,8 @@ export function registerAdminService(router: ConnectRouter): void {
     return p;
   };
   const admin = async (ctx: HandlerContext, cap: Capability) => (await principal(ctx, cap)).user;
+  // Changing an account (password, role, devices, disabling it) needs every permission the account's role has.
+  const reach = async (me: { role: string }, userId: string) => assertMayGrant(me, await userRole(userId));
 
   router.service(AdminService, {
     listUsers: guard(async (req, ctx: HandlerContext) => {
@@ -176,36 +169,44 @@ export function registerAdminService(router: ConnectRouter): void {
 
     createUser: guard(async (req, ctx: HandlerContext) => {
       const me = await admin(ctx, "users.write");
+      const role = roleFromProto(req.role, req.roleId);
+      assertMayGrant(me, role);
       const r = await createUser({
         name: req.name,
         username: req.username,
         email: req.email,
         password: req.password,
         generate_password: req.generatePassword,
-        role: roleFromProto(req.role),
+        role,
         ldap: req.ldap,
       });
       return { user: userToProto(r.user, me.id), generatedPassword: r.generated_password };
     }),
 
     resetPassword: guard(async (req, ctx: HandlerContext) => {
-      await admin(ctx, "users.write");
+      await reach(await admin(ctx, "users.write"), req.userId);
       const r = await resetPassword(req.userId, { password: req.password, generate: req.generate, revoke_sessions: req.revokeSessions });
       return { generatedPassword: r.generated_password };
     }),
 
     setRole: guard(async (req, ctx: HandlerContext) => {
       const me = await admin(ctx, "users.write");
-      return { user: userToProto(await setRole(req.userId, roleFromProto(req.role)), me.id) };
+      const role = roleFromProto(req.role, req.roleId);
+      // Neither hand out nor take away more than the caller holds.
+      assertMayGrant(me, role);
+      await reach(me, req.userId);
+      return { user: userToProto(await setRole(req.userId, role), me.id) };
     }),
 
     setDisabled: guard(async (req, ctx: HandlerContext) => {
       const me = await admin(ctx, "users.write");
+      await reach(me, req.userId);
       return { user: userToProto(await setDisabled(req.userId, req.disabled, req.reason, me.id), me.id) };
     }),
 
     deleteUser: guard(async (req, ctx: HandlerContext) => {
       const me = await admin(ctx, "users.write");
+      await reach(me, req.userId);
       await deleteUser(req.userId, me.id);
       return {};
     }),
@@ -227,7 +228,7 @@ export function registerAdminService(router: ConnectRouter): void {
     }),
 
     revokeUserSessions: guard(async (req, ctx: HandlerContext) => {
-      await admin(ctx, "users.write");
+      await reach(await admin(ctx, "users.write"), req.userId);
       const r = await revokeUserSessions(req.userId, req.deviceId);
       return { revokedDevices: r.devices, revokedWebSessions: r.web_sessions };
     }),
@@ -250,8 +251,9 @@ export function registerAdminService(router: ConnectRouter): void {
     }),
 
     deleteUserProvider: guard(async (req, ctx: HandlerContext) => {
-      await admin(ctx, "users.write");
+      const me = await admin(ctx, "users.write");
       if (!req.userId) throw new ApiError("invalid_request", "user_id is required");
+      await reach(me, req.userId);
       await deleteProvider(req.providerId, { userId: req.userId });
       return {};
     }),
@@ -262,8 +264,11 @@ export function registerAdminService(router: ConnectRouter): void {
     }),
 
     setLdapConfig: guard(async (req, ctx: HandlerContext) => {
-      await admin(ctx, "sign_in.write");
-      return { config: ldapToProto(await setLdapSettings(ldapFromProto(req.config))) };
+      const me = await admin(ctx, "sign_in.write");
+      const input = ldapFromProto(req.config);
+      for (const m of input.role_mappings ?? []) assertMayGrant(me, m.role);
+      if (input.admin_group_dn) assertMayGrant(me, "admin");
+      return { config: ldapToProto(await setLdapSettings(input)) };
     }),
 
     testLdapConnection: guard(async (req, ctx: HandlerContext) => {
@@ -296,6 +301,7 @@ export function registerAdminService(router: ConnectRouter): void {
           admin: u.admin,
           userId: local?.id ?? "",
           role: roleToProto(u.admin ? "admin" : u.mapped_role),
+          roleId: u.admin ? "admin" : u.mapped_role,
         };
       } catch (e) {
         return { found: false, message: failure(e) };

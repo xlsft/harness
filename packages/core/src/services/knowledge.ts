@@ -12,6 +12,7 @@
  * connection instead, and still read through the connection migrated from it. Sources on the user's device are the client's,
  * which merges them with this.
  */
+import { can } from "../auth/roles.ts";
 import { and, asc, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
@@ -73,7 +74,7 @@ const STOP_WORDS = new Set(
 );
 
 function canEdit(row: Pick<DocumentRow, "scope" | "ownerId">, p: Principal): boolean {
-  return row.scope === "org" ? p.user.role === "admin" : row.ownerId === p.user.id;
+  return row.scope === "org" ? can(p.user, "policy.documents") : row.ownerId === p.user.id;
 }
 
 function readableBy(p: Principal, scope?: KnowledgeScope): SQL {
@@ -143,7 +144,7 @@ async function writeChunks(tx: Tx, id: string, title: string, content: string): 
 
 export async function createKnowledgeDocument(p: Principal, input: { scope: KnowledgeScope; title: string; content: string; source_name?: string }): Promise<KnowledgeDocumentView> {
   await ensureDb();
-  if (input.scope === "org" && p.user.role !== "admin") throw new ApiError("permission", "Only admins add documents for everyone");
+  if (input.scope === "org" && !can(p.user, "policy.documents")) throw new ApiError("permission", "Only admins add documents for everyone");
   const title = checkTitle(input.title);
   const size = checkContent(input.content);
   const now = new Date();
@@ -325,7 +326,7 @@ export async function searchKnowledge(p: Principal, input: { query: string; limi
           );
         } catch (err) {
           // Why it failed can name an internal host: admins are told, others only that it did.
-          warnings.push({ source: providerSource(conn), message: p.user.role === "admin" ? providerMessage(err) : "This source could not be searched right now." });
+          warnings.push({ source: providerSource(conn), message: can(p.user, "connections.write") ? providerMessage(err) : "This source could not be searched right now." });
           return [];
         }
       }),
@@ -346,7 +347,7 @@ export async function listKnowledgeSources(p: Principal): Promise<KnowledgeSourc
   const d = schema.knowledgeDocument;
   const count = async (scope?: KnowledgeScope) => (await getDb().select({ n: sql<number>`count(*)` }).from(d).where(readableBy(p, scope)))[0]?.n ?? 0;
   const out: KnowledgeSourceView[] = [
-    { ref: INTERNAL_ORG, documentCount: Number(await count("org")), writable: p.user.role === "admin" },
+    { ref: INTERNAL_ORG, documentCount: Number(await count("org")), writable: can(p.user, "policy.documents") },
     { ref: INTERNAL_USER, documentCount: Number(await count("user")), writable: true },
   ];
   for (const c of await sourceConnections()) out.push({ ref: providerSource(c), documentCount: 0, writable: false });

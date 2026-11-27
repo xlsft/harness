@@ -1,9 +1,9 @@
 import { listDecisionLog } from "../../decision/service.ts";
-import { api, requireAdmin } from "../util.ts";
+import { api, requireCapability } from "../util.ts";
 
 /** GET /api/admin/decision/log?limit=&session_id=&user_id=   recent auto-mode decisions, newest first. */
 export default api(async (event) => {
-  await requireAdmin(event);
+  await requireCapability(event, "providers.write");
   const q = event.url.searchParams;
   return listDecisionLog({
     limit: q.get("limit") ? Number.parseInt(q.get("limit")!, 10) : undefined,

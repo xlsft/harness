@@ -230,8 +230,42 @@ export function emptyManagedPolicy(): ManagedPolicy {
   return { allowRules: [], askRules: [], denyRules: [], managedRulesOnly: false, sandboxRequired: false, sandboxOutsideRefused: false, restrictProviders: false, allowedProviders: [], personalProvidersDisabled: false, personalHostsDisabled: false, cloudDisabled: false, cloudBypassPermissionsAllowed: false, cloudEgressAllow: [], cloudMaxSessionsPerUser: 0, cloudMaxSessionsPerGroup: 0, restrictMcpServers: false, allowedMcpServers: [], restrictPluginSources: false, allowedPluginSources: [], blockedPluginSources: [], distributedMarketplaces: [], distributedPlugins: [], blockedPlugins: [], restrictSkills: false, allowedSkills: [], blockedSkills: [], externalSkillSearchDisabled: false, minClientVersion: '', maxClientVersion: '', deferBuiltinTools: null, pluginUiDisabled: false, pluginUiNetworkDisabled: false, chatAppsDisabled: false, remoteStartsDisabled: false, personalChatBotsDisabled: false }
 }
 
+// --- roles (roles.proto, docs/design/roles.md) -------------------------------------------------------------
+
+export interface PermissionView {
+  id: string
+  area: string
+  areaLabel: string
+  label: string
+  description: string
+}
+
+export interface RoleView {
+  id: string
+  name: string
+  description: string
+  builtin: boolean
+  // The caller may change it: custom, and every permission it has or gets is the caller's own.
+  editable: boolean
+  permissions: string[]
+  memberCount: number
+}
+
+export interface RoleInput {
+  name: string
+  description: string
+  permissions: string[]
+}
+
 export interface EnterpriseApi {
   access(): Promise<Access>
+
+  listPermissions(): Promise<PermissionView[]>
+  listRoles(): Promise<RoleView[]>
+  createRole(r: RoleInput): Promise<RoleView>
+  updateRole(id: string, r: RoleInput): Promise<RoleView>
+  // A role somebody has is refused unless moveMembersToUser: then its members get the "user" role first.
+  deleteRole(id: string, moveMembersToUser: boolean): Promise<void>
 
   listSso(): Promise<SsoProviderView[]>
   saveSso(p: SsoProviderView): Promise<SsoProviderView>
@@ -276,8 +310,8 @@ export interface EnterpriseApi {
   setManagedPolicy(p: ManagedPolicy): Promise<ManagedPolicyState>
 }
 
-export const ROLE_LABEL: Record<UserRole, string> = { admin: 'Admin', user: 'User', auditor: 'Auditor', billing: 'Billing' }
-export const ROLE_HINT: Record<UserRole, string> = {
+export const ROLE_LABEL: Record<string, string> = { admin: 'Admin', user: 'User', auditor: 'Auditor', billing: 'Billing' }
+export const ROLE_HINT: Record<string, string> = {
   admin: 'Everything.',
   user: 'No administration.',
   auditor: 'Reads users, the audit log, usage, quotas and policy; changes nothing.',

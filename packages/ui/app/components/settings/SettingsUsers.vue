@@ -4,7 +4,7 @@
 // sessions, and their personal providers (key set or not; keys are never shown). The server enforces the
 // rules (admin only, the last admin stays, nobody disables or deletes themselves); errors show inline.
 import type { NewUser, UserProviderView, UserRole, UserSessions, UsersApi, UserView } from '~/lib/users/types'
-import { ROLE_HINT, ROLE_LABEL, downloadCsv } from '~/lib/enterprise/types'
+import { downloadCsv } from '~/lib/enterprise/types'
 
 // Upstream protocol of a user's provider, as shown in the list.
 const PROTOCOL_LABEL: Record<string, string> = {
@@ -15,8 +15,8 @@ const PROTOCOL_LABEL: Record<string, string> = {
   'http': 'HTTP'
 }
 
-const ROLES: UserRole[] = ['user', 'admin', 'auditor', 'billing']
-const roleOptions = ROLES.map(r => ({ value: r, label: ROLE_LABEL[r] }))
+const roles = useRoles()
+const roleOptions = roles.options
 const SOURCE_LABEL: Record<UserView['source'], string> = { local: 'Local password', ldap: 'LDAP directory', sso: 'Identity provider', scim: 'Provisioned, signs in through SSO' }
 
 const store = useSessionStore()
@@ -62,6 +62,7 @@ async function load() {
 }
 onMounted(async () => {
   await access.load()
+  void roles.load()
   await load()
 })
 
@@ -479,25 +480,14 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             v-if="writable"
             class="flex flex-wrap items-center gap-1.5"
           >
-            <div
-              role="radiogroup"
+            <HSelect
+              :model-value="u.role"
               :aria-label="tt('Role of {0}', [u.name])"
-              class="mr-2 flex gap-[2px]"
-            >
-              <button
-                v-for="r in ROLES"
-                :key="r"
-                type="button"
-                role="radio"
-                :aria-checked="u.role === r"
-                :title="ROLE_HINT[r]"
-                class="border px-2 py-[3px] text-[11.5px] capitalize"
-                :class="u.role === r ? 'border-line bg-raised text-strong' : 'border-transparent text-muted hover:text-strong'"
-                @click="u.role !== r && setRole(u, r)"
-              >
-                {{ r }}
-              </button>
-            </div>
+              :title="roles.hint(u.role)"
+              :options="roleOptions"
+              class="mr-2 w-[140px]"
+              @update:model-value="$event !== u.role && setRole(u, $event as UserRole)"
+            />
             <HBtn
               v-if="!u.isSelf"
               size="sm"

@@ -1,4 +1,5 @@
 /** Connect implementation of harness.library.v1 KnowledgeConnectionService: proto <-> src/knowledge/connections.ts. */
+import { can } from "../auth/roles.ts";
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { KnowledgeConnectionService, type KnowledgeConnectionInput, type KnowledgeConnectionSchema } from "../gen/harness/library/v1/knowledge_connections_pb.ts";
@@ -79,7 +80,7 @@ export function registerKnowledgeConnectionService(router: ConnectRouter): void 
   router.service(KnowledgeConnectionService, {
     listKnowledgeConnections: guard(async (_req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      const admin = p.user.role === "admin";
+      const admin = can(p.user, "connections.write");
       const rows = (await listKnowledgeConnections()).filter((r) => admin || r.enabled);
       const names = admin ? await namesOf(rows) : new Map<string, string>();
       return { connections: await Promise.all(rows.map((r) => toProto(r, admin, names))), providers: KNOWLEDGE_PROVIDERS.map(knowledgeCapabilitiesToProto) };

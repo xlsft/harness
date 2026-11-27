@@ -678,7 +678,7 @@ export enum ProjectShareSubject {
   GROUP = 2,
 
   /**
-   * subject_id is a role: "admin" or "user".
+   * subject_id is a role id (roles.proto): a built-in ("admin", "user", "auditor", "billing") or a custom role.
    *
    * @generated from enum value: PROJECT_SHARE_SUBJECT_ROLE = 3;
    */

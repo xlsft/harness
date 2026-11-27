@@ -5,7 +5,9 @@
 
 import type { PermissionModeName } from '~/lib/session/types'
 
-export type UserRole = 'admin' | 'user' | 'auditor' | 'billing'
+// A role id: a built-in ('admin', 'user', 'auditor', 'billing') or a custom role's ('role_...', Settings > Roles).
+export type UserRole = string
+export type BuiltinRole = 'admin' | 'user' | 'auditor' | 'billing'
 
 export interface UserView {
   id: string

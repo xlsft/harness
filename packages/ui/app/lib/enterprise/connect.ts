@@ -4,19 +4,20 @@
 import { createClient, type Client, type Transport } from '@connectrpc/connect'
 import { AuditService, type AuditEvent } from '~/gen/harness/auth/v1/audit_pb'
 import { DecisionLogService } from '~/gen/harness/auth/v1/decision_log_pb'
-import type { User_Role } from '~/gen/harness/auth/v1/auth_pb'
+import { User_Role } from '~/gen/harness/auth/v1/auth_pb'
 import { BillingService, type QuotaLimits as QuotaLimitsPb, type UserQuotaStatus as UserQuotaStatusPb } from '~/gen/harness/auth/v1/billing_pb'
 import { DirectoryService, type Group, type ScimToken } from '~/gen/harness/auth/v1/directory_pb'
+import { RoleService, type Role } from '~/gen/harness/auth/v1/roles_pb'
 import { PolicyService, type ManagedPolicy as ManagedPolicyPb } from '~/gen/harness/auth/v1/managed_policy_pb'
 import { MfaService } from '~/gen/harness/auth/v1/mfa_pb'
 import { SsoProtocol, SsoService, type SsoProvider } from '~/gen/harness/auth/v1/sso_pb'
 import type { GroupRoleMapping } from '~/gen/harness/auth/v1/admin_pb'
 import { roleName, rolePb } from '~/lib/users/connect'
 import type { UserRole } from '~/lib/users/types'
-import type { AuditFilter, EnterpriseApi, GroupView, ManagedPolicy, ManagedPolicyState, MfaPolicy, QuotaLimits, RoleMapping, ScimTokenView, SsoProviderView, SsoSettings, UserQuotaStatus } from './types'
+import type { RoleInput, RoleView, AuditFilter, EnterpriseApi, GroupView, ManagedPolicy, ManagedPolicyState, MfaPolicy, QuotaLimits, RoleMapping, ScimTokenView, SsoProviderView, SsoSettings, UserQuotaStatus } from './types'
 
-export const mappingsView = (m: GroupRoleMapping[] | undefined): RoleMapping[] => (m ?? []).map(x => ({ group: x.group, role: roleName(x.role) }))
-export const mappingsPb = (m: RoleMapping[]) => m.filter(x => x.group.trim()).map(x => ({ group: x.group.trim(), role: rolePb(x.role) }))
+export const mappingsView = (m: GroupRoleMapping[] | undefined): RoleMapping[] => (m ?? []).map(x => ({ group: x.group, role: roleName(x.role, x.roleId) }))
+export const mappingsPb = (m: RoleMapping[]) => m.filter(x => x.group.trim()).map(x => ({ group: x.group.trim(), role: rolePb(x.role), roleId: x.role }))
 
 export function ssoView(p: SsoProvider): SsoProviderView {
   return {
@@ -116,11 +117,16 @@ export function policyView(p: ManagedPolicyPb | undefined): ManagedPolicy {
   }
 }
 
+export function roleView(r: Role): RoleView {
+  return { id: r.id, name: r.name, description: r.description, builtin: r.builtin, editable: r.editable, permissions: r.permissions, memberCount: r.memberCount }
+}
+
 export class ConnectEnterpriseApi implements EnterpriseApi {
   private audit: Client<typeof AuditService>
   private decisionLog: Client<typeof DecisionLogService>
   private billing: Client<typeof BillingService>
   private directory: Client<typeof DirectoryService>
+  private roles: Client<typeof RoleService>
   private mfa: Client<typeof MfaService>
   private policy: Client<typeof PolicyService>
   private sso: Client<typeof SsoService>
@@ -130,6 +136,7 @@ export class ConnectEnterpriseApi implements EnterpriseApi {
     this.decisionLog = createClient(DecisionLogService, transport)
     this.billing = createClient(BillingService, transport)
     this.directory = createClient(DirectoryService, transport)
+    this.roles = createClient(RoleService, transport)
     this.mfa = createClient(MfaService, transport)
     this.policy = createClient(PolicyService, transport)
     this.sso = createClient(SsoService, transport)
@@ -137,7 +144,27 @@ export class ConnectEnterpriseApi implements EnterpriseApi {
 
   async access() {
     const r = await this.directory.getMyAccess({})
-    return { role: roleName(r.role), capabilities: r.capabilities }
+    return { role: roleName(r.role, r.roleId), capabilities: r.capabilities }
+  }
+
+  async listPermissions() {
+    return (await this.roles.listPermissions({})).permissions.map(p => ({ id: p.id, area: p.area, areaLabel: p.areaLabel, label: p.label, description: p.description }))
+  }
+
+  async listRoles() {
+    return (await this.roles.listRoles({})).roles.map(roleView)
+  }
+
+  async createRole(r: RoleInput) {
+    return roleView((await this.roles.createRole({ name: r.name, description: r.description, permissions: r.permissions })).role!)
+  }
+
+  async updateRole(id: string, r: RoleInput) {
+    return roleView((await this.roles.updateRole({ id, name: r.name, description: r.description, permissions: r.permissions, setPermissions: true })).role!)
+  }
+
+  async deleteRole(id: string, moveMembersToUser: boolean) {
+    await this.roles.deleteRole({ id, moveMembersToUser })
   }
 
   async listSso() {
@@ -191,12 +218,12 @@ export class ConnectEnterpriseApi implements EnterpriseApi {
 
   async getMfaPolicy() {
     const p = (await this.mfa.getMfaPolicy({})).policy
-    return { required: p?.required ?? false, roles: (p?.roles ?? []).map(roleName), exemptSso: p?.exemptSso ?? false }
+    return { required: p?.required ?? false, roles: p?.roleIds?.length ? p.roleIds : (p?.roles ?? []).map(r => roleName(r)), exemptSso: p?.exemptSso ?? false }
   }
 
   async setMfaPolicy(p: MfaPolicy) {
-    const r = (await this.mfa.setMfaPolicy({ policy: { required: p.required, roles: p.roles.map(rolePb), exemptSso: p.exemptSso } })).policy
-    return { required: r?.required ?? false, roles: (r?.roles ?? []).map(roleName), exemptSso: r?.exemptSso ?? false }
+    const r = (await this.mfa.setMfaPolicy({ policy: { required: p.required, roles: p.roles.map(rolePb).filter(r => r !== User_Role.UNSPECIFIED), roleIds: p.roles, exemptSso: p.exemptSso } })).policy
+    return { required: r?.required ?? false, roles: r?.roleIds?.length ? r.roleIds : (r?.roles ?? []).map(x => roleName(x)), exemptSso: r?.exemptSso ?? false }
   }
 
   async resetUserMfa(userId: string) {
@@ -244,7 +271,7 @@ export class ConnectEnterpriseApi implements EnterpriseApi {
   async getQuotas() {
     const r = await this.billing.getQuotas({})
     const roles: Partial<Record<UserRole, QuotaLimits>> = {}
-    for (const x of r.roles) roles[roleName(x.role)] = limitsView(x.limits)
+    for (const x of r.roles) roles[roleName(x.role, x.roleId)] = limitsView(x.limits)
     return {
       users: Object.fromEntries(r.users.map(x => [x.userId, limitsView(x.limits)])),
       groups: Object.fromEntries(r.groups.map(x => [x.groupId, limitsView(x.limits)])),
@@ -262,7 +289,7 @@ export class ConnectEnterpriseApi implements EnterpriseApi {
   }
 
   async setRoleQuota(role: UserRole, l: QuotaLimits) {
-    await this.billing.setRoleQuota({ role: rolePb(role) as User_Role, limits: l })
+    await this.billing.setRoleQuota({ role: rolePb(role), roleId: role, limits: l })
   }
 
   async setSessionBudget(usd: number | undefined) {

@@ -1,6 +1,6 @@
 import { getDecisionConfigAdmin, setDecisionConfig } from "../../decision/config.ts";
 import { ApiError } from "../../lib/errors.ts";
-import { api, readJson, requireAdmin } from "../util.ts";
+import { api, readJson, requireCapability } from "../util.ts";
 
 /**
  * GET /api/admin/decision   DecisionService chain configuration ({config, configured}; secrets redacted)
@@ -12,7 +12,7 @@ import { api, readJson, requireAdmin } from "../util.ts";
  * api_key) are never returned: GET shows bearer_token_set / header_names / api_key_set instead.
  */
 export default api(async (event) => {
-  const admin = await requireAdmin(event);
+  const admin = await requireCapability(event, "providers.write");
   switch (event.req.method) {
     case "GET":
       return getDecisionConfigAdmin();

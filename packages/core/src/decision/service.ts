@@ -11,6 +11,7 @@
  */
 import { and, desc, eq, type SQL } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
+import { need } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId, sha256 } from "../lib/ids.ts";
 import { TokenBucketLimiter } from "../lib/rate-limit.ts";
@@ -274,7 +275,7 @@ export async function decide(principal: Principal, req: DecideRequestInput, sign
   const { chain: configured, config } = await decisionChainFor(principal.user);
   let chain = configured;
   if (req.provider) {
-    if (principal.user.role !== "admin") throw new ApiError("permission", "Only admins can force a decision provider");
+    need(principal.user, "providers.write");
     chain = configured.only(req.provider);
   }
   enforceRateLimit(principal.user.id, config.rate_limit_per_min);

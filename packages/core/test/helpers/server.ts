@@ -13,6 +13,7 @@ import { AuditService } from "../../src/gen/harness/auth/v1/audit_pb.ts";
 import { DecisionLogService } from "../../src/gen/harness/auth/v1/decision_log_pb.ts";
 import { BillingService } from "../../src/gen/harness/auth/v1/billing_pb.ts";
 import { DirectoryService } from "../../src/gen/harness/auth/v1/directory_pb.ts";
+import { RoleService } from "../../src/gen/harness/auth/v1/roles_pb.ts";
 import { MfaService } from "../../src/gen/harness/auth/v1/mfa_pb.ts";
 import { PolicyService } from "../../src/gen/harness/auth/v1/managed_policy_pb.ts";
 import { SkillSearchService } from "../../src/gen/harness/skills/v1/search_pb.ts";
@@ -74,6 +75,7 @@ export interface TestServer {
   policy: Client<typeof PolicyService>;
   sso: Client<typeof SsoService>;
   chat: Client<typeof ChatService>;
+  roles: Client<typeof RoleService>;
   /** Connect clients authenticated with the given access token. */
   as(token: string): {
     auth: Client<typeof DeviceAuthService>;
@@ -106,6 +108,7 @@ export interface TestServer {
     policy: Client<typeof PolicyService>;
     sso: Client<typeof SsoService>;
     chat: Client<typeof ChatService>;
+    roles: Client<typeof RoleService>;
   };
   close(): Promise<void>;
 }
@@ -189,6 +192,7 @@ export async function startTestServer(env: Record<string, string> = {}): Promise
       policy: createClient(PolicyService, transport),
       sso: createClient(SsoService, transport),
       chat: createClient(ChatService, transport),
+      roles: createClient(RoleService, transport),
     };
   };
 

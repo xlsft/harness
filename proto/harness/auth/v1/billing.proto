@@ -44,6 +44,8 @@ message GroupQuota {
 message RoleQuota {
   User.Role role = 1;
   QuotaLimits limits = 2;
+  // The role by id (roles.proto); a custom role reads as ROLE_UNSPECIFIED in `role`.
+  string role_id = 3;
 }
 
 message GetQuotasRequest {}
@@ -72,6 +74,8 @@ message SetGroupQuotaResponse {}
 message SetRoleQuotaRequest {
   User.Role role = 1;
   QuotaLimits limits = 2;
+  // The role by id (roles.proto); when set it wins over `role`.
+  string role_id = 3;
 }
 
 message SetRoleQuotaResponse {}

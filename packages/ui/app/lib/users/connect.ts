@@ -13,7 +13,9 @@ import { permissionModeName, permissionModePb } from '~/lib/session/reducer'
 import type { PermissionModeName } from '~/lib/session/types'
 import type { LdapSettings, NewUser, UserRole, UsersApi, UserView } from './types'
 
-export function roleName(r: User_Role): UserRole {
+// The role of a message: its role id when the server sends one (custom roles read as ROLE_UNSPECIFIED in the enum).
+export function roleName(r: User_Role, id?: string): UserRole {
+  if (id) return id
   if (r === User_Role.ADMIN) return 'admin'
   if (r === User_Role.AUDITOR) return 'auditor'
   if (r === User_Role.BILLING) return 'billing'
@@ -28,7 +30,7 @@ export function userView(u: AdminUser): UserView {
     name: u.name,
     username: u.username,
     email: u.email,
-    role: roleName(u.role),
+    role: roleName(u.role, u.roleId),
     source: SOURCE[u.source] ?? 'local',
     mfaEnabled: u.mfaEnabled,
     groups: u.groups,
@@ -42,7 +44,8 @@ export function userView(u: AdminUser): UserView {
   }
 }
 
-export const rolePb = (r: UserRole) => ({ admin: User_Role.ADMIN, auditor: User_Role.AUDITOR, billing: User_Role.BILLING, user: User_Role.USER })[r]
+// The enum for a built-in; a custom role goes as role_id with ROLE_UNSPECIFIED here.
+export const rolePb = (r: UserRole) => ({ admin: User_Role.ADMIN, auditor: User_Role.AUDITOR, billing: User_Role.BILLING, user: User_Role.USER } as Record<string, User_Role>)[r] ?? User_Role.UNSPECIFIED
 const role = rolePb
 
 export function ldapView(c: LdapConfig | undefined): LdapSettings {
@@ -63,7 +66,7 @@ export function ldapView(c: LdapConfig | undefined): LdapSettings {
     nameAttribute: c?.nameAttribute ?? '',
     allowedGroupDn: c?.allowedGroupDn ?? '',
     adminGroupDn: c?.adminGroupDn ?? '',
-    roleMappings: (c?.roleMappings ?? []).map(m => ({ group: m.group, role: roleName(m.role) })),
+    roleMappings: (c?.roleMappings ?? []).map(m => ({ group: m.group, role: roleName(m.role, m.roleId) })),
     autoCreateUsers: c?.autoCreateUsers ?? true,
     localLogin: c?.localLogin === LdapLocalLogin.BREAK_GLASS ? 'break_glass' : 'fallback',
     breakGlassLogins: c?.breakGlassLogins ?? [],
@@ -88,7 +91,7 @@ export function ldapConfig(s: LdapSettings) {
     nameAttribute: s.nameAttribute,
     allowedGroupDn: s.allowedGroupDn,
     adminGroupDn: s.adminGroupDn,
-    roleMappings: s.roleMappings.filter(m => m.group.trim()).map(m => ({ group: m.group.trim(), role: rolePb(m.role) })),
+    roleMappings: s.roleMappings.filter(m => m.group.trim()).map(m => ({ group: m.group.trim(), role: rolePb(m.role), roleId: m.role })),
     autoCreateUsers: s.autoCreateUsers,
     localLogin: s.localLogin === 'break_glass' ? LdapLocalLogin.BREAK_GLASS : LdapLocalLogin.FALLBACK,
     breakGlassLogins: s.breakGlassLogins.map(l => l.trim()).filter(Boolean),
@@ -119,7 +122,7 @@ export class ConnectUsersApi implements UsersApi {
   }
 
   async create(u: NewUser) {
-    const r = await this.client.createUser({ ...u, role: role(u.role) })
+    const r = await this.client.createUser({ ...u, role: role(u.role), roleId: u.role })
     return { user: userView(r.user!), generatedPassword: r.generatedPassword }
   }
 
@@ -128,7 +131,7 @@ export class ConnectUsersApi implements UsersApi {
   }
 
   async setRole(userId: string, r: UserRole) {
-    return userView((await this.client.setRole({ userId, role: role(r) })).user!)
+    return userView((await this.client.setRole({ userId, role: role(r), roleId: r })).user!)
   }
 
   async setDisabled(userId: string, disabled: boolean, reason = '') {
@@ -182,7 +185,7 @@ export class ConnectUsersApi implements UsersApi {
 
   async testLdapUser(s: LdapSettings, login: string) {
     const r = await this.client.testLdapUser({ config: ldapConfig(s), login })
-    return { found: r.found, message: r.message, dn: r.dn, username: r.username, email: r.email, name: r.name, groups: r.groups, allowed: r.allowed, admin: r.admin, role: roleName(r.role), userId: r.userId }
+    return { found: r.found, message: r.message, dn: r.dn, username: r.username, email: r.email, name: r.name, groups: r.groups, allowed: r.allowed, admin: r.admin, role: roleName(r.role, r.roleId), userId: r.userId }
   }
 
   async getModePolicy() {

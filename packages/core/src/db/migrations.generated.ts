@@ -417,5 +417,11 @@ export const migrations: { id: string; statements: string[] }[] = [
       "ALTER TABLE \"relay_inbox\" ADD CONSTRAINT \"relay_inbox_user_id_user_id_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"public\".\"user\"(\"id\") ON DELETE cascade ON UPDATE no action;",
       "CREATE INDEX \"relay_inbox_user_idx\" ON \"relay_inbox\" USING btree (\"user_id\",\"grp\",\"attention_at\");"
     ]
+  },
+  {
+    "id": "0025_custom_roles",
+    "statements": [
+      "CREATE TABLE \"custom_role\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"name_key\" text NOT NULL,\n\t\"description\" text DEFAULT '' NOT NULL,\n\t\"permissions\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL,\n\tCONSTRAINT \"custom_role_name_key_unique\" UNIQUE(\"name_key\")\n);"
+    ]
   }
 ];

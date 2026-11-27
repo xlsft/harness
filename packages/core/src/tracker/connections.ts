@@ -2,6 +2,7 @@
  * Admin connections to external trackers (TrackerConnectionService). Secrets are one AES-256-GCM blob per connection (HKDF
  * purpose "tracker-secrets", AAD <id>:secrets), write-only, and never reach a client or a log. docs/design/tracker.md.
  */
+import { need } from "../auth/roles.ts";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { record } from "../audit/log.ts";
 import { ensureDb, getDb, schema } from "../db/index.ts";
@@ -47,7 +48,7 @@ function moduleOf(provider: string): TrackerModule {
 }
 
 function requireAdmin(p: Principal): void {
-  if (p.user.role !== "admin") throw new ApiError("permission", "Only admins can manage company tracker connections");
+  need(p.user, "connections.write");
 }
 
 export interface ConnectionInput {

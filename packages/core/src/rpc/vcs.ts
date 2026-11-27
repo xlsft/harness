@@ -15,6 +15,7 @@ import {
   type WatchEventsResponseSchema,
 } from "../gen/harness/vcs/v1/vcs_pb.ts";
 import { AsyncQueue } from "../lib/async.ts";
+import { can, need } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { Principal } from "../services/devices.ts";
 import { getUserAuthStatus, revokeUserAuth, startUserAuth } from "../vcs/auth.ts";
@@ -113,7 +114,7 @@ function repoToProto(r: RepoData): Init<typeof RepositorySchema> {
 }
 
 function eventToProto(row: EventRow, p: Principal): Init<typeof VcsEventSchema> {
-  const sessions = sessionsOf(row).filter((s) => p.user.role === "admin" || s.userId === p.user.id);
+  const sessions = sessionsOf(row).filter((s) => can(p.user, "connections.write") || s.userId === p.user.id);
   return {
     id: eventId(row.seq),
     kind: row.kind,
@@ -196,7 +197,7 @@ export function registerVcsService(router: ConnectRouter): void {
 
     completeGitHubAppManifest: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
-      if (p.user.role !== "admin") throw new ApiError("permission", "Only admins can manage code host connections");
+      need(p.user, "connections.write");
       const row = await completeGitHubAppManifest(req.code, req.state, p.user.id);
       return { connection: connectionToProto(connectionView(row)) };
     }),

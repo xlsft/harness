@@ -20,6 +20,7 @@ import { ensureDb, getDb, schema, type Db } from "../db/index.ts";
 import { Scope } from "../gen/harness/common/v1/scope_pb.ts";
 import { DocumentKind } from "../gen/harness/sync/v1/sync_pb.ts";
 import { Mutex } from "../lib/async.ts";
+import { can, need, type Capability } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId } from "../lib/ids.ts";
 import type { Principal, PublicUser } from "./devices.ts";
@@ -160,7 +161,7 @@ function targets(row: DocRow, user: PublicUser): boolean {
 
 /** Read access for GetDocument (admins can read every org document). */
 function canRead(row: DocRow, user: PublicUser): boolean {
-  if (row.scope === Scope.ORG) return user.role === "admin" || targets(row, user);
+  if (row.scope === Scope.ORG) return can(user, "policy.documents") || targets(row, user);
   return row.ownerId === user.id;
 }
 
@@ -178,7 +179,7 @@ export function feedChange(row: DocRow, user: PublicUser, kinds: DocumentKind[] 
 
 export const PROJECT_KEY_RE = /^(path:[0-9a-f]{64}|[a-z0-9][a-z0-9.-]*(\/[^\s/]+)+)$/;
 
-function validateRef(p: Principal, ref: DocRef | undefined): { ownerId: string } {
+function validateRef(p: Principal, ref: DocRef | undefined, orgPermission: Capability = "policy.documents"): { ownerId: string } {
   if (!ref) throw new ApiError("invalid_request", "ref is required");
   if (![Scope.USER, Scope.ORG, Scope.PROJECT].includes(ref.scope)) throw new ApiError("invalid_request", "scope is required");
   if (!Object.values(DocumentKind).includes(ref.kind) || ref.kind === DocumentKind.UNSPECIFIED) {
@@ -208,7 +209,7 @@ function validateRef(p: Principal, ref: DocRef | undefined): { ownerId: string }
     throw new ApiError("invalid_request", "Project-scope SETTINGS are not used (project settings live in the repository)");
   }
   if (ref.scope === Scope.ORG) {
-    if (p.user.role !== "admin") throw new ApiError("permission", "Only admins can write org documents");
+    need(p.user, orgPermission);
     return { ownerId: "" };
   }
   return { ownerId: p.user.id };
@@ -460,8 +461,13 @@ export async function getDocument(p: Principal, sel: { id: string } | { ref: Doc
 
 // --- writes ----------------------------------------------------------------------------
 
-export async function putDocument(p: Principal, input: PutInput): Promise<PutResult> {
-  const { ownerId } = validateRef(p, input.ref);
+/**
+ * Writes a document. orgPermission is what an organization document needs: policy.documents for documents in general;
+ * the policy services (managed policy, modes, local models) pass policy.write, having checked it, for the one document each
+ * of them owns.
+ */
+export async function putDocument(p: Principal, input: PutInput, orgPermission: Capability = "policy.documents"): Promise<PutResult> {
+  const { ownerId } = validateRef(p, input.ref, orgPermission);
   const ref = input.ref;
   if (ref.kind === DocumentKind.MCP_SERVER) throw new ApiError("invalid_request", "MCP_SERVER entries are managed by McpService");
   validateContent(ref.kind, input.content);
@@ -552,7 +558,7 @@ export async function deleteDocument(p: Principal, id: string, baseVersion?: num
     const r = await getDb().transaction(async (tx): Promise<DeleteResult> => {
       const [cur] = await tx.select().from(d).where(eq(d.id, id)).for("update");
       if (!cur || !canRead(cur, p.user)) throw new ApiError("not_found", "Document not found");
-      if (cur.scope === Scope.ORG && p.user.role !== "admin") throw new ApiError("permission", "Only admins can delete org documents");
+      if (cur.scope === Scope.ORG) need(p.user, "policy.documents");
       if (cur.kind === DocumentKind.MCP_SERVER) throw new ApiError("invalid_request", "MCP_SERVER entries are managed by McpService");
       if (cur.deletedAt) return baseVersion === undefined ? { tombstone: cur } : { conflict: cur };
       if (baseVersion !== undefined && cur.version !== baseVersion) return { conflict: cur };
