@@ -6,8 +6,9 @@
 import type { SshHostVM } from '~/lib/ssh'
 import { CLOUD_HOST, hostLoadText, type HostView } from '~/lib/hosts/types'
 
-const props = defineProps<{ agentHosts?: HostView[], current?: string }>()
-const emit = defineEmits<{ close: [], pick: [hostId: string] }>()
+// remote: offers "Another machine…", a session started on one of the user's other machines (docs/design/chat.md).
+const props = defineProps<{ agentHosts?: HostView[], current?: string, remote?: boolean }>()
+const emit = defineEmits<{ close: [], pick: [hostId: string], remote: [] }>()
 const store = useSessionStore()
 const query = ref('')
 const hosts = ref<SshHostVM[]>([])
@@ -34,6 +35,11 @@ function openSettings() {
 
 function pickAgentHost(id: string) {
   emit('pick', id)
+  emit('close')
+}
+
+function startRemote() {
+  emit('remote')
   emit('close')
 }
 
@@ -82,6 +88,22 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
         :size="13"
         class="text-accent"
       />
+    </div>
+    <div
+      v-if="remote"
+      role="menuitem"
+      tabindex="0"
+      :class="[ROW, 'border-transparent hover:bg-raised']"
+      data-remote-start
+      @click="startRemote"
+      @keydown.enter="startRemote"
+    >
+      <HIcon
+        name="phone"
+        :size="13"
+      />
+      <span class="flex-1">{{ tt('Another machine…') }}</span>
+      <span class="shrink-0 text-[11px] text-muted">{{ tt('one of yours, online') }}</span>
     </div>
     <template v-if="showCloud">
       <div class="my-1 h-px bg-line" />
