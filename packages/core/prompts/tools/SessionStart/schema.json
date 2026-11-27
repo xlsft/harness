@@ -38,6 +38,20 @@
     "cwd": {
       "type": "string",
       "description": "Folder to run in. Defaults to this session's folder."
+    },
+    "lead": {
+      "type": "boolean",
+      "description": "The new session leads helpers: it splits the prompt (its brief) into tasks, starts helper sessions that work in parallel and reports back here when it is done. For big work that splits into independent parts."
+    },
+    "max_helpers": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "With lead: how many helpers may work at once. Defaults to the user's setting."
+    },
+    "budget_usd": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "With lead: the most the lead and its helpers may spend, in US dollars. Defaults to the user's setting."
     }
   },
   "required": [

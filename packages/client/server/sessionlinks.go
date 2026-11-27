@@ -79,6 +79,9 @@ type proposalRecord struct {
 	Worktree    bool      `json:"worktree,omitempty"`
 	Model       string    `json:"model,omitempty"`
 	Cwd         string    `json:"cwd,omitempty"`
+	Lead        bool      `json:"lead,omitempty"`
+	MaxHelpers  int       `json:"maxHelpers,omitempty"`
+	BudgetUSD   float64   `json:"budgetUsd,omitempty"`
 	State       string    `json:"state"`
 	ExpiresAt   time.Time `json:"expiresAt"`
 	SessionID   string    `json:"sessionId,omitempty"`
@@ -253,6 +256,19 @@ func (ls *liveSession) StartSessionMode(ctx context.Context, r tools.SessionRequ
 	if err := child.setCustomTitle(r.Title); err != nil {
 		s.log().Warn("session link: title not recorded", "err", err)
 	}
+	if r.Lead {
+		// The new session leads helpers with the prompt as its brief (projectruns.go); its reports come back here.
+		if st := child.sess.Settings; st != nil && st.ProjectRunsDisabled {
+			s.closeLive(id, "delegating disabled")
+			return tools.LinkedSession{}, errors.New("delegating to helpers is turned off by your organization's policy")
+		}
+		run, err := s.beginRun(ctx, child, r.Prompt, r.Title, &agentv1.ProjectRunLimits{MaxWorkers: int32(r.MaxHelpers), BudgetUsd: r.BudgetUSD})
+		if err != nil {
+			s.closeLive(id, "run not saved")
+			return tools.LinkedSession{}, err
+		}
+		child.sess.Agent.Remind(agent.ReminderProjectCoordinator, map[string]string{"run_id": run.GetId(), "limits": limitsText(run.GetLimits()), "targets": targetsText(run.GetTargets())})
+	}
 	child.sess.Agent.ExcludePrompt(r.Prompt)
 	if _, err := s.submitMessage(child, connect.NewRequest(&agentv1.SendUserMessageRequest{SessionId: id, Uuid: uuid.NewString(),
 		Content: pbconv.Blocks([]llm.ContentBlock{llm.TextBlock(r.Prompt)})})); err != nil {
@@ -317,7 +333,7 @@ func (ls *liveSession) publishProposals() {
 // ProposeSession implements tools.SessionCoordinator.
 func (ls *liveSession) ProposeSession(r tools.SessionRequest) (tools.SessionProposalInfo, error) {
 	p := &proposalRecord{ID: newUUID("prop_"), ToolUseID: r.ToolUseID, Title: r.Title, Prompt: r.Prompt, Fork: r.Fork, Worktree: r.Worktree,
-		Model: r.Model, Cwd: r.Cwd, State: proposalPending, ExpiresAt: time.Now().Add(proposalTTL)}
+		Model: r.Model, Cwd: r.Cwd, Lead: r.Lead, MaxHelpers: r.MaxHelpers, BudgetUSD: r.BudgetUSD, State: proposalPending, ExpiresAt: time.Now().Add(proposalTTL)}
 	if err := ls.withLinks(func(f *sessionLinks) bool {
 		f.Proposals = append(f.Proposals, p)
 		return true
@@ -396,7 +412,8 @@ func (s *Server) ResolveSessionProposal(ctx context.Context, req *connect.Reques
 	if err != nil {
 		return nil, err
 	}
-	started, err := ls.StartSession(ctx, tools.SessionRequest{ToolUseID: p.ToolUseID, Title: p.Title, Prompt: p.Prompt, Fork: p.Fork, Worktree: p.Worktree, Model: p.Model, Cwd: p.Cwd})
+	started, err := ls.StartSession(ctx, tools.SessionRequest{ToolUseID: p.ToolUseID, Title: p.Title, Prompt: p.Prompt, Fork: p.Fork, Worktree: p.Worktree, Model: p.Model, Cwd: p.Cwd,
+		Lead: p.Lead, MaxHelpers: p.MaxHelpers, BudgetUSD: p.BudgetUSD})
 	var done *proposalRecord
 	saveErr := ls.withLinks(func(f *sessionLinks) bool {
 		for _, rec := range f.Proposals {

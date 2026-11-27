@@ -13,9 +13,11 @@ import (
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 )
 
-// /delegate: the work agreed in this conversation goes to helper sessions that run in parallel, in the background, while
-// the user does something else. This session leads them: it becomes the coordinator of a project run (projectruns.go),
-// with the conversation as its brief, so nothing has to be explained twice. `/delegate pause|resume|stop|status` steer it.
+// /delegate: the work agreed in this conversation goes to helpers that work in parallel, in the background, while the user
+// goes on here. The agent writes a brief from the conversation and starts a lead session with it (SessionStart with lead):
+// the lead splits the brief into tasks, runs the helpers (a project run, projectruns.go) and reports back here. This
+// session stays free. `/delegate status|pause|resume|stop` steer the lead's run; the agent can start a lead without the
+// command too, when the user asks for one.
 
 const maxDelegateNote = 4000
 
@@ -23,10 +25,10 @@ var delegateFlag = regexp.MustCompile(`^--(workers|budget)[= ](\S+)\s*`)
 
 func runDelegate(ctx context.Context, s *Server, ls *liveSession, args string) slashOutcome {
 	args = strings.TrimSpace(args)
-	runID, coordinator := s.runOfSession(ls.sess.ID)
-	if runID != "" && !coordinator {
-		return slashError("This session is a helper of a delegation: only the session that delegated can hand work on.")
+	if id, coordinator := s.runOfSession(ls.sess.ID); id != "" && !coordinator {
+		return slashError("This session is a helper of a delegation: its lead hands out the work.")
 	}
+	runID := s.delegatedRun(ls.sess.ID)
 	var run *agentv1.ProjectRun
 	if runID != "" {
 		run = s.runSnapshot(runID)
@@ -52,7 +54,7 @@ func runDelegate(ctx context.Context, s *Server, ls *liveSession, args string) s
 	case "resume", "continue":
 		return control(agentv1.ControlProjectRunRequest_ACTION_RESUME, "Resumed.")
 	case "stop":
-		return control(agentv1.ControlProjectRunRequest_ACTION_STOP, "Stopped: the helpers were interrupted. Their sessions and branches stay.")
+		return control(agentv1.ControlProjectRunRequest_ACTION_STOP, "Stopped: the lead and its helpers were interrupted. Their sessions and branches stay.")
 	}
 	if active {
 		return slashError("Work is already delegated from here: %s. /delegate stop ends it first.", delegateLine(run))
@@ -60,7 +62,7 @@ func runDelegate(ctx context.Context, s *Server, ls *liveSession, args string) s
 	if st := ls.sess.Settings; st != nil && st.ProjectRunsDisabled {
 		return slashError("Delegating is turned off by your organization's policy.")
 	}
-	limits := &agentv1.ProjectRunLimits{}
+	var limits []string
 	for {
 		m := delegateFlag.FindStringSubmatch(args)
 		if m == nil {
@@ -72,47 +74,36 @@ func runDelegate(ctx context.Context, s *Server, ls *liveSession, args string) s
 			if err != nil || n < 1 {
 				return slashError("--workers takes how many helpers may work at once, 1 or more.")
 			}
-			limits.MaxWorkers = int32(n)
+			limits = append(limits, "max_helpers "+strconv.Itoa(n))
 		case "budget":
 			v, err := strconv.ParseFloat(strings.TrimPrefix(m[2], "$"), 64)
 			if err != nil || v <= 0 {
 				return slashError("--budget takes a sum in dollars, like --budget 20.")
 			}
-			limits.BudgetUsd = v
+			limits = append(limits, "budget_usd "+strconv.FormatFloat(v, 'f', -1, 64))
 		}
 		args = strings.TrimSpace(args[len(m[0]):])
 	}
 	if len(args) > maxDelegateNote {
 		return slashError("What you add is longer than %d characters; agree on the details in the conversation first.", maxDelegateNote)
 	}
-	goal := args
-	if goal == "" {
-		goal = "The work agreed in this conversation."
-	}
-	ls.mu.Lock()
-	title := ls.title
-	ls.mu.Unlock()
-	if title == "" {
-		title = runTitle(args)
-	}
-	run, err := s.beginRun(ctx, ls, goal, title, limits)
-	if err != nil {
-		return slashError("%s", connectMessage(err))
-	}
 	note := ""
 	if args != "" {
 		note = "What the user added:\n<delegate-note>\n" + defuseGoal(args) + "\n</delegate-note>"
 	}
-	ls.sess.Agent.Remind(agent.ReminderDelegateStarted, map[string]string{"run_id": run.GetId(), "limits": limitsText(run.GetLimits()), "targets": targetsText(run.GetTargets()), "note": note})
+	limitText := "none given: leave max_helpers and budget_usd out"
+	if len(limits) > 0 {
+		limitText = strings.Join(limits, ", ")
+	}
+	ls.sess.Agent.Remind(agent.ReminderDelegateStarted, map[string]string{"note": note, "limits": limitText})
 	text := "Delegate the work we agreed on."
 	if args != "" {
 		text = "Delegate: " + args
 	}
 	if err := s.sendText(ctx, ls, text); err != nil {
-		s.stopRun(ctx, run)
 		return slashError("%s", connectMessage(err))
 	}
-	return slashOutcome{text: fmt.Sprintf("Delegating: %s. Helpers work in the background; /delegate status, pause or stop.", limitsText(run.GetLimits()))}
+	return slashOutcome{text: "The agent writes the brief and starts a lead session, which runs the helpers in the background. /delegate status, pause or stop."}
 }
 
 // delegateLine is a run in one line: its state, tasks and spending.
@@ -126,10 +117,12 @@ func delegateLine(run *agentv1.ProjectRun) string {
 			done++
 		}
 	}
-	line := fmt.Sprintf("%s, %d helper(s) working, %d done, $%.2f spent", strings.ToLower(strings.ReplaceAll(strings.TrimPrefix(run.GetState().String(), "PROJECT_RUN_STATE_"), "_", " ")), working, done, run.GetUsage().GetCostUsd())
+	spent := fmt.Sprintf("$%.2f", run.GetUsage().GetCostUsd())
 	if b := run.GetLimits().GetBudgetUsd(); b > 0 {
-		line += fmt.Sprintf(" of $%.2f", b)
+		spent += fmt.Sprintf(" of $%.2f", b)
 	}
+	state := strings.ToLower(strings.ReplaceAll(strings.TrimPrefix(run.GetState().String(), "PROJECT_RUN_STATE_"), "_", " "))
+	line := fmt.Sprintf("%s, %d helper(s) working, %d done, %s spent", state, working, done, spent)
 	if run.GetReason() != "" {
 		line += " (" + run.GetReason() + ")"
 	}

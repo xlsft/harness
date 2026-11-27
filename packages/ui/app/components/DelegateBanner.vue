@@ -1,7 +1,7 @@
 <script setup lang="ts">
-// Above the composer while this session has delegated work (/delegate): how far the helpers are, what it has cost, and
-// the tasks with who works on each. The client runs the delegation; the buttons send `/delegate pause|resume|stop`, as
-// the user could type them, and a helper's row opens its session.
+// Above the composer while this session has delegated work (/delegate, or a lead session it started): how far the
+// helpers are, what it has cost, and the tasks with who works on each. The client runs the delegation; the buttons send
+// `/delegate pause|resume|stop`, as the user could type them; "Open lead" and a helper's row open those sessions.
 import type { SessionState } from '~/lib/session/types'
 import { TaskNodeStatus } from '~/gen/harness/agent/v1/teamwork_pb'
 import { ProjectRunState, ProjectWorkerState } from '~/gen/harness/agent/v1/project_runs_pb'
@@ -17,6 +17,8 @@ const ended = computed(() => !!run.value && runEnded(run.value.state))
 const shown = computed(() => !!run.value && !(ended.value && dismissed.value === run.value.id))
 const paused = computed(() => run.value?.state === ProjectRunState.PAUSED)
 const send = (text: string) => store.quietly(store.send(props.session.meta.id, text))
+// The lead is another session when this one started it; when this session leads, there is nothing to open.
+const lead = computed(() => (run.value && run.value.coordinatorSessionId !== props.session.meta.id ? run.value.coordinatorSessionId : ''))
 
 const tasks = computed(() => {
   const r = run.value
@@ -100,6 +102,14 @@ async function openHelper(sessionId: string) {
       <span class="min-w-0 truncate text-strong">{{ headline }}</span>
       <span class="min-w-0 truncate text-muted max-sm:hidden">{{ progress }}</span>
       <span class="ml-auto flex shrink-0 items-center gap-3">
+        <button
+          v-if="lead"
+          type="button"
+          class="text-muted hover:text-strong"
+          @click="openHelper(lead)"
+        >
+          {{ tt('Open lead') }}
+        </button>
         <button
           v-if="tasks.length"
           type="button"

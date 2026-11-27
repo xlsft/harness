@@ -204,13 +204,50 @@ func (s *Server) publishRun(run *agentv1.ProjectRun) {
 	if g := ls.sess.ToolEnv.TaskGraph; g != nil {
 		out.Tasks = taskGraphProto(g.List()).GetTasks()
 	}
-	ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_ProjectRunUpdated{ProjectRunUpdated: &agentv1.ProjectRunUpdated{Run: out}}})
+	ev := &agentv1.SessionEvent{Event: &agentv1.SessionEvent_ProjectRunUpdated{ProjectRunUpdated: &agentv1.ProjectRunUpdated{Run: out}}}
+	ls.publish(ev)
+	// A lead started from another session (SessionStart with lead, /delegate): that session follows the run too.
+	if parent := s.liveSession(ls.readLinks().Parent); parent != nil {
+		parent.publish(ev)
+	}
+}
+
+// delegatedRun is the run this session hands work to: one it leads itself, or one a session it started leads. An active
+// run wins over an ended one, a newer over an older; "" when there is none.
+func (s *Server) delegatedRun(sessionID string) string {
+	r := &s.runs
+	r.mu.Lock()
+	r.loadLocked()
+	type cand struct {
+		id, coord, created string
+		ended              bool
+	}
+	var list []cand
+	for _, run := range r.byID {
+		list = append(list, cand{run.GetId(), run.GetCoordinatorSessionId(), run.GetCreatedAt(), runEnded(run.GetState())})
+	}
+	r.mu.Unlock()
+	best := cand{}
+	for _, c := range list {
+		if c.coord != sessionID && readSessionLinks(c.coord).Parent != sessionID {
+			continue
+		}
+		if best.id == "" || best.ended && !c.ended || best.ended == c.ended && c.created > best.created {
+			best = c
+		}
+	}
+	return best.id
 }
 
 // attachProjectRun is called when a session opens: a coordinator gets its tools back and shows its run.
 func (s *Server) attachProjectRun(ls *liveSession) {
 	id, coord := s.runOfSession(ls.sess.ID)
 	if id == "" || !coord {
+		// A session that started a lead shows that lead's run.
+		if led := s.delegatedRun(ls.sess.ID); led != "" {
+			snap := s.runWithGraph(led)
+			ls.publish(&agentv1.SessionEvent{Event: &agentv1.SessionEvent_ProjectRunUpdated{ProjectRunUpdated: &agentv1.ProjectRunUpdated{Run: snap}}})
+		}
 		return
 	}
 	ls.sess.Coordinator.Store(true)

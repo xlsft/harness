@@ -52,6 +52,11 @@ type SessionRequest struct {
 	Fork, Worktree           bool
 	// Model and Cwd default to the ones of this session.
 	Model, Cwd string
+	// Lead: the new session leads helpers, with Prompt as its brief; MaxHelpers and BudgetUSD (0: the user's settings)
+	// limit them.
+	Lead       bool
+	MaxHelpers int
+	BudgetUSD  float64
 }
 
 // LinkedSession is a session started from this one.
@@ -139,6 +144,10 @@ type sessionStartInput struct {
 	Worktree   bool   `json:"worktree"`
 	Model      string `json:"model"`
 	Cwd        string `json:"cwd"`
+	// Lead: the session leads helpers (a project run); MaxHelpers and BudgetUSD limit it.
+	Lead       bool    `json:"lead"`
+	MaxHelpers int     `json:"max_helpers"`
+	BudgetUSD  float64 `json:"budget_usd"`
 }
 
 func (*SessionStart) Name() string { return "SessionStart" }
@@ -172,8 +181,13 @@ func parseSessionStart(env *Env, input json.RawMessage) (sessionStartInput, Sess
 		return bad("initiation must be offer, user_asked or own_initiative")
 	case in.Context != SessionContextFresh && in.Context != SessionContextFork:
 		return bad("context must be fresh or fork")
+	case in.MaxHelpers < 0 || in.BudgetUSD < 0:
+		return bad("max_helpers and budget_usd can't be negative")
+	case !in.Lead && (in.MaxHelpers > 0 || in.BudgetUSD > 0):
+		return bad("max_helpers and budget_usd go with lead")
 	}
-	r := SessionRequest{Title: in.Title, Prompt: in.Prompt, Fork: in.Context == SessionContextFork, Worktree: in.Worktree, Model: in.Model}
+	r := SessionRequest{Title: in.Title, Prompt: in.Prompt, Fork: in.Context == SessionContextFork, Worktree: in.Worktree, Model: in.Model,
+		Lead: in.Lead, MaxHelpers: in.MaxHelpers, BudgetUSD: in.BudgetUSD}
 	if in.Cwd != "" {
 		r.Cwd = in.Cwd
 		if !filepath.IsAbs(r.Cwd) {

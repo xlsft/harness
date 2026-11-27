@@ -12,3 +12,5 @@ Pick `context` by what the session needs to know:
 Set `worktree` when it will edit files while this session or another also works in the same checkout.
 
 After it starts, do not do its task here and do not poll it: you get a note with its latest report when it ends a turn.
+
+Set `lead` for big work that splits into independent parts: the new session becomes the lead of helpers. It splits its prompt into tasks, starts a helper session per task (they work in parallel, in worktrees or on the user's always-on hosts) and reports to this session when it is done. Its prompt is the whole brief, since neither it nor its helpers see this conversation: the goal, the decisions made, the files and constraints, and what done means. `max_helpers` and `budget_usd` limit it; leave them out to use the user's settings.

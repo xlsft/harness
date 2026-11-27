@@ -106,25 +106,33 @@ The record is written on every change. At start the client reads the records: a 
 
 `SessionEvent.project_run_updated` (310) carries the run on the coordinator session, so a viewer through the relay sees it like a local one. `Command.project_run_control` (relay 310) pauses, resumes, stops and changes limits from another device; like every relay command it cannot widen permissions.
 
-### `/delegate`: how people start one
+### `/delegate` and lead sessions: how people start one
 
 A run is started from the conversation, not from a form. The user agrees on the work with the agent, then types
-`/delegate [--workers N] [--budget USD] [what to add]`, and **this session** becomes the coordinator (`beginRun` in
-`server/projectruns.go`, `server/delegate.go`). The conversation is the brief: the `delegate_started` reminder tells the
-agent to split what was agreed into tasks and to give each helper a self-contained prompt, since helpers don't see the
-conversation. The user goes on with something else; the helpers work in the background and report to this session.
-`/delegate status|pause|resume|stop` steer it; a helper session can't delegate further.
+`/delegate [--workers N] [--budget USD] [what to add]` (`server/delegate.go`). The `delegate_started` reminder has the
+agent write **one brief that stands alone** (the goal, the decisions, the files and what done means) and start a **lead
+session** with it: `SessionStart` with `lead: true` (and `max_helpers` / `budget_usd` when the user gave them). The lead is
+a linked session whose run is recorded at its start (`beginRun` in `server/projectruns.go`): it splits the brief into
+tasks, runs the helpers, and its turn reports come back to the session that delegated, which stays free for the user.
 
-**Decision: a command, not a page.** A separate "project run" form made people restate a goal the agent already
-understood, and its words (coordinator, worker, target) described the machinery. In the UI it is "delegating" to
-"helpers".
+The agent can start a lead without the command too, whenever the user asks for big parallel work in a separate session:
+`lead` is an ordinary `SessionStart` option, with `offer`, `user_asked` and `own_initiative` as for any session.
+
+The delegating session follows the lead's run (`publishRun` sends `ProjectRunUpdated` to the lead's parent as well, and
+`attachProjectRun` on open), and `/delegate status|pause|resume|stop` steer it (`delegatedRun`). A helper can't delegate.
+
+**Decision: a separate lead, not this session.** The first version made the delegating session the coordinator, which
+kept it busy with the helpers' reports. A lead session leaves the conversation free and gives the work a brief of its own
+that can be read later. **Decision: a command, not a page.** A separate "project run" form made people restate a goal
+the agent already understood, and its words (coordinator, worker, target) described the machinery. In the UI it is
+"delegating" to "helpers" under a "lead".
 
 ### UI
 
 - `/inbox`: groups, virtualised list, answer permission (allow, deny), answer a question (option buttons), approve a plan, open, stop, mark read. Live.
-- Above the composer of the delegating session (`DelegateBanner.vue`): what stage it is at, tasks done, helpers working,
-  the spending against the budget, Pause/Resume and Stop (they send `/delegate …`), and the tasks with each helper's
-  state and a way to open its session. `CreateProjectRun` stays for other clients; the Projects page is gone.
+- Above the composer of the delegating session and of the lead (`DelegateBanner.vue`): what stage it is at, tasks done,
+  helpers working, the spending against the budget, Pause/Resume and Stop (they send `/delegate …`), Open lead, and the
+  tasks with each helper's state and a way to open its session. `CreateProjectRun` stays for other clients; the Projects page is gone.
 
 All logic is in the client and the server; the screens show and send.
 
