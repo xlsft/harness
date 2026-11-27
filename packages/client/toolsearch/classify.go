@@ -69,6 +69,11 @@ var builtinTiers = map[string]Tier{
 	"BrowserKey": Deferred, "BrowserScroll": Deferred, "BrowserWait": Deferred, "BrowserScreenshot": Deferred,
 	"BrowserTabs": Deferred, "BrowserEval": Deferred, "BrowserConsole": Deferred, "BrowserNetwork": Deferred,
 	"BrowserRecord": Deferred,
+	"EditorDiagnostics": Deferred, "ImageGenerate": Deferred,
+	"ProjectStatus": Deferred, "ProjectFinish": Deferred, "ProjectWorkerStart": Deferred, "ProjectWorkerMerge": Deferred,
+	"SimulatorList": Deferred, "SimulatorBoot": Deferred, "SimulatorButton": Deferred, "SimulatorInstall": Deferred,
+	"SimulatorLaunch": Deferred, "SimulatorScreenshot": Deferred, "SimulatorSwipe": Deferred, "SimulatorTap": Deferred,
+	"SimulatorType": Deferred, "DemoRecording": Deferred, "DemoSkillSave": Deferred,
 	// Computer use.
 	"ComputerAccess": Deferred, "ComputerActivate": Deferred, "ComputerApps": Deferred, "ComputerBatch": Deferred,
 	"ComputerClick": Deferred, "ComputerDrag": Deferred, "ComputerFind": Deferred, "ComputerKey": Deferred,
