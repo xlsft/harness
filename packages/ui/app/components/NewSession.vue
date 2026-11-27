@@ -777,10 +777,10 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
 
     <UModal
       v-model:open="remoteOpen"
-      :ui="{ content: 'w-auto max-w-none bg-transparent ring-0' }"
+      :ui="{ content: 'w-[440px] max-w-[calc(100vw-32px)] bg-transparent ring-0' }"
     >
       <template #content>
-        <NewRemoteStart
+        <RemoteStart
           @close="remoteOpen = false"
           @started="startedRemote"
         />
