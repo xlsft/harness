@@ -234,7 +234,9 @@ function openMore(to: string) {
               :active="isCurrent(item.to)"
               @click="openMore(item.to)"
             >
-              {{ item.label }}
+              {{ item.label }}<span
+                class="ml-1.5 rounded-chip border border-accent px-1 text-[10px] leading-[14px] text-accent"
+              >{{ tt('Beta') }}</span>
             </PaneMenuItem>
           </div>
         </template>
