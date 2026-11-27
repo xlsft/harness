@@ -577,7 +577,9 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
               <NewEnvMenu
                 :agent-hosts="hosts"
                 :current="host"
+                :remote="!forkOf"
                 @pick="pickHost"
+                @remote="remoteOpen = true"
                 @close="menu = ''"
               />
             </template>
@@ -674,7 +676,9 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
                   <NewEnvMenu
                     :agent-hosts="hosts"
                     :current="host"
+                    :remote="!forkOf"
                     @pick="pickHost"
+                    @remote="remoteOpen = true"
                     @close="menu = ''"
                   />
                 </template>
@@ -761,23 +765,19 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           </template>
         </ComposerBox>
       </div>
-      <NewRemoteStart
-        v-if="remoteOpen"
-        @close="remoteOpen = false"
-        @started="startedRemote"
-      />
-      <button
-        v-else-if="!forkOf"
-        type="button"
-        class="flex items-center gap-1.5 text-[12px] text-muted hover:text-strong"
-        @click="remoteOpen = true"
-      >
-        <HIcon
-          name="phone"
-          :size="12"
-        />{{ tt('Start on another machine') }}
-      </button>
     </div>
+
+    <UModal
+      v-model:open="remoteOpen"
+      :ui="{ content: 'w-auto max-w-none bg-transparent ring-0' }"
+    >
+      <template #content>
+        <NewRemoteStart
+          @close="remoteOpen = false"
+          @started="startedRemote"
+        />
+      </template>
+    </UModal>
 
     <UModal
       v-model:open="browsing"
