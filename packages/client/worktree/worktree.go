@@ -62,6 +62,9 @@ type Result struct {
 	BaseRef string
 	// RepositoryPath is the repository's main checkout.
 	RepositoryPath string
+	// SourcePath is the root of the checkout the worktree was made from (the main checkout or another worktree): where
+	// its setup (SetupFile) is read.
+	SourcePath string `json:",omitempty"`
 	// Cwd is the session directory inside the worktree: the same path
 	// relative to the work tree root as the requested cwd.
 	Cwd string
@@ -128,7 +131,7 @@ func Create(ctx context.Context, cwd string, o Options) (*Result, error) {
 		return nil, err
 	}
 
-	res := &Result{RepositoryPath: repo.Main}
+	res := &Result{RepositoryPath: repo.Main, SourcePath: repo.Toplevel}
 	base := strings.TrimSpace(o.BaseRef)
 	existing := branch != "" && branchExists(ctx, repo.Toplevel, branch)
 	if pr.Number != 0 {

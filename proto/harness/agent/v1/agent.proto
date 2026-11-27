@@ -33,6 +33,7 @@ import "harness/agent/v1/teamwork.proto";
 import "harness/agent/v1/terminal.proto";
 import "harness/agent/v1/user_tools.proto";
 import "harness/agent/v1/workflows.proto";
+import "harness/agent/v1/worktree_setup.proto";
 import "harness/llm/v1/content.proto";
 
 // AgentService is served by the local client (packages/client) to frontends:
@@ -191,6 +192,9 @@ service AgentService {
   rpc RunShellCommand(RunShellCommandRequest) returns (RunShellCommandResponse);
   // Kills a running user shell command (UserShellFinished reason STOPPED). NOT_FOUND when it is not running.
   rpc StopShellCommand(StopShellCommandRequest) returns (StopShellCommandResponse);
+  // Answers a suggested worktree setup (worktree_setup.proto): accept writes .harness/worktree.json and runs it in the
+  // worktree, dismiss stops offering it for the repository on this device. NOT_FOUND when the suggestion is not pending.
+  rpc AnswerWorktreeSetup(AnswerWorktreeSetupRequest) returns (AnswerWorktreeSetupResponse);
   // Side chats (sidechat.proto): read-only conversations next to a session that see its conversation but never
   // change it (no tools). Stored next to the session's transcript. Local open sessions only.
   rpc ListSideChats(ListSideChatsRequest) returns (ListSideChatsResponse);
@@ -897,6 +901,8 @@ message SessionEvent {
     TaskGraphUpdated task_graph_updated = 141;
     // Always-on hosts (docs/design/hosts.md): what became of the session's work; numbered apart like the shell events.
     HostWorkUpdated host_work_updated = 230;
+    // The setup of a new worktree (worktree_setup.proto); numbered apart like the shell events.
+    WorktreeSetupUpdated worktree_setup_updated = 430;
   }
 }
 

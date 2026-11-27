@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package harness.agent.v1;
+
+// The setup of a new session worktree (docs/design/worktree-setup.md): the commands of the project's
+// .harness/worktree.json, run by the client in the worktree with the session's sandbox before the agent's first turn
+// there. The client decides and runs; frontends render WorktreeSetup and send the user's answer to a suggestion.
+//
+// One WorktreeSetup per worktree, published again with the same id whenever it changes: SUGGESTED when the project has
+// lockfiles and no setup (AnswerWorktreeSetup accepts or dismisses), RUNNING with throttled step output, then SUCCEEDED
+// or FAILED. A failure stops nothing: the session works in the worktree either way, and the agent is told what ran.
+
+message WorktreeSetup {
+  enum State {
+    STATE_UNSPECIFIED = 0;
+    // No setup is configured and the project has lockfiles: steps are what accepting would run.
+    STATE_SUGGESTED = 1;
+    STATE_RUNNING = 2;
+    STATE_SUCCEEDED = 3;
+    // At least one step did not succeed.
+    STATE_FAILED = 4;
+    // The user dismissed the suggestion (it is not offered again for this repository on this device).
+    STATE_DISMISSED = 5;
+  }
+  string id = 1;
+  State state = 2;
+  // The worktree's root.
+  string worktree_path = 3;
+  // The setup file: where it was read, or where accepting the suggestion writes it.
+  string config_path = 4;
+  repeated WorktreeSetupStep steps = 5;
+  // The subagent whose worktree it is ("" for the session's own).
+  string agent_id = 6;
+  // SUGGESTED: the file accepting writes, as JSON.
+  string suggested_config = 7;
+  int64 duration_ms = 8;
+  // The setup file could not be read or planned (state FAILED, no steps).
+  string error = 9;
+}
+
+message WorktreeSetupStep {
+  enum Status {
+    STATUS_UNSPECIFIED = 0;
+    STATUS_PENDING = 1;
+    STATUS_RUNNING = 2;
+    STATUS_OK = 3;
+    STATUS_FAILED = 4;
+    STATUS_TIMED_OUT = 5;
+    // The setup stopped (the session closed).
+    STATUS_CANCELED = 6;
+  }
+  string command = 1;
+  // Relative to the worktree's root ("." for the root).
+  string dir = 2;
+  Status status = 3;
+  // -1 when it did not exit by itself.
+  int32 exit_code = 4;
+  // The end of its standard output and error.
+  string output = 5;
+  int64 duration_ms = 6;
+  // Why it could not run or was stopped.
+  string error = 7;
+  // The package manager of a dependency install shareDependencies added ("" for a command of the file).
+  string manager = 8;
+  int64 timeout_ms = 9;
+}
+
+message WorktreeSetupUpdated {
+  WorktreeSetup setup = 1;
+}
+
+message AnswerWorktreeSetupRequest {
+  string session_id = 1;
+  string setup_id = 2;
+  // true writes the suggested file into the checkout the worktree came from (never over an existing one) and runs it in
+  // the worktree; false dismisses the suggestion for this repository on this device.
+  bool accept = 3;
+}
+
+message AnswerWorktreeSetupResponse {}

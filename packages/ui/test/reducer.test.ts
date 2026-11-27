@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { RespondToPermissionRequest_Decision, RespondToPlanRequest_Decision } from '~/gen/harness/agent/v1/agent_pb'
 import { HookRun_Status } from '~/gen/harness/agent/v1/hooks_pb'
+import { WorktreeSetup_State, WorktreeSetupStep_Status } from '~/gen/harness/agent/v1/worktree_setup_pb'
 import { createSessionState, reduce, reduceAll, sessionMeta } from '~/lib/session/reducer'
 import type { AssistantItem, PermissionItem, PlanItem, ToolItem } from '~/lib/session/types'
 import { EventBuilder, sessionInfo } from '~/lib/transport/events'
@@ -48,6 +49,23 @@ describe('hook runs', () => {
     reduceAll(s, b.events)
     expect(s.items.some(i => i.kind === 'notice')).toBe(false)
     expect(s.items.at(-1)).toMatchObject({ kind: 'hook', state: 'timed_out' })
+  })
+})
+
+describe('worktree setup', () => {
+  it('is one card per worktree, from the suggestion to the end of the run', () => {
+    const { b, s } = setup()
+    b.worktreeSetup('w1', WorktreeSetup_State.SUGGESTED, [{ command: 'pnpm install --frozen-lockfile --prefer-offline', status: WorktreeSetupStep_Status.PENDING }],
+      { suggestedConfig: '{"shareDependencies": true}' })
+    reduceAll(s, b.events)
+    expect(s.items.at(-1)).toMatchObject({ kind: 'worktreeSetup', id: 'w1', state: 'suggested', suggestedConfig: '{"shareDependencies": true}' })
+    const seen = b.events.length
+    b.worktreeSetup('w1', WorktreeSetup_State.RUNNING, [{ command: 'pnpm install --frozen-lockfile --prefer-offline', status: WorktreeSetupStep_Status.RUNNING, output: 'Progress' }])
+    b.worktreeSetup('w1', WorktreeSetup_State.FAILED, [{ command: 'pnpm install --frozen-lockfile --prefer-offline', status: WorktreeSetupStep_Status.FAILED, exitCode: 1, output: 'ERR_PNPM' }])
+    reduceAll(s, b.events.slice(seen))
+    const cards = s.items.filter(i => i.kind === 'worktreeSetup')
+    expect(cards).toHaveLength(1)
+    expect(cards[0]).toMatchObject({ state: 'failed', steps: [{ status: 'failed', exitCode: 1, output: 'ERR_PNPM', dir: '.' }] })
   })
 })
 

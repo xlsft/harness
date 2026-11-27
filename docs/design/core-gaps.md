@@ -94,6 +94,7 @@ Everything here is tested against the fake gateway, fake MCP server and local gi
 |---|---|---|---|
 | Branch from a PR | closed | `from_pr` on `WorktreeOptions`, `pull_request` on `EnterWorktree`, a field in New session. Tries `refs/pull` then `refs/merge-requests`; a URL of another repository is refused | 1a, 3 |
 | Copy gitignored files | closed | `.worktreeinclude` | 1a |
+| Setup of a new worktree | closed | `.harness/worktree.json`: commands and `shareDependencies` (installs from the package managers' caches), run under the sandbox before the first turn, a suggestion for projects with lockfiles. [worktree-setup.md](worktree-setup.md) | |
 | Auto cleanup of worktrees | closed | `worktree.Prune`, at client start and daily | 1a |
 | Non-git VCS | open | Needs `WorktreeCreate` and `WorktreeRemove` hook events, a way to read a hook's stdout as a path (`hooks.Outcome` has none), and a non-git form of `session.Worktree` that `ExitWorktree` and `Dirty` understand. Few people need it, so it was left for last | |
 

@@ -1093,6 +1093,10 @@ export const useSessionStore = defineStore('sessions', {
 
     async stopShell(id: string, commandId: string) {
       await this.transport?.stopShellCommand(id, commandId)
+    },
+
+    async answerWorktreeSetup(id: string, setupId: string, accept: boolean) {
+      await this.transport?.answerWorktreeSetup(id, setupId, accept)
     }
   }
 })

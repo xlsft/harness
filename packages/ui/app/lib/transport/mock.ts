@@ -22,6 +22,7 @@ import { mockSlashCatalog } from './mockSlash'
 import type { ComputerProfileVM, BackgroundReasonName, QuestionReply } from '~/lib/session/types'
 import type { ComputerUseAppVM, CreatedPullRequest, DeviceSettings, ComputerUseStatusVM, ModelInfo, NewSessionOptions, PullRequestDraft, PullRequestInput, SessionPatch, SessionTransport, SubscribeHandlers, UserPreferences } from './types'
 import { ComputerAccessTier } from '~/gen/harness/agent/v1/computer_use_pb'
+import { WorktreeSetup_State, WorktreeSetupStep_Status } from '~/gen/harness/agent/v1/worktree_setup_pb'
 import { patchStats, type PatchHunk } from '~/utils/tools'
 import {
   ContextUsage_Category,
@@ -298,7 +299,37 @@ export class MockTransport implements SessionTransport {
       updatedAt: new Date(this.now()).toISOString()
     })
     this.sessions.set(info.id, { info, history: [], seq: 0, listeners: new Set(), working: false, queue: [], timers: [], waiting: null, turn: 0, afterResume: null })
+    if (info.worktree) this.suggestWorktreeSetup(info.id, info.worktree.path, repo)
     return info
+  }
+
+  // Worktree setup (worktree_setup.proto), as the client does it for a project with lockfiles and no setup: a suggestion
+  // on the first worktree; accepting runs the installs, dismissing ends it.
+  private setupSuggestions = new Map<string, { sessionId: string, path: string, steps: { command: string, dir: string }[] }>()
+
+  private suggestWorktreeSetup(sessionId: string, path: string, repo: string) {
+    if ([...this.setupSuggestions.values()].some(p => p.path.startsWith(repo))) return
+    const id = `wts-${sessionId}`
+    const steps = [{ command: 'pnpm install --frozen-lockfile --prefer-offline --ignore-workspace', dir: 'packages/core' },
+      { command: 'pnpm install --frozen-lockfile --prefer-offline --ignore-workspace', dir: 'packages/ui' }]
+    this.setupSuggestions.set(id, { sessionId, path, steps })
+    this.emit(this.get(sessionId), b => b.worktreeSetup(id, WorktreeSetup_State.SUGGESTED, steps.map(st => ({ ...st, status: WorktreeSetupStep_Status.PENDING })),
+      { worktreePath: path, suggestedConfig: '{\n  "shareDependencies": true\n}\n' }))
+  }
+
+  async answerWorktreeSetup(sessionId: string, setupId: string, accept: boolean) {
+    const p = this.setupSuggestions.get(setupId)
+    if (!p || p.sessionId !== sessionId) throw new Error(`[not_found] no worktree setup ${setupId} is waiting for an answer`)
+    this.setupSuggestions.delete(setupId)
+    const s = this.get(sessionId)
+    if (!accept) {
+      this.emit(s, b => b.worktreeSetup(setupId, WorktreeSetup_State.DISMISSED, p.steps.map(st => ({ ...st, status: WorktreeSetupStep_Status.PENDING })), { worktreePath: p.path }))
+      return
+    }
+    this.emit(s, b => b.worktreeSetup(setupId, WorktreeSetup_State.RUNNING, p.steps.map((st, i) => ({ ...st, status: i ? WorktreeSetupStep_Status.PENDING : WorktreeSetupStep_Status.RUNNING,
+      output: i ? '' : 'Lockfile is up to date, resolution step is skipped\nProgress: resolved 412, reused 412, downloaded 0, added 98' })), { worktreePath: p.path }))
+    this.later(s, this.tick * 6, () => this.emit(s, b => b.worktreeSetup(setupId, WorktreeSetup_State.SUCCEEDED,
+      p.steps.map(st => ({ ...st, status: WorktreeSetupStep_Status.OK, exitCode: 0, output: 'Packages: +412\nDone in 2.1s' })), { worktreePath: p.path })))
   }
 
   // A fork as the client makes it: a copy of the conversation (before forkAt, a user message uuid), the parent

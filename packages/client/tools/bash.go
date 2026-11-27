@@ -287,7 +287,16 @@ func (s *Shell) BackgroundToolCall(toolUseID, reason string) bool {
 // it (same shell, PATH and environment), as the leader of a new process group, under the sandbox's policy for servers. The
 // caller owns the process.
 func (s *Shell) Command(command, cwd string) *exec.Cmd {
-	cmd, _ := s.command(command, "", cwd, confineServer, "")
+	cmd, _ := s.command(command, "", cwd, confineServer, "", nil)
+	return cmd
+}
+
+// SetupCommand builds the process of a worktree's setup step (package worktree): command run in dir the way the Bash tool
+// runs it, under the sandbox's policy for commands with root as the only working directory, so that it can write in the
+// new worktree and in the toolchains' caches but not in the checkout it came from. The caller owns the process. Without
+// a sandbox that applies it runs unconfined, like the model's commands.
+func (s *Shell) SetupCommand(command, dir, root string) *exec.Cmd {
+	cmd, _ := s.command(command, "", dir, confineCommand, "", []string{root})
 	return cmd
 }
 
@@ -303,7 +312,8 @@ const (
 // command builds the shell process for a command line (not started). With a sandbox that applies, it also returns what
 // explains the command's failures. A sandbox that should apply and cannot means the process does nothing but say so: the
 // command must not run without it, and every caller already shows what a failed command printed.
-func (s *Shell) command(command, cwdFile, cwd string, how confinement, interpreter string) (*exec.Cmd, *sandbox.Wrapped) {
+// workDirs, when set, replaces the session's working directories in the sandbox's policy.
+func (s *Shell) command(command, cwdFile, cwd string, how confinement, interpreter string, workDirs []string) (*exec.Cmd, *sandbox.Wrapped) {
 	filter, memoryMB := s.env.ShellLimits()
 	var argv []string
 	if interpreter != "" {
@@ -330,7 +340,10 @@ func (s *Shell) command(command, cwdFile, cwd string, how confinement, interpret
 		if how == confineServer {
 			kind = sandbox.KindServer
 		}
-		w, err := s.env.Sandbox.Wrap(sandbox.Request{Kind: kind, WorkDirs: s.env.WorkingDirs(), ScratchDir: s.env.ScratchDir}, argv)
+		if workDirs == nil {
+			workDirs = s.env.WorkingDirs()
+		}
+		w, err := s.env.Sandbox.Wrap(sandbox.Request{Kind: kind, WorkDirs: workDirs, ScratchDir: s.env.ScratchDir}, argv)
 		switch {
 		case err != nil && interpreter != "":
 			argv, refused = powerShellRefusal(interpreter), err.Error()
@@ -403,7 +416,7 @@ func (s *Shell) Run(ctx context.Context, command string, o ExecOptions) (ExecRes
 	if o.Confine {
 		how = confineCommand
 	}
-	cmd, wrapped := s.command(command, cwdFile, cwd, how, o.Interpreter)
+	cmd, wrapped := s.command(command, cwdFile, cwd, how, o.Interpreter, nil)
 	sw := &switchWriter{onOutput: o.OnOutput}
 	cmd.Stdout, cmd.Stderr = swStream{sw, 0}, swStream{sw, 1}
 	if err := cmd.Start(); err != nil {

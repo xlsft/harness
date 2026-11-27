@@ -365,6 +365,9 @@ export interface SessionTransport {
   // deduplicates and becomes the command id. Remote sessions refuse it.
   runShellCommand(sessionId: string, uuid: string, command: string): Promise<string>
   stopShellCommand(sessionId: string, commandId: string): Promise<void>
+  // Answers a suggested worktree setup: accept writes .harness/worktree.json and runs it, dismiss stops offering it
+  // for the repository on this device.
+  answerWorktreeSetup(sessionId: string, setupId: string, accept: boolean): Promise<void>
 
   // Not part of AgentService yet: the model catalog (provider, context, price) comes from the server in M1+.
   // Connect falls back to InitializeResponse.model_ids.

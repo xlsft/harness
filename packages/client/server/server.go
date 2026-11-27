@@ -502,6 +502,7 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 		return nil, modeError(err, connect.CodeFailedPrecondition)
 	}
 	ls.sess = sess
+	sess.ToolEnv.WorktreeSetup = ls.worktreeSetup
 	sess.SetPlaceHooks(ls.placeHooks())
 	ls.attachEnvironment(senv)
 	ls.branch = workspace.GitBranch(ctx, sess.Cwd)
@@ -587,6 +588,9 @@ func (s *Server) CreateSession(ctx context.Context, req *connect.Request[agentv1
 	}
 	ls.startUsageWatch()
 	ls.startPR()
+	if wt != nil {
+		ls.startWorktreeSetup(wt)
+	}
 	sess.StartHooks()
 	s.sessionOpened(sess.ID)
 	return connect.NewResponse(&agentv1.CreateSessionResponse{Session: ls.info()}), nil

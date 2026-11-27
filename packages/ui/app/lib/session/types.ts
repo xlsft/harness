@@ -376,6 +376,32 @@ export interface HookItem {
   async: boolean
 }
 
+// The setup of a new worktree (.harness/worktree.json; WorktreeSetupUpdated): one card per worktree, updated in place.
+export interface WorktreeSetupStepVM {
+  command: string
+  dir: string
+  status: 'pending' | 'running' | 'ok' | 'failed' | 'timed_out' | 'canceled'
+  exitCode: number
+  output: string
+  durationMs: number
+  error: string
+  // The package manager of a dependency install ('' for a command of the file).
+  manager: string
+}
+
+export interface WorktreeSetupItem {
+  kind: 'worktreeSetup'
+  id: string
+  state: 'suggested' | 'running' | 'succeeded' | 'failed' | 'dismissed'
+  worktreePath: string
+  configPath: string
+  agentId: string
+  suggestedConfig: string
+  durationMs: number
+  error: string
+  steps: WorktreeSetupStepVM[]
+}
+
 // A session the model proposed (SessionStart, own_initiative): the state of its card.
 export interface SessionProposalVM {
   id: string
@@ -474,6 +500,7 @@ export type TranscriptItem
     | TaskItem
     | RewoundItem
     | UserShellItem
+    | WorktreeSetupItem
 
 export interface SessionMeta {
   id: string

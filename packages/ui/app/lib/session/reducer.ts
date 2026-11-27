@@ -12,6 +12,7 @@ import { BrowserSiteDecision } from '~/gen/harness/agent/v1/real_browser_pb'
 import { goalVM, taskNodeVM } from './teamwork'
 import { SessionProposal_State } from '~/gen/harness/agent/v1/session_links_pb'
 import { HookRun_Status } from '~/gen/harness/agent/v1/hooks_pb'
+import { WorktreeSetup_State, WorktreeSetupStep_Status, type WorktreeSetup } from '~/gen/harness/agent/v1/worktree_setup_pb'
 import { sessionNoteOf } from './links'
 import { blockAttachments, isFileBlock } from './attachments'
 import { accessItem, computerUseVM, toolImages } from './computer'
@@ -56,7 +57,9 @@ import type {
   UsageLimitStateName,
   UsageLimitVM,
   UserShellItem,
-  SessionProposalVM
+  SessionProposalVM,
+  WorktreeSetupItem,
+  WorktreeSetupStepVM
 } from './types'
 import { answerVM, questionItemVM, questionState } from './question'
 import { actionView } from '~/lib/browser/types'
@@ -357,6 +360,36 @@ function hookState(st: HookRun_Status): HookItem['state'] {
     case HookRun_Status.CANCELED: return 'canceled'
   }
   return 'running'
+}
+
+function setupState(st: WorktreeSetup_State): WorktreeSetupItem['state'] {
+  switch (st) {
+    case WorktreeSetup_State.SUGGESTED: return 'suggested'
+    case WorktreeSetup_State.SUCCEEDED: return 'succeeded'
+    case WorktreeSetup_State.FAILED: return 'failed'
+    case WorktreeSetup_State.DISMISSED: return 'dismissed'
+  }
+  return 'running'
+}
+
+function setupStepStatus(st: WorktreeSetupStep_Status): WorktreeSetupStepVM['status'] {
+  switch (st) {
+    case WorktreeSetupStep_Status.RUNNING: return 'running'
+    case WorktreeSetupStep_Status.OK: return 'ok'
+    case WorktreeSetupStep_Status.FAILED: return 'failed'
+    case WorktreeSetupStep_Status.TIMED_OUT: return 'timed_out'
+    case WorktreeSetupStep_Status.CANCELED: return 'canceled'
+  }
+  return 'pending'
+}
+
+export function worktreeSetupVM(w: WorktreeSetup): WorktreeSetupItem {
+  return {
+    kind: 'worktreeSetup', id: w.id, state: setupState(w.state), worktreePath: w.worktreePath, configPath: w.configPath, agentId: w.agentId,
+    suggestedConfig: w.suggestedConfig, durationMs: Number(w.durationMs), error: w.error,
+    steps: w.steps.map(st => ({ command: st.command, dir: st.dir, status: setupStepStatus(st.status), exitCode: st.exitCode, output: st.output,
+      durationMs: Number(st.durationMs), error: st.error, manager: st.manager }))
+  }
 }
 
 function find<K extends TranscriptItem['kind']>(s: SessionState, kind: K, id: string) {
@@ -827,6 +860,16 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
       const vm: HookItem = { kind: 'hook', id: r.runId, event: r.event, command: r.command, source: r.source, state: hookState(r.status), output: r.output,
         decision: r.decision, durationMs: Number(r.durationMs), toolName: r.toolName, async: r.async }
       const known = find(s, 'hook', r.runId)
+      if (known) Object.assign(known, vm)
+      else push(s, vm)
+      break
+    }
+
+    case 'worktreeSetupUpdated': {
+      const w = e.value.setup
+      if (!w) break
+      const vm = worktreeSetupVM(w)
+      const known = find(s, 'worktreeSetup', vm.id)
       if (known) Object.assign(known, vm)
       else push(s, vm)
       break
