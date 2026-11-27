@@ -107,7 +107,14 @@ if (desktop) {
       :error="signInError"
       @signed-in="connectDesktop"
     />
-    <HLoader v-else-if="phase === 'checking'" />
+    <!-- The whole screen drags the window while the client is checked; the mark lets the drag through. -->
+    <div
+      v-else-if="phase === 'checking'"
+      data-tauri-drag-region
+      class="fixed inset-0 flex items-center justify-center"
+    >
+      <HLoader class="pointer-events-none" />
+    </div>
     <WebConsole
       v-else-if="phase === 'web'"
       :error="webError"

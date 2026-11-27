@@ -32,6 +32,15 @@ const botBusy = ref(false)
 const botSaved = ref(false)
 
 const PROVIDER_NAMES: Record<ChatKind, string> = { slack: 'Slack', telegram: 'Telegram' }
+const CHAT_KINDS: ChatKind[] = ['slack', 'telegram']
+const botOpen = ref(false)
+
+// The provider row's line: whether the organization's app is there to link to.
+function about(p: ChatKind) {
+  if (providers.value.includes(p)) return p === 'slack' ? tt('Your organization\'s Slack app') : telegramBot.value ? tt('Your organization\'s bot @{0}', [telegramBot.value]) : tt('Your organization\'s bot')
+  if (p === 'telegram' && botAllowed.value) return tt('Not connected on this server; your own bot works without it')
+  return tt('Not connected on this server. An admin connects it under Chat apps.')
+}
 
 function message(e: unknown) {
   return e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e)
@@ -101,6 +110,7 @@ async function saveBot() {
     bot.value = await api().putMyBot({ botToken: botForm.botToken.trim() || undefined, enabled: botForm.enabled, delivery: botForm.delivery })
     botForm.botToken = ''
     botSaved.value = true
+    botOpen.value = false
     await refresh()
   } catch (e) {
     error.value = message(e)
@@ -189,34 +199,73 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
       />
     </div>
 
-    <h3 class="mt-5 mb-1 text-[12.5px] text-strong">
+    <h3 class="mt-6 mb-1 text-[13px] font-semibold text-strong">
       {{ tt('Chat apps') }}
     </h3>
-    <p
-      v-if="chatPolicyOff"
-      class="m-0 text-[12px] text-muted"
-    >
-      {{ tt('Your organization\'s policy turned chat apps off.') }}
+    <p class="m-0 mb-3 text-[12px] text-muted">
+      {{ chatPolicyOff ? tt('Your organization\'s policy turned chat apps off.') : tt('Mention the Slack app or write to the Telegram bot, and a session starts on your machine. Only you see these links.') }}
     </p>
-    <template v-else>
-      <p
-        v-if="!chatAvailable"
-        class="m-0 text-[12px] text-muted"
+    <div
+      v-if="!chatPolicyOff"
+      class="overflow-hidden border border-default"
+    >
+      <div
+        v-for="(p, pi) in CHAT_KINDS"
+        :key="p"
+        class="flex flex-col"
+        :class="{ 'border-t border-default': pi > 0 }"
       >
-        {{ tt('No chat app is connected to this server. An admin can connect Slack or Telegram under Chat apps.') }}
-      </p>
-      <template v-else>
-        <p class="m-0 mb-1 text-[12px] text-muted">
-          {{ tt('Mention the Slack app or write to the Telegram bot, and a session starts on your machine. Only you see these links.') }}
-        </p>
+        <div class="flex items-center gap-3 px-3 py-2.5">
+          <SettingsMonogram
+            :text="p"
+            :dim="!providers.includes(p) && !(p === 'telegram' && bot)"
+          />
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="flex items-center gap-2 text-[12.5px] text-strong">
+              {{ PROVIDER_NAMES[p] }}
+              <span
+                v-if="identities.some(i => i.provider === p)"
+                class="text-[11px] text-ok"
+              >{{ tt('linked') }}</span>
+            </span>
+            <span class="truncate text-[11.5px] text-muted">{{ about(p) }}</span>
+          </span>
+          <HBtn
+            v-if="providers.includes(p)"
+            size="sm"
+            @click="newLink(p, p === 'telegram' && !telegramBot)"
+          >
+            {{ links[p] ? tt('New code') : tt('Link account') }}
+          </HBtn>
+        </div>
+
         <div
-          v-for="i in identities"
-          :key="`${i.provider}/${i.teamId}/${i.externalUserId}`"
-          class="set-row"
+          v-if="links[p] && !(p === 'telegram' && bot && links.telegram?.deepLink?.includes(bot.botUsername))"
+          class="border-t border-default py-2.5 pr-3 pl-[52px] text-[11.5px] text-muted"
         >
-          <span class="set-label">
-            <span>{{ i.displayName || i.externalUserId }}</span>
-            <span class="set-desc">{{ tt('{0}, linked {1}', [PROVIDER_NAMES[i.provider], i.linkedVia === 'directory' ? tt('by your directory email') : tt('with a code')]) }}</span>
+          <template v-if="links[p]!.deepLink">
+            {{ tt('Open this link within 15 minutes, or send the bot:') }}
+            <a
+              :href="links[p]!.deepLink"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-accent underline"
+            >{{ links[p]!.deepLink }}</a>
+            <code class="text-strong">/start {{ links[p]!.code }}</code>
+          </template>
+          <template v-else>
+            {{ tt('Send this to the app within 15 minutes:') }} <code class="text-strong">link {{ links[p]!.code }}</code>
+          </template>
+        </div>
+
+        <div
+          v-for="i in identities.filter(x => x.provider === p)"
+          :key="`${i.provider}/${i.teamId}/${i.externalUserId}`"
+          class="flex items-center gap-3 border-t border-default py-2.5 pr-3 pl-[52px]"
+        >
+          <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span class="text-[12.5px] text-strong">{{ i.displayName || i.externalUserId }}</span>
+            <span class="truncate text-[11.5px] text-muted">{{ i.linkedVia === 'directory' ? tt('Linked by your directory email') : tt('Linked with a code') }}</span>
           </span>
           <HBtn
             size="sm"
@@ -226,138 +275,122 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
             {{ tt('Unlink') }}
           </HBtn>
         </div>
-        <div
-          v-for="p in providers"
-          :key="p"
-          class="set-row"
-        >
-          <span class="set-label">
-            <span>{{ tt('Link a {0} account', [PROVIDER_NAMES[p]]) }}</span>
-            <span class="set-desc">
-              <template v-if="links[p]?.deepLink">
-                {{ tt('Open this link within 15 minutes, or send the bot:') }}
-                <a
-                  :href="links[p]!.deepLink"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-accent underline"
-                >{{ links[p]!.deepLink }}</a>
-                <code class="text-strong">/start {{ links[p]!.code }}</code>
-              </template>
-              <template v-else-if="links[p]">{{ tt('Send this to the app within 15 minutes:') }} <code class="text-strong">link {{ links[p]!.code }}</code></template>
-              <template v-else>{{ tt('Creates a one-time code you send to the app.') }}</template>
-            </span>
-          </span>
-          <HBtn
-            size="sm"
-            @click="newLink(p, p === 'telegram' && !telegramBot)"
-          >
-            {{ links[p] ? tt('New code') : tt('Create code') }}
-          </HBtn>
-        </div>
-      </template>
 
-      <template v-if="botAllowed">
-        <h3 class="mt-5 mb-1 text-[12.5px] text-strong">
-          {{ tt('Your own Telegram bot') }}
-        </h3>
-        <p class="m-0 mb-1 text-[12px] text-muted">
-          {{ tt('Optional: a bot only you use, next to your organization\'s. Create it with @BotFather. Only you can see or change it; the token is stored encrypted and never shown again.') }}
-        </p>
-        <div
-          v-if="bot"
-          class="set-row"
-        >
-          <span class="set-label">
-            <span>@{{ bot.botUsername }}</span>
-            <span class="set-desc">{{ tt('{0}; updates by {1}; last update {2}', [bot.enabled ? tt('On') : tt('Off'), bot.activeDelivery === 'webhook' ? tt('webhook') : tt('polling'), bot.lastEventAt ? new Date(bot.lastEventAt).toLocaleString() : tt('none yet')]) }}</span>
-          </span>
-          <HBtn
-            size="sm"
-            tone="danger"
-            @click="removeBot"
-          >
-            {{ tt('Remove') }}
-          </HBtn>
-        </div>
-        <p
-          v-if="bot?.lastError"
-          class="m-0 text-[12px] text-bad"
-        >
-          {{ bot.lastError }}
-        </p>
-        <div
-          v-if="bot"
-          class="set-row"
-        >
-          <span class="set-label">
-            <span>{{ tt('Link your chat with your bot') }}</span>
-            <span class="set-desc">
-              <template v-if="links.telegram?.deepLink && links.telegram.deepLink.includes(bot.botUsername)">
-                <a
-                  :href="links.telegram.deepLink"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-accent underline"
-                >{{ links.telegram.deepLink }}</a>
-              </template>
-              <template v-else>{{ tt('Creates a one-time link that opens your bot.') }}</template>
+        <template v-if="p === 'telegram' && botAllowed">
+          <div class="flex items-center gap-3 border-t border-default py-2.5 pr-3 pl-[52px]">
+            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span class="flex items-center gap-2 text-[12.5px] text-strong">
+                {{ bot ? `@${bot.botUsername}` : tt('Your own bot') }}
+                <span
+                  v-if="bot && !bot.enabled"
+                  class="text-[11px] text-dimmed"
+                >{{ tt('off') }}</span>
+              </span>
+              <span
+                class="truncate text-[11.5px]"
+                :class="bot?.lastError ? 'text-bad' : 'text-muted'"
+              >
+                <template v-if="bot?.lastError">{{ bot.lastError }}</template>
+                <template v-else-if="bot">{{ tt('Updates by {0}; last update {1}', [bot.activeDelivery === 'webhook' ? tt('webhook') : tt('polling'), bot.lastEventAt ? new Date(bot.lastEventAt).toLocaleString() : tt('none yet')]) }}</template>
+                <template v-else>{{ tt('Optional: a bot only you use, next to your organization\'s. Create it with @BotFather.') }}</template>
+              </span>
             </span>
-          </span>
-          <HBtn
-            size="sm"
-            @click="newLink('telegram', true)"
-          >
-            {{ tt('Create link') }}
-          </HBtn>
-        </div>
-        <form
-          class="flex flex-col gap-2"
-          @submit.prevent="saveBot"
-        >
-          <input
-            v-model="botForm.botToken"
-            type="password"
-            autocomplete="off"
-            :aria-label="tt('Your bot\'s token')"
-            :placeholder="bot ? tt('Bot token (stored; leave empty to keep)') : tt('Bot token (123456:ABC-...)')"
-            :class="inputClass"
-          >
-          <label class="flex flex-col gap-1 text-[12px]">
-            <span class="text-muted">{{ tt('Updates') }}</span>
-            <HSelect
-              v-model="botForm.delivery"
-              :options="deliveryOptions"
-              :aria-label="tt('Updates')"
-            />
-          </label>
-          <div class="flex items-center justify-between gap-4">
-            <span class="set-label">
-              <span>{{ tt('On') }}</span>
-            </span>
-            <HToggle
-              v-model="botForm.enabled"
-              :label="tt('On')"
-            />
-          </div>
-          <div class="flex items-center justify-end gap-3">
-            <span
-              v-if="botSaved"
-              role="status"
-              class="text-[12px] text-ok"
-            >{{ tt('Saved') }}</span>
             <HBtn
-              size="md"
-              variant="primary"
-              type="submit"
-              :disabled="botBusy"
+              v-if="bot"
+              size="sm"
+              @click="newLink('telegram', true)"
             >
-              {{ botBusy ? tt('Checking the token…') : tt('Save') }}
+              {{ tt('Create link') }}
+            </HBtn>
+            <HBtn
+              v-if="!botOpen"
+              size="sm"
+              @click="botOpen = true"
+            >
+              {{ bot ? tt('Change') : tt('Connect') }}
+            </HBtn>
+            <HBtn
+              v-if="bot"
+              size="sm"
+              tone="danger"
+              @click="removeBot"
+            >
+              {{ tt('Remove') }}
             </HBtn>
           </div>
-        </form>
-      </template>
+          <div
+            v-if="bot && links.telegram?.deepLink?.includes(bot.botUsername)"
+            class="border-t border-default py-2.5 pr-3 pl-[52px] text-[11.5px] text-muted"
+          >
+            {{ tt('Open this link within 15 minutes:') }}
+            <a
+              :href="links.telegram.deepLink"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-accent underline"
+            >{{ links.telegram.deepLink }}</a>
+          </div>
+          <form
+            v-if="botOpen"
+            :aria-label="tt('Your own Telegram bot')"
+            class="flex flex-col gap-2 border-t border-default px-3 py-3 pl-[52px]"
+            @submit.prevent="saveBot"
+          >
+            <p class="m-0 text-[11.5px] text-muted">
+              {{ tt('Only you can see or change it; the token is stored encrypted and never shown again.') }}
+            </p>
+            <input
+              v-model="botForm.botToken"
+              type="password"
+              autocomplete="off"
+              :aria-label="tt('Your bot\'s token')"
+              :placeholder="bot ? tt('Bot token (stored; leave empty to keep)') : tt('Bot token (123456:ABC-...)')"
+              :class="inputClass"
+            >
+            <label class="flex flex-col gap-1 text-[12px]">
+              <span class="text-muted">{{ tt('Updates') }}</span>
+              <HSelect
+                v-model="botForm.delivery"
+                :options="deliveryOptions"
+                :aria-label="tt('Updates')"
+              />
+            </label>
+            <div class="flex items-center justify-between gap-4">
+              <span class="set-label">
+                <span>{{ tt('On') }}</span>
+              </span>
+              <HToggle
+                v-model="botForm.enabled"
+                :label="tt('On')"
+              />
+            </div>
+            <div class="flex items-center justify-end gap-3">
+              <span
+                v-if="botSaved"
+                role="status"
+                class="text-[12px] text-ok"
+              >{{ tt('Saved') }}</span>
+              <HBtn
+                size="md"
+                @click="botOpen = false"
+              >
+                {{ tt('Cancel') }}
+              </HBtn>
+              <HBtn
+                size="md"
+                variant="primary"
+                type="submit"
+                :disabled="botBusy"
+              >
+                {{ botBusy ? tt('Checking the token…') : tt('Save') }}
+              </HBtn>
+            </div>
+          </form>
+        </template>
+      </div>
+    </div>
 
+    <template v-if="!chatPolicyOff">
       <template v-if="chatAvailable">
         <h3 class="mt-5 mb-1 text-[12.5px] text-strong">
           {{ tt('Where chat sessions run') }}
