@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -55,9 +56,13 @@ func projText(r *llm.Request) string {
 
 // coordinatorScript plays a coordinator that plans two tasks, starts a worker per task (the second is over the limit),
 // merges the first when it reports and finishes; workers answer with a report.
-func coordinatorScript(n int, r *llm.Request) fg.Reply {
+func coordinatorScript(n int, r *llm.Request, secondStartReturned chan struct{}, releaseWorker func(), stopped <-chan struct{}) fg.Reply {
 	first := r.Messages[0].Content
 	if len(first) > 0 && strings.Contains(projText(&llm.Request{Messages: r.Messages[:1]}), "You are a worker") {
+		select {
+		case <-secondStartReturned:
+		case <-stopped:
+		}
 		return fg.Reply{Events: fg.Message("m", fg.Text("alpha done"))}
 	}
 	lb := lastBlock(r)
@@ -67,6 +72,8 @@ func coordinatorScript(n int, r *llm.Request) fg.Reply {
 			return fg.Reply{Events: fg.Message("m", fg.ToolUse("w1", "ProjectWorkerStart", map[string]any{"task_id": "t1", "prompt": "do alpha"}))}
 		case "w1":
 			return fg.Reply{Events: fg.Message("m", fg.ToolUse("w2", "ProjectWorkerStart", map[string]any{"task_id": "t2", "prompt": "do beta"}))}
+		case "w2":
+			releaseWorker()
 		case "mg":
 			return fg.Reply{Events: fg.Message("m", fg.ToolUse("fin", "ProjectFinish", map[string]any{"outcome": "done", "summary": "alpha merged"}))}
 		}
@@ -107,7 +114,13 @@ func (h *harness) waitRun(id, what string, cond func(*agentv1.ProjectRun) bool) 
 }
 
 func TestProjectRunCoordinatesWorkers(t *testing.T) {
-	h := startHarnessGW(t, coordinatorScript, projectTools, nil)
+	secondStartReturned := make(chan struct{})
+	releaseWorker := sync.OnceFunc(func() { close(secondStartReturned) })
+	stopped := make(chan struct{})
+	defer close(stopped)
+	h := startHarnessGW(t, func(n int, r *llm.Request) fg.Reply {
+		return coordinatorScript(n, r, secondStartReturned, releaseWorker, stopped)
+	}, projectTools, nil)
 	repo := gittest.Init(t)
 	res, err := h.client.CreateProjectRun(h.ctx, connect.NewRequest(&agentv1.CreateProjectRunRequest{Goal: "GOAL build two things", Cwd: repo,
 		PermissionMode: "acceptEdits", Limits: &agentv1.ProjectRunLimits{MaxWorkers: 1, BudgetUsd: 100}}))
@@ -180,7 +193,7 @@ func TestProjectRunCoordinatesWorkers(t *testing.T) {
 }
 
 func TestProjectRunControlAndLimits(t *testing.T) {
-	h := startHarnessGW(t, fg.Sequence(), projectTools, nil)
+	h := startHarnessGW(t, func(int, *llm.Request) fg.Reply { return fg.Reply{Hold: true} }, projectTools, nil)
 	res, err := h.client.CreateProjectRun(h.ctx, connect.NewRequest(&agentv1.CreateProjectRunRequest{Goal: "a goal", Cwd: h.proj, Limits: &agentv1.ProjectRunLimits{MaxWorkers: 99}}))
 	if err != nil {
 		t.Fatal(err)
