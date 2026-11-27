@@ -7,15 +7,19 @@
  * in one vector: 'english' stems, 'simple' keeps words of every other language intact. Any word of the query may match;
  * passages matching more of them, or in the title, rank higher.
  *
- * Provider sources are read live through admin connections and never stored: a tracker's articles for everyone, ids
- * conn:<connection id>:<article id>. Sources on the user's device are the client's, which merges them with this.
+ * Provider sources are read live through company knowledge source connections (src/knowledge) and never stored, for everyone;
+ * ids conn:<knowledge connection id>:<article id>. Ids from before knowledge sources had connections of their own name the tracker
+ * connection instead, and still read through the connection migrated from it. Sources on the user's device are the client's,
+ * which merges them with this.
  */
 import { and, asc, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId } from "../lib/ids.ts";
-import { getConnection, listConnections, openProvider, providerMessage, type ConnectionRow } from "../tracker/connections.ts";
-import { freeTextTerms, snippetOf, type Article, type TrackerProvider } from "../tracker/provider.ts";
+import { knowledgeConnectionOf, listKnowledgeConnections, openKnowledge, type KnowledgeConnectionRow } from "../knowledge/connections.ts";
+import type { KnowledgeProvider } from "../knowledge/provider.ts";
+import { providerMessage } from "../tracker/connections.ts";
+import { freeTextTerms, snippetOf, type Article } from "../tracker/provider.ts";
 import type { Principal } from "./devices.ts";
 
 export type KnowledgeScope = "user" | "org";
@@ -50,7 +54,7 @@ export interface KnowledgeHit {
 const INTERNAL_ORG: SourceRef = { id: "internal:org", kind: "internal", scope: "org", name: "Internal, for everyone", provider: "" };
 const INTERNAL_USER: SourceRef = { id: "internal:user", kind: "internal", scope: "user", name: "Internal, only you", provider: "" };
 const internalSource = (scope: string): SourceRef => (scope === "org" ? INTERNAL_ORG : INTERNAL_USER);
-const providerSource = (c: ConnectionRow): SourceRef => ({ id: c.id, kind: "provider", scope: "org", name: c.name, provider: c.provider });
+const providerSource = (c: KnowledgeConnectionRow): SourceRef => ({ id: c.id, kind: "provider", scope: "org", name: c.name, provider: c.provider });
 
 function documentView(row: DocumentRow, p: Principal): KnowledgeDocumentView {
   return { row, editable: canEdit(row, p), source: internalSource(row.scope), url: "", hasChildren: false };
@@ -239,17 +243,13 @@ export function parseProviderId(id: string): { connectionId: string; articleId: 
 
 const providerDocumentId = (connectionId: string, articleId: string) => `conn:${connectionId}:${articleId}`;
 
-async function sourceConnections(): Promise<ConnectionRow[]> {
-  return (await listConnections()).filter((c) => c.enabled && c.knowledgeEnabled);
+async function sourceConnections(): Promise<KnowledgeConnectionRow[]> {
+  return (await listKnowledgeConnections()).filter((c) => c.enabled);
 }
 
-function articleProvider(conn: ConnectionRow): TrackerProvider {
-  const provider = openProvider(conn);
-  if (!provider.capabilities().knowledge || !provider.searchArticles || !provider.listArticles || !provider.getArticle) throw new ApiError("failed_precondition", `${conn.name} has no documents`);
-  return provider;
-}
+const articleProvider = (conn: KnowledgeConnectionRow): Promise<KnowledgeProvider> => openKnowledge(conn);
 
-function articleView(conn: ConnectionRow, a: Article): KnowledgeDocumentView {
+function articleView(conn: KnowledgeConnectionRow, a: Article): KnowledgeDocumentView {
   const updated = a.updatedAt ? new Date(a.updatedAt) : new Date(0);
   return {
     row: {
@@ -271,16 +271,16 @@ function articleView(conn: ConnectionRow, a: Article): KnowledgeDocumentView {
 }
 
 /** A source that is switched off does not exist for readers, so an old id can't get around that. */
-async function usableSource(connectionId: string): Promise<ConnectionRow> {
-  const conn = await getConnection(connectionId);
-  if (!conn?.enabled || !conn.knowledgeEnabled) throw new ApiError("not_found", "This source is not available");
+async function usableSource(connectionId: string): Promise<KnowledgeConnectionRow> {
+  const conn = await knowledgeConnectionOf(connectionId);
+  if (!conn?.enabled) throw new ApiError("not_found", "This source is not available");
   return conn;
 }
 
 async function readProviderDocument(connectionId: string, articleId: string): Promise<KnowledgeDocumentView> {
   const conn = await usableSource(connectionId);
   try {
-    return articleView(conn, await articleProvider(conn).getArticle!(articleId));
+    return articleView(conn, await (await articleProvider(conn)).getArticle(articleId));
   } catch (err) {
     if (err instanceof ApiError) throw err;
     throw new ApiError("upstream", providerMessage(err));
@@ -319,7 +319,7 @@ export async function searchKnowledge(p: Principal, input: { query: string; limi
     const results = await Promise.all(
       (await sourceConnections()).map(async (conn) => {
         try {
-          const articles = await articleProvider(conn).searchArticles!(input.query, conn.knowledgeQuery, limit);
+          const articles = await (await articleProvider(conn)).searchArticles(input.query, conn.query, limit);
           return articles.map(
             (a): KnowledgeHit => ({ document_id: providerDocumentId(conn.id, a.id), title: a.title || a.id, scope: "org", snippet: snippetOf(a.content, terms), score: 0, source: providerSource(conn), url: a.url }),
           );
@@ -361,7 +361,7 @@ export async function browseKnowledgeSource(p: Principal, input: { sourceId: str
   const conn = await usableSource(input.sourceId);
   const limit = Math.min(Math.max(input.limit || 100, 1), 200);
   try {
-    const r = await articleProvider(conn).listArticles!(input.parentId ?? "", conn.knowledgeQuery, { limit, offset: input.offset ?? 0 });
+    const r = await (await articleProvider(conn)).listArticles(input.parentId ?? "", conn.query, { limit, offset: input.offset ?? 0 });
     return { documents: r.articles.map((a) => articleView(conn, a)), hasMore: r.hasMore };
   } catch (err) {
     if (err instanceof ApiError) throw err;

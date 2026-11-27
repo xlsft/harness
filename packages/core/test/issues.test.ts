@@ -43,6 +43,7 @@ describe("issues", () => {
   let cookie: string;
   const yt = new FakeYouTrack();
   let conn: string;
+  let ks: string;
   let seq = 0;
   const ticker = () => `T${++seq}X`;
 
@@ -59,10 +60,12 @@ describe("issues", () => {
     bobId = (await bob.auth.getMe({})).user!.id;
     carolId = (await carol.auth.getMe({})).user!.id;
     const c = await admin.trackers.putTrackerConnection({
-      connection: { provider: "youtrack", name: "Company", baseUrl: yt.url, auth: TrackerAuthMethod.TOKEN, secret: yt.token, enabled: true, allowPrivateNetwork: true, knowledgeEnabled: true },
+      connection: { provider: "youtrack", name: "Company", baseUrl: yt.url, auth: TrackerAuthMethod.TOKEN, secret: yt.token, enabled: true, allowPrivateNetwork: true },
     });
     conn = c.connection!.id;
     adminConn.id = conn;
+    // Knowledge reads the same instance through a knowledge source that borrows the tracker connection's sign-in.
+    ks = (await admin.knowledgeSources.putKnowledgeConnection({ connection: { provider: "youtrack-kb", name: "Company docs", enabled: true, borrowConnectionId: conn } })).connection!.id;
   }, 120_000);
 
   afterAll(async () => {
@@ -569,9 +572,10 @@ describe("issues", () => {
       yt.articles = [{ id: "HELP-A-1", project: "HELP", summary: "Deploying", content: "Run the canary rollout\nThen wait" }, { id: "HELP-A-2", project: "HELP", summary: "Other", content: "Nothing here" }];
       await admin.knowledge.createKnowledgeDocument({ scope: Scope.ORG, title: "Internal", content: "Canary rollout internal notes" });
       const r = await alice.knowledge.searchKnowledge({ query: "canary" });
-      expect(r.hits.map((h) => h.source!.name)).toEqual(["Internal, for everyone", "Company"]);
-      const hit = r.hits.find((h) => h.source!.id === conn)!;
-      expect(hit.documentId).toBe(`conn:${conn}:HELP-A-1`);
+      expect(r.hits.map((h) => h.source!.name)).toEqual(["Internal, for everyone", "Company docs"]);
+      const hit = r.hits.find((h) => h.source!.id === ks)!;
+      expect(hit.source!.provider).toBe("youtrack-kb");
+      expect(hit.documentId).toBe(`conn:${ks}:HELP-A-1`);
       expect(hit.snippet).toContain("canary rollout");
       expect(hit.url).toBe(`${yt.url}/articles/HELP-A-1`);
       const doc = await alice.knowledge.getKnowledgeDocument({ id: hit.documentId });
@@ -586,7 +590,7 @@ describe("issues", () => {
       yt.failures = [500, 500, 500, 500];
       const w = await alice.knowledge.searchKnowledge({ query: "canary" });
       expect(w.hits.map((h) => h.source!.id)).toEqual(["internal:org"]);
-      expect(w.warnings[0]!.source!.id).toBe(conn);
+      expect(w.warnings[0]!.source!.id).toBe(ks);
       expect(w.warnings[0]!.message).not.toContain("500");
     });
 
@@ -594,23 +598,55 @@ describe("issues", () => {
       yt.ignoreArticleQuery = true;
       yt.articles = [{ id: "A-1", project: "A", summary: "Zebra", content: "stripes" }, { id: "A-2", project: "A", summary: "Lion", content: "mane" }];
       const r = await alice.knowledge.searchKnowledge({ query: "zebra" });
-      expect(r.hits.filter((h) => h.source!.id === conn).map((h) => h.title)).toEqual(["Zebra"]);
+      expect(r.hits.filter((h) => h.source!.id === ks).map((h) => h.title)).toEqual(["Zebra"]);
     });
 
     it("lists sources and browses a tree, and a source switched off is gone", async () => {
       yt.articles = [{ id: "H-1", project: "H", summary: "Top", content: "t" }, { id: "H-2", project: "H", summary: "Child", content: "c", parent: "H-1" }];
       const sources = (await alice.knowledge.listKnowledgeSources({})).sources;
-      expect(sources.map((s) => s.ref!.id)).toEqual(["internal:org", "internal:user", conn]);
+      expect(sources.map((s) => s.ref!.id)).toEqual(["internal:org", "internal:user", ks]);
       expect(sources[0]!.writable).toBe(false);
       expect(sources[1]!.writable).toBe(true);
-      const top = await alice.knowledge.browseKnowledgeSource({ sourceId: conn });
+      const top = await alice.knowledge.browseKnowledgeSource({ sourceId: ks });
       expect(top.documents.map((d) => [d.title, d.hasChildren])).toEqual([["Top", true]]);
-      const kids = await alice.knowledge.browseKnowledgeSource({ sourceId: conn, parentId: "H-1" });
+      const kids = await alice.knowledge.browseKnowledgeSource({ sourceId: ks, parentId: "H-1" });
       expect(kids.documents.map((d) => d.title)).toEqual(["Child"]);
-      await admin.trackers.putTrackerConnection({ connection: { id: conn, provider: "youtrack", name: "Company", baseUrl: yt.url, auth: TrackerAuthMethod.TOKEN, enabled: true, allowPrivateNetwork: true, knowledgeEnabled: false } });
-      expect((await alice.knowledge.listKnowledgeSources({})).sources.map((s) => s.ref!.id)).not.toContain(conn);
-      await expectCode(alice.knowledge.getKnowledgeDocument({ id: `conn:${conn}:H-1` }), Code.NotFound);
-      await admin.trackers.putTrackerConnection({ connection: { id: conn, provider: "youtrack", name: "Company", baseUrl: yt.url, auth: TrackerAuthMethod.TOKEN, enabled: true, allowPrivateNetwork: true, knowledgeEnabled: true } });
+      await admin.knowledgeSources.putKnowledgeConnection({ connection: { id: ks, provider: "youtrack-kb", name: "Company docs", enabled: false, borrowConnectionId: conn } });
+      expect((await alice.knowledge.listKnowledgeSources({})).sources.map((s) => s.ref!.id)).not.toContain(ks);
+      await expectCode(alice.knowledge.getKnowledgeDocument({ id: `conn:${ks}:H-1` }), Code.NotFound);
+      await admin.knowledgeSources.putKnowledgeConnection({ connection: { id: ks, provider: "youtrack-kb", name: "Company docs", enabled: true, borrowConnectionId: conn } });
+    });
+
+    it("are managed by admins, borrow without copying, and show regular users nothing of the sign-in", async () => {
+      await expectCode(alice.knowledgeSources.putKnowledgeConnection({ connection: { provider: "youtrack-kb", name: "x", enabled: true, borrowConnectionId: conn } }), Code.PermissionDenied);
+      const seen = (await alice.knowledgeSources.listKnowledgeConnections({})).connections.find((c) => c.id === ks)!;
+      expect(seen.name).toBe("Company docs");
+      expect(seen.borrow).toBeUndefined();
+      expect(seen.hasSecret).toBe(false);
+      const list = await admin.knowledgeSources.listKnowledgeConnections({});
+      expect(list.providers.map((p) => [p.provider, p.borrowFrom])).toEqual([["youtrack-kb", ["youtrack"]]]);
+      const mine = list.connections.find((c) => c.id === ks)!;
+      expect(mine.borrow?.id).toBe(conn);
+      expect(mine.borrowName).toBe("Company");
+      expect(mine.hasSecret).toBe(true);
+      expect(mine.auth).toBe(TrackerAuthMethod.UNSPECIFIED);
+      expect(JSON.stringify(list)).not.toContain(yt.token);
+      expect((await admin.knowledgeSources.testKnowledgeConnection({ id: ks })).ok).toBe(true);
+      // A draft that borrows tests the same way, before anything is saved.
+      expect((await admin.knowledgeSources.testKnowledgeConnection({ draft: { provider: "youtrack-kb", borrowConnectionId: conn, enabled: true } })).ok).toBe(true);
+      await expectCode(admin.knowledgeSources.putKnowledgeConnection({ connection: { provider: "youtrack-kb", name: "x", enabled: true, borrowConnectionId: "tc_missing" } }), Code.FailedPrecondition);
+      // Its own sign-in works too, and is kept apart from the tracker's.
+      const own = (await admin.knowledgeSources.putKnowledgeConnection({ connection: { provider: "youtrack-kb", name: "Own", baseUrl: yt.url, auth: TrackerAuthMethod.TOKEN, secret: yt.token, enabled: false, allowPrivateNetwork: true } })).connection!;
+      expect(own.hasSecret).toBe(true);
+      expect((await admin.knowledgeSources.testKnowledgeConnection({ id: own.id })).ok).toBe(true);
+      await expectCode(admin.knowledgeSources.putKnowledgeConnection({ connection: { provider: "youtrack-kb", name: "Bad", baseUrl: yt.url, auth: TrackerAuthMethod.EMAIL_TOKEN, secret: "t", enabled: true, allowPrivateNetwork: true } }), Code.InvalidArgument);
+      await admin.knowledgeSources.deleteKnowledgeConnection({ id: own.id });
+      // A disabled tracker connection takes its borrowers down with it, visibly.
+      await admin.trackers.putTrackerConnection({ connection: { id: conn, provider: "youtrack", name: "Company", baseUrl: yt.url, auth: TrackerAuthMethod.TOKEN, enabled: false, allowPrivateNetwork: true } });
+      const off = await admin.knowledgeSources.testKnowledgeConnection({ id: ks });
+      expect(off.ok).toBe(false);
+      expect(off.error).toContain("disabled");
+      await admin.trackers.putTrackerConnection({ connection: { id: conn, provider: "youtrack", name: "Company", baseUrl: yt.url, auth: TrackerAuthMethod.TOKEN, enabled: true, allowPrivateNetwork: true } });
     });
   });
 

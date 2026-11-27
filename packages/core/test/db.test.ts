@@ -45,4 +45,29 @@ describe("PGlite on disk", () => {
       await db.close();
     }
   });
+
+  it("moves a tracker connection that served Knowledge into a knowledge source borrowing it", async () => {
+    const dir = join(mkdtempSync(join(tmpdir(), "harness-pglite-")), "pglite");
+    const before = migrations.filter((m) => m.id < "0018_knowledge_connections");
+    const db = openDb({ driver: "pglite", dataDir: dir });
+    try {
+      await runMigrations(db.inTransaction, before);
+      await db.inTransaction(async (q) => {
+        await q(
+          `INSERT INTO tracker_connection (id, provider, name, base_url, auth, knowledge_enabled, knowledge_query, enabled, created_at, updated_at) VALUES
+           ('tc_kb', 'youtrack', 'Company', 'https://yt.test', 'token', true, 'project: HELP', true, now(), now()),
+           ('tc_plain', 'youtrack', 'Plain', 'https://yt.test', 'token', false, '', true, now(), now())`,
+        );
+      });
+      expect(await runMigrations(db.inTransaction)).toContain("0018_knowledge_connections");
+      const rows = await db.db.select().from(schema.knowledgeConnection);
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({ provider: "youtrack-kb", borrowConnectionId: "tc_kb", migratedFrom: "tc_kb", query: "project: HELP", enabled: true, auth: "", secretsEnc: "" });
+      expect(rows[0]!.id).toMatch(/^kc_/);
+      const tc = await db.db.query.trackerConnection.findFirst({ where: eq(schema.trackerConnection.id, "tc_kb") });
+      expect(tc).toMatchObject({ knowledgeEnabled: false, knowledgeQuery: "", options: {} });
+    } finally {
+      await db.close();
+    }
+  });
 });

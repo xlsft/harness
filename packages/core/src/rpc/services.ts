@@ -42,6 +42,7 @@ import { registerSkillSearchService } from "./skills.ts";
 import { registerSpeechService } from "./speech.ts";
 import { registerSyncService } from "./sync.ts";
 import { registerBoardServices } from "./boards.ts";
+import { registerKnowledgeConnectionService } from "./knowledge-connections.ts";
 import { registerLibraryServices } from "./library.ts";
 import { registerObjectsService } from "./objects.ts";
 import { registerUsageService } from "./usage.ts";
@@ -247,6 +248,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   registerObjectsService(router);
   registerLibraryServices(router);
   registerBoardServices(router);
+  registerKnowledgeConnectionService(router);
   registerUsageService(router);
   registerAdminService(router);
   registerEnterpriseServices(router);
