@@ -54,6 +54,13 @@ export interface DeviceCodeRequest {
   device_name?: string;
   os?: string;
   arch?: string;
+  /** A hash of the machine's own id (hex, at most 128 characters); the client sends it, CI does not. */
+  fingerprint?: string;
+}
+
+/** A fingerprint as the client sends it: a hex hash, or nothing. */
+function fingerprintOf(v: unknown): string | null {
+  return typeof v === "string" && /^[0-9a-f]{32,128}$/.test(v) ? v : null;
 }
 
 export async function startDeviceAuthorization(req: DeviceCodeRequest) {
@@ -77,6 +84,7 @@ export async function startDeviceAuthorization(req: DeviceCodeRequest) {
     deviceName: clip(req.device_name, 200) ?? "unknown device",
     os: clip(req.os, 50),
     arch: clip(req.arch, 50),
+    fingerprint: fingerprintOf(req.fingerprint),
     status: "pending",
     intervalSec: POLL_INTERVAL_SEC,
     expiresAt: new Date(now + DEVICE_CODE_TTL_SEC * 1000),
@@ -148,19 +156,36 @@ export async function pollDeviceToken(deviceCode: string | undefined, userAgent?
   if (!u || u.banned) return { status: "denied" };
 
   const deviceToken = newToken("hdt");
-  const deviceId = newId("dev");
-  await db.insert(schema.device).values({
-    id: deviceId,
-    userId: u.id,
-    name: row.deviceName ?? "unknown device",
-    clientName: row.clientName,
-    os: row.os,
-    arch: row.arch,
-    userAgent: clip(userAgent, 300),
-    tokenHash: sha256(deviceToken),
-    createdAt: new Date(now),
-    lastSeenAt: new Date(now),
-  });
+  // The same machine signing in again with the same client takes its device back: one machine, one device, and what names
+  // the device (its relay hosts, sessions, settings) stays. The old token and its access tokens stop working.
+  const same = row.fingerprint
+    ? await db.query.device.findFirst({
+        where: and(eq(schema.device.userId, u.id), eq(schema.device.fingerprint, row.fingerprint), eq(schema.device.kind, ""), row.clientName ? eq(schema.device.clientName, row.clientName) : isNull(schema.device.clientName)),
+        orderBy: (d, { desc }) => [desc(d.lastSeenAt)],
+      })
+    : undefined;
+  const deviceId = same?.id ?? newId("dev");
+  if (same) {
+    await db.delete(schema.accessToken).where(eq(schema.accessToken.deviceId, same.id));
+    await db
+      .update(schema.device)
+      .set({ name: row.deviceName ?? same.name, os: row.os, arch: row.arch, userAgent: clip(userAgent, 300), tokenHash: sha256(deviceToken), revokedAt: null, lastSeenAt: new Date(now) })
+      .where(eq(schema.device.id, same.id));
+  } else {
+    await db.insert(schema.device).values({
+      id: deviceId,
+      userId: u.id,
+      name: row.deviceName ?? "unknown device",
+      clientName: row.clientName,
+      os: row.os,
+      arch: row.arch,
+      userAgent: clip(userAgent, 300),
+      fingerprint: row.fingerprint,
+      tokenHash: sha256(deviceToken),
+      createdAt: new Date(now),
+      lastSeenAt: new Date(now),
+    });
+  }
   const access = await issueAccessToken(deviceId, u.id);
   return {
     status: "approved",

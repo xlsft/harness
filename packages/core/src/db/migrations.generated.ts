@@ -401,5 +401,13 @@ export const migrations: { id: string; statements: string[] }[] = [
       "ALTER TABLE \"model\" ADD COLUMN \"kind\" text DEFAULT 'chat' NOT NULL;",
       "ALTER TABLE \"usage_record\" ADD COLUMN \"images\" integer DEFAULT 0 NOT NULL;"
     ]
+  },
+  {
+    "id": "0023_device_fingerprint",
+    "statements": [
+      "ALTER TABLE \"device\" ADD COLUMN \"fingerprint\" text;",
+      "ALTER TABLE \"device_code\" ADD COLUMN \"fingerprint\" text;",
+      "CREATE INDEX \"device_fingerprint_idx\" ON \"device\" USING btree (\"user_id\",\"fingerprint\");"
+    ]
   }
 ];

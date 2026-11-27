@@ -372,6 +372,9 @@ type StartDeviceAuthRequest struct {
 	Os            string                 `protobuf:"bytes,3,opt,name=os,proto3" json:"os,omitempty"`
 	Arch          string                 `protobuf:"bytes,4,opt,name=arch,proto3" json:"arch,omitempty"`
 	ClientVersion string                 `protobuf:"bytes,5,opt,name=client_version,json=clientVersion,proto3" json:"client_version,omitempty"`
+	// A hash of the machine's own id (hex). Signing in again on the same machine with the same client reuses its device
+	// instead of adding one. Empty: a new device every time (CI).
+	Fingerprint   string `protobuf:"bytes,6,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -437,6 +440,13 @@ func (x *StartDeviceAuthRequest) GetArch() string {
 func (x *StartDeviceAuthRequest) GetClientVersion() string {
 	if x != nil {
 		return x.ClientVersion
+	}
+	return ""
+}
+
+func (x *StartDeviceAuthRequest) GetFingerprint() string {
+	if x != nil {
+		return x.Fingerprint
 	}
 	return ""
 }
@@ -1398,7 +1408,7 @@ const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"\adevices\x18\x01 \x03(\v2\x17.harness.auth.v1.DeviceR\adevices\"2\n" +
 	"\x13RevokeDeviceRequest\x12\x1b\n" +
 	"\tdevice_id\x18\x01 \x01(\tR\bdeviceId\"\x16\n" +
-	"\x14RevokeDeviceResponse\"\xa5\x01\n" +
+	"\x14RevokeDeviceResponse\"\xc7\x01\n" +
 	"\x16StartDeviceAuthRequest\x12\x1f\n" +
 	"\vclient_name\x18\x01 \x01(\tR\n" +
 	"clientName\x12\x1f\n" +
@@ -1406,7 +1416,8 @@ const file_harness_auth_v1_auth_proto_rawDesc = "" +
 	"deviceName\x12\x0e\n" +
 	"\x02os\x18\x03 \x01(\tR\x02os\x12\x12\n" +
 	"\x04arch\x18\x04 \x01(\tR\x04arch\x12%\n" +
-	"\x0eclient_version\x18\x05 \x01(\tR\rclientVersion\"\x97\x02\n" +
+	"\x0eclient_version\x18\x05 \x01(\tR\rclientVersion\x12 \n" +
+	"\vfingerprint\x18\x06 \x01(\tR\vfingerprint\"\x97\x02\n" +
 	"\x17StartDeviceAuthResponse\x12\x1f\n" +
 	"\vdevice_code\x18\x01 \x01(\tR\n" +
 	"deviceCode\x12\x1b\n" +

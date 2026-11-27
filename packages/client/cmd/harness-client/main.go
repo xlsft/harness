@@ -29,6 +29,7 @@ import (
 	"github.com/xlsft/harness/packages/client/extensions"
 	"github.com/xlsft/harness/packages/client/gateway/connectgw"
 	"github.com/xlsft/harness/packages/client/localmodels"
+	"github.com/xlsft/harness/packages/client/machineid"
 	"github.com/xlsft/harness/packages/client/mcp"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/prompts"
@@ -164,7 +165,7 @@ func cmdLogin(ctx context.Context, args []string) int {
 	host, _ := os.Hostname()
 	svc := auth.NewConnectService(url, nil)
 	store := auth.DefaultStore(config.CredentialsFile())
-	info := auth.DeviceInfo{ClientName: "harness-client", DeviceName: host, OS: runtime.GOOS, Arch: runtime.GOARCH}
+	info := auth.DeviceInfo{ClientName: "harness-client", DeviceName: host, OS: runtime.GOOS, Arch: runtime.GOARCH, Fingerprint: machineid.Fingerprint()}
 	prompt := func(uri, code string) { fmt.Printf("To sign in, open %s\nand confirm the code: %s\n", uri, code) }
 	if asJSON {
 		prompt = func(uri, code string) {

@@ -3,11 +3,11 @@
 // browser; this screen shows the code to confirm and waits. The last server is remembered, unless the machine's
 // administrator set one (serverUrl, deploy/mdm): then that one is the only choice.
 import { cancelLogin, login, machineConfig, openExternal, type LoginEvent } from '~/lib/desktop'
+import { LAST_SERVER, takeAutoSignIn } from '~/lib/account/recent'
 
 const props = defineProps<{ error?: string }>()
 const emit = defineEmits<{ signedIn: [] }>()
 
-const LAST_SERVER = 'harness-server-url'
 const LINKS = [
   { label: 'harness.xlsft.com', url: 'https://harness.xlsft.com' },
   { label: 'GitHub', url: 'https://github.com/xlsft/harness' },
@@ -35,6 +35,8 @@ onMounted(async () => {
   } catch {
     // An older shell, or none: the user picks.
   }
+  // Switch account signed out to come here: go on with the chosen server.
+  if (takeAutoSignIn()) void start()
 })
 onBeforeUnmount(() => stop?.())
 

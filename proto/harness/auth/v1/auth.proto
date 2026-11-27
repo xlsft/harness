@@ -58,6 +58,9 @@ message StartDeviceAuthRequest {
   string os = 3;
   string arch = 4;
   string client_version = 5;
+  // A hash of the machine's own id (hex). Signing in again on the same machine with the same client reuses its device
+  // instead of adding one. Empty: a new device every time (CI).
+  string fingerprint = 6;
 }
 
 message StartDeviceAuthResponse {

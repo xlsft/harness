@@ -660,6 +660,15 @@ export async function listHosts(p: Principal): Promise<Init<typeof HostSchema>[]
     : [];
   const cloudState = new Map(clouds.map((c) => [c.deviceId, c.state as CloudEnvironmentState]));
   const now = Date.now();
+  // Every process start registers a host of its own (instance_id), so one device gathers rows over time. An offline row
+  // with no live sessions is left out when its device has a row that is online or seen later: one machine, one row.
+  const newest = new Map<string, { online: boolean; seen: number }>();
+  for (const h of hosts) {
+    const n = newest.get(h.deviceId);
+    const online = isOnline(h, now);
+    const seen = h.lastSeenAt.getTime();
+    if (!n || (online && !n.online) || (online === n.online && seen > n.seen)) newest.set(h.deviceId, { online, seen });
+  }
   const out: Init<typeof HostSchema>[] = [];
   for (const h of hosts) {
     const online = isOnline(h, now);
@@ -667,6 +676,8 @@ export async function listHosts(p: Principal): Promise<Init<typeof HostSchema>[]
     const cloud = cloudState.get(h.deviceId);
     const keep = cloud !== undefined && cloud !== CloudEnvironmentState.ENDED;
     if (!own.length && !online && !keep && now - h.lastSeenAt.getTime() > LIST_HOSTS_WINDOW_MS) continue;
+    const best = newest.get(h.deviceId)!;
+    if (!own.length && !online && !keep && (best.online || best.seen > h.lastSeenAt.getTime())) continue;
     out.push({
       hostId: h.id,
       deviceId: h.deviceId,

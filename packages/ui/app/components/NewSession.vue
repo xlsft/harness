@@ -356,6 +356,14 @@ async function cancelWaiting() {
 
 // Start on a machine: the session runs on another of the user's machines (phone dispatch).
 const remoteOpen = ref(false)
+// Opened from the environment menu: wait until the menu has closed and given focus back, or the dialog takes that as a
+// click outside and closes at once.
+function openRemote() {
+  menu.value = ''
+  setTimeout(() => {
+    remoteOpen.value = true
+  }, 150)
+}
 async function startedRemote(id: string) {
   remoteOpen.value = false
   await store.refreshList().catch(() => {})
@@ -600,7 +608,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
                 :current="host"
                 :remote="!forkOf"
                 @pick="pickHost"
-                @remote="remoteOpen = true"
+                @remote="openRemote"
                 @close="menu = ''"
               />
             </template>
@@ -725,7 +733,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
                     :current="host"
                     :remote="!forkOf"
                     @pick="pickHost"
-                    @remote="remoteOpen = true"
+                    @remote="openRemote"
                     @close="menu = ''"
                   />
                 </template>
@@ -816,10 +824,10 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
 
     <UModal
       v-model:open="remoteOpen"
-      :ui="{ content: 'w-auto max-w-none bg-transparent ring-0' }"
+      :ui="{ content: 'w-[440px] max-w-[calc(100vw-32px)] bg-transparent ring-0' }"
     >
       <template #content>
-        <NewRemoteStart
+        <RemoteStart
           @close="remoteOpen = false"
           @started="startedRemote"
         />

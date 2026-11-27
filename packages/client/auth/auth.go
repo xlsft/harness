@@ -67,6 +67,8 @@ type DeviceInfo struct {
 	DeviceName string `json:"device_name"`
 	OS         string `json:"os"`
 	Arch       string `json:"arch"`
+	// Fingerprint is a hash of the machine's own id (machineid.Fingerprint): the server reuses this machine's device for it.
+	Fingerprint string `json:"fingerprint,omitempty"`
 }
 
 // Device-flow polling errors (auth.md).

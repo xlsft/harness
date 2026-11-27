@@ -162,6 +162,13 @@
       "when": 1795773017108,
       "tag": "0022_image_models",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795773903791,
+      "tag": "0023_device_fingerprint",
+      "breakpoints": true
     }
   ]
 }

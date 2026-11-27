@@ -4,6 +4,7 @@
 // first click turns the row into a confirmation, the second signs out.
 import { avatarUrl } from '~/lib/account/types'
 import { isDesktop, logout as desktopLogout, openExternal } from '~/lib/desktop'
+import { rememberAccount } from '~/lib/account/recent'
 
 const emit = defineEmits<{ navigate: [] }>()
 
@@ -13,6 +14,7 @@ const toast = useToast()
 const desktop = isDesktop()
 const open = ref(false)
 const confirmSignOut = ref(false)
+const switching = ref(false)
 watch(open, (v) => {
   if (!v) confirmSignOut.value = false
 })
@@ -20,6 +22,10 @@ watch(open, (v) => {
 // The profile (name, avatar, role) from the server; the shell's whoami until it loads.
 const { profile, load: loadProfile } = useAccountProfile()
 onMounted(() => loadProfile())
+// Switch account offers the accounts this device was signed in to.
+watchEffect(() => {
+  if (desktop && store.account.server && store.userEmail) rememberAccount({ server: store.account.server, email: store.userEmail, name: profile.value?.name || store.account.name || '' })
+})
 const displayName = computed(() => profile.value?.name || store.account.name || store.userEmail.split('@')[0] || tt('Not signed in'))
 const isAdmin = computed(() => (profile.value?.role || store.account.role) === 'admin')
 const host = computed(() => {
@@ -34,6 +40,11 @@ function openSettings(section?: string) {
   open.value = false
   emit('navigate')
   settings.open(section)
+}
+
+function switchAccount() {
+  open.value = false
+  switching.value = true
 }
 
 async function signOut() {
@@ -153,6 +164,12 @@ async function signOut() {
         <template v-if="desktop">
           <div class="my-1 h-px bg-line-strong" />
           <PaneMenuItem
+            icon="refresh"
+            @click="switchAccount"
+          >
+            {{ tt('Switch account') }}
+          </PaneMenuItem>
+          <PaneMenuItem
             icon="arrow-left"
             danger
             @click="signOut"
@@ -163,4 +180,8 @@ async function signOut() {
       </div>
     </template>
   </UPopover>
+  <AccountSwitch
+    v-if="desktop"
+    v-model:open="switching"
+  />
 </template>

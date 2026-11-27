@@ -88,6 +88,8 @@ export const deviceCode = pgTable("device_code", {
   deviceName: text("device_name"),
   os: text("os"),
   arch: text("arch"),
+  /** A hash of the machine's own id (DeviceCodeRequest.fingerprint); the device it names is reused on approval. */
+  fingerprint: text("fingerprint"),
   /** pending | approved | denied | consumed */
   status: text("status").notNull().default("pending"),
   userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
@@ -109,6 +111,9 @@ export const device = pgTable(
     os: text("os"),
     arch: text("arch"),
     userAgent: text("user_agent"),
+    /** A hash of the machine's own id, sent by the client at sign-in: signing in again on the same machine, with the same
+     * client, reuses this device instead of adding one (services/devices.ts). Null: not sent (CI, older clients). */
+    fingerprint: text("fingerprint"),
     tokenHash: text("token_hash").notNull().unique(),
     /** "" a person's machine; host | host_worker | host_supervisor | host_runner | host_cloud: always-on hosts and cloud sessions, with narrower rights (docs/design/hosts.md, decision 8). */
     kind: text("kind").notNull().default(""),
@@ -116,7 +121,7 @@ export const device = pgTable(
     lastSeenAt: ts("last_seen_at"),
     revokedAt: ts("revoked_at"),
   },
-  (t) => [index("device_user_idx").on(t.userId)],
+  (t) => [index("device_user_idx").on(t.userId), index("device_fingerprint_idx").on(t.userId, t.fingerprint)],
 );
 
 export const accessToken = pgTable(

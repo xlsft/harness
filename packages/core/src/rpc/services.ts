@@ -128,6 +128,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
         os: req.os,
         arch: req.arch,
         client_version: req.clientVersion,
+        fingerprint: req.fingerprint,
       });
       return {
         deviceCode: r.device_code,
