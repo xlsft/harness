@@ -964,7 +964,7 @@ export function reduce(s: SessionState, ev: SessionEvent): SessionState {
         id: 'n' + seq,
         level: 'info',
         noticeKind: 'vcs_hooks',
-        text: tt('{0} is under {1}. Worktrees and the Changes pane use git; for {1} they need WorktreeCreate, WorktreeRemove, VcsStatus and VcsDiff hooks (docs/design/vcs-hooks.md has a Jujutsu example).', [v.root, name])
+        text: tt('{0} is under {1}. Separate copies and the Changes pane work with git; for {1} they need WorktreeCreate, WorktreeRemove, VcsStatus and VcsDiff hooks (docs/design/vcs-hooks.md has a Jujutsu example).', [v.root, name])
       })
       break
     }

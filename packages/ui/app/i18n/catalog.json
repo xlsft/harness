@@ -55,7 +55,7 @@
   "{0} is not a text file. Knowledge takes text and Markdown.",
   "{0} is not allowed yet.",
   "{0} is open for review in {1}",
-  "{0} is under {1}. Worktrees and the Changes pane use git; for {1} they need WorktreeCreate, WorktreeRemove, VcsStatus and VcsDiff hooks (docs/design/vcs-hooks.md has a Jujutsu example).",
+  "{0} is under {1}. Separate copies and the Changes pane work with git; for {1} they need WorktreeCreate, WorktreeRemove, VcsStatus and VcsDiff hooks (docs/design/vcs-hooks.md has a Jujutsu example).",
   "{0} ms",
   "{0} new",
   "{0} of {1}",
