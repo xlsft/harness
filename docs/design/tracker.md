@@ -370,8 +370,8 @@ sources.
 - **Creating an external issue from a card**: `Provider.Create` is there, nothing calls it. **Comment on a device-connection issue from
   the screen**: the tool can, the screen posts on the card.
 - **Webhooks** instead of polling; attachments.
-- **Providers**: trackers Jira, Linear, GitHub Issues, GitLab Issues, Yandex Tracker, Kaiten; knowledge Confluence, Yandex Wiki, Linear
-  documents, GitHub and GitLab wikis, Kaiten documents. One agent per vendor, following section 10.
+- **Providers**: trackers GitLab Issues, Yandex Tracker, Kaiten; knowledge Yandex Wiki, GitHub and GitLab wikis, Kaiten documents
+  (YouTrack, Jira, Linear, GitHub Issues, Confluence and Linear documents are done). Section 10 says how.
 - **Remote control**: `LocalTrackerService` answers on the client the window talks to, like SSH hosts, not through the relay.
 
 ## 10. Writing a provider
