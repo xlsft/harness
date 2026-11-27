@@ -368,6 +368,7 @@
   "Best of N: how many attempts of a group work at the same time, from 1 to 5. The others wait.",
   "Best of N: what one attempt may spend, in USD; 0 for no limit of your own. An attempt that reaches it stops.",
   "Best of N…",
+  "Beta",
   "Bind DN",
   "Bind DN to search users with. Empty: anonymous search.",
   "Bind password",

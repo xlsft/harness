@@ -114,15 +114,25 @@ const NuxtLink = resolveComponent('NuxtLink')
 
 // `soon`: not built yet; the row shows a badge and does nothing.
 const nav = [
+  { label: tt('Artifacts'), icon: 'copy' as const, to: '/artifacts', beta: true },
+  { label: tt('Scheduled'), icon: 'clock' as const, to: '/scheduled', beta: false },
+  { label: tt('Extensions'), icon: 'sliders' as const, to: '/extensions', beta: false }
+]
+// Under More, a dropdown: pages people open less often. The row reads as current while one of them is open.
+const more = [
   { label: tt('Inbox'), icon: 'chat' as const, to: '/inbox' },
   { label: tt('Projects'), icon: 'layout' as const, to: '/projects' },
-  { label: tt('Artifacts'), icon: 'copy' as const, to: '/artifacts' },
-  { label: tt('Scheduled'), icon: 'clock' as const, to: '/scheduled' },
-  { label: tt('Extensions'), icon: 'sliders' as const, to: '/extensions' },
-  { label: tt('Knowledge'), icon: 'page' as const, to: '/knowledge' },
-  { label: tt('Issues'), icon: 'tasks' as const, to: '/issues' }
+  { label: tt('Issues'), icon: 'tasks' as const, to: '/issues' },
+  { label: tt('Knowledge'), icon: 'page' as const, to: '/knowledge' }
 ]
 const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
+const moreOpen = ref(false)
+const moreCurrent = computed(() => more.find(i => isCurrent(i.to)))
+function openMore(to: string) {
+  moreOpen.value = false
+  open.value = false
+  void navigateTo(to)
+}
 </script>
 
 <template>
@@ -193,8 +203,47 @@ const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
         :class="isCurrent(item.to) ? 'nav-row-current' : ''"
         :aria-current="isCurrent(item.to) ? 'page' : undefined"
       >
-        <HIcon :name="item.icon" />{{ item.label }}
+        <HIcon :name="item.icon" />{{ item.label }}<span class="flex-1" /><span
+          v-if="item.beta"
+          class="rounded-chip border border-accent px-1 text-[10px] leading-[14px] text-accent"
+        >{{ tt('Beta') }}</span>
       </component>
+      <UPopover
+        v-model:open="moreOpen"
+        :content="{ side: 'right', align: 'start', sideOffset: 6 }"
+      >
+        <button
+          type="button"
+          class="nav-row px-[9px] text-left hover:bg-hover"
+          :class="[moreCurrent ? 'nav-row-current' : '', moreOpen ? 'bg-hover' : '']"
+          data-sidebar-more
+        >
+          <HIcon name="more" />{{ tt('More') }}<span class="flex-1" /><HIcon
+            name="right"
+            :size="11"
+            class="text-muted"
+          />
+        </button>
+        <template #content>
+          <div
+            role="menu"
+            :aria-label="tt('More')"
+            class="w-[200px] border border-accented bg-hover py-1 text-[12.5px]"
+          >
+            <PaneMenuItem
+              v-for="item in more"
+              :key="item.to"
+              :icon="item.icon"
+              :active="isCurrent(item.to)"
+              :value="tt('Beta')"
+              value-class="rounded-chip border border-accent px-1 text-[10px] leading-[14px] text-accent"
+              @click="openMore(item.to)"
+            >
+              {{ item.label }}
+            </PaneMenuItem>
+          </div>
+        </template>
+      </UPopover>
     </div>
 
     <div class="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto px-[5px] py-[11px]">
