@@ -18,7 +18,7 @@ defineProps<{ muted?: boolean, label?: string, disabled?: boolean }>()
     @click.stop="model = !model"
   >
     <span
-      class="rounded-[max(0px,calc(var(--radius-control)-2px))] size-3 transition-[transform,background-color] duration-150 ease-out motion-reduce:transition-none"
+      class="rounded-[max(0px,calc(var(--radius-control)-2px))] size-3 transition-[translate,background-color] duration-150 ease-out motion-reduce:transition-none"
       :class="model ? 'translate-x-3 bg-on-accent' : 'translate-x-0 bg-graphite-400'"
     />
   </button>
