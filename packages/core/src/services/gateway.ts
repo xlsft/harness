@@ -298,7 +298,8 @@ export async function* runMessages(
           continue;
         }
 
-        const unavailable = failure.type === "overloaded";
+        // A used-up usage limit is never retried on the same model; a fallback model, if any, is tried at once.
+        const unavailable = failure.type === "overloaded" || failure.type === "quota_exceeded";
         if (unavailable && hasFallback && modelRetries >= RETRIES_BEFORE_FALLBACK && retries < cfg.upstreamMaxRetries) {
           retries++;
           yield retryEvent(retries, cfg.upstreamMaxRetries, 0, failure);

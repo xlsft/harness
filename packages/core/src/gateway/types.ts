@@ -131,7 +131,7 @@ export type AdapterEvent =
 /** A classified upstream failure. */
 export interface UpstreamFailure {
   /** Client-facing error type (README error types). */
-  type: "overloaded" | "rate_limit" | "upstream" | "invalid_request" | "permission" | "internal";
+  type: "overloaded" | "rate_limit" | "quota_exceeded" | "upstream" | "invalid_request" | "permission" | "internal";
   message: string;
   status?: number;
   retryable: boolean;

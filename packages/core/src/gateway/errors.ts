@@ -30,6 +30,30 @@ export function extractUpstreamError(text: string): { message: string; type?: st
   }
 }
 
+/**
+ * Error codes and texts by which providers say a usage limit or quota is used up, as opposed to a request rate that
+ * clears in seconds: OpenAI's insufficient_quota, Codex and ChatGPT plans' usage_limit_reached, Google's
+ * RESOURCE_EXHAUSTED quota messages, Anthropic and the coding plans' "usage limit" / "limit reached" texts.
+ */
+const EXHAUSTED_TYPES = new Set(["insufficient_quota", "usage_limit_reached", "quota_exceeded", "billing_hard_limit_reached", "usage_limit_exceeded", "credit_balance_too_low"]);
+const EXHAUSTED_TEXT =
+  /insufficient[_ ]quota|exceeded your (current )?quota|usage[_ ]limit|limit (has been |was )?reached|reached (your|the) (usage|weekly|monthly|daily|5[- ]hour|session) limit|(weekly|monthly|daily) (usage )?limit|out of (credits|tokens)|insufficient (balance|credits?|funds)|credit balance is too low|quota (exceeded|exhausted)|resource has been exhausted \(e\.g\. check quota\)|billing/i;
+
+/** A rate limit that is a used-up limit or quota: no retry helps until it resets, so it is never retried. */
+export function isExhausted(upstreamType: string | undefined, message: string, retryAfterMs?: number): boolean {
+  if (upstreamType && EXHAUSTED_TYPES.has(upstreamType)) return true;
+  if (EXHAUSTED_TEXT.test(message)) return true;
+  // A reset further away than any retry would wait is the same thing.
+  return retryAfterMs !== undefined && retryAfterMs > 5 * 60_000;
+}
+
+function exhausted(message: string, status?: number, retryAfterMs?: number): UpstreamFailure {
+  const f: UpstreamFailure = { type: "quota_exceeded", message: `The provider's usage limit is reached: ${message}`, retryable: false };
+  if (status !== undefined) f.status = status;
+  if (retryAfterMs !== undefined) f.retryAfterMs = retryAfterMs;
+  return f;
+}
+
 /** Classifies a non-2xx upstream HTTP response. */
 export function classifyHttpFailure(status: number, headers: HeaderLike, text: string): UpstreamFailure {
   const { message, type: upstreamType } = extractUpstreamError(text);
@@ -38,6 +62,10 @@ export function classifyHttpFailure(status: number, headers: HeaderLike, text: s
   let failure: UpstreamFailure;
   if (status === 529 || status === 503 || upstreamType === "overloaded_error") {
     failure = { type: "overloaded", message, status, retryable: true };
+  } else if ((status === 429 || status === 402 || status === 403) && isExhausted(upstreamType, message, retryAfterMs)) {
+    failure = exhausted(message, status, retryAfterMs);
+    failure.raw = text.slice(0, 4000);
+    return failure;
   } else if (status === 429) {
     failure = { type: "rate_limit", message, status, retryable: true };
   } else if (status === 408 || status === 409 || status >= 500) {
@@ -60,6 +88,9 @@ export function classifyHttpFailure(status: number, headers: HeaderLike, text: s
 
 /** Classifies an error event that arrived inside an upstream stream. */
 export function classifyStreamError(upstreamType: string | undefined, message: string): UpstreamFailure {
+  if ((upstreamType === undefined || upstreamType === "rate_limit_error" || EXHAUSTED_TYPES.has(upstreamType)) && isExhausted(upstreamType, message)) {
+    return { ...exhausted(message), raw: message };
+  }
   switch (upstreamType) {
     case "overloaded_error":
       return { type: "overloaded", message, retryable: true, raw: message };

@@ -3,7 +3,7 @@ import { toAnthropicBody } from "../src/gateway/adapters/anthropic.ts";
 import { OpenAIStreamTranslator, normalizeOpenAIUsage, toOpenAIBody } from "../src/gateway/adapters/openai-chat.ts";
 import { joinUrl, type AdapterTarget } from "../src/gateway/adapters/types.ts";
 import { computeCost, estimateTokens } from "../src/gateway/cost.ts";
-import { classifyHttpFailure, parseRetryAfter } from "../src/gateway/errors.ts";
+import { classifyHttpFailure, classifyStreamError, parseRetryAfter } from "../src/gateway/errors.ts";
 import { computeFeatures, normalizeRequest } from "../src/gateway/features.ts";
 import type { AdapterEvent, CanonicalRequest } from "../src/gateway/types.ts";
 import { downgradeEffort, type ModelEntry } from "../src/services/models.ts";
@@ -268,6 +268,13 @@ describe("errors, cost, urls", () => {
     expect(classifyHttpFailure(401, new Headers(), "{}")).toMatchObject({ type: "upstream", retryable: false });
     expect(classifyHttpFailure(500, new Headers({ "x-should-retry": "false" }), "{}").retryable).toBe(false);
     expect(classifyHttpFailure(400, new Headers({ "x-should-retry": "true" }), "{}").retryable).toBe(true);
+    // A used-up limit is not a rate that clears: never retried.
+    expect(classifyHttpFailure(429, new Headers(), '{"error":{"type":"insufficient_quota","message":"You exceeded your current quota"}}')).toMatchObject({ type: "quota_exceeded", retryable: false });
+    expect(classifyHttpFailure(429, new Headers(), '{"error":{"type":"usage_limit_reached","message":"The usage limit has been reached"}}')).toMatchObject({ type: "quota_exceeded", retryable: false });
+    expect(classifyHttpFailure(429, new Headers({ "retry-after": "7200" }), '{"error":{"message":"Too many requests"}}')).toMatchObject({ type: "quota_exceeded", retryable: false });
+    expect(classifyHttpFailure(429, new Headers({ "retry-after": "2" }), '{"error":{"message":"Too many requests"}}')).toMatchObject({ type: "rate_limit", retryable: true });
+    expect(classifyStreamError("rate_limit_error", "You have reached your weekly usage limit")).toMatchObject({ type: "quota_exceeded", retryable: false });
+    expect(classifyStreamError("rate_limit_error", "Rate limited, slow down")).toMatchObject({ type: "rate_limit", retryable: true });
   });
 
   it("computes cost per 1M tokens", () => {

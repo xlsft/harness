@@ -133,10 +133,18 @@ func Send(ctx context.Context, gw Gateway, req *llm.Request, onEvent Handler, po
 	}
 }
 
+// exhaustedAfter is the reset beyond which a rate limit counts as used up.
+const exhaustedAfter = 5 * time.Minute
+
 func retryable(err error) bool {
 	var ae *llm.APIError
 	if errors.As(err, &ae) {
 		if ae.Type == "quota_exceeded" || ae.Type == "authentication" || ae.Type == "invalid_request" || ae.Type == "permission" {
+			return false
+		}
+		// A limit that resets in more than a few minutes is used up, whatever the server called it: retrying only
+		// spends requests against it.
+		if ae.RetryAfterMs > int(exhaustedAfter/time.Millisecond) {
 			return false
 		}
 		return ae.Retryable()
