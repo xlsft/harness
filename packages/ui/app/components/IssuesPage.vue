@@ -214,18 +214,22 @@ const sortOptions = [
 const projectOptions = computed(() => projects.value.map(p => ({ value: p.id, label: `${p.metadata?.ticker} · ${p.metadata?.name}` })))
 const boardOptions = computed(() => boards.value.map(b => ({ value: b.id, label: b.scope === BoardScope.PERSONAL ? tt('{0} (yours)', [b.name]) : b.name })))
 const stageName = (id: string) => board.value?.stages.find(s => s.id === id)?.name ?? ''
+const MODES = [{ value: 'board', label: tt('Board') }, { value: 'list', label: tt('List') }] as const
 </script>
 
 <template>
-  <section
-    :aria-label="tt('Issues')"
-    class="flex h-full flex-col overflow-hidden bg-default"
+  <PageShell
+    :title="tt('Issues')"
+    :scroll="false"
   >
-    <div class="mx-auto flex w-full max-w-[1080px] flex-col gap-3 px-10 pt-[52px] pb-3 max-sm:px-4">
+    <div class="flex flex-col gap-3">
       <div class="flex flex-wrap items-center gap-2">
-        <h1 class="m-0 mr-2 font-display text-[26px] font-bold text-strong">
-          {{ tt('Issues') }}
-        </h1>
+        <PageTabs
+          v-model="mode"
+          :tabs="MODES"
+          :label="tt('View')"
+        />
+        <span class="flex-1" />
         <span
           v-if="project?.metadata?.logo && !project.metadata.logo.startsWith('http')"
           aria-hidden="true"
@@ -266,25 +270,6 @@ const stageName = (id: string) => board.value?.stages.find(s => s.id === id)?.na
         >
           {{ tt('New project') }}
         </HBtn>
-        <span class="flex-1" />
-        <div
-          role="tablist"
-          :aria-label="tt('View')"
-          class="flex gap-[2px]"
-        >
-          <button
-            v-for="m in [{ v: 'board', l: tt('Board') }, { v: 'list', l: tt('List') }]"
-            :key="m.v"
-            type="button"
-            role="tab"
-            :aria-selected="mode === m.v"
-            class="border px-3 py-[5px] text-[12.5px]"
-            :class="mode === m.v ? 'border-line bg-raised text-strong' : 'border-transparent text-toned hover:text-strong'"
-            @click="mode = m.v as 'board' | 'list'"
-          >
-            {{ m.l }}
-          </button>
-        </div>
       </div>
 
       <p
@@ -467,7 +452,7 @@ const stageName = (id: string) => board.value?.stages.find(s => s.id === id)?.na
 
     <div
       v-if="mode === 'board'"
-      class="mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 gap-3 overflow-x-auto px-10 pb-6 max-sm:px-4"
+      class="flex min-h-0 flex-1 gap-3 overflow-x-auto pb-2"
     >
       <p
         v-if="loaded && !board"
@@ -575,7 +560,7 @@ const stageName = (id: string) => board.value?.stages.find(s => s.id === id)?.na
 
     <div
       v-else
-      class="mx-auto min-h-0 w-full max-w-[1080px] flex-1 overflow-y-auto px-10 pb-6 max-sm:px-4"
+      class="min-h-0 flex-1 overflow-y-auto pb-2"
     >
       <p
         v-if="!list.length"
@@ -608,5 +593,5 @@ const stageName = (id: string) => board.value?.stages.find(s => s.id === id)?.na
       @close="openId = ''"
       @changed="act(loadBoard)"
     />
-  </section>
+  </PageShell>
 </template>

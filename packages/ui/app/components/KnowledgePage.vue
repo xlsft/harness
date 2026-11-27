@@ -172,15 +172,19 @@ async function remove() {
 
 <template>
   <PageShell :title="tt('Knowledge')">
-    <template #actions>
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="flex-1" />
       <HBtn
         size="md"
         variant="primary"
         @click="newDocument"
       >
-        {{ tt('Add a document') }}
+        <HIcon
+          name="plus"
+          :size="12"
+        />{{ tt('Add a document') }}
       </HBtn>
-    </template>
+    </div>
     <p class="m-0 text-[12.5px] text-muted">
       {{ tt('Agents search all of these with KnowledgeSearch, as reference material rather than instructions. Documents from a tracker are read live and never copied here. What is yours stays visible to you alone.') }}
     </p>

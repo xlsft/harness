@@ -55,10 +55,9 @@ afterEach(() => {
 })
 
 describe('the row', () => {
-  it('holds tabs, the switch, search, filter, sort and Add, and stays pinned', async () => {
+  it('holds tabs, the switch, search, filter, sort and Add', async () => {
     await open({})
-    const row = wrapper.get('[data-pinned-row]')
-    expect(row.classes()).toContain('sticky')
+    const row = wrapper.get('[data-extensions-toolbar]')
     expect(row.findAll('[role=tab]').map(t => t.text())).toEqual(['Skills', 'Connectors', 'Plugins'])
     expect(row.text()).toContain('Yours')
     expect(row.text()).toContain('Discover')

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Extensions: type tabs, Yours or Discover, and a row of search, filter, sort and Add that stays pinned while the page scrolls. The
+// Extensions: type tabs, Yours or Discover, and a row of search, filter, sort and Add. The
 // client joins and decides (ExtensionsService); this page keeps what is being looked at, in the URL so Back and links work, and sends
 // intent. Plugins and connectors change through PluginsApi and McpApi, with their approvals.
 import { isDesktop, pickFolder } from '~/lib/desktop'
@@ -271,16 +271,7 @@ function added(said: string) {
 </script>
 
 <template>
-  <section
-    :aria-label="tt('Extensions')"
-    class="overflow-y-auto bg-default"
-  >
-    <div class="mx-auto w-full max-w-[1080px] px-10 max-sm:px-4">
-      <h1 class="m-0 pt-3 pb-4 font-display text-[26px] font-bold text-strong">
-        {{ tt('Extensions') }}
-      </h1>
-    </div>
-
+  <PageShell :title="tt('Extensions')">
     <ExtensionsToolbar
       v-model:query="query"
       v-model:sort="sort"
@@ -295,7 +286,7 @@ function added(said: string) {
       @filter="setFilter"
     />
 
-    <div class="mx-auto flex w-full max-w-[1080px] flex-col gap-6 px-10 pt-5 pb-12 max-sm:px-4">
+    <div class="flex flex-col gap-6">
       <p
         v-if="error"
         role="alert"
@@ -420,5 +411,5 @@ function added(said: string) {
       @done="added"
       @folder="cwd = $event; addMode = null"
     />
-  </section>
+  </PageShell>
 </template>
