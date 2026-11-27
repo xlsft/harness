@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+package harness.library.v1;
+
+import "harness/library/v1/tracker_connections.proto";
+
+// Knowledge sources as providers of their own, separate from issue trackers: a wiki, a knowledge base, a provider's documents.
+// docs/design/tracker.md, sections 1 and 6.
+//
+// KnowledgeConnectionService is served by core and holds company connections: encrypted on the server, managed by admins, read
+// by everyone through KnowledgeService without seeing how they sign in. Connections on a device live in the client instead
+// (harness.agent.v1.LocalTrackerService, the *LocalKnowledge* methods) and use the same messages.
+//
+// A connection either signs in on its own or borrows the sign-in of a tracker connection of the same scope whose provider is in
+// KnowledgeCapabilities.borrow_from (Jira for Confluence, Yandex Tracker for Yandex Wiki, YouTrack for its knowledge base). Borrowed
+// credentials are resolved at request time and never copied.
+service KnowledgeConnectionService {
+  // Every signed-in user sees the enabled ones; only admins get how they sign in and why they fail.
+  rpc ListKnowledgeConnections(ListKnowledgeConnectionsRequest) returns (ListKnowledgeConnectionsResponse);
+  // Adds or changes a connection. PERMISSION_DENIED unless the caller is an admin.
+  rpc PutKnowledgeConnection(PutKnowledgeConnectionRequest) returns (PutKnowledgeConnectionResponse);
+  // Admins only.
+  rpc DeleteKnowledgeConnection(DeleteKnowledgeConnectionRequest) returns (DeleteKnowledgeConnectionResponse);
+  // Signs in with the stored or borrowed credentials, or with `draft` before anything is saved. Admins only. Failure is an
+  // answer, not an error.
+  rpc TestKnowledgeConnection(TestKnowledgeConnectionRequest) returns (TestKnowledgeConnectionResponse);
+  // Starts Authorization Code with PKCE for a saved OAuth connection with its own sign-in. Admins only.
+  rpc StartKnowledgeOAuth(StartKnowledgeOAuthRequest) returns (StartKnowledgeOAuthResponse);
+}
+
+// What a knowledge provider can do and what its form asks for, so the UI needs no knowledge of it.
+message KnowledgeCapabilities {
+  // "youtrack-kb", "confluence".
+  string provider = 1;
+  string display_name = 2;
+  // Ways to sign in on its own. Empty when it can only borrow.
+  repeated TrackerAuthMethod auth_methods = 3;
+  repeated ProviderOptionField option_fields = 4;
+  string docs_url = 5;
+  // Key of the logo in packages/ui/app/utils/providerLogos.ts.
+  string logo = 6;
+  string base_url_placeholder = 7;
+  string default_base_url = 8;
+  repeated ProviderAuthHint auth_hints = 9;
+  // Tracker providers whose connections it can borrow the sign-in of: same vendor and same site or organization.
+  repeated string borrow_from = 10;
+  // What narrows a source (KnowledgeConnection.query), and an example for the form. Empty: it takes no narrowing.
+  string query_language = 11;
+  string query_example = 12;
+  // Documents form a tree: browsing has children.
+  bool tree = 13;
+  // One line on what it gives, in English.
+  string description = 14;
+}
+
+message KnowledgeConnection {
+  string id = 1;
+  TrackerConnectionScope scope = 2;
+  string provider = 3;
+  string name = 4;
+  // Its own address. Empty when borrowing and the tracker connection's is used.
+  string base_url = 5;
+  // UNSPECIFIED when borrowing.
+  TrackerAuthMethod auth = 6;
+  string login = 7;
+  string oauth_client_id = 8;
+  // Whether it has what it signs in with: its own secret, or a borrowed connection that has one.
+  bool has_secret = 9;
+  bool enabled = 10;
+  bool allow_private_network = 11;
+  // Narrows the documents, in the provider's syntax (KnowledgeCapabilities.query_language).
+  string query = 12;
+  map<string, string> options = 13;
+  // The tracker connection whose sign-in it uses, always of the same scope. Empty id: its own sign-in.
+  TrackerConnectionRef borrow = 14;
+  // That connection's name, for the list.
+  string borrow_name = 15;
+  bool healthy = 16;
+  string last_error = 17;
+  // RFC 3339; empty before the first test.
+  string last_checked_at = 18;
+  KnowledgeCapabilities capabilities = 19;
+}
+
+// A connection as the form sends it. An unset secret keeps the stored one. The scope is the service's.
+message KnowledgeConnectionInput {
+  // Empty when adding.
+  string id = 1;
+  string provider = 2;
+  string name = 3;
+  string base_url = 4;
+  TrackerAuthMethod auth = 5;
+  string login = 6;
+  // Write-only.
+  optional string secret = 7;
+  string oauth_client_id = 8;
+  // Write-only.
+  optional string oauth_client_secret = 9;
+  bool enabled = 10;
+  bool allow_private_network = 11;
+  string query = 12;
+  map<string, string> options = 13;
+  // A tracker connection of the same scope to borrow the sign-in of. Empty: its own.
+  string borrow_connection_id = 14;
+}
+
+message ListKnowledgeConnectionsRequest {}
+
+message ListKnowledgeConnectionsResponse {
+  repeated KnowledgeConnection connections = 1;
+  // Providers that can be connected.
+  repeated KnowledgeCapabilities providers = 2;
+}
+
+message PutKnowledgeConnectionRequest {
+  KnowledgeConnectionInput connection = 1;
+}
+
+message PutKnowledgeConnectionResponse {
+  KnowledgeConnection connection = 1;
+}
+
+message DeleteKnowledgeConnectionRequest {
+  string id = 1;
+}
+
+message DeleteKnowledgeConnectionResponse {}
+
+message TestKnowledgeConnectionRequest {
+  // A saved connection, or
+  string id = 1;
+  // one not saved yet.
+  KnowledgeConnectionInput draft = 2;
+}
+
+message TestKnowledgeConnectionResponse {
+  bool ok = 1;
+  string error = 2;
+  string login = 3;
+  string display_name = 4;
+}
+
+message StartKnowledgeOAuthRequest {
+  string connection_id = 1;
+}
+
+message StartKnowledgeOAuthResponse {
+  string authorize_url = 1;
+}

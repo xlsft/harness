@@ -6,6 +6,8 @@ import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegen
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { KnowledgeDocument, KnowledgeHit, KnowledgeSource, KnowledgeWarning } from "../../library/v1/knowledge_pb";
 import { file_harness_library_v1_knowledge } from "../../library/v1/knowledge_pb";
+import type { KnowledgeCapabilities, KnowledgeConnection, KnowledgeConnectionInput } from "../../library/v1/knowledge_connections_pb";
+import { file_harness_library_v1_knowledge_connections } from "../../library/v1/knowledge_connections_pb";
 import type { ProviderProject } from "../../library/v1/projects_pb";
 import { file_harness_library_v1_projects } from "../../library/v1/projects_pb";
 import type { TrackerCapabilities, TrackerConnection, TrackerConnectionInput, TrackerField, TrackerIssue } from "../../library/v1/tracker_connections_pb";
@@ -16,7 +18,203 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/trackers.proto.
  */
 export const file_harness_agent_v1_trackers: GenFile = /*@__PURE__*/
-  fileDesc("Ch9oYXJuZXNzL2FnZW50L3YxL3RyYWNrZXJzLnByb3RvEhBoYXJuZXNzLmFnZW50LnYxIiQKIkxpc3RMb2NhbFRyYWNrZXJDb25uZWN0aW9uc1JlcXVlc3QinQEKI0xpc3RMb2NhbFRyYWNrZXJDb25uZWN0aW9uc1Jlc3BvbnNlEjoKC2Nvbm5lY3Rpb25zGAEgAygLMiUuaGFybmVzcy5saWJyYXJ5LnYxLlRyYWNrZXJDb25uZWN0aW9uEjoKCXByb3ZpZGVycxgCIAMoCzInLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VyQ2FwYWJpbGl0aWVzImMKIVNhdmVMb2NhbFRyYWNrZXJDb25uZWN0aW9uUmVxdWVzdBI+Cgpjb25uZWN0aW9uGAEgASgLMiouaGFybmVzcy5saWJyYXJ5LnYxLlRyYWNrZXJDb25uZWN0aW9uSW5wdXQiXwoiU2F2ZUxvY2FsVHJhY2tlckNvbm5lY3Rpb25SZXNwb25zZRI5Cgpjb25uZWN0aW9uGAEgASgLMiUuaGFybmVzcy5saWJyYXJ5LnYxLlRyYWNrZXJDb25uZWN0aW9uIjEKI0RlbGV0ZUxvY2FsVHJhY2tlckNvbm5lY3Rpb25SZXF1ZXN0EgoKAmlkGAEgASgJIiYKJERlbGV0ZUxvY2FsVHJhY2tlckNvbm5lY3Rpb25SZXNwb25zZSJqCiFUZXN0TG9jYWxUcmFja2VyQ29ubmVjdGlvblJlcXVlc3QSCgoCaWQYASABKAkSOQoFZHJhZnQYAiABKAsyKi5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckNvbm5lY3Rpb25JbnB1dCJkCiJUZXN0TG9jYWxUcmFja2VyQ29ubmVjdGlvblJlc3BvbnNlEgoKAm9rGAEgASgIEg0KBWVycm9yGAIgASgJEg0KBWxvZ2luGAMgASgJEhQKDGRpc3BsYXlfbmFtZRgEIAEoCSJWCh9TZWFyY2hMb2NhbFRyYWNrZXJJc3N1ZXNSZXF1ZXN0EhUKDWNvbm5lY3Rpb25faWQYASABKAkSDQoFcXVlcnkYAiABKAkSDQoFbGltaXQYAyABKAUiZgogU2VhcmNoTG9jYWxUcmFja2VySXNzdWVzUmVzcG9uc2USMAoGaXNzdWVzGAEgAygLMiAuaGFybmVzcy5saWJyYXJ5LnYxLlRyYWNrZXJJc3N1ZRIQCghoYXNfbW9yZRgCIAEoCCJAChtHZXRMb2NhbFRyYWNrZXJJc3N1ZVJlcXVlc3QSFQoNY29ubmVjdGlvbl9pZBgBIAEoCRIKCgJpZBgCIAEoCSJPChxHZXRMb2NhbFRyYWNrZXJJc3N1ZVJlc3BvbnNlEi8KBWlzc3VlGAEgASgLMiAuaGFybmVzcy5saWJyYXJ5LnYxLlRyYWNrZXJJc3N1ZSJHCh1MaXN0TG9jYWxUcmFja2VyRmllbGRzUmVxdWVzdBIVCg1jb25uZWN0aW9uX2lkGAEgASgJEg8KB3Byb2plY3QYAiABKAkiUgoeTGlzdExvY2FsVHJhY2tlckZpZWxkc1Jlc3BvbnNlEjAKBmZpZWxkcxgBIAMoCzIgLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VyRmllbGQiNgodU3RhcnRMb2NhbFRyYWNrZXJPQXV0aFJlcXVlc3QSFQoNY29ubmVjdGlvbl9pZBgBIAEoCSJICh5TdGFydExvY2FsVHJhY2tlck9BdXRoUmVzcG9uc2USDwoHZmxvd19pZBgBIAEoCRIVCg1hdXRob3JpemVfdXJsGAIgASgJIi4KG0dldExvY2FsVHJhY2tlck9BdXRoUmVxdWVzdBIPCgdmbG93X2lkGAEgASgJIjsKHEdldExvY2FsVHJhY2tlck9BdXRoUmVzcG9uc2USDAoEZG9uZRgBIAEoCBINCgVlcnJvchgCIAEoCSIaChhTeW5jTG9jYWxUcmFja2Vyc1JlcXVlc3QiPgoZU3luY0xvY2FsVHJhY2tlcnNSZXNwb25zZRIRCgluZXdfY2FyZHMYASABKAUSDgoGZXJyb3JzGAIgAygJIjkKIExpc3RMb2NhbFByb3ZpZGVyUHJvamVjdHNSZXF1ZXN0EhUKDWNvbm5lY3Rpb25faWQYASABKAkiWgohTGlzdExvY2FsUHJvdmlkZXJQcm9qZWN0c1Jlc3BvbnNlEjUKCHByb2plY3RzGAEgAygLMiMuaGFybmVzcy5saWJyYXJ5LnYxLlByb3ZpZGVyUHJvamVjdCIzCg1Gb2xkZXJQcm9qZWN0Eg4KBmZvbGRlchgBIAEoCRISCgpwcm9qZWN0X2lkGAIgASgJIhsKGUxpc3RGb2xkZXJQcm9qZWN0c1JlcXVlc3QiTAoaTGlzdEZvbGRlclByb2plY3RzUmVzcG9uc2USLgoFbGlua3MYASADKAsyHy5oYXJuZXNzLmFnZW50LnYxLkZvbGRlclByb2plY3QiPQoXU2V0Rm9sZGVyUHJvamVjdFJlcXVlc3QSDgoGZm9sZGVyGAEgASgJEhIKCnByb2plY3RfaWQYAiABKAkiGgoYU2V0Rm9sZGVyUHJvamVjdFJlc3BvbnNlIi0KGlByZXBhcmVJc3N1ZVNlc3Npb25SZXF1ZXN0Eg8KB2NhcmRfaWQYASABKAkiXgobUHJlcGFyZUlzc3VlU2Vzc2lvblJlc3BvbnNlEg4KBmZvbGRlchgBIAEoCRIOCgZicmFuY2gYAiABKAkSDgoGcHJvbXB0GAMgASgJEg8KB2NhcmRfaWQYBCABKAkiIAoeTGlzdEFsbEtub3dsZWRnZVNvdXJjZXNSZXF1ZXN0IlcKH0xpc3RBbGxLbm93bGVkZ2VTb3VyY2VzUmVzcG9uc2USNAoHc291cmNlcxgBIAMoCzIjLmhhcm5lc3MubGlicmFyeS52MS5Lbm93bGVkZ2VTb3VyY2UiTQoZU2VhcmNoQWxsS25vd2xlZGdlUmVxdWVzdBINCgVxdWVyeRgBIAEoCRINCgVsaW1pdBgCIAEoBRISCgpzb3VyY2VfaWRzGAMgAygJIoQBChpTZWFyY2hBbGxLbm93bGVkZ2VSZXNwb25zZRIuCgRoaXRzGAEgAygLMiAuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZUhpdBI2Cgh3YXJuaW5ncxgCIAMoCzIkLmhhcm5lc3MubGlicmFyeS52MS5Lbm93bGVkZ2VXYXJuaW5nIl0KFkJyb3dzZUtub3dsZWRnZVJlcXVlc3QSEQoJc291cmNlX2lkGAEgASgJEhEKCXBhcmVudF9pZBgCIAEoCRINCgVsaW1pdBgDIAEoBRIOCgZvZmZzZXQYBCABKAUiZQoXQnJvd3NlS25vd2xlZGdlUmVzcG9uc2USOAoJZG9jdW1lbnRzGAEgAygLMiUuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZURvY3VtZW50EhAKCGhhc19tb3JlGAIgASgIIisKFFJlYWRLbm93bGVkZ2VSZXF1ZXN0EhMKC2RvY3VtZW50X2lkGAEgASgJImEKFVJlYWRLbm93bGVkZ2VSZXNwb25zZRI3Cghkb2N1bWVudBgBIAEoCzIlLmhhcm5lc3MubGlicmFyeS52MS5Lbm93bGVkZ2VEb2N1bWVudBIPCgdjb250ZW50GAIgASgJMrIRChNMb2NhbFRyYWNrZXJTZXJ2aWNlEooBChtMaXN0TG9jYWxUcmFja2VyQ29ubmVjdGlvbnMSNC5oYXJuZXNzLmFnZW50LnYxLkxpc3RMb2NhbFRyYWNrZXJDb25uZWN0aW9uc1JlcXVlc3QaNS5oYXJuZXNzLmFnZW50LnYxLkxpc3RMb2NhbFRyYWNrZXJDb25uZWN0aW9uc1Jlc3BvbnNlEocBChpTYXZlTG9jYWxUcmFja2VyQ29ubmVjdGlvbhIzLmhhcm5lc3MuYWdlbnQudjEuU2F2ZUxvY2FsVHJhY2tlckNvbm5lY3Rpb25SZXF1ZXN0GjQuaGFybmVzcy5hZ2VudC52MS5TYXZlTG9jYWxUcmFja2VyQ29ubmVjdGlvblJlc3BvbnNlEo0BChxEZWxldGVMb2NhbFRyYWNrZXJDb25uZWN0aW9uEjUuaGFybmVzcy5hZ2VudC52MS5EZWxldGVMb2NhbFRyYWNrZXJDb25uZWN0aW9uUmVxdWVzdBo2Lmhhcm5lc3MuYWdlbnQudjEuRGVsZXRlTG9jYWxUcmFja2VyQ29ubmVjdGlvblJlc3BvbnNlEocBChpUZXN0TG9jYWxUcmFja2VyQ29ubmVjdGlvbhIzLmhhcm5lc3MuYWdlbnQudjEuVGVzdExvY2FsVHJhY2tlckNvbm5lY3Rpb25SZXF1ZXN0GjQuaGFybmVzcy5hZ2VudC52MS5UZXN0TG9jYWxUcmFja2VyQ29ubmVjdGlvblJlc3BvbnNlEoEBChhTZWFyY2hMb2NhbFRyYWNrZXJJc3N1ZXMSMS5oYXJuZXNzLmFnZW50LnYxLlNlYXJjaExvY2FsVHJhY2tlcklzc3Vlc1JlcXVlc3QaMi5oYXJuZXNzLmFnZW50LnYxLlNlYXJjaExvY2FsVHJhY2tlcklzc3Vlc1Jlc3BvbnNlEnUKFEdldExvY2FsVHJhY2tlcklzc3VlEi0uaGFybmVzcy5hZ2VudC52MS5HZXRMb2NhbFRyYWNrZXJJc3N1ZVJlcXVlc3QaLi5oYXJuZXNzLmFnZW50LnYxLkdldExvY2FsVHJhY2tlcklzc3VlUmVzcG9uc2USewoWTGlzdExvY2FsVHJhY2tlckZpZWxkcxIvLmhhcm5lc3MuYWdlbnQudjEuTGlzdExvY2FsVHJhY2tlckZpZWxkc1JlcXVlc3QaMC5oYXJuZXNzLmFnZW50LnYxLkxpc3RMb2NhbFRyYWNrZXJGaWVsZHNSZXNwb25zZRJ7ChZTdGFydExvY2FsVHJhY2tlck9BdXRoEi8uaGFybmVzcy5hZ2VudC52MS5TdGFydExvY2FsVHJhY2tlck9BdXRoUmVxdWVzdBowLmhhcm5lc3MuYWdlbnQudjEuU3RhcnRMb2NhbFRyYWNrZXJPQXV0aFJlc3BvbnNlEnUKFEdldExvY2FsVHJhY2tlck9BdXRoEi0uaGFybmVzcy5hZ2VudC52MS5HZXRMb2NhbFRyYWNrZXJPQXV0aFJlcXVlc3QaLi5oYXJuZXNzLmFnZW50LnYxLkdldExvY2FsVHJhY2tlck9BdXRoUmVzcG9uc2USbAoRU3luY0xvY2FsVHJhY2tlcnMSKi5oYXJuZXNzLmFnZW50LnYxLlN5bmNMb2NhbFRyYWNrZXJzUmVxdWVzdBorLmhhcm5lc3MuYWdlbnQudjEuU3luY0xvY2FsVHJhY2tlcnNSZXNwb25zZRKEAQoZTGlzdExvY2FsUHJvdmlkZXJQcm9qZWN0cxIyLmhhcm5lc3MuYWdlbnQudjEuTGlzdExvY2FsUHJvdmlkZXJQcm9qZWN0c1JlcXVlc3QaMy5oYXJuZXNzLmFnZW50LnYxLkxpc3RMb2NhbFByb3ZpZGVyUHJvamVjdHNSZXNwb25zZRJvChJMaXN0Rm9sZGVyUHJvamVjdHMSKy5oYXJuZXNzLmFnZW50LnYxLkxpc3RGb2xkZXJQcm9qZWN0c1JlcXVlc3QaLC5oYXJuZXNzLmFnZW50LnYxLkxpc3RGb2xkZXJQcm9qZWN0c1Jlc3BvbnNlEmkKEFNldEZvbGRlclByb2plY3QSKS5oYXJuZXNzLmFnZW50LnYxLlNldEZvbGRlclByb2plY3RSZXF1ZXN0GiouaGFybmVzcy5hZ2VudC52MS5TZXRGb2xkZXJQcm9qZWN0UmVzcG9uc2UScgoTUHJlcGFyZUlzc3VlU2Vzc2lvbhIsLmhhcm5lc3MuYWdlbnQudjEuUHJlcGFyZUlzc3VlU2Vzc2lvblJlcXVlc3QaLS5oYXJuZXNzLmFnZW50LnYxLlByZXBhcmVJc3N1ZVNlc3Npb25SZXNwb25zZRJ+ChdMaXN0QWxsS25vd2xlZGdlU291cmNlcxIwLmhhcm5lc3MuYWdlbnQudjEuTGlzdEFsbEtub3dsZWRnZVNvdXJjZXNSZXF1ZXN0GjEuaGFybmVzcy5hZ2VudC52MS5MaXN0QWxsS25vd2xlZGdlU291cmNlc1Jlc3BvbnNlEm8KElNlYXJjaEFsbEtub3dsZWRnZRIrLmhhcm5lc3MuYWdlbnQudjEuU2VhcmNoQWxsS25vd2xlZGdlUmVxdWVzdBosLmhhcm5lc3MuYWdlbnQudjEuU2VhcmNoQWxsS25vd2xlZGdlUmVzcG9uc2USZgoPQnJvd3NlS25vd2xlZGdlEiguaGFybmVzcy5hZ2VudC52MS5Ccm93c2VLbm93bGVkZ2VSZXF1ZXN0GikuaGFybmVzcy5hZ2VudC52MS5Ccm93c2VLbm93bGVkZ2VSZXNwb25zZRJgCg1SZWFkS25vd2xlZGdlEiYuaGFybmVzcy5hZ2VudC52MS5SZWFkS25vd2xlZGdlUmVxdWVzdBonLmhhcm5lc3MuYWdlbnQudjEuUmVhZEtub3dsZWRnZVJlc3BvbnNlQs4BChRjb20uaGFybmVzcy5hZ2VudC52MUINVHJhY2tlcnNQcm90b1ABWkVnaXRodWIuY29tL3hsc2Z0L2hhcm5lc3MvcGFja2FnZXMvY2xpZW50L2dlbi9oYXJuZXNzL2FnZW50L3YxO2FnZW50djGiAgNIQViqAhBIYXJuZXNzLkFnZW50LlYxygIQSGFybmVzc1xBZ2VudFxWMeICHEhhcm5lc3NcQWdlbnRcVjFcR1BCTWV0YWRhdGHqAhJIYXJuZXNzOjpBZ2VudDo6VjFiBnByb3RvMw", [file_harness_library_v1_knowledge, file_harness_library_v1_projects, file_harness_library_v1_tracker_connections]);
+  fileDesc("Ch9oYXJuZXNzL2FnZW50L3YxL3RyYWNrZXJzLnByb3RvEhBoYXJuZXNzLmFnZW50LnYxIiYKJExpc3RMb2NhbEtub3dsZWRnZUNvbm5lY3Rpb25zUmVxdWVzdCKjAQolTGlzdExvY2FsS25vd2xlZGdlQ29ubmVjdGlvbnNSZXNwb25zZRI8Cgtjb25uZWN0aW9ucxgBIAMoCzInLmhhcm5lc3MubGlicmFyeS52MS5Lbm93bGVkZ2VDb25uZWN0aW9uEjwKCXByb3ZpZGVycxgCIAMoCzIpLmhhcm5lc3MubGlicmFyeS52MS5Lbm93bGVkZ2VDYXBhYmlsaXRpZXMiZwojU2F2ZUxvY2FsS25vd2xlZGdlQ29ubmVjdGlvblJlcXVlc3QSQAoKY29ubmVjdGlvbhgBIAEoCzIsLmhhcm5lc3MubGlicmFyeS52MS5Lbm93bGVkZ2VDb25uZWN0aW9uSW5wdXQiYwokU2F2ZUxvY2FsS25vd2xlZGdlQ29ubmVjdGlvblJlc3BvbnNlEjsKCmNvbm5lY3Rpb24YASABKAsyJy5oYXJuZXNzLmxpYnJhcnkudjEuS25vd2xlZGdlQ29ubmVjdGlvbiIzCiVEZWxldGVMb2NhbEtub3dsZWRnZUNvbm5lY3Rpb25SZXF1ZXN0EgoKAmlkGAEgASgJIigKJkRlbGV0ZUxvY2FsS25vd2xlZGdlQ29ubmVjdGlvblJlc3BvbnNlIm4KI1Rlc3RMb2NhbEtub3dsZWRnZUNvbm5lY3Rpb25SZXF1ZXN0EgoKAmlkGAEgASgJEjsKBWRyYWZ0GAIgASgLMiwuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZUNvbm5lY3Rpb25JbnB1dCJmCiRUZXN0TG9jYWxLbm93bGVkZ2VDb25uZWN0aW9uUmVzcG9uc2USCgoCb2sYASABKAgSDQoFZXJyb3IYAiABKAkSDQoFbG9naW4YAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJIjgKH1N0YXJ0TG9jYWxLbm93bGVkZ2VPQXV0aFJlcXVlc3QSFQoNY29ubmVjdGlvbl9pZBgBIAEoCSJKCiBTdGFydExvY2FsS25vd2xlZGdlT0F1dGhSZXNwb25zZRIPCgdmbG93X2lkGAEgASgJEhUKDWF1dGhvcml6ZV91cmwYAiABKAkiJAoiTGlzdExvY2FsVHJhY2tlckNvbm5lY3Rpb25zUmVxdWVzdCKdAQojTGlzdExvY2FsVHJhY2tlckNvbm5lY3Rpb25zUmVzcG9uc2USOgoLY29ubmVjdGlvbnMYASADKAsyJS5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckNvbm5lY3Rpb24SOgoJcHJvdmlkZXJzGAIgAygLMicuaGFybmVzcy5saWJyYXJ5LnYxLlRyYWNrZXJDYXBhYmlsaXRpZXMiYwohU2F2ZUxvY2FsVHJhY2tlckNvbm5lY3Rpb25SZXF1ZXN0Ej4KCmNvbm5lY3Rpb24YASABKAsyKi5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckNvbm5lY3Rpb25JbnB1dCJfCiJTYXZlTG9jYWxUcmFja2VyQ29ubmVjdGlvblJlc3BvbnNlEjkKCmNvbm5lY3Rpb24YASABKAsyJS5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlckNvbm5lY3Rpb24iMQojRGVsZXRlTG9jYWxUcmFja2VyQ29ubmVjdGlvblJlcXVlc3QSCgoCaWQYASABKAkiJgokRGVsZXRlTG9jYWxUcmFja2VyQ29ubmVjdGlvblJlc3BvbnNlImoKIVRlc3RMb2NhbFRyYWNrZXJDb25uZWN0aW9uUmVxdWVzdBIKCgJpZBgBIAEoCRI5CgVkcmFmdBgCIAEoCzIqLmhhcm5lc3MubGlicmFyeS52MS5UcmFja2VyQ29ubmVjdGlvbklucHV0ImQKIlRlc3RMb2NhbFRyYWNrZXJDb25uZWN0aW9uUmVzcG9uc2USCgoCb2sYASABKAgSDQoFZXJyb3IYAiABKAkSDQoFbG9naW4YAyABKAkSFAoMZGlzcGxheV9uYW1lGAQgASgJIlYKH1NlYXJjaExvY2FsVHJhY2tlcklzc3Vlc1JlcXVlc3QSFQoNY29ubmVjdGlvbl9pZBgBIAEoCRINCgVxdWVyeRgCIAEoCRINCgVsaW1pdBgDIAEoBSJmCiBTZWFyY2hMb2NhbFRyYWNrZXJJc3N1ZXNSZXNwb25zZRIwCgZpc3N1ZXMYASADKAsyIC5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlcklzc3VlEhAKCGhhc19tb3JlGAIgASgIIkAKG0dldExvY2FsVHJhY2tlcklzc3VlUmVxdWVzdBIVCg1jb25uZWN0aW9uX2lkGAEgASgJEgoKAmlkGAIgASgJIk8KHEdldExvY2FsVHJhY2tlcklzc3VlUmVzcG9uc2USLwoFaXNzdWUYASABKAsyIC5oYXJuZXNzLmxpYnJhcnkudjEuVHJhY2tlcklzc3VlIkcKHUxpc3RMb2NhbFRyYWNrZXJGaWVsZHNSZXF1ZXN0EhUKDWNvbm5lY3Rpb25faWQYASABKAkSDwoHcHJvamVjdBgCIAEoCSJSCh5MaXN0TG9jYWxUcmFja2VyRmllbGRzUmVzcG9uc2USMAoGZmllbGRzGAEgAygLMiAuaGFybmVzcy5saWJyYXJ5LnYxLlRyYWNrZXJGaWVsZCI2Ch1TdGFydExvY2FsVHJhY2tlck9BdXRoUmVxdWVzdBIVCg1jb25uZWN0aW9uX2lkGAEgASgJIkgKHlN0YXJ0TG9jYWxUcmFja2VyT0F1dGhSZXNwb25zZRIPCgdmbG93X2lkGAEgASgJEhUKDWF1dGhvcml6ZV91cmwYAiABKAkiLgobR2V0TG9jYWxUcmFja2VyT0F1dGhSZXF1ZXN0Eg8KB2Zsb3dfaWQYASABKAkiOwocR2V0TG9jYWxUcmFja2VyT0F1dGhSZXNwb25zZRIMCgRkb25lGAEgASgIEg0KBWVycm9yGAIgASgJIhoKGFN5bmNMb2NhbFRyYWNrZXJzUmVxdWVzdCI+ChlTeW5jTG9jYWxUcmFja2Vyc1Jlc3BvbnNlEhEKCW5ld19jYXJkcxgBIAEoBRIOCgZlcnJvcnMYAiADKAkiOQogTGlzdExvY2FsUHJvdmlkZXJQcm9qZWN0c1JlcXVlc3QSFQoNY29ubmVjdGlvbl9pZBgBIAEoCSJaCiFMaXN0TG9jYWxQcm92aWRlclByb2plY3RzUmVzcG9uc2USNQoIcHJvamVjdHMYASADKAsyIy5oYXJuZXNzLmxpYnJhcnkudjEuUHJvdmlkZXJQcm9qZWN0IjMKDUZvbGRlclByb2plY3QSDgoGZm9sZGVyGAEgASgJEhIKCnByb2plY3RfaWQYAiABKAkiGwoZTGlzdEZvbGRlclByb2plY3RzUmVxdWVzdCJMChpMaXN0Rm9sZGVyUHJvamVjdHNSZXNwb25zZRIuCgVsaW5rcxgBIAMoCzIfLmhhcm5lc3MuYWdlbnQudjEuRm9sZGVyUHJvamVjdCI9ChdTZXRGb2xkZXJQcm9qZWN0UmVxdWVzdBIOCgZmb2xkZXIYASABKAkSEgoKcHJvamVjdF9pZBgCIAEoCSIaChhTZXRGb2xkZXJQcm9qZWN0UmVzcG9uc2UiLQoaUHJlcGFyZUlzc3VlU2Vzc2lvblJlcXVlc3QSDwoHY2FyZF9pZBgBIAEoCSJeChtQcmVwYXJlSXNzdWVTZXNzaW9uUmVzcG9uc2USDgoGZm9sZGVyGAEgASgJEg4KBmJyYW5jaBgCIAEoCRIOCgZwcm9tcHQYAyABKAkSDwoHY2FyZF9pZBgEIAEoCSIgCh5MaXN0QWxsS25vd2xlZGdlU291cmNlc1JlcXVlc3QiVwofTGlzdEFsbEtub3dsZWRnZVNvdXJjZXNSZXNwb25zZRI0Cgdzb3VyY2VzGAEgAygLMiMuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZVNvdXJjZSJNChlTZWFyY2hBbGxLbm93bGVkZ2VSZXF1ZXN0Eg0KBXF1ZXJ5GAEgASgJEg0KBWxpbWl0GAIgASgFEhIKCnNvdXJjZV9pZHMYAyADKAkihAEKGlNlYXJjaEFsbEtub3dsZWRnZVJlc3BvbnNlEi4KBGhpdHMYASADKAsyIC5oYXJuZXNzLmxpYnJhcnkudjEuS25vd2xlZGdlSGl0EjYKCHdhcm5pbmdzGAIgAygLMiQuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZVdhcm5pbmciXQoWQnJvd3NlS25vd2xlZGdlUmVxdWVzdBIRCglzb3VyY2VfaWQYASABKAkSEQoJcGFyZW50X2lkGAIgASgJEg0KBWxpbWl0GAMgASgFEg4KBm9mZnNldBgEIAEoBSJlChdCcm93c2VLbm93bGVkZ2VSZXNwb25zZRI4Cglkb2N1bWVudHMYASADKAsyJS5oYXJuZXNzLmxpYnJhcnkudjEuS25vd2xlZGdlRG9jdW1lbnQSEAoIaGFzX21vcmUYAiABKAgiKwoUUmVhZEtub3dsZWRnZVJlcXVlc3QSEwoLZG9jdW1lbnRfaWQYASABKAkiYQoVUmVhZEtub3dsZWRnZVJlc3BvbnNlEjcKCGRvY3VtZW50GAEgASgLMiUuaGFybmVzcy5saWJyYXJ5LnYxLktub3dsZWRnZURvY3VtZW50Eg8KB2NvbnRlbnQYAiABKAky/xYKE0xvY2FsVHJhY2tlclNlcnZpY2USigEKG0xpc3RMb2NhbFRyYWNrZXJDb25uZWN0aW9ucxI0Lmhhcm5lc3MuYWdlbnQudjEuTGlzdExvY2FsVHJhY2tlckNvbm5lY3Rpb25zUmVxdWVzdBo1Lmhhcm5lc3MuYWdlbnQudjEuTGlzdExvY2FsVHJhY2tlckNvbm5lY3Rpb25zUmVzcG9uc2UShwEKGlNhdmVMb2NhbFRyYWNrZXJDb25uZWN0aW9uEjMuaGFybmVzcy5hZ2VudC52MS5TYXZlTG9jYWxUcmFja2VyQ29ubmVjdGlvblJlcXVlc3QaNC5oYXJuZXNzLmFnZW50LnYxLlNhdmVMb2NhbFRyYWNrZXJDb25uZWN0aW9uUmVzcG9uc2USjQEKHERlbGV0ZUxvY2FsVHJhY2tlckNvbm5lY3Rpb24SNS5oYXJuZXNzLmFnZW50LnYxLkRlbGV0ZUxvY2FsVHJhY2tlckNvbm5lY3Rpb25SZXF1ZXN0GjYuaGFybmVzcy5hZ2VudC52MS5EZWxldGVMb2NhbFRyYWNrZXJDb25uZWN0aW9uUmVzcG9uc2UShwEKGlRlc3RMb2NhbFRyYWNrZXJDb25uZWN0aW9uEjMuaGFybmVzcy5hZ2VudC52MS5UZXN0TG9jYWxUcmFja2VyQ29ubmVjdGlvblJlcXVlc3QaNC5oYXJuZXNzLmFnZW50LnYxLlRlc3RMb2NhbFRyYWNrZXJDb25uZWN0aW9uUmVzcG9uc2USgQEKGFNlYXJjaExvY2FsVHJhY2tlcklzc3VlcxIxLmhhcm5lc3MuYWdlbnQudjEuU2VhcmNoTG9jYWxUcmFja2VySXNzdWVzUmVxdWVzdBoyLmhhcm5lc3MuYWdlbnQudjEuU2VhcmNoTG9jYWxUcmFja2VySXNzdWVzUmVzcG9uc2USdQoUR2V0TG9jYWxUcmFja2VySXNzdWUSLS5oYXJuZXNzLmFnZW50LnYxLkdldExvY2FsVHJhY2tlcklzc3VlUmVxdWVzdBouLmhhcm5lc3MuYWdlbnQudjEuR2V0TG9jYWxUcmFja2VySXNzdWVSZXNwb25zZRJ7ChZMaXN0TG9jYWxUcmFja2VyRmllbGRzEi8uaGFybmVzcy5hZ2VudC52MS5MaXN0TG9jYWxUcmFja2VyRmllbGRzUmVxdWVzdBowLmhhcm5lc3MuYWdlbnQudjEuTGlzdExvY2FsVHJhY2tlckZpZWxkc1Jlc3BvbnNlEnsKFlN0YXJ0TG9jYWxUcmFja2VyT0F1dGgSLy5oYXJuZXNzLmFnZW50LnYxLlN0YXJ0TG9jYWxUcmFja2VyT0F1dGhSZXF1ZXN0GjAuaGFybmVzcy5hZ2VudC52MS5TdGFydExvY2FsVHJhY2tlck9BdXRoUmVzcG9uc2USdQoUR2V0TG9jYWxUcmFja2VyT0F1dGgSLS5oYXJuZXNzLmFnZW50LnYxLkdldExvY2FsVHJhY2tlck9BdXRoUmVxdWVzdBouLmhhcm5lc3MuYWdlbnQudjEuR2V0TG9jYWxUcmFja2VyT0F1dGhSZXNwb25zZRJsChFTeW5jTG9jYWxUcmFja2VycxIqLmhhcm5lc3MuYWdlbnQudjEuU3luY0xvY2FsVHJhY2tlcnNSZXF1ZXN0GisuaGFybmVzcy5hZ2VudC52MS5TeW5jTG9jYWxUcmFja2Vyc1Jlc3BvbnNlEoQBChlMaXN0TG9jYWxQcm92aWRlclByb2plY3RzEjIuaGFybmVzcy5hZ2VudC52MS5MaXN0TG9jYWxQcm92aWRlclByb2plY3RzUmVxdWVzdBozLmhhcm5lc3MuYWdlbnQudjEuTGlzdExvY2FsUHJvdmlkZXJQcm9qZWN0c1Jlc3BvbnNlEm8KEkxpc3RGb2xkZXJQcm9qZWN0cxIrLmhhcm5lc3MuYWdlbnQudjEuTGlzdEZvbGRlclByb2plY3RzUmVxdWVzdBosLmhhcm5lc3MuYWdlbnQudjEuTGlzdEZvbGRlclByb2plY3RzUmVzcG9uc2USaQoQU2V0Rm9sZGVyUHJvamVjdBIpLmhhcm5lc3MuYWdlbnQudjEuU2V0Rm9sZGVyUHJvamVjdFJlcXVlc3QaKi5oYXJuZXNzLmFnZW50LnYxLlNldEZvbGRlclByb2plY3RSZXNwb25zZRJyChNQcmVwYXJlSXNzdWVTZXNzaW9uEiwuaGFybmVzcy5hZ2VudC52MS5QcmVwYXJlSXNzdWVTZXNzaW9uUmVxdWVzdBotLmhhcm5lc3MuYWdlbnQudjEuUHJlcGFyZUlzc3VlU2Vzc2lvblJlc3BvbnNlEn4KF0xpc3RBbGxLbm93bGVkZ2VTb3VyY2VzEjAuaGFybmVzcy5hZ2VudC52MS5MaXN0QWxsS25vd2xlZGdlU291cmNlc1JlcXVlc3QaMS5oYXJuZXNzLmFnZW50LnYxLkxpc3RBbGxLbm93bGVkZ2VTb3VyY2VzUmVzcG9uc2USbwoSU2VhcmNoQWxsS25vd2xlZGdlEisuaGFybmVzcy5hZ2VudC52MS5TZWFyY2hBbGxLbm93bGVkZ2VSZXF1ZXN0GiwuaGFybmVzcy5hZ2VudC52MS5TZWFyY2hBbGxLbm93bGVkZ2VSZXNwb25zZRJmCg9Ccm93c2VLbm93bGVkZ2USKC5oYXJuZXNzLmFnZW50LnYxLkJyb3dzZUtub3dsZWRnZVJlcXVlc3QaKS5oYXJuZXNzLmFnZW50LnYxLkJyb3dzZUtub3dsZWRnZVJlc3BvbnNlEmAKDVJlYWRLbm93bGVkZ2USJi5oYXJuZXNzLmFnZW50LnYxLlJlYWRLbm93bGVkZ2VSZXF1ZXN0GicuaGFybmVzcy5hZ2VudC52MS5SZWFkS25vd2xlZGdlUmVzcG9uc2USkAEKHUxpc3RMb2NhbEtub3dsZWRnZUNvbm5lY3Rpb25zEjYuaGFybmVzcy5hZ2VudC52MS5MaXN0TG9jYWxLbm93bGVkZ2VDb25uZWN0aW9uc1JlcXVlc3QaNy5oYXJuZXNzLmFnZW50LnYxLkxpc3RMb2NhbEtub3dsZWRnZUNvbm5lY3Rpb25zUmVzcG9uc2USjQEKHFNhdmVMb2NhbEtub3dsZWRnZUNvbm5lY3Rpb24SNS5oYXJuZXNzLmFnZW50LnYxLlNhdmVMb2NhbEtub3dsZWRnZUNvbm5lY3Rpb25SZXF1ZXN0GjYuaGFybmVzcy5hZ2VudC52MS5TYXZlTG9jYWxLbm93bGVkZ2VDb25uZWN0aW9uUmVzcG9uc2USkwEKHkRlbGV0ZUxvY2FsS25vd2xlZGdlQ29ubmVjdGlvbhI3Lmhhcm5lc3MuYWdlbnQudjEuRGVsZXRlTG9jYWxLbm93bGVkZ2VDb25uZWN0aW9uUmVxdWVzdBo4Lmhhcm5lc3MuYWdlbnQudjEuRGVsZXRlTG9jYWxLbm93bGVkZ2VDb25uZWN0aW9uUmVzcG9uc2USjQEKHFRlc3RMb2NhbEtub3dsZWRnZUNvbm5lY3Rpb24SNS5oYXJuZXNzLmFnZW50LnYxLlRlc3RMb2NhbEtub3dsZWRnZUNvbm5lY3Rpb25SZXF1ZXN0GjYuaGFybmVzcy5hZ2VudC52MS5UZXN0TG9jYWxLbm93bGVkZ2VDb25uZWN0aW9uUmVzcG9uc2USgQEKGFN0YXJ0TG9jYWxLbm93bGVkZ2VPQXV0aBIxLmhhcm5lc3MuYWdlbnQudjEuU3RhcnRMb2NhbEtub3dsZWRnZU9BdXRoUmVxdWVzdBoyLmhhcm5lc3MuYWdlbnQudjEuU3RhcnRMb2NhbEtub3dsZWRnZU9BdXRoUmVzcG9uc2VCzgEKFGNvbS5oYXJuZXNzLmFnZW50LnYxQg1UcmFja2Vyc1Byb3RvUAFaRWdpdGh1Yi5jb20veGxzZnQvaGFybmVzcy9wYWNrYWdlcy9jbGllbnQvZ2VuL2hhcm5lc3MvYWdlbnQvdjE7YWdlbnR2MaICA0hBWKoCEEhhcm5lc3MuQWdlbnQuVjHKAhBIYXJuZXNzXEFnZW50XFYx4gIcSGFybmVzc1xBZ2VudFxWMVxHUEJNZXRhZGF0YeoCEkhhcm5lc3M6OkFnZW50OjpWMWIGcHJvdG8z", [file_harness_library_v1_knowledge, file_harness_library_v1_knowledge_connections, file_harness_library_v1_projects, file_harness_library_v1_tracker_connections]);
+
+/**
+ * @generated from message harness.agent.v1.ListLocalKnowledgeConnectionsRequest
+ */
+export type ListLocalKnowledgeConnectionsRequest = Message<"harness.agent.v1.ListLocalKnowledgeConnectionsRequest"> & {
+};
+
+/**
+ * Describes the message harness.agent.v1.ListLocalKnowledgeConnectionsRequest.
+ * Use `create(ListLocalKnowledgeConnectionsRequestSchema)` to create a new message.
+ */
+export const ListLocalKnowledgeConnectionsRequestSchema: GenMessage<ListLocalKnowledgeConnectionsRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_trackers, 0);
+
+/**
+ * @generated from message harness.agent.v1.ListLocalKnowledgeConnectionsResponse
+ */
+export type ListLocalKnowledgeConnectionsResponse = Message<"harness.agent.v1.ListLocalKnowledgeConnectionsResponse"> & {
+  /**
+   * @generated from field: repeated harness.library.v1.KnowledgeConnection connections = 1;
+   */
+  connections: KnowledgeConnection[];
+
+  /**
+   * @generated from field: repeated harness.library.v1.KnowledgeCapabilities providers = 2;
+   */
+  providers: KnowledgeCapabilities[];
+};
+
+/**
+ * Describes the message harness.agent.v1.ListLocalKnowledgeConnectionsResponse.
+ * Use `create(ListLocalKnowledgeConnectionsResponseSchema)` to create a new message.
+ */
+export const ListLocalKnowledgeConnectionsResponseSchema: GenMessage<ListLocalKnowledgeConnectionsResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_trackers, 1);
+
+/**
+ * @generated from message harness.agent.v1.SaveLocalKnowledgeConnectionRequest
+ */
+export type SaveLocalKnowledgeConnectionRequest = Message<"harness.agent.v1.SaveLocalKnowledgeConnectionRequest"> & {
+  /**
+   * @generated from field: harness.library.v1.KnowledgeConnectionInput connection = 1;
+   */
+  connection?: KnowledgeConnectionInput | undefined;
+};
+
+/**
+ * Describes the message harness.agent.v1.SaveLocalKnowledgeConnectionRequest.
+ * Use `create(SaveLocalKnowledgeConnectionRequestSchema)` to create a new message.
+ */
+export const SaveLocalKnowledgeConnectionRequestSchema: GenMessage<SaveLocalKnowledgeConnectionRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_trackers, 2);
+
+/**
+ * @generated from message harness.agent.v1.SaveLocalKnowledgeConnectionResponse
+ */
+export type SaveLocalKnowledgeConnectionResponse = Message<"harness.agent.v1.SaveLocalKnowledgeConnectionResponse"> & {
+  /**
+   * @generated from field: harness.library.v1.KnowledgeConnection connection = 1;
+   */
+  connection?: KnowledgeConnection | undefined;
+};
+
+/**
+ * Describes the message harness.agent.v1.SaveLocalKnowledgeConnectionResponse.
+ * Use `create(SaveLocalKnowledgeConnectionResponseSchema)` to create a new message.
+ */
+export const SaveLocalKnowledgeConnectionResponseSchema: GenMessage<SaveLocalKnowledgeConnectionResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_trackers, 3);
+
+/**
+ * @generated from message harness.agent.v1.DeleteLocalKnowledgeConnectionRequest
+ */
+export type DeleteLocalKnowledgeConnectionRequest = Message<"harness.agent.v1.DeleteLocalKnowledgeConnectionRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.DeleteLocalKnowledgeConnectionRequest.
+ * Use `create(DeleteLocalKnowledgeConnectionRequestSchema)` to create a new message.
+ */
+export const DeleteLocalKnowledgeConnectionRequestSchema: GenMessage<DeleteLocalKnowledgeConnectionRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_trackers, 4);
+
+/**
+ * @generated from message harness.agent.v1.DeleteLocalKnowledgeConnectionResponse
+ */
+export type DeleteLocalKnowledgeConnectionResponse = Message<"harness.agent.v1.DeleteLocalKnowledgeConnectionResponse"> & {
+};
+
+/**
+ * Describes the message harness.agent.v1.DeleteLocalKnowledgeConnectionResponse.
+ * Use `create(DeleteLocalKnowledgeConnectionResponseSchema)` to create a new message.
+ */
+export const DeleteLocalKnowledgeConnectionResponseSchema: GenMessage<DeleteLocalKnowledgeConnectionResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_trackers, 5);
+
+/**
+ * @generated from message harness.agent.v1.TestLocalKnowledgeConnectionRequest
+ */
+export type TestLocalKnowledgeConnectionRequest = Message<"harness.agent.v1.TestLocalKnowledgeConnectionRequest"> & {
+  /**
+   * A saved connection, or
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * one not saved yet.
+   *
+   * @generated from field: harness.library.v1.KnowledgeConnectionInput draft = 2;
+   */
+  draft?: KnowledgeConnectionInput | undefined;
+};
+
+/**
+ * Describes the message harness.agent.v1.TestLocalKnowledgeConnectionRequest.
+ * Use `create(TestLocalKnowledgeConnectionRequestSchema)` to create a new message.
+ */
+export const TestLocalKnowledgeConnectionRequestSchema: GenMessage<TestLocalKnowledgeConnectionRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_trackers, 6);
+
+/**
+ * @generated from message harness.agent.v1.TestLocalKnowledgeConnectionResponse
+ */
+export type TestLocalKnowledgeConnectionResponse = Message<"harness.agent.v1.TestLocalKnowledgeConnectionResponse"> & {
+  /**
+   * @generated from field: bool ok = 1;
+   */
+  ok: boolean;
+
+  /**
+   * @generated from field: string error = 2;
+   */
+  error: string;
+
+  /**
+   * @generated from field: string login = 3;
+   */
+  login: string;
+
+  /**
+   * @generated from field: string display_name = 4;
+   */
+  displayName: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.TestLocalKnowledgeConnectionResponse.
+ * Use `create(TestLocalKnowledgeConnectionResponseSchema)` to create a new message.
+ */
+export const TestLocalKnowledgeConnectionResponseSchema: GenMessage<TestLocalKnowledgeConnectionResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_trackers, 7);
+
+/**
+ * @generated from message harness.agent.v1.StartLocalKnowledgeOAuthRequest
+ */
+export type StartLocalKnowledgeOAuthRequest = Message<"harness.agent.v1.StartLocalKnowledgeOAuthRequest"> & {
+  /**
+   * @generated from field: string connection_id = 1;
+   */
+  connectionId: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.StartLocalKnowledgeOAuthRequest.
+ * Use `create(StartLocalKnowledgeOAuthRequestSchema)` to create a new message.
+ */
+export const StartLocalKnowledgeOAuthRequestSchema: GenMessage<StartLocalKnowledgeOAuthRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_trackers, 8);
+
+/**
+ * @generated from message harness.agent.v1.StartLocalKnowledgeOAuthResponse
+ */
+export type StartLocalKnowledgeOAuthResponse = Message<"harness.agent.v1.StartLocalKnowledgeOAuthResponse"> & {
+  /**
+   * @generated from field: string flow_id = 1;
+   */
+  flowId: string;
+
+  /**
+   * @generated from field: string authorize_url = 2;
+   */
+  authorizeUrl: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.StartLocalKnowledgeOAuthResponse.
+ * Use `create(StartLocalKnowledgeOAuthResponseSchema)` to create a new message.
+ */
+export const StartLocalKnowledgeOAuthResponseSchema: GenMessage<StartLocalKnowledgeOAuthResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_trackers, 9);
 
 /**
  * @generated from message harness.agent.v1.ListLocalTrackerConnectionsRequest
@@ -29,7 +227,7 @@ export type ListLocalTrackerConnectionsRequest = Message<"harness.agent.v1.ListL
  * Use `create(ListLocalTrackerConnectionsRequestSchema)` to create a new message.
  */
 export const ListLocalTrackerConnectionsRequestSchema: GenMessage<ListLocalTrackerConnectionsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 0);
+  messageDesc(file_harness_agent_v1_trackers, 10);
 
 /**
  * @generated from message harness.agent.v1.ListLocalTrackerConnectionsResponse
@@ -51,7 +249,7 @@ export type ListLocalTrackerConnectionsResponse = Message<"harness.agent.v1.List
  * Use `create(ListLocalTrackerConnectionsResponseSchema)` to create a new message.
  */
 export const ListLocalTrackerConnectionsResponseSchema: GenMessage<ListLocalTrackerConnectionsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 1);
+  messageDesc(file_harness_agent_v1_trackers, 11);
 
 /**
  * @generated from message harness.agent.v1.SaveLocalTrackerConnectionRequest
@@ -68,7 +266,7 @@ export type SaveLocalTrackerConnectionRequest = Message<"harness.agent.v1.SaveLo
  * Use `create(SaveLocalTrackerConnectionRequestSchema)` to create a new message.
  */
 export const SaveLocalTrackerConnectionRequestSchema: GenMessage<SaveLocalTrackerConnectionRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 2);
+  messageDesc(file_harness_agent_v1_trackers, 12);
 
 /**
  * @generated from message harness.agent.v1.SaveLocalTrackerConnectionResponse
@@ -85,7 +283,7 @@ export type SaveLocalTrackerConnectionResponse = Message<"harness.agent.v1.SaveL
  * Use `create(SaveLocalTrackerConnectionResponseSchema)` to create a new message.
  */
 export const SaveLocalTrackerConnectionResponseSchema: GenMessage<SaveLocalTrackerConnectionResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 3);
+  messageDesc(file_harness_agent_v1_trackers, 13);
 
 /**
  * @generated from message harness.agent.v1.DeleteLocalTrackerConnectionRequest
@@ -102,7 +300,7 @@ export type DeleteLocalTrackerConnectionRequest = Message<"harness.agent.v1.Dele
  * Use `create(DeleteLocalTrackerConnectionRequestSchema)` to create a new message.
  */
 export const DeleteLocalTrackerConnectionRequestSchema: GenMessage<DeleteLocalTrackerConnectionRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 4);
+  messageDesc(file_harness_agent_v1_trackers, 14);
 
 /**
  * @generated from message harness.agent.v1.DeleteLocalTrackerConnectionResponse
@@ -115,7 +313,7 @@ export type DeleteLocalTrackerConnectionResponse = Message<"harness.agent.v1.Del
  * Use `create(DeleteLocalTrackerConnectionResponseSchema)` to create a new message.
  */
 export const DeleteLocalTrackerConnectionResponseSchema: GenMessage<DeleteLocalTrackerConnectionResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 5);
+  messageDesc(file_harness_agent_v1_trackers, 15);
 
 /**
  * @generated from message harness.agent.v1.TestLocalTrackerConnectionRequest
@@ -141,7 +339,7 @@ export type TestLocalTrackerConnectionRequest = Message<"harness.agent.v1.TestLo
  * Use `create(TestLocalTrackerConnectionRequestSchema)` to create a new message.
  */
 export const TestLocalTrackerConnectionRequestSchema: GenMessage<TestLocalTrackerConnectionRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 6);
+  messageDesc(file_harness_agent_v1_trackers, 16);
 
 /**
  * @generated from message harness.agent.v1.TestLocalTrackerConnectionResponse
@@ -173,7 +371,7 @@ export type TestLocalTrackerConnectionResponse = Message<"harness.agent.v1.TestL
  * Use `create(TestLocalTrackerConnectionResponseSchema)` to create a new message.
  */
 export const TestLocalTrackerConnectionResponseSchema: GenMessage<TestLocalTrackerConnectionResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 7);
+  messageDesc(file_harness_agent_v1_trackers, 17);
 
 /**
  * @generated from message harness.agent.v1.SearchLocalTrackerIssuesRequest
@@ -202,7 +400,7 @@ export type SearchLocalTrackerIssuesRequest = Message<"harness.agent.v1.SearchLo
  * Use `create(SearchLocalTrackerIssuesRequestSchema)` to create a new message.
  */
 export const SearchLocalTrackerIssuesRequestSchema: GenMessage<SearchLocalTrackerIssuesRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 8);
+  messageDesc(file_harness_agent_v1_trackers, 18);
 
 /**
  * @generated from message harness.agent.v1.SearchLocalTrackerIssuesResponse
@@ -224,7 +422,7 @@ export type SearchLocalTrackerIssuesResponse = Message<"harness.agent.v1.SearchL
  * Use `create(SearchLocalTrackerIssuesResponseSchema)` to create a new message.
  */
 export const SearchLocalTrackerIssuesResponseSchema: GenMessage<SearchLocalTrackerIssuesResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 9);
+  messageDesc(file_harness_agent_v1_trackers, 19);
 
 /**
  * @generated from message harness.agent.v1.GetLocalTrackerIssueRequest
@@ -246,7 +444,7 @@ export type GetLocalTrackerIssueRequest = Message<"harness.agent.v1.GetLocalTrac
  * Use `create(GetLocalTrackerIssueRequestSchema)` to create a new message.
  */
 export const GetLocalTrackerIssueRequestSchema: GenMessage<GetLocalTrackerIssueRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 10);
+  messageDesc(file_harness_agent_v1_trackers, 20);
 
 /**
  * @generated from message harness.agent.v1.GetLocalTrackerIssueResponse
@@ -263,7 +461,7 @@ export type GetLocalTrackerIssueResponse = Message<"harness.agent.v1.GetLocalTra
  * Use `create(GetLocalTrackerIssueResponseSchema)` to create a new message.
  */
 export const GetLocalTrackerIssueResponseSchema: GenMessage<GetLocalTrackerIssueResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 11);
+  messageDesc(file_harness_agent_v1_trackers, 21);
 
 /**
  * @generated from message harness.agent.v1.ListLocalTrackerFieldsRequest
@@ -285,7 +483,7 @@ export type ListLocalTrackerFieldsRequest = Message<"harness.agent.v1.ListLocalT
  * Use `create(ListLocalTrackerFieldsRequestSchema)` to create a new message.
  */
 export const ListLocalTrackerFieldsRequestSchema: GenMessage<ListLocalTrackerFieldsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 12);
+  messageDesc(file_harness_agent_v1_trackers, 22);
 
 /**
  * @generated from message harness.agent.v1.ListLocalTrackerFieldsResponse
@@ -302,7 +500,7 @@ export type ListLocalTrackerFieldsResponse = Message<"harness.agent.v1.ListLocal
  * Use `create(ListLocalTrackerFieldsResponseSchema)` to create a new message.
  */
 export const ListLocalTrackerFieldsResponseSchema: GenMessage<ListLocalTrackerFieldsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 13);
+  messageDesc(file_harness_agent_v1_trackers, 23);
 
 /**
  * @generated from message harness.agent.v1.StartLocalTrackerOAuthRequest
@@ -319,7 +517,7 @@ export type StartLocalTrackerOAuthRequest = Message<"harness.agent.v1.StartLocal
  * Use `create(StartLocalTrackerOAuthRequestSchema)` to create a new message.
  */
 export const StartLocalTrackerOAuthRequestSchema: GenMessage<StartLocalTrackerOAuthRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 14);
+  messageDesc(file_harness_agent_v1_trackers, 24);
 
 /**
  * @generated from message harness.agent.v1.StartLocalTrackerOAuthResponse
@@ -341,7 +539,7 @@ export type StartLocalTrackerOAuthResponse = Message<"harness.agent.v1.StartLoca
  * Use `create(StartLocalTrackerOAuthResponseSchema)` to create a new message.
  */
 export const StartLocalTrackerOAuthResponseSchema: GenMessage<StartLocalTrackerOAuthResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 15);
+  messageDesc(file_harness_agent_v1_trackers, 25);
 
 /**
  * @generated from message harness.agent.v1.GetLocalTrackerOAuthRequest
@@ -358,7 +556,7 @@ export type GetLocalTrackerOAuthRequest = Message<"harness.agent.v1.GetLocalTrac
  * Use `create(GetLocalTrackerOAuthRequestSchema)` to create a new message.
  */
 export const GetLocalTrackerOAuthRequestSchema: GenMessage<GetLocalTrackerOAuthRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 16);
+  messageDesc(file_harness_agent_v1_trackers, 26);
 
 /**
  * @generated from message harness.agent.v1.GetLocalTrackerOAuthResponse
@@ -380,7 +578,7 @@ export type GetLocalTrackerOAuthResponse = Message<"harness.agent.v1.GetLocalTra
  * Use `create(GetLocalTrackerOAuthResponseSchema)` to create a new message.
  */
 export const GetLocalTrackerOAuthResponseSchema: GenMessage<GetLocalTrackerOAuthResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 17);
+  messageDesc(file_harness_agent_v1_trackers, 27);
 
 /**
  * @generated from message harness.agent.v1.SyncLocalTrackersRequest
@@ -393,7 +591,7 @@ export type SyncLocalTrackersRequest = Message<"harness.agent.v1.SyncLocalTracke
  * Use `create(SyncLocalTrackersRequestSchema)` to create a new message.
  */
 export const SyncLocalTrackersRequestSchema: GenMessage<SyncLocalTrackersRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 18);
+  messageDesc(file_harness_agent_v1_trackers, 28);
 
 /**
  * @generated from message harness.agent.v1.SyncLocalTrackersResponse
@@ -417,7 +615,7 @@ export type SyncLocalTrackersResponse = Message<"harness.agent.v1.SyncLocalTrack
  * Use `create(SyncLocalTrackersResponseSchema)` to create a new message.
  */
 export const SyncLocalTrackersResponseSchema: GenMessage<SyncLocalTrackersResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 19);
+  messageDesc(file_harness_agent_v1_trackers, 29);
 
 /**
  * @generated from message harness.agent.v1.ListLocalProviderProjectsRequest
@@ -434,7 +632,7 @@ export type ListLocalProviderProjectsRequest = Message<"harness.agent.v1.ListLoc
  * Use `create(ListLocalProviderProjectsRequestSchema)` to create a new message.
  */
 export const ListLocalProviderProjectsRequestSchema: GenMessage<ListLocalProviderProjectsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 20);
+  messageDesc(file_harness_agent_v1_trackers, 30);
 
 /**
  * @generated from message harness.agent.v1.ListLocalProviderProjectsResponse
@@ -451,7 +649,7 @@ export type ListLocalProviderProjectsResponse = Message<"harness.agent.v1.ListLo
  * Use `create(ListLocalProviderProjectsResponseSchema)` to create a new message.
  */
 export const ListLocalProviderProjectsResponseSchema: GenMessage<ListLocalProviderProjectsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 21);
+  messageDesc(file_harness_agent_v1_trackers, 31);
 
 /**
  * @generated from message harness.agent.v1.FolderProject
@@ -475,7 +673,7 @@ export type FolderProject = Message<"harness.agent.v1.FolderProject"> & {
  * Use `create(FolderProjectSchema)` to create a new message.
  */
 export const FolderProjectSchema: GenMessage<FolderProject> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 22);
+  messageDesc(file_harness_agent_v1_trackers, 32);
 
 /**
  * @generated from message harness.agent.v1.ListFolderProjectsRequest
@@ -488,7 +686,7 @@ export type ListFolderProjectsRequest = Message<"harness.agent.v1.ListFolderProj
  * Use `create(ListFolderProjectsRequestSchema)` to create a new message.
  */
 export const ListFolderProjectsRequestSchema: GenMessage<ListFolderProjectsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 23);
+  messageDesc(file_harness_agent_v1_trackers, 33);
 
 /**
  * @generated from message harness.agent.v1.ListFolderProjectsResponse
@@ -505,7 +703,7 @@ export type ListFolderProjectsResponse = Message<"harness.agent.v1.ListFolderPro
  * Use `create(ListFolderProjectsResponseSchema)` to create a new message.
  */
 export const ListFolderProjectsResponseSchema: GenMessage<ListFolderProjectsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 24);
+  messageDesc(file_harness_agent_v1_trackers, 34);
 
 /**
  * @generated from message harness.agent.v1.SetFolderProjectRequest
@@ -529,7 +727,7 @@ export type SetFolderProjectRequest = Message<"harness.agent.v1.SetFolderProject
  * Use `create(SetFolderProjectRequestSchema)` to create a new message.
  */
 export const SetFolderProjectRequestSchema: GenMessage<SetFolderProjectRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 25);
+  messageDesc(file_harness_agent_v1_trackers, 35);
 
 /**
  * @generated from message harness.agent.v1.SetFolderProjectResponse
@@ -542,7 +740,7 @@ export type SetFolderProjectResponse = Message<"harness.agent.v1.SetFolderProjec
  * Use `create(SetFolderProjectResponseSchema)` to create a new message.
  */
 export const SetFolderProjectResponseSchema: GenMessage<SetFolderProjectResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 26);
+  messageDesc(file_harness_agent_v1_trackers, 36);
 
 /**
  * @generated from message harness.agent.v1.PrepareIssueSessionRequest
@@ -561,7 +759,7 @@ export type PrepareIssueSessionRequest = Message<"harness.agent.v1.PrepareIssueS
  * Use `create(PrepareIssueSessionRequestSchema)` to create a new message.
  */
 export const PrepareIssueSessionRequestSchema: GenMessage<PrepareIssueSessionRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 27);
+  messageDesc(file_harness_agent_v1_trackers, 37);
 
 /**
  * @generated from message harness.agent.v1.PrepareIssueSessionResponse
@@ -595,7 +793,7 @@ export type PrepareIssueSessionResponse = Message<"harness.agent.v1.PrepareIssue
  * Use `create(PrepareIssueSessionResponseSchema)` to create a new message.
  */
 export const PrepareIssueSessionResponseSchema: GenMessage<PrepareIssueSessionResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 28);
+  messageDesc(file_harness_agent_v1_trackers, 38);
 
 /**
  * @generated from message harness.agent.v1.ListAllKnowledgeSourcesRequest
@@ -608,7 +806,7 @@ export type ListAllKnowledgeSourcesRequest = Message<"harness.agent.v1.ListAllKn
  * Use `create(ListAllKnowledgeSourcesRequestSchema)` to create a new message.
  */
 export const ListAllKnowledgeSourcesRequestSchema: GenMessage<ListAllKnowledgeSourcesRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 29);
+  messageDesc(file_harness_agent_v1_trackers, 39);
 
 /**
  * @generated from message harness.agent.v1.ListAllKnowledgeSourcesResponse
@@ -625,7 +823,7 @@ export type ListAllKnowledgeSourcesResponse = Message<"harness.agent.v1.ListAllK
  * Use `create(ListAllKnowledgeSourcesResponseSchema)` to create a new message.
  */
 export const ListAllKnowledgeSourcesResponseSchema: GenMessage<ListAllKnowledgeSourcesResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 30);
+  messageDesc(file_harness_agent_v1_trackers, 40);
 
 /**
  * @generated from message harness.agent.v1.SearchAllKnowledgeRequest
@@ -656,7 +854,7 @@ export type SearchAllKnowledgeRequest = Message<"harness.agent.v1.SearchAllKnowl
  * Use `create(SearchAllKnowledgeRequestSchema)` to create a new message.
  */
 export const SearchAllKnowledgeRequestSchema: GenMessage<SearchAllKnowledgeRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 31);
+  messageDesc(file_harness_agent_v1_trackers, 41);
 
 /**
  * @generated from message harness.agent.v1.SearchAllKnowledgeResponse
@@ -678,7 +876,7 @@ export type SearchAllKnowledgeResponse = Message<"harness.agent.v1.SearchAllKnow
  * Use `create(SearchAllKnowledgeResponseSchema)` to create a new message.
  */
 export const SearchAllKnowledgeResponseSchema: GenMessage<SearchAllKnowledgeResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 32);
+  messageDesc(file_harness_agent_v1_trackers, 42);
 
 /**
  * @generated from message harness.agent.v1.BrowseKnowledgeRequest
@@ -710,7 +908,7 @@ export type BrowseKnowledgeRequest = Message<"harness.agent.v1.BrowseKnowledgeRe
  * Use `create(BrowseKnowledgeRequestSchema)` to create a new message.
  */
 export const BrowseKnowledgeRequestSchema: GenMessage<BrowseKnowledgeRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 33);
+  messageDesc(file_harness_agent_v1_trackers, 43);
 
 /**
  * @generated from message harness.agent.v1.BrowseKnowledgeResponse
@@ -732,7 +930,7 @@ export type BrowseKnowledgeResponse = Message<"harness.agent.v1.BrowseKnowledgeR
  * Use `create(BrowseKnowledgeResponseSchema)` to create a new message.
  */
 export const BrowseKnowledgeResponseSchema: GenMessage<BrowseKnowledgeResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 34);
+  messageDesc(file_harness_agent_v1_trackers, 44);
 
 /**
  * @generated from message harness.agent.v1.ReadKnowledgeRequest
@@ -749,7 +947,7 @@ export type ReadKnowledgeRequest = Message<"harness.agent.v1.ReadKnowledgeReques
  * Use `create(ReadKnowledgeRequestSchema)` to create a new message.
  */
 export const ReadKnowledgeRequestSchema: GenMessage<ReadKnowledgeRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 35);
+  messageDesc(file_harness_agent_v1_trackers, 45);
 
 /**
  * @generated from message harness.agent.v1.ReadKnowledgeResponse
@@ -771,7 +969,7 @@ export type ReadKnowledgeResponse = Message<"harness.agent.v1.ReadKnowledgeRespo
  * Use `create(ReadKnowledgeResponseSchema)` to create a new message.
  */
 export const ReadKnowledgeResponseSchema: GenMessage<ReadKnowledgeResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_trackers, 36);
+  messageDesc(file_harness_agent_v1_trackers, 46);
 
 /**
  * Trackers on this device (packages/client/tracker). A personal connection keeps its credentials in the system keychain, and
@@ -950,6 +1148,54 @@ export const LocalTrackerService: GenService<{
     methodKind: "unary";
     input: typeof ReadKnowledgeRequestSchema;
     output: typeof ReadKnowledgeResponseSchema;
+  },
+  /**
+   * Knowledge source connections on this device (harness.library.v1.KnowledgeConnection): credentials in the system keychain,
+   * requests from this client, never synced. One may borrow the sign-in of a tracker connection of this device.
+   *
+   * @generated from rpc harness.agent.v1.LocalTrackerService.ListLocalKnowledgeConnections
+   */
+  listLocalKnowledgeConnections: {
+    methodKind: "unary";
+    input: typeof ListLocalKnowledgeConnectionsRequestSchema;
+    output: typeof ListLocalKnowledgeConnectionsResponseSchema;
+  },
+  /**
+   * @generated from rpc harness.agent.v1.LocalTrackerService.SaveLocalKnowledgeConnection
+   */
+  saveLocalKnowledgeConnection: {
+    methodKind: "unary";
+    input: typeof SaveLocalKnowledgeConnectionRequestSchema;
+    output: typeof SaveLocalKnowledgeConnectionResponseSchema;
+  },
+  /**
+   * @generated from rpc harness.agent.v1.LocalTrackerService.DeleteLocalKnowledgeConnection
+   */
+  deleteLocalKnowledgeConnection: {
+    methodKind: "unary";
+    input: typeof DeleteLocalKnowledgeConnectionRequestSchema;
+    output: typeof DeleteLocalKnowledgeConnectionResponseSchema;
+  },
+  /**
+   * Failure is an answer, not an error.
+   *
+   * @generated from rpc harness.agent.v1.LocalTrackerService.TestLocalKnowledgeConnection
+   */
+  testLocalKnowledgeConnection: {
+    methodKind: "unary";
+    input: typeof TestLocalKnowledgeConnectionRequestSchema;
+    output: typeof TestLocalKnowledgeConnectionResponseSchema;
+  },
+  /**
+   * Authorization Code with PKCE through a loopback address, for a connection with its own OAuth sign-in. Poll the flow with
+   * GetLocalTrackerOAuth.
+   *
+   * @generated from rpc harness.agent.v1.LocalTrackerService.StartLocalKnowledgeOAuth
+   */
+  startLocalKnowledgeOAuth: {
+    methodKind: "unary";
+    input: typeof StartLocalKnowledgeOAuthRequestSchema;
+    output: typeof StartLocalKnowledgeOAuthResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_agent_v1_trackers, 0);

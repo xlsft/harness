@@ -22,6 +22,480 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type ListLocalKnowledgeConnectionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLocalKnowledgeConnectionsRequest) Reset() {
+	*x = ListLocalKnowledgeConnectionsRequest{}
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLocalKnowledgeConnectionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLocalKnowledgeConnectionsRequest) ProtoMessage() {}
+
+func (x *ListLocalKnowledgeConnectionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLocalKnowledgeConnectionsRequest.ProtoReflect.Descriptor instead.
+func (*ListLocalKnowledgeConnectionsRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{0}
+}
+
+type ListLocalKnowledgeConnectionsResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Connections   []*v1.KnowledgeConnection   `protobuf:"bytes,1,rep,name=connections,proto3" json:"connections,omitempty"`
+	Providers     []*v1.KnowledgeCapabilities `protobuf:"bytes,2,rep,name=providers,proto3" json:"providers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLocalKnowledgeConnectionsResponse) Reset() {
+	*x = ListLocalKnowledgeConnectionsResponse{}
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLocalKnowledgeConnectionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLocalKnowledgeConnectionsResponse) ProtoMessage() {}
+
+func (x *ListLocalKnowledgeConnectionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLocalKnowledgeConnectionsResponse.ProtoReflect.Descriptor instead.
+func (*ListLocalKnowledgeConnectionsResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ListLocalKnowledgeConnectionsResponse) GetConnections() []*v1.KnowledgeConnection {
+	if x != nil {
+		return x.Connections
+	}
+	return nil
+}
+
+func (x *ListLocalKnowledgeConnectionsResponse) GetProviders() []*v1.KnowledgeCapabilities {
+	if x != nil {
+		return x.Providers
+	}
+	return nil
+}
+
+type SaveLocalKnowledgeConnectionRequest struct {
+	state         protoimpl.MessageState       `protogen:"open.v1"`
+	Connection    *v1.KnowledgeConnectionInput `protobuf:"bytes,1,opt,name=connection,proto3" json:"connection,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SaveLocalKnowledgeConnectionRequest) Reset() {
+	*x = SaveLocalKnowledgeConnectionRequest{}
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SaveLocalKnowledgeConnectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveLocalKnowledgeConnectionRequest) ProtoMessage() {}
+
+func (x *SaveLocalKnowledgeConnectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveLocalKnowledgeConnectionRequest.ProtoReflect.Descriptor instead.
+func (*SaveLocalKnowledgeConnectionRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *SaveLocalKnowledgeConnectionRequest) GetConnection() *v1.KnowledgeConnectionInput {
+	if x != nil {
+		return x.Connection
+	}
+	return nil
+}
+
+type SaveLocalKnowledgeConnectionResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Connection    *v1.KnowledgeConnection `protobuf:"bytes,1,opt,name=connection,proto3" json:"connection,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SaveLocalKnowledgeConnectionResponse) Reset() {
+	*x = SaveLocalKnowledgeConnectionResponse{}
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SaveLocalKnowledgeConnectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveLocalKnowledgeConnectionResponse) ProtoMessage() {}
+
+func (x *SaveLocalKnowledgeConnectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveLocalKnowledgeConnectionResponse.ProtoReflect.Descriptor instead.
+func (*SaveLocalKnowledgeConnectionResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *SaveLocalKnowledgeConnectionResponse) GetConnection() *v1.KnowledgeConnection {
+	if x != nil {
+		return x.Connection
+	}
+	return nil
+}
+
+type DeleteLocalKnowledgeConnectionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteLocalKnowledgeConnectionRequest) Reset() {
+	*x = DeleteLocalKnowledgeConnectionRequest{}
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteLocalKnowledgeConnectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteLocalKnowledgeConnectionRequest) ProtoMessage() {}
+
+func (x *DeleteLocalKnowledgeConnectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteLocalKnowledgeConnectionRequest.ProtoReflect.Descriptor instead.
+func (*DeleteLocalKnowledgeConnectionRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *DeleteLocalKnowledgeConnectionRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type DeleteLocalKnowledgeConnectionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteLocalKnowledgeConnectionResponse) Reset() {
+	*x = DeleteLocalKnowledgeConnectionResponse{}
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteLocalKnowledgeConnectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteLocalKnowledgeConnectionResponse) ProtoMessage() {}
+
+func (x *DeleteLocalKnowledgeConnectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteLocalKnowledgeConnectionResponse.ProtoReflect.Descriptor instead.
+func (*DeleteLocalKnowledgeConnectionResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{5}
+}
+
+type TestLocalKnowledgeConnectionRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A saved connection, or
+	Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// one not saved yet.
+	Draft         *v1.KnowledgeConnectionInput `protobuf:"bytes,2,opt,name=draft,proto3" json:"draft,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestLocalKnowledgeConnectionRequest) Reset() {
+	*x = TestLocalKnowledgeConnectionRequest{}
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestLocalKnowledgeConnectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestLocalKnowledgeConnectionRequest) ProtoMessage() {}
+
+func (x *TestLocalKnowledgeConnectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestLocalKnowledgeConnectionRequest.ProtoReflect.Descriptor instead.
+func (*TestLocalKnowledgeConnectionRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *TestLocalKnowledgeConnectionRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *TestLocalKnowledgeConnectionRequest) GetDraft() *v1.KnowledgeConnectionInput {
+	if x != nil {
+		return x.Draft
+	}
+	return nil
+}
+
+type TestLocalKnowledgeConnectionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ok            bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
+	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	Login         string                 `protobuf:"bytes,3,opt,name=login,proto3" json:"login,omitempty"`
+	DisplayName   string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestLocalKnowledgeConnectionResponse) Reset() {
+	*x = TestLocalKnowledgeConnectionResponse{}
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestLocalKnowledgeConnectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestLocalKnowledgeConnectionResponse) ProtoMessage() {}
+
+func (x *TestLocalKnowledgeConnectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestLocalKnowledgeConnectionResponse.ProtoReflect.Descriptor instead.
+func (*TestLocalKnowledgeConnectionResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *TestLocalKnowledgeConnectionResponse) GetOk() bool {
+	if x != nil {
+		return x.Ok
+	}
+	return false
+}
+
+func (x *TestLocalKnowledgeConnectionResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *TestLocalKnowledgeConnectionResponse) GetLogin() string {
+	if x != nil {
+		return x.Login
+	}
+	return ""
+}
+
+func (x *TestLocalKnowledgeConnectionResponse) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+type StartLocalKnowledgeOAuthRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ConnectionId  string                 `protobuf:"bytes,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartLocalKnowledgeOAuthRequest) Reset() {
+	*x = StartLocalKnowledgeOAuthRequest{}
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartLocalKnowledgeOAuthRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartLocalKnowledgeOAuthRequest) ProtoMessage() {}
+
+func (x *StartLocalKnowledgeOAuthRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartLocalKnowledgeOAuthRequest.ProtoReflect.Descriptor instead.
+func (*StartLocalKnowledgeOAuthRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *StartLocalKnowledgeOAuthRequest) GetConnectionId() string {
+	if x != nil {
+		return x.ConnectionId
+	}
+	return ""
+}
+
+type StartLocalKnowledgeOAuthResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FlowId        string                 `protobuf:"bytes,1,opt,name=flow_id,json=flowId,proto3" json:"flow_id,omitempty"`
+	AuthorizeUrl  string                 `protobuf:"bytes,2,opt,name=authorize_url,json=authorizeUrl,proto3" json:"authorize_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartLocalKnowledgeOAuthResponse) Reset() {
+	*x = StartLocalKnowledgeOAuthResponse{}
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartLocalKnowledgeOAuthResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartLocalKnowledgeOAuthResponse) ProtoMessage() {}
+
+func (x *StartLocalKnowledgeOAuthResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartLocalKnowledgeOAuthResponse.ProtoReflect.Descriptor instead.
+func (*StartLocalKnowledgeOAuthResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *StartLocalKnowledgeOAuthResponse) GetFlowId() string {
+	if x != nil {
+		return x.FlowId
+	}
+	return ""
+}
+
+func (x *StartLocalKnowledgeOAuthResponse) GetAuthorizeUrl() string {
+	if x != nil {
+		return x.AuthorizeUrl
+	}
+	return ""
+}
+
 type ListLocalTrackerConnectionsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -30,7 +504,7 @@ type ListLocalTrackerConnectionsRequest struct {
 
 func (x *ListLocalTrackerConnectionsRequest) Reset() {
 	*x = ListLocalTrackerConnectionsRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[0]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +516,7 @@ func (x *ListLocalTrackerConnectionsRequest) String() string {
 func (*ListLocalTrackerConnectionsRequest) ProtoMessage() {}
 
 func (x *ListLocalTrackerConnectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[0]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +529,7 @@ func (x *ListLocalTrackerConnectionsRequest) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use ListLocalTrackerConnectionsRequest.ProtoReflect.Descriptor instead.
 func (*ListLocalTrackerConnectionsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{0}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{10}
 }
 
 type ListLocalTrackerConnectionsResponse struct {
@@ -68,7 +542,7 @@ type ListLocalTrackerConnectionsResponse struct {
 
 func (x *ListLocalTrackerConnectionsResponse) Reset() {
 	*x = ListLocalTrackerConnectionsResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[1]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -80,7 +554,7 @@ func (x *ListLocalTrackerConnectionsResponse) String() string {
 func (*ListLocalTrackerConnectionsResponse) ProtoMessage() {}
 
 func (x *ListLocalTrackerConnectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[1]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -93,7 +567,7 @@ func (x *ListLocalTrackerConnectionsResponse) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use ListLocalTrackerConnectionsResponse.ProtoReflect.Descriptor instead.
 func (*ListLocalTrackerConnectionsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{1}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListLocalTrackerConnectionsResponse) GetConnections() []*v1.TrackerConnection {
@@ -119,7 +593,7 @@ type SaveLocalTrackerConnectionRequest struct {
 
 func (x *SaveLocalTrackerConnectionRequest) Reset() {
 	*x = SaveLocalTrackerConnectionRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[2]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -131,7 +605,7 @@ func (x *SaveLocalTrackerConnectionRequest) String() string {
 func (*SaveLocalTrackerConnectionRequest) ProtoMessage() {}
 
 func (x *SaveLocalTrackerConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[2]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -144,7 +618,7 @@ func (x *SaveLocalTrackerConnectionRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use SaveLocalTrackerConnectionRequest.ProtoReflect.Descriptor instead.
 func (*SaveLocalTrackerConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{2}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SaveLocalTrackerConnectionRequest) GetConnection() *v1.TrackerConnectionInput {
@@ -163,7 +637,7 @@ type SaveLocalTrackerConnectionResponse struct {
 
 func (x *SaveLocalTrackerConnectionResponse) Reset() {
 	*x = SaveLocalTrackerConnectionResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[3]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -175,7 +649,7 @@ func (x *SaveLocalTrackerConnectionResponse) String() string {
 func (*SaveLocalTrackerConnectionResponse) ProtoMessage() {}
 
 func (x *SaveLocalTrackerConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[3]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -188,7 +662,7 @@ func (x *SaveLocalTrackerConnectionResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use SaveLocalTrackerConnectionResponse.ProtoReflect.Descriptor instead.
 func (*SaveLocalTrackerConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{3}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SaveLocalTrackerConnectionResponse) GetConnection() *v1.TrackerConnection {
@@ -207,7 +681,7 @@ type DeleteLocalTrackerConnectionRequest struct {
 
 func (x *DeleteLocalTrackerConnectionRequest) Reset() {
 	*x = DeleteLocalTrackerConnectionRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[4]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -219,7 +693,7 @@ func (x *DeleteLocalTrackerConnectionRequest) String() string {
 func (*DeleteLocalTrackerConnectionRequest) ProtoMessage() {}
 
 func (x *DeleteLocalTrackerConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[4]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -232,7 +706,7 @@ func (x *DeleteLocalTrackerConnectionRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use DeleteLocalTrackerConnectionRequest.ProtoReflect.Descriptor instead.
 func (*DeleteLocalTrackerConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{4}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DeleteLocalTrackerConnectionRequest) GetId() string {
@@ -250,7 +724,7 @@ type DeleteLocalTrackerConnectionResponse struct {
 
 func (x *DeleteLocalTrackerConnectionResponse) Reset() {
 	*x = DeleteLocalTrackerConnectionResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[5]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -262,7 +736,7 @@ func (x *DeleteLocalTrackerConnectionResponse) String() string {
 func (*DeleteLocalTrackerConnectionResponse) ProtoMessage() {}
 
 func (x *DeleteLocalTrackerConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[5]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -275,7 +749,7 @@ func (x *DeleteLocalTrackerConnectionResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use DeleteLocalTrackerConnectionResponse.ProtoReflect.Descriptor instead.
 func (*DeleteLocalTrackerConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{5}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{15}
 }
 
 type TestLocalTrackerConnectionRequest struct {
@@ -290,7 +764,7 @@ type TestLocalTrackerConnectionRequest struct {
 
 func (x *TestLocalTrackerConnectionRequest) Reset() {
 	*x = TestLocalTrackerConnectionRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[6]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -302,7 +776,7 @@ func (x *TestLocalTrackerConnectionRequest) String() string {
 func (*TestLocalTrackerConnectionRequest) ProtoMessage() {}
 
 func (x *TestLocalTrackerConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[6]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -315,7 +789,7 @@ func (x *TestLocalTrackerConnectionRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use TestLocalTrackerConnectionRequest.ProtoReflect.Descriptor instead.
 func (*TestLocalTrackerConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{6}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *TestLocalTrackerConnectionRequest) GetId() string {
@@ -344,7 +818,7 @@ type TestLocalTrackerConnectionResponse struct {
 
 func (x *TestLocalTrackerConnectionResponse) Reset() {
 	*x = TestLocalTrackerConnectionResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[7]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -356,7 +830,7 @@ func (x *TestLocalTrackerConnectionResponse) String() string {
 func (*TestLocalTrackerConnectionResponse) ProtoMessage() {}
 
 func (x *TestLocalTrackerConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[7]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -369,7 +843,7 @@ func (x *TestLocalTrackerConnectionResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use TestLocalTrackerConnectionResponse.ProtoReflect.Descriptor instead.
 func (*TestLocalTrackerConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{7}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *TestLocalTrackerConnectionResponse) GetOk() bool {
@@ -412,7 +886,7 @@ type SearchLocalTrackerIssuesRequest struct {
 
 func (x *SearchLocalTrackerIssuesRequest) Reset() {
 	*x = SearchLocalTrackerIssuesRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[8]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -424,7 +898,7 @@ func (x *SearchLocalTrackerIssuesRequest) String() string {
 func (*SearchLocalTrackerIssuesRequest) ProtoMessage() {}
 
 func (x *SearchLocalTrackerIssuesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[8]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -437,7 +911,7 @@ func (x *SearchLocalTrackerIssuesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchLocalTrackerIssuesRequest.ProtoReflect.Descriptor instead.
 func (*SearchLocalTrackerIssuesRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{8}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *SearchLocalTrackerIssuesRequest) GetConnectionId() string {
@@ -471,7 +945,7 @@ type SearchLocalTrackerIssuesResponse struct {
 
 func (x *SearchLocalTrackerIssuesResponse) Reset() {
 	*x = SearchLocalTrackerIssuesResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[9]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -483,7 +957,7 @@ func (x *SearchLocalTrackerIssuesResponse) String() string {
 func (*SearchLocalTrackerIssuesResponse) ProtoMessage() {}
 
 func (x *SearchLocalTrackerIssuesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[9]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -496,7 +970,7 @@ func (x *SearchLocalTrackerIssuesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchLocalTrackerIssuesResponse.ProtoReflect.Descriptor instead.
 func (*SearchLocalTrackerIssuesResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{9}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *SearchLocalTrackerIssuesResponse) GetIssues() []*v1.TrackerIssue {
@@ -523,7 +997,7 @@ type GetLocalTrackerIssueRequest struct {
 
 func (x *GetLocalTrackerIssueRequest) Reset() {
 	*x = GetLocalTrackerIssueRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[10]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -535,7 +1009,7 @@ func (x *GetLocalTrackerIssueRequest) String() string {
 func (*GetLocalTrackerIssueRequest) ProtoMessage() {}
 
 func (x *GetLocalTrackerIssueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[10]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -548,7 +1022,7 @@ func (x *GetLocalTrackerIssueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLocalTrackerIssueRequest.ProtoReflect.Descriptor instead.
 func (*GetLocalTrackerIssueRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{10}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *GetLocalTrackerIssueRequest) GetConnectionId() string {
@@ -574,7 +1048,7 @@ type GetLocalTrackerIssueResponse struct {
 
 func (x *GetLocalTrackerIssueResponse) Reset() {
 	*x = GetLocalTrackerIssueResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[11]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -586,7 +1060,7 @@ func (x *GetLocalTrackerIssueResponse) String() string {
 func (*GetLocalTrackerIssueResponse) ProtoMessage() {}
 
 func (x *GetLocalTrackerIssueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[11]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -599,7 +1073,7 @@ func (x *GetLocalTrackerIssueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLocalTrackerIssueResponse.ProtoReflect.Descriptor instead.
 func (*GetLocalTrackerIssueResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{11}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetLocalTrackerIssueResponse) GetIssue() *v1.TrackerIssue {
@@ -619,7 +1093,7 @@ type ListLocalTrackerFieldsRequest struct {
 
 func (x *ListLocalTrackerFieldsRequest) Reset() {
 	*x = ListLocalTrackerFieldsRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[12]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -631,7 +1105,7 @@ func (x *ListLocalTrackerFieldsRequest) String() string {
 func (*ListLocalTrackerFieldsRequest) ProtoMessage() {}
 
 func (x *ListLocalTrackerFieldsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[12]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -644,7 +1118,7 @@ func (x *ListLocalTrackerFieldsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLocalTrackerFieldsRequest.ProtoReflect.Descriptor instead.
 func (*ListLocalTrackerFieldsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{12}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ListLocalTrackerFieldsRequest) GetConnectionId() string {
@@ -670,7 +1144,7 @@ type ListLocalTrackerFieldsResponse struct {
 
 func (x *ListLocalTrackerFieldsResponse) Reset() {
 	*x = ListLocalTrackerFieldsResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[13]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -682,7 +1156,7 @@ func (x *ListLocalTrackerFieldsResponse) String() string {
 func (*ListLocalTrackerFieldsResponse) ProtoMessage() {}
 
 func (x *ListLocalTrackerFieldsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[13]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -695,7 +1169,7 @@ func (x *ListLocalTrackerFieldsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLocalTrackerFieldsResponse.ProtoReflect.Descriptor instead.
 func (*ListLocalTrackerFieldsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{13}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ListLocalTrackerFieldsResponse) GetFields() []*v1.TrackerField {
@@ -714,7 +1188,7 @@ type StartLocalTrackerOAuthRequest struct {
 
 func (x *StartLocalTrackerOAuthRequest) Reset() {
 	*x = StartLocalTrackerOAuthRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[14]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -726,7 +1200,7 @@ func (x *StartLocalTrackerOAuthRequest) String() string {
 func (*StartLocalTrackerOAuthRequest) ProtoMessage() {}
 
 func (x *StartLocalTrackerOAuthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[14]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -739,7 +1213,7 @@ func (x *StartLocalTrackerOAuthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartLocalTrackerOAuthRequest.ProtoReflect.Descriptor instead.
 func (*StartLocalTrackerOAuthRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{14}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *StartLocalTrackerOAuthRequest) GetConnectionId() string {
@@ -759,7 +1233,7 @@ type StartLocalTrackerOAuthResponse struct {
 
 func (x *StartLocalTrackerOAuthResponse) Reset() {
 	*x = StartLocalTrackerOAuthResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[15]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -771,7 +1245,7 @@ func (x *StartLocalTrackerOAuthResponse) String() string {
 func (*StartLocalTrackerOAuthResponse) ProtoMessage() {}
 
 func (x *StartLocalTrackerOAuthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[15]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -784,7 +1258,7 @@ func (x *StartLocalTrackerOAuthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartLocalTrackerOAuthResponse.ProtoReflect.Descriptor instead.
 func (*StartLocalTrackerOAuthResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{15}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *StartLocalTrackerOAuthResponse) GetFlowId() string {
@@ -810,7 +1284,7 @@ type GetLocalTrackerOAuthRequest struct {
 
 func (x *GetLocalTrackerOAuthRequest) Reset() {
 	*x = GetLocalTrackerOAuthRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[16]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -822,7 +1296,7 @@ func (x *GetLocalTrackerOAuthRequest) String() string {
 func (*GetLocalTrackerOAuthRequest) ProtoMessage() {}
 
 func (x *GetLocalTrackerOAuthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[16]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -835,7 +1309,7 @@ func (x *GetLocalTrackerOAuthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLocalTrackerOAuthRequest.ProtoReflect.Descriptor instead.
 func (*GetLocalTrackerOAuthRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{16}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetLocalTrackerOAuthRequest) GetFlowId() string {
@@ -855,7 +1329,7 @@ type GetLocalTrackerOAuthResponse struct {
 
 func (x *GetLocalTrackerOAuthResponse) Reset() {
 	*x = GetLocalTrackerOAuthResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[17]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -867,7 +1341,7 @@ func (x *GetLocalTrackerOAuthResponse) String() string {
 func (*GetLocalTrackerOAuthResponse) ProtoMessage() {}
 
 func (x *GetLocalTrackerOAuthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[17]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -880,7 +1354,7 @@ func (x *GetLocalTrackerOAuthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLocalTrackerOAuthResponse.ProtoReflect.Descriptor instead.
 func (*GetLocalTrackerOAuthResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{17}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetLocalTrackerOAuthResponse) GetDone() bool {
@@ -905,7 +1379,7 @@ type SyncLocalTrackersRequest struct {
 
 func (x *SyncLocalTrackersRequest) Reset() {
 	*x = SyncLocalTrackersRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[18]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -917,7 +1391,7 @@ func (x *SyncLocalTrackersRequest) String() string {
 func (*SyncLocalTrackersRequest) ProtoMessage() {}
 
 func (x *SyncLocalTrackersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[18]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -930,7 +1404,7 @@ func (x *SyncLocalTrackersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncLocalTrackersRequest.ProtoReflect.Descriptor instead.
 func (*SyncLocalTrackersRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{18}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{28}
 }
 
 type SyncLocalTrackersResponse struct {
@@ -944,7 +1418,7 @@ type SyncLocalTrackersResponse struct {
 
 func (x *SyncLocalTrackersResponse) Reset() {
 	*x = SyncLocalTrackersResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[19]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -956,7 +1430,7 @@ func (x *SyncLocalTrackersResponse) String() string {
 func (*SyncLocalTrackersResponse) ProtoMessage() {}
 
 func (x *SyncLocalTrackersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[19]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -969,7 +1443,7 @@ func (x *SyncLocalTrackersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SyncLocalTrackersResponse.ProtoReflect.Descriptor instead.
 func (*SyncLocalTrackersResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{19}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *SyncLocalTrackersResponse) GetNewCards() int32 {
@@ -995,7 +1469,7 @@ type ListLocalProviderProjectsRequest struct {
 
 func (x *ListLocalProviderProjectsRequest) Reset() {
 	*x = ListLocalProviderProjectsRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[20]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1007,7 +1481,7 @@ func (x *ListLocalProviderProjectsRequest) String() string {
 func (*ListLocalProviderProjectsRequest) ProtoMessage() {}
 
 func (x *ListLocalProviderProjectsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[20]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1020,7 +1494,7 @@ func (x *ListLocalProviderProjectsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLocalProviderProjectsRequest.ProtoReflect.Descriptor instead.
 func (*ListLocalProviderProjectsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{20}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ListLocalProviderProjectsRequest) GetConnectionId() string {
@@ -1039,7 +1513,7 @@ type ListLocalProviderProjectsResponse struct {
 
 func (x *ListLocalProviderProjectsResponse) Reset() {
 	*x = ListLocalProviderProjectsResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[21]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1051,7 +1525,7 @@ func (x *ListLocalProviderProjectsResponse) String() string {
 func (*ListLocalProviderProjectsResponse) ProtoMessage() {}
 
 func (x *ListLocalProviderProjectsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[21]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1064,7 +1538,7 @@ func (x *ListLocalProviderProjectsResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ListLocalProviderProjectsResponse.ProtoReflect.Descriptor instead.
 func (*ListLocalProviderProjectsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{21}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ListLocalProviderProjectsResponse) GetProjects() []*v1.ProviderProject {
@@ -1085,7 +1559,7 @@ type FolderProject struct {
 
 func (x *FolderProject) Reset() {
 	*x = FolderProject{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[22]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1097,7 +1571,7 @@ func (x *FolderProject) String() string {
 func (*FolderProject) ProtoMessage() {}
 
 func (x *FolderProject) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[22]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1110,7 +1584,7 @@ func (x *FolderProject) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FolderProject.ProtoReflect.Descriptor instead.
 func (*FolderProject) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{22}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *FolderProject) GetFolder() string {
@@ -1135,7 +1609,7 @@ type ListFolderProjectsRequest struct {
 
 func (x *ListFolderProjectsRequest) Reset() {
 	*x = ListFolderProjectsRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[23]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1147,7 +1621,7 @@ func (x *ListFolderProjectsRequest) String() string {
 func (*ListFolderProjectsRequest) ProtoMessage() {}
 
 func (x *ListFolderProjectsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[23]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1160,7 +1634,7 @@ func (x *ListFolderProjectsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFolderProjectsRequest.ProtoReflect.Descriptor instead.
 func (*ListFolderProjectsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{23}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{33}
 }
 
 type ListFolderProjectsResponse struct {
@@ -1172,7 +1646,7 @@ type ListFolderProjectsResponse struct {
 
 func (x *ListFolderProjectsResponse) Reset() {
 	*x = ListFolderProjectsResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[24]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1184,7 +1658,7 @@ func (x *ListFolderProjectsResponse) String() string {
 func (*ListFolderProjectsResponse) ProtoMessage() {}
 
 func (x *ListFolderProjectsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[24]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1197,7 +1671,7 @@ func (x *ListFolderProjectsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFolderProjectsResponse.ProtoReflect.Descriptor instead.
 func (*ListFolderProjectsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{24}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ListFolderProjectsResponse) GetLinks() []*FolderProject {
@@ -1218,7 +1692,7 @@ type SetFolderProjectRequest struct {
 
 func (x *SetFolderProjectRequest) Reset() {
 	*x = SetFolderProjectRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[25]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1230,7 +1704,7 @@ func (x *SetFolderProjectRequest) String() string {
 func (*SetFolderProjectRequest) ProtoMessage() {}
 
 func (x *SetFolderProjectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[25]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1243,7 +1717,7 @@ func (x *SetFolderProjectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetFolderProjectRequest.ProtoReflect.Descriptor instead.
 func (*SetFolderProjectRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{25}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *SetFolderProjectRequest) GetFolder() string {
@@ -1268,7 +1742,7 @@ type SetFolderProjectResponse struct {
 
 func (x *SetFolderProjectResponse) Reset() {
 	*x = SetFolderProjectResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[26]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1280,7 +1754,7 @@ func (x *SetFolderProjectResponse) String() string {
 func (*SetFolderProjectResponse) ProtoMessage() {}
 
 func (x *SetFolderProjectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[26]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1293,7 +1767,7 @@ func (x *SetFolderProjectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetFolderProjectResponse.ProtoReflect.Descriptor instead.
 func (*SetFolderProjectResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{26}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{36}
 }
 
 type PrepareIssueSessionRequest struct {
@@ -1306,7 +1780,7 @@ type PrepareIssueSessionRequest struct {
 
 func (x *PrepareIssueSessionRequest) Reset() {
 	*x = PrepareIssueSessionRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[27]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1318,7 +1792,7 @@ func (x *PrepareIssueSessionRequest) String() string {
 func (*PrepareIssueSessionRequest) ProtoMessage() {}
 
 func (x *PrepareIssueSessionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[27]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1331,7 +1805,7 @@ func (x *PrepareIssueSessionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareIssueSessionRequest.ProtoReflect.Descriptor instead.
 func (*PrepareIssueSessionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{27}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *PrepareIssueSessionRequest) GetCardId() string {
@@ -1354,7 +1828,7 @@ type PrepareIssueSessionResponse struct {
 
 func (x *PrepareIssueSessionResponse) Reset() {
 	*x = PrepareIssueSessionResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[28]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1366,7 +1840,7 @@ func (x *PrepareIssueSessionResponse) String() string {
 func (*PrepareIssueSessionResponse) ProtoMessage() {}
 
 func (x *PrepareIssueSessionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[28]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1379,7 +1853,7 @@ func (x *PrepareIssueSessionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrepareIssueSessionResponse.ProtoReflect.Descriptor instead.
 func (*PrepareIssueSessionResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{28}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *PrepareIssueSessionResponse) GetFolder() string {
@@ -1418,7 +1892,7 @@ type ListAllKnowledgeSourcesRequest struct {
 
 func (x *ListAllKnowledgeSourcesRequest) Reset() {
 	*x = ListAllKnowledgeSourcesRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[29]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1430,7 +1904,7 @@ func (x *ListAllKnowledgeSourcesRequest) String() string {
 func (*ListAllKnowledgeSourcesRequest) ProtoMessage() {}
 
 func (x *ListAllKnowledgeSourcesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[29]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1443,7 +1917,7 @@ func (x *ListAllKnowledgeSourcesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAllKnowledgeSourcesRequest.ProtoReflect.Descriptor instead.
 func (*ListAllKnowledgeSourcesRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{29}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{39}
 }
 
 type ListAllKnowledgeSourcesResponse struct {
@@ -1455,7 +1929,7 @@ type ListAllKnowledgeSourcesResponse struct {
 
 func (x *ListAllKnowledgeSourcesResponse) Reset() {
 	*x = ListAllKnowledgeSourcesResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[30]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1467,7 +1941,7 @@ func (x *ListAllKnowledgeSourcesResponse) String() string {
 func (*ListAllKnowledgeSourcesResponse) ProtoMessage() {}
 
 func (x *ListAllKnowledgeSourcesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[30]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1480,7 +1954,7 @@ func (x *ListAllKnowledgeSourcesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAllKnowledgeSourcesResponse.ProtoReflect.Descriptor instead.
 func (*ListAllKnowledgeSourcesResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{30}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *ListAllKnowledgeSourcesResponse) GetSources() []*v1.KnowledgeSource {
@@ -1503,7 +1977,7 @@ type SearchAllKnowledgeRequest struct {
 
 func (x *SearchAllKnowledgeRequest) Reset() {
 	*x = SearchAllKnowledgeRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[31]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1515,7 +1989,7 @@ func (x *SearchAllKnowledgeRequest) String() string {
 func (*SearchAllKnowledgeRequest) ProtoMessage() {}
 
 func (x *SearchAllKnowledgeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[31]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1528,7 +2002,7 @@ func (x *SearchAllKnowledgeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchAllKnowledgeRequest.ProtoReflect.Descriptor instead.
 func (*SearchAllKnowledgeRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{31}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *SearchAllKnowledgeRequest) GetQuery() string {
@@ -1562,7 +2036,7 @@ type SearchAllKnowledgeResponse struct {
 
 func (x *SearchAllKnowledgeResponse) Reset() {
 	*x = SearchAllKnowledgeResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[32]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1574,7 +2048,7 @@ func (x *SearchAllKnowledgeResponse) String() string {
 func (*SearchAllKnowledgeResponse) ProtoMessage() {}
 
 func (x *SearchAllKnowledgeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[32]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1587,7 +2061,7 @@ func (x *SearchAllKnowledgeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchAllKnowledgeResponse.ProtoReflect.Descriptor instead.
 func (*SearchAllKnowledgeResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{32}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *SearchAllKnowledgeResponse) GetHits() []*v1.KnowledgeHit {
@@ -1616,7 +2090,7 @@ type BrowseKnowledgeRequest struct {
 
 func (x *BrowseKnowledgeRequest) Reset() {
 	*x = BrowseKnowledgeRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[33]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1628,7 +2102,7 @@ func (x *BrowseKnowledgeRequest) String() string {
 func (*BrowseKnowledgeRequest) ProtoMessage() {}
 
 func (x *BrowseKnowledgeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[33]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1641,7 +2115,7 @@ func (x *BrowseKnowledgeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BrowseKnowledgeRequest.ProtoReflect.Descriptor instead.
 func (*BrowseKnowledgeRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{33}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *BrowseKnowledgeRequest) GetSourceId() string {
@@ -1682,7 +2156,7 @@ type BrowseKnowledgeResponse struct {
 
 func (x *BrowseKnowledgeResponse) Reset() {
 	*x = BrowseKnowledgeResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[34]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1694,7 +2168,7 @@ func (x *BrowseKnowledgeResponse) String() string {
 func (*BrowseKnowledgeResponse) ProtoMessage() {}
 
 func (x *BrowseKnowledgeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[34]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1707,7 +2181,7 @@ func (x *BrowseKnowledgeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BrowseKnowledgeResponse.ProtoReflect.Descriptor instead.
 func (*BrowseKnowledgeResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{34}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *BrowseKnowledgeResponse) GetDocuments() []*v1.KnowledgeDocument {
@@ -1733,7 +2207,7 @@ type ReadKnowledgeRequest struct {
 
 func (x *ReadKnowledgeRequest) Reset() {
 	*x = ReadKnowledgeRequest{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[35]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1745,7 +2219,7 @@ func (x *ReadKnowledgeRequest) String() string {
 func (*ReadKnowledgeRequest) ProtoMessage() {}
 
 func (x *ReadKnowledgeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[35]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1758,7 +2232,7 @@ func (x *ReadKnowledgeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadKnowledgeRequest.ProtoReflect.Descriptor instead.
 func (*ReadKnowledgeRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{35}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *ReadKnowledgeRequest) GetDocumentId() string {
@@ -1778,7 +2252,7 @@ type ReadKnowledgeResponse struct {
 
 func (x *ReadKnowledgeResponse) Reset() {
 	*x = ReadKnowledgeResponse{}
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[36]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1790,7 +2264,7 @@ func (x *ReadKnowledgeResponse) String() string {
 func (*ReadKnowledgeResponse) ProtoMessage() {}
 
 func (x *ReadKnowledgeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_trackers_proto_msgTypes[36]
+	mi := &file_harness_agent_v1_trackers_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1803,7 +2277,7 @@ func (x *ReadKnowledgeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReadKnowledgeResponse.ProtoReflect.Descriptor instead.
 func (*ReadKnowledgeResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{36}
+	return file_harness_agent_v1_trackers_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *ReadKnowledgeResponse) GetDocument() *v1.KnowledgeDocument {
@@ -1824,7 +2298,35 @@ var File_harness_agent_v1_trackers_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_trackers_proto_rawDesc = "" +
 	"\n" +
-	"\x1fharness/agent/v1/trackers.proto\x12\x10harness.agent.v1\x1a\"harness/library/v1/knowledge.proto\x1a!harness/library/v1/projects.proto\x1a,harness/library/v1/tracker_connections.proto\"$\n" +
+	"\x1fharness/agent/v1/trackers.proto\x12\x10harness.agent.v1\x1a\"harness/library/v1/knowledge.proto\x1a.harness/library/v1/knowledge_connections.proto\x1a!harness/library/v1/projects.proto\x1a,harness/library/v1/tracker_connections.proto\"&\n" +
+	"$ListLocalKnowledgeConnectionsRequest\"\xbb\x01\n" +
+	"%ListLocalKnowledgeConnectionsResponse\x12I\n" +
+	"\vconnections\x18\x01 \x03(\v2'.harness.library.v1.KnowledgeConnectionR\vconnections\x12G\n" +
+	"\tproviders\x18\x02 \x03(\v2).harness.library.v1.KnowledgeCapabilitiesR\tproviders\"s\n" +
+	"#SaveLocalKnowledgeConnectionRequest\x12L\n" +
+	"\n" +
+	"connection\x18\x01 \x01(\v2,.harness.library.v1.KnowledgeConnectionInputR\n" +
+	"connection\"o\n" +
+	"$SaveLocalKnowledgeConnectionResponse\x12G\n" +
+	"\n" +
+	"connection\x18\x01 \x01(\v2'.harness.library.v1.KnowledgeConnectionR\n" +
+	"connection\"7\n" +
+	"%DeleteLocalKnowledgeConnectionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"(\n" +
+	"&DeleteLocalKnowledgeConnectionResponse\"y\n" +
+	"#TestLocalKnowledgeConnectionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12B\n" +
+	"\x05draft\x18\x02 \x01(\v2,.harness.library.v1.KnowledgeConnectionInputR\x05draft\"\x85\x01\n" +
+	"$TestLocalKnowledgeConnectionResponse\x12\x0e\n" +
+	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\x12\x14\n" +
+	"\x05login\x18\x03 \x01(\tR\x05login\x12!\n" +
+	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\"F\n" +
+	"\x1fStartLocalKnowledgeOAuthRequest\x12#\n" +
+	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\"`\n" +
+	" StartLocalKnowledgeOAuthResponse\x12\x17\n" +
+	"\aflow_id\x18\x01 \x01(\tR\x06flowId\x12#\n" +
+	"\rauthorize_url\x18\x02 \x01(\tR\fauthorizeUrl\"$\n" +
 	"\"ListLocalTrackerConnectionsRequest\"\xb5\x01\n" +
 	"#ListLocalTrackerConnectionsResponse\x12G\n" +
 	"\vconnections\x18\x01 \x03(\v2%.harness.library.v1.TrackerConnectionR\vconnections\x12E\n" +
@@ -1926,7 +2428,7 @@ const file_harness_agent_v1_trackers_proto_rawDesc = "" +
 	"documentId\"t\n" +
 	"\x15ReadKnowledgeResponse\x12A\n" +
 	"\bdocument\x18\x01 \x01(\v2%.harness.library.v1.KnowledgeDocumentR\bdocument\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\tR\acontent2\xb2\x11\n" +
+	"\acontent\x18\x02 \x01(\tR\acontent2\xff\x16\n" +
 	"\x13LocalTrackerService\x12\x8a\x01\n" +
 	"\x1bListLocalTrackerConnections\x124.harness.agent.v1.ListLocalTrackerConnectionsRequest\x1a5.harness.agent.v1.ListLocalTrackerConnectionsResponse\x12\x87\x01\n" +
 	"\x1aSaveLocalTrackerConnection\x123.harness.agent.v1.SaveLocalTrackerConnectionRequest\x1a4.harness.agent.v1.SaveLocalTrackerConnectionResponse\x12\x8d\x01\n" +
@@ -1945,7 +2447,12 @@ const file_harness_agent_v1_trackers_proto_rawDesc = "" +
 	"\x17ListAllKnowledgeSources\x120.harness.agent.v1.ListAllKnowledgeSourcesRequest\x1a1.harness.agent.v1.ListAllKnowledgeSourcesResponse\x12o\n" +
 	"\x12SearchAllKnowledge\x12+.harness.agent.v1.SearchAllKnowledgeRequest\x1a,.harness.agent.v1.SearchAllKnowledgeResponse\x12f\n" +
 	"\x0fBrowseKnowledge\x12(.harness.agent.v1.BrowseKnowledgeRequest\x1a).harness.agent.v1.BrowseKnowledgeResponse\x12`\n" +
-	"\rReadKnowledge\x12&.harness.agent.v1.ReadKnowledgeRequest\x1a'.harness.agent.v1.ReadKnowledgeResponseB\xce\x01\n" +
+	"\rReadKnowledge\x12&.harness.agent.v1.ReadKnowledgeRequest\x1a'.harness.agent.v1.ReadKnowledgeResponse\x12\x90\x01\n" +
+	"\x1dListLocalKnowledgeConnections\x126.harness.agent.v1.ListLocalKnowledgeConnectionsRequest\x1a7.harness.agent.v1.ListLocalKnowledgeConnectionsResponse\x12\x8d\x01\n" +
+	"\x1cSaveLocalKnowledgeConnection\x125.harness.agent.v1.SaveLocalKnowledgeConnectionRequest\x1a6.harness.agent.v1.SaveLocalKnowledgeConnectionResponse\x12\x93\x01\n" +
+	"\x1eDeleteLocalKnowledgeConnection\x127.harness.agent.v1.DeleteLocalKnowledgeConnectionRequest\x1a8.harness.agent.v1.DeleteLocalKnowledgeConnectionResponse\x12\x8d\x01\n" +
+	"\x1cTestLocalKnowledgeConnection\x125.harness.agent.v1.TestLocalKnowledgeConnectionRequest\x1a6.harness.agent.v1.TestLocalKnowledgeConnectionResponse\x12\x81\x01\n" +
+	"\x18StartLocalKnowledgeOAuth\x121.harness.agent.v1.StartLocalKnowledgeOAuthRequest\x1a2.harness.agent.v1.StartLocalKnowledgeOAuthResponseB\xce\x01\n" +
 	"\x14com.harness.agent.v1B\rTrackersProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
 var (
@@ -1960,113 +2467,141 @@ func file_harness_agent_v1_trackers_proto_rawDescGZIP() []byte {
 	return file_harness_agent_v1_trackers_proto_rawDescData
 }
 
-var file_harness_agent_v1_trackers_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
+var file_harness_agent_v1_trackers_proto_msgTypes = make([]protoimpl.MessageInfo, 47)
 var file_harness_agent_v1_trackers_proto_goTypes = []any{
-	(*ListLocalTrackerConnectionsRequest)(nil),   // 0: harness.agent.v1.ListLocalTrackerConnectionsRequest
-	(*ListLocalTrackerConnectionsResponse)(nil),  // 1: harness.agent.v1.ListLocalTrackerConnectionsResponse
-	(*SaveLocalTrackerConnectionRequest)(nil),    // 2: harness.agent.v1.SaveLocalTrackerConnectionRequest
-	(*SaveLocalTrackerConnectionResponse)(nil),   // 3: harness.agent.v1.SaveLocalTrackerConnectionResponse
-	(*DeleteLocalTrackerConnectionRequest)(nil),  // 4: harness.agent.v1.DeleteLocalTrackerConnectionRequest
-	(*DeleteLocalTrackerConnectionResponse)(nil), // 5: harness.agent.v1.DeleteLocalTrackerConnectionResponse
-	(*TestLocalTrackerConnectionRequest)(nil),    // 6: harness.agent.v1.TestLocalTrackerConnectionRequest
-	(*TestLocalTrackerConnectionResponse)(nil),   // 7: harness.agent.v1.TestLocalTrackerConnectionResponse
-	(*SearchLocalTrackerIssuesRequest)(nil),      // 8: harness.agent.v1.SearchLocalTrackerIssuesRequest
-	(*SearchLocalTrackerIssuesResponse)(nil),     // 9: harness.agent.v1.SearchLocalTrackerIssuesResponse
-	(*GetLocalTrackerIssueRequest)(nil),          // 10: harness.agent.v1.GetLocalTrackerIssueRequest
-	(*GetLocalTrackerIssueResponse)(nil),         // 11: harness.agent.v1.GetLocalTrackerIssueResponse
-	(*ListLocalTrackerFieldsRequest)(nil),        // 12: harness.agent.v1.ListLocalTrackerFieldsRequest
-	(*ListLocalTrackerFieldsResponse)(nil),       // 13: harness.agent.v1.ListLocalTrackerFieldsResponse
-	(*StartLocalTrackerOAuthRequest)(nil),        // 14: harness.agent.v1.StartLocalTrackerOAuthRequest
-	(*StartLocalTrackerOAuthResponse)(nil),       // 15: harness.agent.v1.StartLocalTrackerOAuthResponse
-	(*GetLocalTrackerOAuthRequest)(nil),          // 16: harness.agent.v1.GetLocalTrackerOAuthRequest
-	(*GetLocalTrackerOAuthResponse)(nil),         // 17: harness.agent.v1.GetLocalTrackerOAuthResponse
-	(*SyncLocalTrackersRequest)(nil),             // 18: harness.agent.v1.SyncLocalTrackersRequest
-	(*SyncLocalTrackersResponse)(nil),            // 19: harness.agent.v1.SyncLocalTrackersResponse
-	(*ListLocalProviderProjectsRequest)(nil),     // 20: harness.agent.v1.ListLocalProviderProjectsRequest
-	(*ListLocalProviderProjectsResponse)(nil),    // 21: harness.agent.v1.ListLocalProviderProjectsResponse
-	(*FolderProject)(nil),                        // 22: harness.agent.v1.FolderProject
-	(*ListFolderProjectsRequest)(nil),            // 23: harness.agent.v1.ListFolderProjectsRequest
-	(*ListFolderProjectsResponse)(nil),           // 24: harness.agent.v1.ListFolderProjectsResponse
-	(*SetFolderProjectRequest)(nil),              // 25: harness.agent.v1.SetFolderProjectRequest
-	(*SetFolderProjectResponse)(nil),             // 26: harness.agent.v1.SetFolderProjectResponse
-	(*PrepareIssueSessionRequest)(nil),           // 27: harness.agent.v1.PrepareIssueSessionRequest
-	(*PrepareIssueSessionResponse)(nil),          // 28: harness.agent.v1.PrepareIssueSessionResponse
-	(*ListAllKnowledgeSourcesRequest)(nil),       // 29: harness.agent.v1.ListAllKnowledgeSourcesRequest
-	(*ListAllKnowledgeSourcesResponse)(nil),      // 30: harness.agent.v1.ListAllKnowledgeSourcesResponse
-	(*SearchAllKnowledgeRequest)(nil),            // 31: harness.agent.v1.SearchAllKnowledgeRequest
-	(*SearchAllKnowledgeResponse)(nil),           // 32: harness.agent.v1.SearchAllKnowledgeResponse
-	(*BrowseKnowledgeRequest)(nil),               // 33: harness.agent.v1.BrowseKnowledgeRequest
-	(*BrowseKnowledgeResponse)(nil),              // 34: harness.agent.v1.BrowseKnowledgeResponse
-	(*ReadKnowledgeRequest)(nil),                 // 35: harness.agent.v1.ReadKnowledgeRequest
-	(*ReadKnowledgeResponse)(nil),                // 36: harness.agent.v1.ReadKnowledgeResponse
-	(*v1.TrackerConnection)(nil),                 // 37: harness.library.v1.TrackerConnection
-	(*v1.TrackerCapabilities)(nil),               // 38: harness.library.v1.TrackerCapabilities
-	(*v1.TrackerConnectionInput)(nil),            // 39: harness.library.v1.TrackerConnectionInput
-	(*v1.TrackerIssue)(nil),                      // 40: harness.library.v1.TrackerIssue
-	(*v1.TrackerField)(nil),                      // 41: harness.library.v1.TrackerField
-	(*v1.ProviderProject)(nil),                   // 42: harness.library.v1.ProviderProject
-	(*v1.KnowledgeSource)(nil),                   // 43: harness.library.v1.KnowledgeSource
-	(*v1.KnowledgeHit)(nil),                      // 44: harness.library.v1.KnowledgeHit
-	(*v1.KnowledgeWarning)(nil),                  // 45: harness.library.v1.KnowledgeWarning
-	(*v1.KnowledgeDocument)(nil),                 // 46: harness.library.v1.KnowledgeDocument
+	(*ListLocalKnowledgeConnectionsRequest)(nil),   // 0: harness.agent.v1.ListLocalKnowledgeConnectionsRequest
+	(*ListLocalKnowledgeConnectionsResponse)(nil),  // 1: harness.agent.v1.ListLocalKnowledgeConnectionsResponse
+	(*SaveLocalKnowledgeConnectionRequest)(nil),    // 2: harness.agent.v1.SaveLocalKnowledgeConnectionRequest
+	(*SaveLocalKnowledgeConnectionResponse)(nil),   // 3: harness.agent.v1.SaveLocalKnowledgeConnectionResponse
+	(*DeleteLocalKnowledgeConnectionRequest)(nil),  // 4: harness.agent.v1.DeleteLocalKnowledgeConnectionRequest
+	(*DeleteLocalKnowledgeConnectionResponse)(nil), // 5: harness.agent.v1.DeleteLocalKnowledgeConnectionResponse
+	(*TestLocalKnowledgeConnectionRequest)(nil),    // 6: harness.agent.v1.TestLocalKnowledgeConnectionRequest
+	(*TestLocalKnowledgeConnectionResponse)(nil),   // 7: harness.agent.v1.TestLocalKnowledgeConnectionResponse
+	(*StartLocalKnowledgeOAuthRequest)(nil),        // 8: harness.agent.v1.StartLocalKnowledgeOAuthRequest
+	(*StartLocalKnowledgeOAuthResponse)(nil),       // 9: harness.agent.v1.StartLocalKnowledgeOAuthResponse
+	(*ListLocalTrackerConnectionsRequest)(nil),     // 10: harness.agent.v1.ListLocalTrackerConnectionsRequest
+	(*ListLocalTrackerConnectionsResponse)(nil),    // 11: harness.agent.v1.ListLocalTrackerConnectionsResponse
+	(*SaveLocalTrackerConnectionRequest)(nil),      // 12: harness.agent.v1.SaveLocalTrackerConnectionRequest
+	(*SaveLocalTrackerConnectionResponse)(nil),     // 13: harness.agent.v1.SaveLocalTrackerConnectionResponse
+	(*DeleteLocalTrackerConnectionRequest)(nil),    // 14: harness.agent.v1.DeleteLocalTrackerConnectionRequest
+	(*DeleteLocalTrackerConnectionResponse)(nil),   // 15: harness.agent.v1.DeleteLocalTrackerConnectionResponse
+	(*TestLocalTrackerConnectionRequest)(nil),      // 16: harness.agent.v1.TestLocalTrackerConnectionRequest
+	(*TestLocalTrackerConnectionResponse)(nil),     // 17: harness.agent.v1.TestLocalTrackerConnectionResponse
+	(*SearchLocalTrackerIssuesRequest)(nil),        // 18: harness.agent.v1.SearchLocalTrackerIssuesRequest
+	(*SearchLocalTrackerIssuesResponse)(nil),       // 19: harness.agent.v1.SearchLocalTrackerIssuesResponse
+	(*GetLocalTrackerIssueRequest)(nil),            // 20: harness.agent.v1.GetLocalTrackerIssueRequest
+	(*GetLocalTrackerIssueResponse)(nil),           // 21: harness.agent.v1.GetLocalTrackerIssueResponse
+	(*ListLocalTrackerFieldsRequest)(nil),          // 22: harness.agent.v1.ListLocalTrackerFieldsRequest
+	(*ListLocalTrackerFieldsResponse)(nil),         // 23: harness.agent.v1.ListLocalTrackerFieldsResponse
+	(*StartLocalTrackerOAuthRequest)(nil),          // 24: harness.agent.v1.StartLocalTrackerOAuthRequest
+	(*StartLocalTrackerOAuthResponse)(nil),         // 25: harness.agent.v1.StartLocalTrackerOAuthResponse
+	(*GetLocalTrackerOAuthRequest)(nil),            // 26: harness.agent.v1.GetLocalTrackerOAuthRequest
+	(*GetLocalTrackerOAuthResponse)(nil),           // 27: harness.agent.v1.GetLocalTrackerOAuthResponse
+	(*SyncLocalTrackersRequest)(nil),               // 28: harness.agent.v1.SyncLocalTrackersRequest
+	(*SyncLocalTrackersResponse)(nil),              // 29: harness.agent.v1.SyncLocalTrackersResponse
+	(*ListLocalProviderProjectsRequest)(nil),       // 30: harness.agent.v1.ListLocalProviderProjectsRequest
+	(*ListLocalProviderProjectsResponse)(nil),      // 31: harness.agent.v1.ListLocalProviderProjectsResponse
+	(*FolderProject)(nil),                          // 32: harness.agent.v1.FolderProject
+	(*ListFolderProjectsRequest)(nil),              // 33: harness.agent.v1.ListFolderProjectsRequest
+	(*ListFolderProjectsResponse)(nil),             // 34: harness.agent.v1.ListFolderProjectsResponse
+	(*SetFolderProjectRequest)(nil),                // 35: harness.agent.v1.SetFolderProjectRequest
+	(*SetFolderProjectResponse)(nil),               // 36: harness.agent.v1.SetFolderProjectResponse
+	(*PrepareIssueSessionRequest)(nil),             // 37: harness.agent.v1.PrepareIssueSessionRequest
+	(*PrepareIssueSessionResponse)(nil),            // 38: harness.agent.v1.PrepareIssueSessionResponse
+	(*ListAllKnowledgeSourcesRequest)(nil),         // 39: harness.agent.v1.ListAllKnowledgeSourcesRequest
+	(*ListAllKnowledgeSourcesResponse)(nil),        // 40: harness.agent.v1.ListAllKnowledgeSourcesResponse
+	(*SearchAllKnowledgeRequest)(nil),              // 41: harness.agent.v1.SearchAllKnowledgeRequest
+	(*SearchAllKnowledgeResponse)(nil),             // 42: harness.agent.v1.SearchAllKnowledgeResponse
+	(*BrowseKnowledgeRequest)(nil),                 // 43: harness.agent.v1.BrowseKnowledgeRequest
+	(*BrowseKnowledgeResponse)(nil),                // 44: harness.agent.v1.BrowseKnowledgeResponse
+	(*ReadKnowledgeRequest)(nil),                   // 45: harness.agent.v1.ReadKnowledgeRequest
+	(*ReadKnowledgeResponse)(nil),                  // 46: harness.agent.v1.ReadKnowledgeResponse
+	(*v1.KnowledgeConnection)(nil),                 // 47: harness.library.v1.KnowledgeConnection
+	(*v1.KnowledgeCapabilities)(nil),               // 48: harness.library.v1.KnowledgeCapabilities
+	(*v1.KnowledgeConnectionInput)(nil),            // 49: harness.library.v1.KnowledgeConnectionInput
+	(*v1.TrackerConnection)(nil),                   // 50: harness.library.v1.TrackerConnection
+	(*v1.TrackerCapabilities)(nil),                 // 51: harness.library.v1.TrackerCapabilities
+	(*v1.TrackerConnectionInput)(nil),              // 52: harness.library.v1.TrackerConnectionInput
+	(*v1.TrackerIssue)(nil),                        // 53: harness.library.v1.TrackerIssue
+	(*v1.TrackerField)(nil),                        // 54: harness.library.v1.TrackerField
+	(*v1.ProviderProject)(nil),                     // 55: harness.library.v1.ProviderProject
+	(*v1.KnowledgeSource)(nil),                     // 56: harness.library.v1.KnowledgeSource
+	(*v1.KnowledgeHit)(nil),                        // 57: harness.library.v1.KnowledgeHit
+	(*v1.KnowledgeWarning)(nil),                    // 58: harness.library.v1.KnowledgeWarning
+	(*v1.KnowledgeDocument)(nil),                   // 59: harness.library.v1.KnowledgeDocument
 }
 var file_harness_agent_v1_trackers_proto_depIdxs = []int32{
-	37, // 0: harness.agent.v1.ListLocalTrackerConnectionsResponse.connections:type_name -> harness.library.v1.TrackerConnection
-	38, // 1: harness.agent.v1.ListLocalTrackerConnectionsResponse.providers:type_name -> harness.library.v1.TrackerCapabilities
-	39, // 2: harness.agent.v1.SaveLocalTrackerConnectionRequest.connection:type_name -> harness.library.v1.TrackerConnectionInput
-	37, // 3: harness.agent.v1.SaveLocalTrackerConnectionResponse.connection:type_name -> harness.library.v1.TrackerConnection
-	39, // 4: harness.agent.v1.TestLocalTrackerConnectionRequest.draft:type_name -> harness.library.v1.TrackerConnectionInput
-	40, // 5: harness.agent.v1.SearchLocalTrackerIssuesResponse.issues:type_name -> harness.library.v1.TrackerIssue
-	40, // 6: harness.agent.v1.GetLocalTrackerIssueResponse.issue:type_name -> harness.library.v1.TrackerIssue
-	41, // 7: harness.agent.v1.ListLocalTrackerFieldsResponse.fields:type_name -> harness.library.v1.TrackerField
-	42, // 8: harness.agent.v1.ListLocalProviderProjectsResponse.projects:type_name -> harness.library.v1.ProviderProject
-	22, // 9: harness.agent.v1.ListFolderProjectsResponse.links:type_name -> harness.agent.v1.FolderProject
-	43, // 10: harness.agent.v1.ListAllKnowledgeSourcesResponse.sources:type_name -> harness.library.v1.KnowledgeSource
-	44, // 11: harness.agent.v1.SearchAllKnowledgeResponse.hits:type_name -> harness.library.v1.KnowledgeHit
-	45, // 12: harness.agent.v1.SearchAllKnowledgeResponse.warnings:type_name -> harness.library.v1.KnowledgeWarning
-	46, // 13: harness.agent.v1.BrowseKnowledgeResponse.documents:type_name -> harness.library.v1.KnowledgeDocument
-	46, // 14: harness.agent.v1.ReadKnowledgeResponse.document:type_name -> harness.library.v1.KnowledgeDocument
-	0,  // 15: harness.agent.v1.LocalTrackerService.ListLocalTrackerConnections:input_type -> harness.agent.v1.ListLocalTrackerConnectionsRequest
-	2,  // 16: harness.agent.v1.LocalTrackerService.SaveLocalTrackerConnection:input_type -> harness.agent.v1.SaveLocalTrackerConnectionRequest
-	4,  // 17: harness.agent.v1.LocalTrackerService.DeleteLocalTrackerConnection:input_type -> harness.agent.v1.DeleteLocalTrackerConnectionRequest
-	6,  // 18: harness.agent.v1.LocalTrackerService.TestLocalTrackerConnection:input_type -> harness.agent.v1.TestLocalTrackerConnectionRequest
-	8,  // 19: harness.agent.v1.LocalTrackerService.SearchLocalTrackerIssues:input_type -> harness.agent.v1.SearchLocalTrackerIssuesRequest
-	10, // 20: harness.agent.v1.LocalTrackerService.GetLocalTrackerIssue:input_type -> harness.agent.v1.GetLocalTrackerIssueRequest
-	12, // 21: harness.agent.v1.LocalTrackerService.ListLocalTrackerFields:input_type -> harness.agent.v1.ListLocalTrackerFieldsRequest
-	14, // 22: harness.agent.v1.LocalTrackerService.StartLocalTrackerOAuth:input_type -> harness.agent.v1.StartLocalTrackerOAuthRequest
-	16, // 23: harness.agent.v1.LocalTrackerService.GetLocalTrackerOAuth:input_type -> harness.agent.v1.GetLocalTrackerOAuthRequest
-	18, // 24: harness.agent.v1.LocalTrackerService.SyncLocalTrackers:input_type -> harness.agent.v1.SyncLocalTrackersRequest
-	20, // 25: harness.agent.v1.LocalTrackerService.ListLocalProviderProjects:input_type -> harness.agent.v1.ListLocalProviderProjectsRequest
-	23, // 26: harness.agent.v1.LocalTrackerService.ListFolderProjects:input_type -> harness.agent.v1.ListFolderProjectsRequest
-	25, // 27: harness.agent.v1.LocalTrackerService.SetFolderProject:input_type -> harness.agent.v1.SetFolderProjectRequest
-	27, // 28: harness.agent.v1.LocalTrackerService.PrepareIssueSession:input_type -> harness.agent.v1.PrepareIssueSessionRequest
-	29, // 29: harness.agent.v1.LocalTrackerService.ListAllKnowledgeSources:input_type -> harness.agent.v1.ListAllKnowledgeSourcesRequest
-	31, // 30: harness.agent.v1.LocalTrackerService.SearchAllKnowledge:input_type -> harness.agent.v1.SearchAllKnowledgeRequest
-	33, // 31: harness.agent.v1.LocalTrackerService.BrowseKnowledge:input_type -> harness.agent.v1.BrowseKnowledgeRequest
-	35, // 32: harness.agent.v1.LocalTrackerService.ReadKnowledge:input_type -> harness.agent.v1.ReadKnowledgeRequest
-	1,  // 33: harness.agent.v1.LocalTrackerService.ListLocalTrackerConnections:output_type -> harness.agent.v1.ListLocalTrackerConnectionsResponse
-	3,  // 34: harness.agent.v1.LocalTrackerService.SaveLocalTrackerConnection:output_type -> harness.agent.v1.SaveLocalTrackerConnectionResponse
-	5,  // 35: harness.agent.v1.LocalTrackerService.DeleteLocalTrackerConnection:output_type -> harness.agent.v1.DeleteLocalTrackerConnectionResponse
-	7,  // 36: harness.agent.v1.LocalTrackerService.TestLocalTrackerConnection:output_type -> harness.agent.v1.TestLocalTrackerConnectionResponse
-	9,  // 37: harness.agent.v1.LocalTrackerService.SearchLocalTrackerIssues:output_type -> harness.agent.v1.SearchLocalTrackerIssuesResponse
-	11, // 38: harness.agent.v1.LocalTrackerService.GetLocalTrackerIssue:output_type -> harness.agent.v1.GetLocalTrackerIssueResponse
-	13, // 39: harness.agent.v1.LocalTrackerService.ListLocalTrackerFields:output_type -> harness.agent.v1.ListLocalTrackerFieldsResponse
-	15, // 40: harness.agent.v1.LocalTrackerService.StartLocalTrackerOAuth:output_type -> harness.agent.v1.StartLocalTrackerOAuthResponse
-	17, // 41: harness.agent.v1.LocalTrackerService.GetLocalTrackerOAuth:output_type -> harness.agent.v1.GetLocalTrackerOAuthResponse
-	19, // 42: harness.agent.v1.LocalTrackerService.SyncLocalTrackers:output_type -> harness.agent.v1.SyncLocalTrackersResponse
-	21, // 43: harness.agent.v1.LocalTrackerService.ListLocalProviderProjects:output_type -> harness.agent.v1.ListLocalProviderProjectsResponse
-	24, // 44: harness.agent.v1.LocalTrackerService.ListFolderProjects:output_type -> harness.agent.v1.ListFolderProjectsResponse
-	26, // 45: harness.agent.v1.LocalTrackerService.SetFolderProject:output_type -> harness.agent.v1.SetFolderProjectResponse
-	28, // 46: harness.agent.v1.LocalTrackerService.PrepareIssueSession:output_type -> harness.agent.v1.PrepareIssueSessionResponse
-	30, // 47: harness.agent.v1.LocalTrackerService.ListAllKnowledgeSources:output_type -> harness.agent.v1.ListAllKnowledgeSourcesResponse
-	32, // 48: harness.agent.v1.LocalTrackerService.SearchAllKnowledge:output_type -> harness.agent.v1.SearchAllKnowledgeResponse
-	34, // 49: harness.agent.v1.LocalTrackerService.BrowseKnowledge:output_type -> harness.agent.v1.BrowseKnowledgeResponse
-	36, // 50: harness.agent.v1.LocalTrackerService.ReadKnowledge:output_type -> harness.agent.v1.ReadKnowledgeResponse
-	33, // [33:51] is the sub-list for method output_type
-	15, // [15:33] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	47, // 0: harness.agent.v1.ListLocalKnowledgeConnectionsResponse.connections:type_name -> harness.library.v1.KnowledgeConnection
+	48, // 1: harness.agent.v1.ListLocalKnowledgeConnectionsResponse.providers:type_name -> harness.library.v1.KnowledgeCapabilities
+	49, // 2: harness.agent.v1.SaveLocalKnowledgeConnectionRequest.connection:type_name -> harness.library.v1.KnowledgeConnectionInput
+	47, // 3: harness.agent.v1.SaveLocalKnowledgeConnectionResponse.connection:type_name -> harness.library.v1.KnowledgeConnection
+	49, // 4: harness.agent.v1.TestLocalKnowledgeConnectionRequest.draft:type_name -> harness.library.v1.KnowledgeConnectionInput
+	50, // 5: harness.agent.v1.ListLocalTrackerConnectionsResponse.connections:type_name -> harness.library.v1.TrackerConnection
+	51, // 6: harness.agent.v1.ListLocalTrackerConnectionsResponse.providers:type_name -> harness.library.v1.TrackerCapabilities
+	52, // 7: harness.agent.v1.SaveLocalTrackerConnectionRequest.connection:type_name -> harness.library.v1.TrackerConnectionInput
+	50, // 8: harness.agent.v1.SaveLocalTrackerConnectionResponse.connection:type_name -> harness.library.v1.TrackerConnection
+	52, // 9: harness.agent.v1.TestLocalTrackerConnectionRequest.draft:type_name -> harness.library.v1.TrackerConnectionInput
+	53, // 10: harness.agent.v1.SearchLocalTrackerIssuesResponse.issues:type_name -> harness.library.v1.TrackerIssue
+	53, // 11: harness.agent.v1.GetLocalTrackerIssueResponse.issue:type_name -> harness.library.v1.TrackerIssue
+	54, // 12: harness.agent.v1.ListLocalTrackerFieldsResponse.fields:type_name -> harness.library.v1.TrackerField
+	55, // 13: harness.agent.v1.ListLocalProviderProjectsResponse.projects:type_name -> harness.library.v1.ProviderProject
+	32, // 14: harness.agent.v1.ListFolderProjectsResponse.links:type_name -> harness.agent.v1.FolderProject
+	56, // 15: harness.agent.v1.ListAllKnowledgeSourcesResponse.sources:type_name -> harness.library.v1.KnowledgeSource
+	57, // 16: harness.agent.v1.SearchAllKnowledgeResponse.hits:type_name -> harness.library.v1.KnowledgeHit
+	58, // 17: harness.agent.v1.SearchAllKnowledgeResponse.warnings:type_name -> harness.library.v1.KnowledgeWarning
+	59, // 18: harness.agent.v1.BrowseKnowledgeResponse.documents:type_name -> harness.library.v1.KnowledgeDocument
+	59, // 19: harness.agent.v1.ReadKnowledgeResponse.document:type_name -> harness.library.v1.KnowledgeDocument
+	10, // 20: harness.agent.v1.LocalTrackerService.ListLocalTrackerConnections:input_type -> harness.agent.v1.ListLocalTrackerConnectionsRequest
+	12, // 21: harness.agent.v1.LocalTrackerService.SaveLocalTrackerConnection:input_type -> harness.agent.v1.SaveLocalTrackerConnectionRequest
+	14, // 22: harness.agent.v1.LocalTrackerService.DeleteLocalTrackerConnection:input_type -> harness.agent.v1.DeleteLocalTrackerConnectionRequest
+	16, // 23: harness.agent.v1.LocalTrackerService.TestLocalTrackerConnection:input_type -> harness.agent.v1.TestLocalTrackerConnectionRequest
+	18, // 24: harness.agent.v1.LocalTrackerService.SearchLocalTrackerIssues:input_type -> harness.agent.v1.SearchLocalTrackerIssuesRequest
+	20, // 25: harness.agent.v1.LocalTrackerService.GetLocalTrackerIssue:input_type -> harness.agent.v1.GetLocalTrackerIssueRequest
+	22, // 26: harness.agent.v1.LocalTrackerService.ListLocalTrackerFields:input_type -> harness.agent.v1.ListLocalTrackerFieldsRequest
+	24, // 27: harness.agent.v1.LocalTrackerService.StartLocalTrackerOAuth:input_type -> harness.agent.v1.StartLocalTrackerOAuthRequest
+	26, // 28: harness.agent.v1.LocalTrackerService.GetLocalTrackerOAuth:input_type -> harness.agent.v1.GetLocalTrackerOAuthRequest
+	28, // 29: harness.agent.v1.LocalTrackerService.SyncLocalTrackers:input_type -> harness.agent.v1.SyncLocalTrackersRequest
+	30, // 30: harness.agent.v1.LocalTrackerService.ListLocalProviderProjects:input_type -> harness.agent.v1.ListLocalProviderProjectsRequest
+	33, // 31: harness.agent.v1.LocalTrackerService.ListFolderProjects:input_type -> harness.agent.v1.ListFolderProjectsRequest
+	35, // 32: harness.agent.v1.LocalTrackerService.SetFolderProject:input_type -> harness.agent.v1.SetFolderProjectRequest
+	37, // 33: harness.agent.v1.LocalTrackerService.PrepareIssueSession:input_type -> harness.agent.v1.PrepareIssueSessionRequest
+	39, // 34: harness.agent.v1.LocalTrackerService.ListAllKnowledgeSources:input_type -> harness.agent.v1.ListAllKnowledgeSourcesRequest
+	41, // 35: harness.agent.v1.LocalTrackerService.SearchAllKnowledge:input_type -> harness.agent.v1.SearchAllKnowledgeRequest
+	43, // 36: harness.agent.v1.LocalTrackerService.BrowseKnowledge:input_type -> harness.agent.v1.BrowseKnowledgeRequest
+	45, // 37: harness.agent.v1.LocalTrackerService.ReadKnowledge:input_type -> harness.agent.v1.ReadKnowledgeRequest
+	0,  // 38: harness.agent.v1.LocalTrackerService.ListLocalKnowledgeConnections:input_type -> harness.agent.v1.ListLocalKnowledgeConnectionsRequest
+	2,  // 39: harness.agent.v1.LocalTrackerService.SaveLocalKnowledgeConnection:input_type -> harness.agent.v1.SaveLocalKnowledgeConnectionRequest
+	4,  // 40: harness.agent.v1.LocalTrackerService.DeleteLocalKnowledgeConnection:input_type -> harness.agent.v1.DeleteLocalKnowledgeConnectionRequest
+	6,  // 41: harness.agent.v1.LocalTrackerService.TestLocalKnowledgeConnection:input_type -> harness.agent.v1.TestLocalKnowledgeConnectionRequest
+	8,  // 42: harness.agent.v1.LocalTrackerService.StartLocalKnowledgeOAuth:input_type -> harness.agent.v1.StartLocalKnowledgeOAuthRequest
+	11, // 43: harness.agent.v1.LocalTrackerService.ListLocalTrackerConnections:output_type -> harness.agent.v1.ListLocalTrackerConnectionsResponse
+	13, // 44: harness.agent.v1.LocalTrackerService.SaveLocalTrackerConnection:output_type -> harness.agent.v1.SaveLocalTrackerConnectionResponse
+	15, // 45: harness.agent.v1.LocalTrackerService.DeleteLocalTrackerConnection:output_type -> harness.agent.v1.DeleteLocalTrackerConnectionResponse
+	17, // 46: harness.agent.v1.LocalTrackerService.TestLocalTrackerConnection:output_type -> harness.agent.v1.TestLocalTrackerConnectionResponse
+	19, // 47: harness.agent.v1.LocalTrackerService.SearchLocalTrackerIssues:output_type -> harness.agent.v1.SearchLocalTrackerIssuesResponse
+	21, // 48: harness.agent.v1.LocalTrackerService.GetLocalTrackerIssue:output_type -> harness.agent.v1.GetLocalTrackerIssueResponse
+	23, // 49: harness.agent.v1.LocalTrackerService.ListLocalTrackerFields:output_type -> harness.agent.v1.ListLocalTrackerFieldsResponse
+	25, // 50: harness.agent.v1.LocalTrackerService.StartLocalTrackerOAuth:output_type -> harness.agent.v1.StartLocalTrackerOAuthResponse
+	27, // 51: harness.agent.v1.LocalTrackerService.GetLocalTrackerOAuth:output_type -> harness.agent.v1.GetLocalTrackerOAuthResponse
+	29, // 52: harness.agent.v1.LocalTrackerService.SyncLocalTrackers:output_type -> harness.agent.v1.SyncLocalTrackersResponse
+	31, // 53: harness.agent.v1.LocalTrackerService.ListLocalProviderProjects:output_type -> harness.agent.v1.ListLocalProviderProjectsResponse
+	34, // 54: harness.agent.v1.LocalTrackerService.ListFolderProjects:output_type -> harness.agent.v1.ListFolderProjectsResponse
+	36, // 55: harness.agent.v1.LocalTrackerService.SetFolderProject:output_type -> harness.agent.v1.SetFolderProjectResponse
+	38, // 56: harness.agent.v1.LocalTrackerService.PrepareIssueSession:output_type -> harness.agent.v1.PrepareIssueSessionResponse
+	40, // 57: harness.agent.v1.LocalTrackerService.ListAllKnowledgeSources:output_type -> harness.agent.v1.ListAllKnowledgeSourcesResponse
+	42, // 58: harness.agent.v1.LocalTrackerService.SearchAllKnowledge:output_type -> harness.agent.v1.SearchAllKnowledgeResponse
+	44, // 59: harness.agent.v1.LocalTrackerService.BrowseKnowledge:output_type -> harness.agent.v1.BrowseKnowledgeResponse
+	46, // 60: harness.agent.v1.LocalTrackerService.ReadKnowledge:output_type -> harness.agent.v1.ReadKnowledgeResponse
+	1,  // 61: harness.agent.v1.LocalTrackerService.ListLocalKnowledgeConnections:output_type -> harness.agent.v1.ListLocalKnowledgeConnectionsResponse
+	3,  // 62: harness.agent.v1.LocalTrackerService.SaveLocalKnowledgeConnection:output_type -> harness.agent.v1.SaveLocalKnowledgeConnectionResponse
+	5,  // 63: harness.agent.v1.LocalTrackerService.DeleteLocalKnowledgeConnection:output_type -> harness.agent.v1.DeleteLocalKnowledgeConnectionResponse
+	7,  // 64: harness.agent.v1.LocalTrackerService.TestLocalKnowledgeConnection:output_type -> harness.agent.v1.TestLocalKnowledgeConnectionResponse
+	9,  // 65: harness.agent.v1.LocalTrackerService.StartLocalKnowledgeOAuth:output_type -> harness.agent.v1.StartLocalKnowledgeOAuthResponse
+	43, // [43:66] is the sub-list for method output_type
+	20, // [20:43] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_trackers_proto_init() }
@@ -2080,7 +2615,7 @@ func file_harness_agent_v1_trackers_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_trackers_proto_rawDesc), len(file_harness_agent_v1_trackers_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   37,
+			NumMessages:   47,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

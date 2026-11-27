@@ -31,6 +31,11 @@ const (
 	TrackerAuthMethod_TRACKER_AUTH_METHOD_PASSWORD TrackerAuthMethod = 2
 	// Authorization Code with PKCE and a client an admin of the instance registered.
 	TrackerAuthMethod_TRACKER_AUTH_METHOD_OAUTH TrackerAuthMethod = 3
+	// Account email (in `login`) and an API token, such as Atlassian Cloud basic auth.
+	TrackerAuthMethod_TRACKER_AUTH_METHOD_EMAIL_TOKEN TrackerAuthMethod = 4
+	// Signs in through the server's code host connection from Settings > VCS (option "vcs_connection_id"), or on a device
+	// through the gh or glab command line signed in for the host of base_url. No secret is stored.
+	TrackerAuthMethod_TRACKER_AUTH_METHOD_VCS_CONNECTION TrackerAuthMethod = 5
 )
 
 // Enum value maps for TrackerAuthMethod.
@@ -40,12 +45,16 @@ var (
 		1: "TRACKER_AUTH_METHOD_TOKEN",
 		2: "TRACKER_AUTH_METHOD_PASSWORD",
 		3: "TRACKER_AUTH_METHOD_OAUTH",
+		4: "TRACKER_AUTH_METHOD_EMAIL_TOKEN",
+		5: "TRACKER_AUTH_METHOD_VCS_CONNECTION",
 	}
 	TrackerAuthMethod_value = map[string]int32{
-		"TRACKER_AUTH_METHOD_UNSPECIFIED": 0,
-		"TRACKER_AUTH_METHOD_TOKEN":       1,
-		"TRACKER_AUTH_METHOD_PASSWORD":    2,
-		"TRACKER_AUTH_METHOD_OAUTH":       3,
+		"TRACKER_AUTH_METHOD_UNSPECIFIED":    0,
+		"TRACKER_AUTH_METHOD_TOKEN":          1,
+		"TRACKER_AUTH_METHOD_PASSWORD":       2,
+		"TRACKER_AUTH_METHOD_OAUTH":          3,
+		"TRACKER_AUTH_METHOD_EMAIL_TOKEN":    4,
+		"TRACKER_AUTH_METHOD_VCS_CONNECTION": 5,
 	}
 )
 
@@ -139,8 +148,23 @@ type TrackerCapabilities struct {
 	QueryExample  string `protobuf:"bytes,5,opt,name=query_example,json=queryExample,proto3" json:"query_example,omitempty"`
 	CustomFields  bool   `protobuf:"varint,6,opt,name=custom_fields,json=customFields,proto3" json:"custom_fields,omitempty"`
 	Comments      bool   `protobuf:"varint,7,opt,name=comments,proto3" json:"comments,omitempty"`
-	// Has documents Knowledge can read.
-	Knowledge     bool `protobuf:"varint,8,opt,name=knowledge,proto3" json:"knowledge,omitempty"`
+	// Deprecated: documents are a knowledge provider's now (knowledge_connections.proto), with connections of their own that may
+	// borrow this provider's sign-in. Always false.
+	//
+	// Deprecated: Marked as deprecated in harness/library/v1/tracker_connections.proto.
+	Knowledge bool `protobuf:"varint,8,opt,name=knowledge,proto3" json:"knowledge,omitempty"`
+	// Provider-specific settings the form asks for, kept in TrackerConnection.options. The UI renders them generically.
+	OptionFields []*ProviderOptionField `protobuf:"bytes,9,rep,name=option_fields,json=optionFields,proto3" json:"option_fields,omitempty"`
+	// Where the vendor documents the credentials the form asks for.
+	DocsUrl string `protobuf:"bytes,10,opt,name=docs_url,json=docsUrl,proto3" json:"docs_url,omitempty"`
+	// Key of the logo in packages/ui/app/utils/providerLogos.ts; empty: a monogram of display_name.
+	Logo string `protobuf:"bytes,11,opt,name=logo,proto3" json:"logo,omitempty"`
+	// Placeholder of the address field, such as https://youtrack.example.com.
+	BaseUrlPlaceholder string `protobuf:"bytes,12,opt,name=base_url_placeholder,json=baseUrlPlaceholder,proto3" json:"base_url_placeholder,omitempty"`
+	// The address used when the form leaves it empty, for a hosted-only service (https://api.linear.app). Empty: required.
+	DefaultBaseUrl string `protobuf:"bytes,13,opt,name=default_base_url,json=defaultBaseUrl,proto3" json:"default_base_url,omitempty"`
+	// What the form says under each sign-in method, in English. A method without one gets the form's own text.
+	AuthHints     []*ProviderAuthHint `protobuf:"bytes,14,rep,name=auth_hints,json=authHints,proto3" json:"auth_hints,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -224,11 +248,222 @@ func (x *TrackerCapabilities) GetComments() bool {
 	return false
 }
 
+// Deprecated: Marked as deprecated in harness/library/v1/tracker_connections.proto.
 func (x *TrackerCapabilities) GetKnowledge() bool {
 	if x != nil {
 		return x.Knowledge
 	}
 	return false
+}
+
+func (x *TrackerCapabilities) GetOptionFields() []*ProviderOptionField {
+	if x != nil {
+		return x.OptionFields
+	}
+	return nil
+}
+
+func (x *TrackerCapabilities) GetDocsUrl() string {
+	if x != nil {
+		return x.DocsUrl
+	}
+	return ""
+}
+
+func (x *TrackerCapabilities) GetLogo() string {
+	if x != nil {
+		return x.Logo
+	}
+	return ""
+}
+
+func (x *TrackerCapabilities) GetBaseUrlPlaceholder() string {
+	if x != nil {
+		return x.BaseUrlPlaceholder
+	}
+	return ""
+}
+
+func (x *TrackerCapabilities) GetDefaultBaseUrl() string {
+	if x != nil {
+		return x.DefaultBaseUrl
+	}
+	return ""
+}
+
+func (x *TrackerCapabilities) GetAuthHints() []*ProviderAuthHint {
+	if x != nil {
+		return x.AuthHints
+	}
+	return nil
+}
+
+// A provider-specific setting. Never a secret: options are shown to admins and stored in the clear.
+type ProviderOptionField struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The key in `options`, such as "org_id". Lower case letters, digits and underscores.
+	Key         string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Label       string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Placeholder string `protobuf:"bytes,3,opt,name=placeholder,proto3" json:"placeholder,omitempty"`
+	Required    bool   `protobuf:"varint,4,opt,name=required,proto3" json:"required,omitempty"`
+	// When set, the value is one of these and the form shows a choice.
+	AllowedValues []string `protobuf:"bytes,5,rep,name=allowed_values,json=allowedValues,proto3" json:"allowed_values,omitempty"`
+	// One line under the field.
+	Help string `protobuf:"bytes,6,opt,name=help,proto3" json:"help,omitempty"`
+	// Used when the form leaves it empty.
+	DefaultValue  string `protobuf:"bytes,7,opt,name=default_value,json=defaultValue,proto3" json:"default_value,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProviderOptionField) Reset() {
+	*x = ProviderOptionField{}
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProviderOptionField) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProviderOptionField) ProtoMessage() {}
+
+func (x *ProviderOptionField) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProviderOptionField.ProtoReflect.Descriptor instead.
+func (*ProviderOptionField) Descriptor() ([]byte, []int) {
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ProviderOptionField) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *ProviderOptionField) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *ProviderOptionField) GetPlaceholder() string {
+	if x != nil {
+		return x.Placeholder
+	}
+	return ""
+}
+
+func (x *ProviderOptionField) GetRequired() bool {
+	if x != nil {
+		return x.Required
+	}
+	return false
+}
+
+func (x *ProviderOptionField) GetAllowedValues() []string {
+	if x != nil {
+		return x.AllowedValues
+	}
+	return nil
+}
+
+func (x *ProviderOptionField) GetHelp() string {
+	if x != nil {
+		return x.Help
+	}
+	return ""
+}
+
+func (x *ProviderOptionField) GetDefaultValue() string {
+	if x != nil {
+		return x.DefaultValue
+	}
+	return ""
+}
+
+// What the form says for one sign-in method of one provider.
+type ProviderAuthHint struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Method TrackerAuthMethod      `protobuf:"varint,1,opt,name=method,proto3,enum=harness.library.v1.TrackerAuthMethod" json:"method,omitempty"`
+	Help   string                 `protobuf:"bytes,2,opt,name=help,proto3" json:"help,omitempty"`
+	// The label of the secret field: "Permanent token", "API token".
+	SecretLabel string `protobuf:"bytes,3,opt,name=secret_label,json=secretLabel,proto3" json:"secret_label,omitempty"`
+	// The label of the login field when the method takes one: "Account email".
+	LoginLabel    string `protobuf:"bytes,4,opt,name=login_label,json=loginLabel,proto3" json:"login_label,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProviderAuthHint) Reset() {
+	*x = ProviderAuthHint{}
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProviderAuthHint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProviderAuthHint) ProtoMessage() {}
+
+func (x *ProviderAuthHint) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProviderAuthHint.ProtoReflect.Descriptor instead.
+func (*ProviderAuthHint) Descriptor() ([]byte, []int) {
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ProviderAuthHint) GetMethod() TrackerAuthMethod {
+	if x != nil {
+		return x.Method
+	}
+	return TrackerAuthMethod_TRACKER_AUTH_METHOD_UNSPECIFIED
+}
+
+func (x *ProviderAuthHint) GetHelp() string {
+	if x != nil {
+		return x.Help
+	}
+	return ""
+}
+
+func (x *ProviderAuthHint) GetSecretLabel() string {
+	if x != nil {
+		return x.SecretLabel
+	}
+	return ""
+}
+
+func (x *ProviderAuthHint) GetLoginLabel() string {
+	if x != nil {
+		return x.LoginLabel
+	}
+	return ""
 }
 
 // Which connection something uses.
@@ -242,7 +477,7 @@ type TrackerConnectionRef struct {
 
 func (x *TrackerConnectionRef) Reset() {
 	*x = TrackerConnectionRef{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[1]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -254,7 +489,7 @@ func (x *TrackerConnectionRef) String() string {
 func (*TrackerConnectionRef) ProtoMessage() {}
 
 func (x *TrackerConnectionRef) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[1]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -267,7 +502,7 @@ func (x *TrackerConnectionRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrackerConnectionRef.ProtoReflect.Descriptor instead.
 func (*TrackerConnectionRef) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{1}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *TrackerConnectionRef) GetScope() TrackerConnectionScope {
@@ -301,22 +536,29 @@ type TrackerConnection struct {
 	HasSecret           bool `protobuf:"varint,9,opt,name=has_secret,json=hasSecret,proto3" json:"has_secret,omitempty"`
 	Enabled             bool `protobuf:"varint,10,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	AllowPrivateNetwork bool `protobuf:"varint,11,opt,name=allow_private_network,json=allowPrivateNetwork,proto3" json:"allow_private_network,omitempty"`
-	// Serves documents to Knowledge: for everyone on an admin connection, for its user on a device one.
+	// Deprecated: Knowledge reads knowledge source connections (KnowledgeConnection), which may borrow this one's sign-in.
+	// Connections that had it set were migrated into one. Always false.
+	//
+	// Deprecated: Marked as deprecated in harness/library/v1/tracker_connections.proto.
 	KnowledgeEnabled bool `protobuf:"varint,12,opt,name=knowledge_enabled,json=knowledgeEnabled,proto3" json:"knowledge_enabled,omitempty"`
-	// Narrows the documents, in the provider's syntax.
+	// Deprecated with knowledge_enabled; migrated into KnowledgeConnection.query.
+	//
+	// Deprecated: Marked as deprecated in harness/library/v1/tracker_connections.proto.
 	KnowledgeQuery string `protobuf:"bytes,13,opt,name=knowledge_query,json=knowledgeQuery,proto3" json:"knowledge_query,omitempty"`
 	Healthy        bool   `protobuf:"varint,14,opt,name=healthy,proto3" json:"healthy,omitempty"`
 	LastError      string `protobuf:"bytes,15,opt,name=last_error,json=lastError,proto3" json:"last_error,omitempty"`
 	// RFC 3339; empty before the first test.
 	LastCheckedAt string               `protobuf:"bytes,16,opt,name=last_checked_at,json=lastCheckedAt,proto3" json:"last_checked_at,omitempty"`
 	Capabilities  *TrackerCapabilities `protobuf:"bytes,17,opt,name=capabilities,proto3" json:"capabilities,omitempty"`
+	// Provider-specific settings, keyed by TrackerCapabilities.option_fields. Never secrets.
+	Options       map[string]string `protobuf:"bytes,18,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TrackerConnection) Reset() {
 	*x = TrackerConnection{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[2]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -328,7 +570,7 @@ func (x *TrackerConnection) String() string {
 func (*TrackerConnection) ProtoMessage() {}
 
 func (x *TrackerConnection) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[2]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -341,7 +583,7 @@ func (x *TrackerConnection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrackerConnection.ProtoReflect.Descriptor instead.
 func (*TrackerConnection) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{2}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *TrackerConnection) GetId() string {
@@ -421,6 +663,7 @@ func (x *TrackerConnection) GetAllowPrivateNetwork() bool {
 	return false
 }
 
+// Deprecated: Marked as deprecated in harness/library/v1/tracker_connections.proto.
 func (x *TrackerConnection) GetKnowledgeEnabled() bool {
 	if x != nil {
 		return x.KnowledgeEnabled
@@ -428,6 +671,7 @@ func (x *TrackerConnection) GetKnowledgeEnabled() bool {
 	return false
 }
 
+// Deprecated: Marked as deprecated in harness/library/v1/tracker_connections.proto.
 func (x *TrackerConnection) GetKnowledgeQuery() string {
 	if x != nil {
 		return x.KnowledgeQuery
@@ -463,6 +707,13 @@ func (x *TrackerConnection) GetCapabilities() *TrackerCapabilities {
 	return nil
 }
 
+func (x *TrackerConnection) GetOptions() map[string]string {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
 // A connection as the form sends it. An unset secret keeps the stored one.
 type TrackerConnectionInput struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -480,15 +731,20 @@ type TrackerConnectionInput struct {
 	OauthClientSecret   *string `protobuf:"bytes,9,opt,name=oauth_client_secret,json=oauthClientSecret,proto3,oneof" json:"oauth_client_secret,omitempty"`
 	Enabled             bool    `protobuf:"varint,10,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	AllowPrivateNetwork bool    `protobuf:"varint,11,opt,name=allow_private_network,json=allowPrivateNetwork,proto3" json:"allow_private_network,omitempty"`
-	KnowledgeEnabled    bool    `protobuf:"varint,12,opt,name=knowledge_enabled,json=knowledgeEnabled,proto3" json:"knowledge_enabled,omitempty"`
-	KnowledgeQuery      string  `protobuf:"bytes,13,opt,name=knowledge_query,json=knowledgeQuery,proto3" json:"knowledge_query,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Deprecated and ignored: see TrackerConnection.knowledge_enabled.
+	//
+	// Deprecated: Marked as deprecated in harness/library/v1/tracker_connections.proto.
+	KnowledgeEnabled bool `protobuf:"varint,12,opt,name=knowledge_enabled,json=knowledgeEnabled,proto3" json:"knowledge_enabled,omitempty"`
+	// Deprecated: Marked as deprecated in harness/library/v1/tracker_connections.proto.
+	KnowledgeQuery string            `protobuf:"bytes,13,opt,name=knowledge_query,json=knowledgeQuery,proto3" json:"knowledge_query,omitempty"`
+	Options        map[string]string `protobuf:"bytes,14,rep,name=options,proto3" json:"options,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *TrackerConnectionInput) Reset() {
 	*x = TrackerConnectionInput{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[3]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -500,7 +756,7 @@ func (x *TrackerConnectionInput) String() string {
 func (*TrackerConnectionInput) ProtoMessage() {}
 
 func (x *TrackerConnectionInput) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[3]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -513,7 +769,7 @@ func (x *TrackerConnectionInput) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrackerConnectionInput.ProtoReflect.Descriptor instead.
 func (*TrackerConnectionInput) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{3}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *TrackerConnectionInput) GetId() string {
@@ -593,6 +849,7 @@ func (x *TrackerConnectionInput) GetAllowPrivateNetwork() bool {
 	return false
 }
 
+// Deprecated: Marked as deprecated in harness/library/v1/tracker_connections.proto.
 func (x *TrackerConnectionInput) GetKnowledgeEnabled() bool {
 	if x != nil {
 		return x.KnowledgeEnabled
@@ -600,11 +857,19 @@ func (x *TrackerConnectionInput) GetKnowledgeEnabled() bool {
 	return false
 }
 
+// Deprecated: Marked as deprecated in harness/library/v1/tracker_connections.proto.
 func (x *TrackerConnectionInput) GetKnowledgeQuery() string {
 	if x != nil {
 		return x.KnowledgeQuery
 	}
 	return ""
+}
+
+func (x *TrackerConnectionInput) GetOptions() map[string]string {
+	if x != nil {
+		return x.Options
+	}
+	return nil
 }
 
 type TrackerIssue struct {
@@ -627,7 +892,7 @@ type TrackerIssue struct {
 
 func (x *TrackerIssue) Reset() {
 	*x = TrackerIssue{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[4]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -639,7 +904,7 @@ func (x *TrackerIssue) String() string {
 func (*TrackerIssue) ProtoMessage() {}
 
 func (x *TrackerIssue) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[4]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -652,7 +917,7 @@ func (x *TrackerIssue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrackerIssue.ProtoReflect.Descriptor instead.
 func (*TrackerIssue) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{4}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *TrackerIssue) GetId() string {
@@ -721,7 +986,7 @@ type TrackerIssueField struct {
 
 func (x *TrackerIssueField) Reset() {
 	*x = TrackerIssueField{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[5]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -733,7 +998,7 @@ func (x *TrackerIssueField) String() string {
 func (*TrackerIssueField) ProtoMessage() {}
 
 func (x *TrackerIssueField) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[5]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -746,7 +1011,7 @@ func (x *TrackerIssueField) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrackerIssueField.ProtoReflect.Descriptor instead.
 func (*TrackerIssueField) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{5}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *TrackerIssueField) GetName() string {
@@ -774,7 +1039,7 @@ type TrackerIssueComment struct {
 
 func (x *TrackerIssueComment) Reset() {
 	*x = TrackerIssueComment{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[6]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -786,7 +1051,7 @@ func (x *TrackerIssueComment) String() string {
 func (*TrackerIssueComment) ProtoMessage() {}
 
 func (x *TrackerIssueComment) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[6]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -799,7 +1064,7 @@ func (x *TrackerIssueComment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrackerIssueComment.ProtoReflect.Descriptor instead.
 func (*TrackerIssueComment) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{6}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *TrackerIssueComment) GetAuthor() string {
@@ -838,7 +1103,7 @@ type TrackerField struct {
 
 func (x *TrackerField) Reset() {
 	*x = TrackerField{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[7]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -850,7 +1115,7 @@ func (x *TrackerField) String() string {
 func (*TrackerField) ProtoMessage() {}
 
 func (x *TrackerField) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[7]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -863,7 +1128,7 @@ func (x *TrackerField) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TrackerField.ProtoReflect.Descriptor instead.
 func (*TrackerField) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{7}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *TrackerField) GetName() string {
@@ -902,7 +1167,7 @@ type ListTrackerConnectionsRequest struct {
 
 func (x *ListTrackerConnectionsRequest) Reset() {
 	*x = ListTrackerConnectionsRequest{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[8]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -914,7 +1179,7 @@ func (x *ListTrackerConnectionsRequest) String() string {
 func (*ListTrackerConnectionsRequest) ProtoMessage() {}
 
 func (x *ListTrackerConnectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[8]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -927,7 +1192,7 @@ func (x *ListTrackerConnectionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTrackerConnectionsRequest.ProtoReflect.Descriptor instead.
 func (*ListTrackerConnectionsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{8}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{10}
 }
 
 type ListTrackerConnectionsResponse struct {
@@ -941,7 +1206,7 @@ type ListTrackerConnectionsResponse struct {
 
 func (x *ListTrackerConnectionsResponse) Reset() {
 	*x = ListTrackerConnectionsResponse{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[9]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -953,7 +1218,7 @@ func (x *ListTrackerConnectionsResponse) String() string {
 func (*ListTrackerConnectionsResponse) ProtoMessage() {}
 
 func (x *ListTrackerConnectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[9]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -966,7 +1231,7 @@ func (x *ListTrackerConnectionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListTrackerConnectionsResponse.ProtoReflect.Descriptor instead.
 func (*ListTrackerConnectionsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{9}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ListTrackerConnectionsResponse) GetConnections() []*TrackerConnection {
@@ -992,7 +1257,7 @@ type PutTrackerConnectionRequest struct {
 
 func (x *PutTrackerConnectionRequest) Reset() {
 	*x = PutTrackerConnectionRequest{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[10]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1004,7 +1269,7 @@ func (x *PutTrackerConnectionRequest) String() string {
 func (*PutTrackerConnectionRequest) ProtoMessage() {}
 
 func (x *PutTrackerConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[10]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1017,7 +1282,7 @@ func (x *PutTrackerConnectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PutTrackerConnectionRequest.ProtoReflect.Descriptor instead.
 func (*PutTrackerConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{10}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *PutTrackerConnectionRequest) GetConnection() *TrackerConnectionInput {
@@ -1036,7 +1301,7 @@ type PutTrackerConnectionResponse struct {
 
 func (x *PutTrackerConnectionResponse) Reset() {
 	*x = PutTrackerConnectionResponse{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[11]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1048,7 +1313,7 @@ func (x *PutTrackerConnectionResponse) String() string {
 func (*PutTrackerConnectionResponse) ProtoMessage() {}
 
 func (x *PutTrackerConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[11]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1061,7 +1326,7 @@ func (x *PutTrackerConnectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PutTrackerConnectionResponse.ProtoReflect.Descriptor instead.
 func (*PutTrackerConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{11}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *PutTrackerConnectionResponse) GetConnection() *TrackerConnection {
@@ -1080,7 +1345,7 @@ type DeleteTrackerConnectionRequest struct {
 
 func (x *DeleteTrackerConnectionRequest) Reset() {
 	*x = DeleteTrackerConnectionRequest{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[12]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1092,7 +1357,7 @@ func (x *DeleteTrackerConnectionRequest) String() string {
 func (*DeleteTrackerConnectionRequest) ProtoMessage() {}
 
 func (x *DeleteTrackerConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[12]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1105,7 +1370,7 @@ func (x *DeleteTrackerConnectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTrackerConnectionRequest.ProtoReflect.Descriptor instead.
 func (*DeleteTrackerConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{12}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *DeleteTrackerConnectionRequest) GetId() string {
@@ -1123,7 +1388,7 @@ type DeleteTrackerConnectionResponse struct {
 
 func (x *DeleteTrackerConnectionResponse) Reset() {
 	*x = DeleteTrackerConnectionResponse{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[13]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1135,7 +1400,7 @@ func (x *DeleteTrackerConnectionResponse) String() string {
 func (*DeleteTrackerConnectionResponse) ProtoMessage() {}
 
 func (x *DeleteTrackerConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[13]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1148,7 +1413,7 @@ func (x *DeleteTrackerConnectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteTrackerConnectionResponse.ProtoReflect.Descriptor instead.
 func (*DeleteTrackerConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{13}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{15}
 }
 
 type TestTrackerConnectionRequest struct {
@@ -1163,7 +1428,7 @@ type TestTrackerConnectionRequest struct {
 
 func (x *TestTrackerConnectionRequest) Reset() {
 	*x = TestTrackerConnectionRequest{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[14]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1175,7 +1440,7 @@ func (x *TestTrackerConnectionRequest) String() string {
 func (*TestTrackerConnectionRequest) ProtoMessage() {}
 
 func (x *TestTrackerConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[14]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1188,7 +1453,7 @@ func (x *TestTrackerConnectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestTrackerConnectionRequest.ProtoReflect.Descriptor instead.
 func (*TestTrackerConnectionRequest) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{14}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *TestTrackerConnectionRequest) GetId() string {
@@ -1218,7 +1483,7 @@ type TestTrackerConnectionResponse struct {
 
 func (x *TestTrackerConnectionResponse) Reset() {
 	*x = TestTrackerConnectionResponse{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[15]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1230,7 +1495,7 @@ func (x *TestTrackerConnectionResponse) String() string {
 func (*TestTrackerConnectionResponse) ProtoMessage() {}
 
 func (x *TestTrackerConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[15]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1243,7 +1508,7 @@ func (x *TestTrackerConnectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestTrackerConnectionResponse.ProtoReflect.Descriptor instead.
 func (*TestTrackerConnectionResponse) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{15}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *TestTrackerConnectionResponse) GetOk() bool {
@@ -1286,7 +1551,7 @@ type SearchConnectionIssuesRequest struct {
 
 func (x *SearchConnectionIssuesRequest) Reset() {
 	*x = SearchConnectionIssuesRequest{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[16]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1298,7 +1563,7 @@ func (x *SearchConnectionIssuesRequest) String() string {
 func (*SearchConnectionIssuesRequest) ProtoMessage() {}
 
 func (x *SearchConnectionIssuesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[16]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1311,7 +1576,7 @@ func (x *SearchConnectionIssuesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchConnectionIssuesRequest.ProtoReflect.Descriptor instead.
 func (*SearchConnectionIssuesRequest) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{16}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *SearchConnectionIssuesRequest) GetConnectionId() string {
@@ -1345,7 +1610,7 @@ type SearchConnectionIssuesResponse struct {
 
 func (x *SearchConnectionIssuesResponse) Reset() {
 	*x = SearchConnectionIssuesResponse{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[17]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1357,7 +1622,7 @@ func (x *SearchConnectionIssuesResponse) String() string {
 func (*SearchConnectionIssuesResponse) ProtoMessage() {}
 
 func (x *SearchConnectionIssuesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[17]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1370,7 +1635,7 @@ func (x *SearchConnectionIssuesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchConnectionIssuesResponse.ProtoReflect.Descriptor instead.
 func (*SearchConnectionIssuesResponse) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{17}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *SearchConnectionIssuesResponse) GetIssues() []*TrackerIssue {
@@ -1398,7 +1663,7 @@ type ListConnectionFieldsRequest struct {
 
 func (x *ListConnectionFieldsRequest) Reset() {
 	*x = ListConnectionFieldsRequest{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[18]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1410,7 +1675,7 @@ func (x *ListConnectionFieldsRequest) String() string {
 func (*ListConnectionFieldsRequest) ProtoMessage() {}
 
 func (x *ListConnectionFieldsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[18]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1423,7 +1688,7 @@ func (x *ListConnectionFieldsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConnectionFieldsRequest.ProtoReflect.Descriptor instead.
 func (*ListConnectionFieldsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{18}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListConnectionFieldsRequest) GetConnectionId() string {
@@ -1449,7 +1714,7 @@ type ListConnectionFieldsResponse struct {
 
 func (x *ListConnectionFieldsResponse) Reset() {
 	*x = ListConnectionFieldsResponse{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[19]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1461,7 +1726,7 @@ func (x *ListConnectionFieldsResponse) String() string {
 func (*ListConnectionFieldsResponse) ProtoMessage() {}
 
 func (x *ListConnectionFieldsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[19]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1474,7 +1739,7 @@ func (x *ListConnectionFieldsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConnectionFieldsResponse.ProtoReflect.Descriptor instead.
 func (*ListConnectionFieldsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{19}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListConnectionFieldsResponse) GetFields() []*TrackerField {
@@ -1493,7 +1758,7 @@ type StartTrackerOAuthRequest struct {
 
 func (x *StartTrackerOAuthRequest) Reset() {
 	*x = StartTrackerOAuthRequest{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[20]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1505,7 +1770,7 @@ func (x *StartTrackerOAuthRequest) String() string {
 func (*StartTrackerOAuthRequest) ProtoMessage() {}
 
 func (x *StartTrackerOAuthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[20]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1518,7 +1783,7 @@ func (x *StartTrackerOAuthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartTrackerOAuthRequest.ProtoReflect.Descriptor instead.
 func (*StartTrackerOAuthRequest) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{20}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *StartTrackerOAuthRequest) GetConnectionId() string {
@@ -1537,7 +1802,7 @@ type StartTrackerOAuthResponse struct {
 
 func (x *StartTrackerOAuthResponse) Reset() {
 	*x = StartTrackerOAuthResponse{}
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[21]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1549,7 +1814,7 @@ func (x *StartTrackerOAuthResponse) String() string {
 func (*StartTrackerOAuthResponse) ProtoMessage() {}
 
 func (x *StartTrackerOAuthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[21]
+	mi := &file_harness_library_v1_tracker_connections_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1562,7 +1827,7 @@ func (x *StartTrackerOAuthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartTrackerOAuthResponse.ProtoReflect.Descriptor instead.
 func (*StartTrackerOAuthResponse) Descriptor() ([]byte, []int) {
-	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{21}
+	return file_harness_library_v1_tracker_connections_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *StartTrackerOAuthResponse) GetAuthorizeUrl() string {
@@ -1576,7 +1841,7 @@ var File_harness_library_v1_tracker_connections_proto protoreflect.FileDescripto
 
 const file_harness_library_v1_tracker_connections_proto_rawDesc = "" +
 	"\n" +
-	",harness/library/v1/tracker_connections.proto\x12\x12harness.library.v1\"\xc9\x02\n" +
+	",harness/library/v1/tracker_connections.proto\x12\x12harness.library.v1\"\xeb\x04\n" +
 	"\x13TrackerCapabilities\x12\x1a\n" +
 	"\bprovider\x18\x01 \x01(\tR\bprovider\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\x12H\n" +
@@ -1584,11 +1849,33 @@ const file_harness_library_v1_tracker_connections_proto_rawDesc = "" +
 	"\x0equery_language\x18\x04 \x01(\tR\rqueryLanguage\x12#\n" +
 	"\rquery_example\x18\x05 \x01(\tR\fqueryExample\x12#\n" +
 	"\rcustom_fields\x18\x06 \x01(\bR\fcustomFields\x12\x1a\n" +
-	"\bcomments\x18\a \x01(\bR\bcomments\x12\x1c\n" +
-	"\tknowledge\x18\b \x01(\bR\tknowledge\"h\n" +
+	"\bcomments\x18\a \x01(\bR\bcomments\x12 \n" +
+	"\tknowledge\x18\b \x01(\bB\x02\x18\x01R\tknowledge\x12L\n" +
+	"\roption_fields\x18\t \x03(\v2'.harness.library.v1.ProviderOptionFieldR\foptionFields\x12\x19\n" +
+	"\bdocs_url\x18\n" +
+	" \x01(\tR\adocsUrl\x12\x12\n" +
+	"\x04logo\x18\v \x01(\tR\x04logo\x120\n" +
+	"\x14base_url_placeholder\x18\f \x01(\tR\x12baseUrlPlaceholder\x12(\n" +
+	"\x10default_base_url\x18\r \x01(\tR\x0edefaultBaseUrl\x12C\n" +
+	"\n" +
+	"auth_hints\x18\x0e \x03(\v2$.harness.library.v1.ProviderAuthHintR\tauthHints\"\xdb\x01\n" +
+	"\x13ProviderOptionField\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12 \n" +
+	"\vplaceholder\x18\x03 \x01(\tR\vplaceholder\x12\x1a\n" +
+	"\brequired\x18\x04 \x01(\bR\brequired\x12%\n" +
+	"\x0eallowed_values\x18\x05 \x03(\tR\rallowedValues\x12\x12\n" +
+	"\x04help\x18\x06 \x01(\tR\x04help\x12#\n" +
+	"\rdefault_value\x18\a \x01(\tR\fdefaultValue\"\xa9\x01\n" +
+	"\x10ProviderAuthHint\x12=\n" +
+	"\x06method\x18\x01 \x01(\x0e2%.harness.library.v1.TrackerAuthMethodR\x06method\x12\x12\n" +
+	"\x04help\x18\x02 \x01(\tR\x04help\x12!\n" +
+	"\fsecret_label\x18\x03 \x01(\tR\vsecretLabel\x12\x1f\n" +
+	"\vlogin_label\x18\x04 \x01(\tR\n" +
+	"loginLabel\"h\n" +
 	"\x14TrackerConnectionRef\x12@\n" +
 	"\x05scope\x18\x01 \x01(\x0e2*.harness.library.v1.TrackerConnectionScopeR\x05scope\x12\x0e\n" +
-	"\x02id\x18\x02 \x01(\tR\x02id\"\x9a\x05\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\"\xac\x06\n" +
 	"\x11TrackerConnection\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12@\n" +
 	"\x05scope\x18\x02 \x01(\x0e2*.harness.library.v1.TrackerConnectionScopeR\x05scope\x12\x1a\n" +
@@ -1602,14 +1889,18 @@ const file_harness_library_v1_tracker_connections_proto_rawDesc = "" +
 	"has_secret\x18\t \x01(\bR\thasSecret\x12\x18\n" +
 	"\aenabled\x18\n" +
 	" \x01(\bR\aenabled\x122\n" +
-	"\x15allow_private_network\x18\v \x01(\bR\x13allowPrivateNetwork\x12+\n" +
-	"\x11knowledge_enabled\x18\f \x01(\bR\x10knowledgeEnabled\x12'\n" +
-	"\x0fknowledge_query\x18\r \x01(\tR\x0eknowledgeQuery\x12\x18\n" +
+	"\x15allow_private_network\x18\v \x01(\bR\x13allowPrivateNetwork\x12/\n" +
+	"\x11knowledge_enabled\x18\f \x01(\bB\x02\x18\x01R\x10knowledgeEnabled\x12+\n" +
+	"\x0fknowledge_query\x18\r \x01(\tB\x02\x18\x01R\x0eknowledgeQuery\x12\x18\n" +
 	"\ahealthy\x18\x0e \x01(\bR\ahealthy\x12\x1d\n" +
 	"\n" +
 	"last_error\x18\x0f \x01(\tR\tlastError\x12&\n" +
 	"\x0flast_checked_at\x18\x10 \x01(\tR\rlastCheckedAt\x12K\n" +
-	"\fcapabilities\x18\x11 \x01(\v2'.harness.library.v1.TrackerCapabilitiesR\fcapabilities\"\x85\x04\n" +
+	"\fcapabilities\x18\x11 \x01(\v2'.harness.library.v1.TrackerCapabilitiesR\fcapabilities\x12L\n" +
+	"\aoptions\x18\x12 \x03(\v22.harness.library.v1.TrackerConnection.OptionsEntryR\aoptions\x1a:\n" +
+	"\fOptionsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x9c\x05\n" +
 	"\x16TrackerConnectionInput\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x12\n" +
@@ -1622,9 +1913,13 @@ const file_harness_library_v1_tracker_connections_proto_rawDesc = "" +
 	"\x13oauth_client_secret\x18\t \x01(\tH\x01R\x11oauthClientSecret\x88\x01\x01\x12\x18\n" +
 	"\aenabled\x18\n" +
 	" \x01(\bR\aenabled\x122\n" +
-	"\x15allow_private_network\x18\v \x01(\bR\x13allowPrivateNetwork\x12+\n" +
-	"\x11knowledge_enabled\x18\f \x01(\bR\x10knowledgeEnabled\x12'\n" +
-	"\x0fknowledge_query\x18\r \x01(\tR\x0eknowledgeQueryB\t\n" +
+	"\x15allow_private_network\x18\v \x01(\bR\x13allowPrivateNetwork\x12/\n" +
+	"\x11knowledge_enabled\x18\f \x01(\bB\x02\x18\x01R\x10knowledgeEnabled\x12+\n" +
+	"\x0fknowledge_query\x18\r \x01(\tB\x02\x18\x01R\x0eknowledgeQuery\x12Q\n" +
+	"\aoptions\x18\x0e \x03(\v27.harness.library.v1.TrackerConnectionInput.OptionsEntryR\aoptions\x1a:\n" +
+	"\fOptionsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B\t\n" +
 	"\a_secretB\x16\n" +
 	"\x14_oauth_client_secret\"\xa5\x02\n" +
 	"\fTrackerIssue\x12\x0e\n" +
@@ -1688,12 +1983,14 @@ const file_harness_library_v1_tracker_connections_proto_rawDesc = "" +
 	"\x18StartTrackerOAuthRequest\x12#\n" +
 	"\rconnection_id\x18\x01 \x01(\tR\fconnectionId\"@\n" +
 	"\x19StartTrackerOAuthResponse\x12#\n" +
-	"\rauthorize_url\x18\x01 \x01(\tR\fauthorizeUrl*\x98\x01\n" +
+	"\rauthorize_url\x18\x01 \x01(\tR\fauthorizeUrl*\xe5\x01\n" +
 	"\x11TrackerAuthMethod\x12#\n" +
 	"\x1fTRACKER_AUTH_METHOD_UNSPECIFIED\x10\x00\x12\x1d\n" +
 	"\x19TRACKER_AUTH_METHOD_TOKEN\x10\x01\x12 \n" +
 	"\x1cTRACKER_AUTH_METHOD_PASSWORD\x10\x02\x12\x1d\n" +
-	"\x19TRACKER_AUTH_METHOD_OAUTH\x10\x03*\x8b\x01\n" +
+	"\x19TRACKER_AUTH_METHOD_OAUTH\x10\x03\x12#\n" +
+	"\x1fTRACKER_AUTH_METHOD_EMAIL_TOKEN\x10\x04\x12&\n" +
+	"\"TRACKER_AUTH_METHOD_VCS_CONNECTION\x10\x05*\x8b\x01\n" +
 	"\x16TrackerConnectionScope\x12(\n" +
 	"$TRACKER_CONNECTION_SCOPE_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eTRACKER_CONNECTION_SCOPE_ADMIN\x10\x01\x12#\n" +
@@ -1721,68 +2018,77 @@ func file_harness_library_v1_tracker_connections_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_library_v1_tracker_connections_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_harness_library_v1_tracker_connections_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_harness_library_v1_tracker_connections_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_harness_library_v1_tracker_connections_proto_goTypes = []any{
 	(TrackerAuthMethod)(0),                  // 0: harness.library.v1.TrackerAuthMethod
 	(TrackerConnectionScope)(0),             // 1: harness.library.v1.TrackerConnectionScope
 	(*TrackerCapabilities)(nil),             // 2: harness.library.v1.TrackerCapabilities
-	(*TrackerConnectionRef)(nil),            // 3: harness.library.v1.TrackerConnectionRef
-	(*TrackerConnection)(nil),               // 4: harness.library.v1.TrackerConnection
-	(*TrackerConnectionInput)(nil),          // 5: harness.library.v1.TrackerConnectionInput
-	(*TrackerIssue)(nil),                    // 6: harness.library.v1.TrackerIssue
-	(*TrackerIssueField)(nil),               // 7: harness.library.v1.TrackerIssueField
-	(*TrackerIssueComment)(nil),             // 8: harness.library.v1.TrackerIssueComment
-	(*TrackerField)(nil),                    // 9: harness.library.v1.TrackerField
-	(*ListTrackerConnectionsRequest)(nil),   // 10: harness.library.v1.ListTrackerConnectionsRequest
-	(*ListTrackerConnectionsResponse)(nil),  // 11: harness.library.v1.ListTrackerConnectionsResponse
-	(*PutTrackerConnectionRequest)(nil),     // 12: harness.library.v1.PutTrackerConnectionRequest
-	(*PutTrackerConnectionResponse)(nil),    // 13: harness.library.v1.PutTrackerConnectionResponse
-	(*DeleteTrackerConnectionRequest)(nil),  // 14: harness.library.v1.DeleteTrackerConnectionRequest
-	(*DeleteTrackerConnectionResponse)(nil), // 15: harness.library.v1.DeleteTrackerConnectionResponse
-	(*TestTrackerConnectionRequest)(nil),    // 16: harness.library.v1.TestTrackerConnectionRequest
-	(*TestTrackerConnectionResponse)(nil),   // 17: harness.library.v1.TestTrackerConnectionResponse
-	(*SearchConnectionIssuesRequest)(nil),   // 18: harness.library.v1.SearchConnectionIssuesRequest
-	(*SearchConnectionIssuesResponse)(nil),  // 19: harness.library.v1.SearchConnectionIssuesResponse
-	(*ListConnectionFieldsRequest)(nil),     // 20: harness.library.v1.ListConnectionFieldsRequest
-	(*ListConnectionFieldsResponse)(nil),    // 21: harness.library.v1.ListConnectionFieldsResponse
-	(*StartTrackerOAuthRequest)(nil),        // 22: harness.library.v1.StartTrackerOAuthRequest
-	(*StartTrackerOAuthResponse)(nil),       // 23: harness.library.v1.StartTrackerOAuthResponse
+	(*ProviderOptionField)(nil),             // 3: harness.library.v1.ProviderOptionField
+	(*ProviderAuthHint)(nil),                // 4: harness.library.v1.ProviderAuthHint
+	(*TrackerConnectionRef)(nil),            // 5: harness.library.v1.TrackerConnectionRef
+	(*TrackerConnection)(nil),               // 6: harness.library.v1.TrackerConnection
+	(*TrackerConnectionInput)(nil),          // 7: harness.library.v1.TrackerConnectionInput
+	(*TrackerIssue)(nil),                    // 8: harness.library.v1.TrackerIssue
+	(*TrackerIssueField)(nil),               // 9: harness.library.v1.TrackerIssueField
+	(*TrackerIssueComment)(nil),             // 10: harness.library.v1.TrackerIssueComment
+	(*TrackerField)(nil),                    // 11: harness.library.v1.TrackerField
+	(*ListTrackerConnectionsRequest)(nil),   // 12: harness.library.v1.ListTrackerConnectionsRequest
+	(*ListTrackerConnectionsResponse)(nil),  // 13: harness.library.v1.ListTrackerConnectionsResponse
+	(*PutTrackerConnectionRequest)(nil),     // 14: harness.library.v1.PutTrackerConnectionRequest
+	(*PutTrackerConnectionResponse)(nil),    // 15: harness.library.v1.PutTrackerConnectionResponse
+	(*DeleteTrackerConnectionRequest)(nil),  // 16: harness.library.v1.DeleteTrackerConnectionRequest
+	(*DeleteTrackerConnectionResponse)(nil), // 17: harness.library.v1.DeleteTrackerConnectionResponse
+	(*TestTrackerConnectionRequest)(nil),    // 18: harness.library.v1.TestTrackerConnectionRequest
+	(*TestTrackerConnectionResponse)(nil),   // 19: harness.library.v1.TestTrackerConnectionResponse
+	(*SearchConnectionIssuesRequest)(nil),   // 20: harness.library.v1.SearchConnectionIssuesRequest
+	(*SearchConnectionIssuesResponse)(nil),  // 21: harness.library.v1.SearchConnectionIssuesResponse
+	(*ListConnectionFieldsRequest)(nil),     // 22: harness.library.v1.ListConnectionFieldsRequest
+	(*ListConnectionFieldsResponse)(nil),    // 23: harness.library.v1.ListConnectionFieldsResponse
+	(*StartTrackerOAuthRequest)(nil),        // 24: harness.library.v1.StartTrackerOAuthRequest
+	(*StartTrackerOAuthResponse)(nil),       // 25: harness.library.v1.StartTrackerOAuthResponse
+	nil,                                     // 26: harness.library.v1.TrackerConnection.OptionsEntry
+	nil,                                     // 27: harness.library.v1.TrackerConnectionInput.OptionsEntry
 }
 var file_harness_library_v1_tracker_connections_proto_depIdxs = []int32{
 	0,  // 0: harness.library.v1.TrackerCapabilities.auth_methods:type_name -> harness.library.v1.TrackerAuthMethod
-	1,  // 1: harness.library.v1.TrackerConnectionRef.scope:type_name -> harness.library.v1.TrackerConnectionScope
-	1,  // 2: harness.library.v1.TrackerConnection.scope:type_name -> harness.library.v1.TrackerConnectionScope
-	0,  // 3: harness.library.v1.TrackerConnection.auth:type_name -> harness.library.v1.TrackerAuthMethod
-	2,  // 4: harness.library.v1.TrackerConnection.capabilities:type_name -> harness.library.v1.TrackerCapabilities
-	0,  // 5: harness.library.v1.TrackerConnectionInput.auth:type_name -> harness.library.v1.TrackerAuthMethod
-	7,  // 6: harness.library.v1.TrackerIssue.fields:type_name -> harness.library.v1.TrackerIssueField
-	8,  // 7: harness.library.v1.TrackerIssue.comments:type_name -> harness.library.v1.TrackerIssueComment
-	4,  // 8: harness.library.v1.ListTrackerConnectionsResponse.connections:type_name -> harness.library.v1.TrackerConnection
-	2,  // 9: harness.library.v1.ListTrackerConnectionsResponse.providers:type_name -> harness.library.v1.TrackerCapabilities
-	5,  // 10: harness.library.v1.PutTrackerConnectionRequest.connection:type_name -> harness.library.v1.TrackerConnectionInput
-	4,  // 11: harness.library.v1.PutTrackerConnectionResponse.connection:type_name -> harness.library.v1.TrackerConnection
-	5,  // 12: harness.library.v1.TestTrackerConnectionRequest.draft:type_name -> harness.library.v1.TrackerConnectionInput
-	6,  // 13: harness.library.v1.SearchConnectionIssuesResponse.issues:type_name -> harness.library.v1.TrackerIssue
-	9,  // 14: harness.library.v1.ListConnectionFieldsResponse.fields:type_name -> harness.library.v1.TrackerField
-	10, // 15: harness.library.v1.TrackerConnectionService.ListTrackerConnections:input_type -> harness.library.v1.ListTrackerConnectionsRequest
-	12, // 16: harness.library.v1.TrackerConnectionService.PutTrackerConnection:input_type -> harness.library.v1.PutTrackerConnectionRequest
-	14, // 17: harness.library.v1.TrackerConnectionService.DeleteTrackerConnection:input_type -> harness.library.v1.DeleteTrackerConnectionRequest
-	16, // 18: harness.library.v1.TrackerConnectionService.TestTrackerConnection:input_type -> harness.library.v1.TestTrackerConnectionRequest
-	18, // 19: harness.library.v1.TrackerConnectionService.SearchConnectionIssues:input_type -> harness.library.v1.SearchConnectionIssuesRequest
-	20, // 20: harness.library.v1.TrackerConnectionService.ListConnectionFields:input_type -> harness.library.v1.ListConnectionFieldsRequest
-	22, // 21: harness.library.v1.TrackerConnectionService.StartTrackerOAuth:input_type -> harness.library.v1.StartTrackerOAuthRequest
-	11, // 22: harness.library.v1.TrackerConnectionService.ListTrackerConnections:output_type -> harness.library.v1.ListTrackerConnectionsResponse
-	13, // 23: harness.library.v1.TrackerConnectionService.PutTrackerConnection:output_type -> harness.library.v1.PutTrackerConnectionResponse
-	15, // 24: harness.library.v1.TrackerConnectionService.DeleteTrackerConnection:output_type -> harness.library.v1.DeleteTrackerConnectionResponse
-	17, // 25: harness.library.v1.TrackerConnectionService.TestTrackerConnection:output_type -> harness.library.v1.TestTrackerConnectionResponse
-	19, // 26: harness.library.v1.TrackerConnectionService.SearchConnectionIssues:output_type -> harness.library.v1.SearchConnectionIssuesResponse
-	21, // 27: harness.library.v1.TrackerConnectionService.ListConnectionFields:output_type -> harness.library.v1.ListConnectionFieldsResponse
-	23, // 28: harness.library.v1.TrackerConnectionService.StartTrackerOAuth:output_type -> harness.library.v1.StartTrackerOAuthResponse
-	22, // [22:29] is the sub-list for method output_type
-	15, // [15:22] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	3,  // 1: harness.library.v1.TrackerCapabilities.option_fields:type_name -> harness.library.v1.ProviderOptionField
+	4,  // 2: harness.library.v1.TrackerCapabilities.auth_hints:type_name -> harness.library.v1.ProviderAuthHint
+	0,  // 3: harness.library.v1.ProviderAuthHint.method:type_name -> harness.library.v1.TrackerAuthMethod
+	1,  // 4: harness.library.v1.TrackerConnectionRef.scope:type_name -> harness.library.v1.TrackerConnectionScope
+	1,  // 5: harness.library.v1.TrackerConnection.scope:type_name -> harness.library.v1.TrackerConnectionScope
+	0,  // 6: harness.library.v1.TrackerConnection.auth:type_name -> harness.library.v1.TrackerAuthMethod
+	2,  // 7: harness.library.v1.TrackerConnection.capabilities:type_name -> harness.library.v1.TrackerCapabilities
+	26, // 8: harness.library.v1.TrackerConnection.options:type_name -> harness.library.v1.TrackerConnection.OptionsEntry
+	0,  // 9: harness.library.v1.TrackerConnectionInput.auth:type_name -> harness.library.v1.TrackerAuthMethod
+	27, // 10: harness.library.v1.TrackerConnectionInput.options:type_name -> harness.library.v1.TrackerConnectionInput.OptionsEntry
+	9,  // 11: harness.library.v1.TrackerIssue.fields:type_name -> harness.library.v1.TrackerIssueField
+	10, // 12: harness.library.v1.TrackerIssue.comments:type_name -> harness.library.v1.TrackerIssueComment
+	6,  // 13: harness.library.v1.ListTrackerConnectionsResponse.connections:type_name -> harness.library.v1.TrackerConnection
+	2,  // 14: harness.library.v1.ListTrackerConnectionsResponse.providers:type_name -> harness.library.v1.TrackerCapabilities
+	7,  // 15: harness.library.v1.PutTrackerConnectionRequest.connection:type_name -> harness.library.v1.TrackerConnectionInput
+	6,  // 16: harness.library.v1.PutTrackerConnectionResponse.connection:type_name -> harness.library.v1.TrackerConnection
+	7,  // 17: harness.library.v1.TestTrackerConnectionRequest.draft:type_name -> harness.library.v1.TrackerConnectionInput
+	8,  // 18: harness.library.v1.SearchConnectionIssuesResponse.issues:type_name -> harness.library.v1.TrackerIssue
+	11, // 19: harness.library.v1.ListConnectionFieldsResponse.fields:type_name -> harness.library.v1.TrackerField
+	12, // 20: harness.library.v1.TrackerConnectionService.ListTrackerConnections:input_type -> harness.library.v1.ListTrackerConnectionsRequest
+	14, // 21: harness.library.v1.TrackerConnectionService.PutTrackerConnection:input_type -> harness.library.v1.PutTrackerConnectionRequest
+	16, // 22: harness.library.v1.TrackerConnectionService.DeleteTrackerConnection:input_type -> harness.library.v1.DeleteTrackerConnectionRequest
+	18, // 23: harness.library.v1.TrackerConnectionService.TestTrackerConnection:input_type -> harness.library.v1.TestTrackerConnectionRequest
+	20, // 24: harness.library.v1.TrackerConnectionService.SearchConnectionIssues:input_type -> harness.library.v1.SearchConnectionIssuesRequest
+	22, // 25: harness.library.v1.TrackerConnectionService.ListConnectionFields:input_type -> harness.library.v1.ListConnectionFieldsRequest
+	24, // 26: harness.library.v1.TrackerConnectionService.StartTrackerOAuth:input_type -> harness.library.v1.StartTrackerOAuthRequest
+	13, // 27: harness.library.v1.TrackerConnectionService.ListTrackerConnections:output_type -> harness.library.v1.ListTrackerConnectionsResponse
+	15, // 28: harness.library.v1.TrackerConnectionService.PutTrackerConnection:output_type -> harness.library.v1.PutTrackerConnectionResponse
+	17, // 29: harness.library.v1.TrackerConnectionService.DeleteTrackerConnection:output_type -> harness.library.v1.DeleteTrackerConnectionResponse
+	19, // 30: harness.library.v1.TrackerConnectionService.TestTrackerConnection:output_type -> harness.library.v1.TestTrackerConnectionResponse
+	21, // 31: harness.library.v1.TrackerConnectionService.SearchConnectionIssues:output_type -> harness.library.v1.SearchConnectionIssuesResponse
+	23, // 32: harness.library.v1.TrackerConnectionService.ListConnectionFields:output_type -> harness.library.v1.ListConnectionFieldsResponse
+	25, // 33: harness.library.v1.TrackerConnectionService.StartTrackerOAuth:output_type -> harness.library.v1.StartTrackerOAuthResponse
+	27, // [27:34] is the sub-list for method output_type
+	20, // [20:27] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_harness_library_v1_tracker_connections_proto_init() }
@@ -1790,14 +2096,14 @@ func file_harness_library_v1_tracker_connections_proto_init() {
 	if File_harness_library_v1_tracker_connections_proto != nil {
 		return
 	}
-	file_harness_library_v1_tracker_connections_proto_msgTypes[3].OneofWrappers = []any{}
+	file_harness_library_v1_tracker_connections_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_library_v1_tracker_connections_proto_rawDesc), len(file_harness_library_v1_tracker_connections_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   22,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
