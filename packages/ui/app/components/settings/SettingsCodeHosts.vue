@@ -11,7 +11,6 @@ const clis = ref<CliView[]>([])
 const accounts = ref<UserConnectionView[]>([])
 const connections = ref<ConnectionView[]>([])
 const isAdmin = ref(false)
-const loaded = ref(false)
 const error = ref('')
 const busy = ref('')
 
@@ -24,20 +23,38 @@ function message(e: unknown) {
 
 const api = () => store.transport!.vcs()
 
-async function refresh() {
-  if (!store.transport) return
-  error.value = ''
+// Each part loads on its own and shows up as soon as it has: the local CLIs can take seconds (glab asks every GitLab host
+// it knows), and the server's accounts never wait for them.
+const clisLoaded = ref(false)
+const accountsLoaded = ref(false)
+
+async function loadClis() {
   try {
-    const [c, a] = await Promise.all([api().clis(), api().userConnections()])
-    clis.value = c
-    accounts.value = a
-    isAdmin.value = await store.transport.users().isAdmin().catch(() => false)
-    connections.value = isAdmin.value ? await api().connections() : []
+    clis.value = await api().clis()
   } catch (e) {
     error.value = message(e)
   } finally {
-    loaded.value = true
+    clisLoaded.value = true
   }
+}
+
+async function loadAccounts() {
+  try {
+    const [a, admin] = await Promise.all([api().userConnections(), store.transport!.users().isAdmin().catch(() => false)])
+    accounts.value = a
+    isAdmin.value = admin
+    connections.value = admin ? await api().connections() : []
+  } catch (e) {
+    error.value = message(e)
+  } finally {
+    accountsLoaded.value = true
+  }
+}
+
+async function refresh() {
+  if (!store.transport) return
+  error.value = ''
+  await Promise.all([loadClis(), loadAccounts()])
 }
 onMounted(refresh)
 
@@ -151,8 +168,17 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
     <h3 class="mt-2 mb-1 text-[12.5px] text-strong">
       {{ tt('Your accounts') }}
     </h3>
+    <p class="m-0 mb-2 text-[12px] text-muted">
+      {{ tt('You on the code hosts this server is connected to. Pull requests, comments and reviews go out under your name.') }}
+    </p>
     <p
-      v-if="loaded && !accounts.length"
+      v-if="!accountsLoaded"
+      class="m-0 text-[12px] text-muted"
+    >
+      {{ tt('Loading…') }}
+    </p>
+    <p
+      v-else-if="!accounts.length"
       class="m-0 text-[12px] text-muted"
     >
       {{ tt('The server has no code host connection yet.{0}', [isAdmin ? tt(' Add one below.') : tt(' An admin can add one.')]) }}
@@ -193,6 +219,15 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
     <h3 class="mt-4 mb-1 text-[12.5px] text-strong">
       {{ tt('On this machine') }}
     </h3>
+    <p class="m-0 mb-2 text-[12px] text-muted">
+      {{ tt('The gh and glab command-line tools here and the accounts they are signed in to. Used for hosts the server has no connection to.') }}
+    </p>
+    <p
+      v-if="!clisLoaded"
+      class="m-0 text-[12px] text-muted"
+    >
+      {{ tt('Checking gh and glab…') }}
+    </p>
     <div
       v-for="c in clis"
       :key="c.name"

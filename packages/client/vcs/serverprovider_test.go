@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -177,5 +178,34 @@ func TestCLIStatus(t *testing.T) {
 	cli.set("version", "", "boom\n", 1)
 	if got := CLIStatus(context.Background(), []Provider{gh}); !got[0].GetInstalled() || got[0].GetProblem() == "" {
 		t.Fatalf("a CLI that fails: %+v", got[0])
+	}
+}
+
+// stuckCLI is a CLI whose status never comes back, like glab waiting on an unreachable host.
+type stuckCLI struct{ typ vcsv1.ProviderType }
+
+func (s stuckCLI) Type() vcsv1.ProviderType { return s.typ }
+func (s stuckCLI) Detect(ctx context.Context) (*vcsv1.DeviceProvider, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+func (s stuckCLI) Snapshot(context.Context, Repo, string) (*Snapshot, error) { return nil, nil }
+
+// A CLI that hangs is cut off with a reason, and does not hold up the others.
+func TestCLIStatusDoesNotWaitForAStuckCLI(t *testing.T) {
+	old := cliStatusTimeout
+	cliStatusTimeout = 2 * time.Second
+	t.Cleanup(func() { cliStatusTimeout = old })
+	gh, _ := githubProvider(t)
+	start := time.Now()
+	out := CLIStatus(context.Background(), []Provider{gh, stuckCLI{vcsv1.ProviderType_PROVIDER_TYPE_GLAB}})
+	if d := time.Since(start); d > 5*time.Second {
+		t.Fatalf("took %v", d)
+	}
+	if len(out) != 2 || out[0].GetName() != "gh" || len(out[0].GetHosts()) == 0 || out[0].GetHosts()[0].GetLogin() != "me" {
+		t.Fatalf("gh: %+v", out)
+	}
+	if !out[1].GetInstalled() || !strings.Contains(out[1].GetProblem(), "did not answer") {
+		t.Fatalf("glab: %+v", out[1])
 	}
 }

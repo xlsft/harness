@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"connectrpc.com/connect"
 
@@ -161,14 +162,20 @@ func (p *ServerProvider) CreatePR(ctx context.Context, repo Repo, in PRInput) (*
 	return res.GetPullRequest(), nil
 }
 
+// cliStatusTimeout caps how long the settings screen waits for one CLI. glab checks every GitLab host it knows, and an
+// unreachable one costs a TLS timeout of about ten seconds.
+var cliStatusTimeout = 6 * time.Second
+
 // CLIStatus says what the local CLIs can do, for the settings screen. providers defaults to gh and glab; anything that is
-// not a CLI is left out. It always detects afresh: someone may have just signed in.
+// not a CLI is left out. It always detects afresh: someone may have just signed in. The CLIs are asked at the same time,
+// each for at most cliStatusTimeout.
 func CLIStatus(ctx context.Context, providers []Provider) []*agentv1.VcsDeviceCli {
 	if len(providers) == 0 {
 		providers = defaultProviders
 	}
-	var out []*agentv1.VcsDeviceCli
-	for _, p := range providers {
+	out := make([]*agentv1.VcsDeviceCli, len(providers))
+	var wg sync.WaitGroup
+	for i, p := range providers {
 		var cli *agentv1.VcsDeviceCli
 		switch p.Type() {
 		case vcsv1.ProviderType_PROVIDER_TYPE_GH:
@@ -178,20 +185,35 @@ func CLIStatus(ctx context.Context, providers []Provider) []*agentv1.VcsDeviceCl
 		default:
 			continue
 		}
-		d, err := p.Detect(ctx)
-		switch {
-		case errors.Is(err, ErrNotInstalled):
-		case err != nil:
-			cli.Installed, cli.Problem = true, err.Error()
-		default:
-			cli.Installed, cli.Version = true, d.GetVersion()
-			for _, h := range d.GetHosts() {
-				cli.Hosts = append(cli.Hosts, &agentv1.VcsDeviceCliHost{Host: h.GetHost(), Login: h.GetLogin()})
+		out[i] = cli
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			dctx, cancel := context.WithTimeout(ctx, cliStatusTimeout)
+			defer cancel()
+			d, err := p.Detect(dctx)
+			switch {
+			case errors.Is(err, ErrNotInstalled):
+			case errors.Is(err, ErrTimeout) || errors.Is(dctx.Err(), context.DeadlineExceeded):
+				cli.Installed, cli.Problem = true, fmt.Sprintf("%s did not answer within %v; one of the hosts it is signed in to may be unreachable. Run %s auth status to see which.", cli.Name, cliStatusTimeout, cli.Name)
+			case err != nil:
+				cli.Installed, cli.Problem = true, err.Error()
+			default:
+				cli.Installed, cli.Version = true, d.GetVersion()
+				for _, h := range d.GetHosts() {
+					cli.Hosts = append(cli.Hosts, &agentv1.VcsDeviceCliHost{Host: h.GetHost(), Login: h.GetLogin()})
+				}
 			}
-		}
-		out = append(out, cli)
+		}()
 	}
-	return out
+	wg.Wait()
+	list := out[:0]
+	for _, c := range out {
+		if c != nil {
+			list = append(list, c)
+		}
+	}
+	return list
 }
 
 func connectCode(err error) connect.Code {
