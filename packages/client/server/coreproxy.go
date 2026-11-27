@@ -72,7 +72,7 @@ var coreProxyProcedures = []string{
 	mcpv1connect.McpServiceGetOAuthFlowProcedure,
 	mcpv1connect.McpServiceRevokeAuthProcedure,
 	mcpv1connect.McpServiceListAuditProcedure,
-	// Settings > Code hosts: connections (the server keeps them admin-only and their secrets write-only), and the user's own
+	// Settings > VCS: connections (the server keeps them admin-only and their secrets write-only), and the user's own
 	// authorization. Not the rest of VcsService: PRs and checks go through AgentService, where the client owns them.
 	vcsv1connect.VcsServiceListConnectionsProcedure,
 	vcsv1connect.VcsServiceGetGitHubAppManifestProcedure,

@@ -170,7 +170,7 @@ install -m 600 /dev/stdin host-token <<<"hdt_..."
 HARNESS_SERVER_URL=https://harness.example.com docker compose -f compose.host.yml up -d personal
 ```
 
-Without Docker: `HARNESS_SERVER_URL=... HARNESS_DEVICE_TOKEN_FILE=... harness-client daemon --root /srv/harness`. Sessions land as a draft pull request (or a branch, or nothing: chosen in the menu). Git credentials come from your account on the server's code host connection, under Settings > Code hosts.
+Without Docker: `HARNESS_SERVER_URL=... HARNESS_DEVICE_TOKEN_FILE=... harness-client daemon --root /srv/harness`. Sessions land as a draft pull request (or a branch, or nothing: chosen in the menu). Git credentials come from your account on the server's code host connection, under Settings > VCS.
 
 **A host for a team**: an admin adds it for a group under Settings > Always-on hosts, and runs `compose.host.yml up -d team`. It runs as root in its container, with only the capabilities it needs to start each member's worker under a Unix user of its own, `--uid-base`, `--uid-count`. Where it can't do that (not Linux, not root) `--shared` refuses to start, and the server gives such a host no work. Read [what that separation does not cover](../docs/design/hosts.md#isolation-between-users): members share the kernel, the loopback network, and CPU and disk. If they must not trust each other, give each a host.
 

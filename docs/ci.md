@@ -83,7 +83,7 @@ With nobody's machine up, the job goes to an always-on host: a session whose mac
 
 ## Connecting a code host
 
-Settings > Code hosts shows what can reach GitHub and GitLab:
+Settings > VCS shows what can reach GitHub and GitLab:
 
 - **Your accounts**: the server's connections, and whether you authorized yours. Opening pull requests through the server needs this on GitHub.
 - **On this machine**: `gh` and `glab`, whether they are installed and signed in. They cover whatever has no server connection. This never leaves the device.

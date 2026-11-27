@@ -192,11 +192,11 @@ async function bind(p: Principal, repositoryKey: string, mode: "read" | "write")
 export async function hostIdentity(userId: string, repositoryKey: string, connectionIdentityAllowed: boolean): Promise<{ repo: RepoRef; conn: ConnectionRow; client: VcsProviderClient; token: string; asUser: boolean }> {
   const repo = parseRepoKey(repositoryKey);
   const conn = await connectionForHost(repo.host);
-  if (!conn) throw new ApiError("failed_precondition", `No code host connection covers ${repo.host}; an admin adds one under Settings > Code hosts`);
+  if (!conn) throw new ApiError("failed_precondition", `No code host connection covers ${repo.host}; an admin adds one under Settings > VCS`);
   const own = await getUserToken(userId, conn);
   if (own) return { repo, conn, client: userClientWithToken(conn, own), token: own, asUser: true };
   const client = systemClient(conn);
-  if (!connectionIdentityAllowed || !client) throw new ApiError("needs_auth", `Connect your ${providerName(conn.type)} account under Settings > Code hosts to work on ${repo.key} from a host`);
+  if (!connectionIdentityAllowed || !client) throw new ApiError("needs_auth", `Connect your ${providerName(conn.type)} account under Settings > VCS to work on ${repo.key} from a host`);
   const token = conn.type === ProviderType.GITHUB ? await scopedInstallationToken(conn, repo.owner, repo.name) : connSecrets(conn).accessToken!;
   return { repo, conn, client, token, asUser: false };
 }

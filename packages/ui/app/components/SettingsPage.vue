@@ -23,7 +23,7 @@ const SECTIONS = [
   { key: 'sandbox', label: tt('Sandbox'), icon: 'box', group: 'app' },
   { key: 'hooks', label: tt('Hooks'), icon: 'hook', group: 'app' },
   { key: 'memory', label: tt('Memory'), icon: 'doc', group: 'app' },
-  { key: 'codehosts', label: tt('Code hosts'), icon: 'pull-request', group: 'app' },
+  { key: 'codehosts', label: tt('VCS'), icon: 'pull-request', group: 'app' },
   { key: 'trackers', label: tt('Trackers'), icon: 'tasks', group: 'app' },
   { key: 'hosts', label: tt('Always-on hosts'), icon: 'box', group: 'app' },
   { key: 'import', label: tt('Import'), icon: 'download', group: 'app' },

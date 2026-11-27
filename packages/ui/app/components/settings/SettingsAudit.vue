@@ -18,7 +18,7 @@ const CATEGORIES = [
   { value: 'scim', label: tt('Provisioning') },
   { value: 'device', label: tt('Devices') },
   { value: 'mcp', label: tt('MCP servers') },
-  { value: 'vcs', label: tt('Code hosts') }
+  { value: 'vcs', label: tt('VCS') }
 ]
 const OUTCOMES = [{ value: '', label: tt('Any result') }, { value: 'success', label: tt('Succeeded') }, { value: 'failure', label: tt('Failed') }]
 
