@@ -49,7 +49,7 @@ jobs:
       - name: Install
         run: |
           (cd packages/ui && pnpm install --frozen-lockfile)
-          (cd packages/vscode && pnpm install --ignore-workspace --frozen-lockfile)
+          (cd packages/vscode && pnpm install --frozen-lockfile)
       - name: Typecheck and unit tests
         working-directory: packages/vscode
         run: |
