@@ -624,7 +624,11 @@ describe("issues", () => {
       expect(seen.borrow).toBeUndefined();
       expect(seen.hasSecret).toBe(false);
       const list = await admin.knowledgeSources.listKnowledgeConnections({});
-      expect(list.providers.map((p) => [p.provider, p.borrowFrom])).toEqual([["youtrack-kb", ["youtrack"]]]);
+      expect(list.providers.map((p) => [p.provider, p.borrowFrom])).toEqual([
+        ["youtrack-kb", ["youtrack"]],
+        ["confluence", ["jira"]],
+        ["linear-docs", ["linear"]],
+      ]);
       const mine = list.connections.find((c) => c.id === ks)!;
       expect(mine.borrow?.id).toBe(conn);
       expect(mine.borrowName).toBe("Company");
