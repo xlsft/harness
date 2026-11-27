@@ -415,11 +415,11 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
             v-if="agentHosts.length"
             class="flex flex-col gap-1 text-[12px]"
           >
-            <span class="text-muted">{{ tt('Always-on host') }}</span>
+            <span class="text-muted">{{ tt('Always-on machine') }}</span>
             <HSelect
               v-model="defaults.agentHostId"
               :options="hostOptions"
-              :aria-label="tt('Always-on host')"
+              :aria-label="tt('Always-on machine')"
             />
           </label>
           <label

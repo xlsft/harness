@@ -33,7 +33,7 @@ const parallel = ref(0)
 const budget = ref(0)
 const hosts = ref<HostView[]>([])
 const busy = ref(false)
-const where = computed(() => [{ value: '', label: tt('Worktrees on this computer'), hint: prefill.value.cwd }, ...hosts.value.map(h => ({ value: h.id, label: h.name, hint: h.unavailableReason }))])
+const where = computed(() => [{ value: '', label: tt('Copies of the folder on this computer'), hint: prefill.value.cwd }, ...hosts.value.map(h => ({ value: h.id, label: h.name, hint: h.unavailableReason }))])
 
 async function loadForm() {
   error.value = ''
@@ -200,7 +200,7 @@ function openSession(id: string) {
           v-else-if="!prefill.cwd"
           class="m-0 text-[12px] text-bad"
         >
-          {{ tt('Choose a folder first: each attempt gets a worktree of its repository.') }}
+          {{ tt('Choose a folder first: each attempt works on its own copy of it.') }}
         </p>
         <div class="flex flex-wrap gap-3">
           <label class="flex flex-col gap-1 text-[12px] text-muted">

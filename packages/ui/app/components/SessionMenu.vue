@@ -232,7 +232,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
           icon="arrow-up-right"
           @click="run(openMove)"
         >
-          {{ tt('Move to a host…') }}
+          {{ tt('Move to an always-on machine…') }}
         </PaneMenuItem>
         <template v-if="sub">
           <div class="my-1 h-px bg-line-strong" />

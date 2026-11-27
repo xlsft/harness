@@ -68,7 +68,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
       {{ tt('Chat apps') }}
     </h2>
     <p class="set-sub">
-      {{ tt('People mention the Slack app or write to the Telegram bot, and a session starts on one of their own machines or an always-on host. The thread or chat gets progress, permission prompts and the answer.') }}
+      {{ tt('People mention the Slack app or write to the Telegram bot, and a session starts on one of their own computers or an always-on machine. The thread or chat gets progress, permission questions and the answer.') }}
     </p>
     <p
       v-if="error"

@@ -112,10 +112,10 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
 <template>
   <div class="flex flex-col">
     <h2 class="set-h">
-      {{ tt('Always-on hosts') }}
+      {{ tt('Always-on machines') }}
     </h2>
     <p class="set-sub">
-      {{ tt('A host keeps working when your laptop sleeps: it takes new sessions, schedules whose machine is away, and auto-fix jobs. Run') }} <code>harness-client daemon</code> {{ tt('on a server or in a container (') }}<code>deploy/compose.host.yml</code>{{ tt('), with the token you get here.') }}
+      {{ tt('A server or container of yours that stays online, so work goes on while your laptop sleeps: it takes new sessions, scheduled runs whose computer is away, and auto-fix jobs. To add one, run') }} <code>harness-client daemon</code> {{ tt('on a server or in a container (') }}<code>deploy/compose.host.yml</code>{{ tt('), with the token you get here.') }}
     </p>
 
     <p
@@ -130,7 +130,7 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
       v-if="token"
       class="mb-3 flex flex-col gap-2 border border-accent p-3 text-[12.5px]"
     >
-      <span class="text-strong">{{ tt('The host\'s token. It is not shown again: put it in HARNESS_DEVICE_TOKEN, or a secret file for HARNESS_DEVICE_TOKEN_FILE.') }}</span>
+      <span class="text-strong">{{ tt('The machine\'s token. It is not shown again: put it in HARNESS_DEVICE_TOKEN, or a secret file for HARNESS_DEVICE_TOKEN_FILE.') }}</span>
       <code class="break-all text-[11.5px] text-toned">{{ token }}</code>
       <div class="flex gap-2">
         <HBtn
@@ -149,7 +149,7 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
     </div>
 
     <section
-      :aria-label="tt('Hosts')"
+      :aria-label="tt('Machines')"
       class="mb-8 flex flex-col"
     >
       <div class="overflow-hidden border border-default text-[12.5px]">
@@ -274,8 +274,8 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
               :dim="!hosts.length"
             />
             <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-              <span class="text-[12.5px] text-strong">{{ tt('Add a host') }}</span>
-              <span class="truncate text-[11.5px] text-muted">{{ tt('A server or a container that runs harness-client daemon with the token it gets here.') }}</span>
+              <span class="text-[12.5px] text-strong">{{ tt('Add a machine') }}</span>
+              <span class="truncate text-[11.5px] text-muted">{{ tt('A server or container that runs harness-client daemon with the token you get here.') }}</span>
             </span>
             <HBtn
               v-if="!adding"
@@ -310,7 +310,7 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
               </span>
               <template v-if="draft.team">
                 <p class="m-0 text-warn">
-                  {{ tt('A team host must run as root on Linux with') }} <code>--shared</code>{{ tt(', so each member\'s work runs under a Unix user of its own, or it takes no work. Members still share the kernel, the loopback network and CPU; see docs/design/hosts.md. Give people who must not trust each other a host each.') }}
+                  {{ tt('A machine shared by a team must run as root on Linux with') }} <code>--shared</code>{{ tt(', so each member\'s work runs under a Unix user of its own, or it takes no work. Members still share the kernel, the loopback network and CPU; see docs/design/hosts.md. Give people who must not trust each other a machine each.') }}
                 </p>
                 <label class="flex flex-col gap-1 text-muted">
                   {{ tt('Group') }}
@@ -354,7 +354,7 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
                 :disabled="!draft.name.trim() || (draft.team && !draft.groupId)"
                 @click="create"
               >
-                {{ tt('Add host') }}
+                {{ tt('Add machine') }}
               </HBtn>
               <HBtn
                 size="sm"
@@ -377,11 +377,11 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
 
     <section
       v-if="work.length"
-      :aria-label="tt('Your work on hosts')"
+      :aria-label="tt('Your work on always-on machines')"
       class="mb-8 flex flex-col"
     >
       <h3 class="m-0 mb-3 text-[13px] font-semibold text-strong">
-        {{ tt('Your work on hosts') }}
+        {{ tt('Your work on always-on machines') }}
       </h3>
       <div class="overflow-hidden border border-default text-[12.5px]">
         <div

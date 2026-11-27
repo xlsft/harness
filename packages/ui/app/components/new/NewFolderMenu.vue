@@ -108,7 +108,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
       <div
         role="menuitem"
         :aria-disabled="!worktree || !branches.length || undefined"
-        :title="worktree ? tt('Branch the worktree starts from') : tt('Turn on Worktree to start from another branch')"
+        :title="worktree ? tt('Branch the separate copy starts from') : tt('Turn on Separate copy to start from another branch')"
         :class="[ROW, 'border-transparent', worktree && branches.length ? 'text-toned hover:bg-raised hover:text-strong' : 'text-muted']"
       >
         <HIcon

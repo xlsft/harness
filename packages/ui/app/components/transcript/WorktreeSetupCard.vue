@@ -14,11 +14,11 @@ const opened = ref<Record<number, boolean>>({})
 const suggested = computed(() => props.item.state === 'suggested')
 const title = computed(() => {
   switch (props.item.state) {
-    case 'suggested': return tt('Set up worktrees for this project?')
-    case 'running': return tt('Setting up the worktree')
-    case 'succeeded': return tt('Worktree set up')
-    case 'failed': return props.item.error ? tt('Worktree setup could not run') : tt('Worktree setup failed')
-    case 'dismissed': return tt('Worktree setup suggestion dismissed')
+    case 'suggested': return tt('Install dependencies in new copies of this project?')
+    case 'running': return tt('Setting up the copy')
+    case 'succeeded': return tt('Copy set up')
+    case 'failed': return props.item.error ? tt('Could not set up the copy') : tt('Setting up the copy failed')
+    case 'dismissed': return tt('Dependency setup suggestion dismissed')
   }
   return ''
 })
@@ -93,7 +93,7 @@ async function answer(accept: boolean) {
       v-if="suggested"
       class="border-t border-default px-3 py-[7px] text-[12px] text-muted"
     >
-      {{ tt('This project has lockfiles but no worktree setup, so new worktrees start without dependencies. Accepting writes {0} and runs these steps now and in every new worktree: installed folders are cloned copy-on-write from this checkout where the disk allows it, the rest installed from the package manager\'s cache. Nothing is linked to another checkout.', [item.configPath]) }}
+      {{ tt('Sessions that work on a separate copy of this project start without its dependencies installed. Accepting writes {0} and runs these steps now and in every new copy: installed folders are copied from this folder where the disk allows it cheaply, the rest come from the package manager\'s cache. No copy is linked to another.', [item.configPath]) }}
     </p>
     <p
       v-if="item.error"

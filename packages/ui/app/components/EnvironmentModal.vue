@@ -232,14 +232,14 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
                     <HSelect
                       v-model="f.baseRef"
                       :options="branches[f.path]!"
-                      :aria-label="tt('Branch a worktree of {0} starts from', [base(f.path)])"
+                      :aria-label="tt('Branch the copy of {0} starts from', [base(f.path)])"
                     />
                   </div>
                   <label class="flex shrink-0 items-center gap-1.5 text-[12px] text-muted">
                     <input
                       v-model="f.worktree"
                       type="checkbox"
-                    >{{ tt('Worktree') }}
+                    >{{ tt('Separate copy') }}
                   </label>
                   <HIconBtn
                     v-if="!f.primary"

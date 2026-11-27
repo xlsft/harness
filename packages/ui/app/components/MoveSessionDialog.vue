@@ -47,7 +47,7 @@ async function load() {
   }
   const usable = hosts.value.find(h => !h.unavailableReason) ?? hosts.value[0]
   host.value = usable?.id ?? ''
-  if (!host.value) error.value = tt('You have no always-on host. Add one in Settings → Hosts.')
+  if (!host.value) error.value = tt('You have no always-on machine. Add one in Settings → Always-on machines.')
 }
 
 async function runCheck() {
@@ -98,7 +98,7 @@ const facts = computed(() => {
 <template>
   <UModal
     v-model:open="open"
-    :title="tt('Move to a host')"
+    :title="tt('Move to an always-on machine')"
     :description="session ? session.meta.title || tt('Untitled session') : ''"
   >
     <template #body>
@@ -107,13 +107,13 @@ const facts = computed(() => {
         data-move-dialog
       >
         <p class="m-0 text-[12px] text-muted">
-          {{ tt('The work goes up as a branch, never to the base branch, and the host goes on from this conversation. This copy becomes read-only.') }}
+          {{ tt('Your changes so far are pushed to a new branch (never to the main one), and the machine carries on from this conversation, even while this computer sleeps. The session here becomes read-only.') }}
         </p>
         <label class="flex flex-col gap-1 text-[12px] text-muted">
-          {{ tt('Host') }}
+          {{ tt('Machine') }}
           <HSelect
             v-model="host"
-            :aria-label="tt('Host')"
+            :aria-label="tt('Machine')"
             :options="options"
           />
         </label>
@@ -138,7 +138,7 @@ const facts = computed(() => {
             {{ facts }}
           </p>
           <p class="m-0 text-[12px] text-toned">
-            {{ tt('The host session runs in {0} mode', [modeLabel]) }}<template v-if="check.permissionNote">
+            {{ tt('There it runs in {0} mode', [modeLabel]) }}<template v-if="check.permissionNote">
               · {{ check.permissionNote }}
             </template>
           </p>
@@ -171,10 +171,10 @@ const facts = computed(() => {
               /> {{ tt('Stop the current turn first') }}
             </div>
             <label class="flex flex-col gap-1 text-[12px] text-muted">
-              {{ tt('First message on the host (optional)') }}
+              {{ tt('First message there (optional)') }}
               <textarea
                 v-model="message"
-                :aria-label="tt('First message on the host (optional)')"
+                :aria-label="tt('First message there (optional)')"
                 rows="3"
                 class="resize-y border border-line bg-transparent px-2 py-1 text-[12.5px] text-strong outline-none focus:border-accent"
               />

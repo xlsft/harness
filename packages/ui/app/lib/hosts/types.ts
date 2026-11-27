@@ -278,7 +278,7 @@ export function hostLoadText(h: HostView): string {
 
 export function isolationText(h: HostView): string {
   if (h.scope === 'user') return tt('One user')
-  if (h.scope === 'cloud') return tt('A container for each session')
+  if (h.scope === 'cloud') return tt('A fresh container for each session')
   if (h.isolation === 'uid') return tt('A Unix user for each member')
   return h.isolation === 'none' ? tt('Cannot separate users: takes no work') : tt('Not started yet')
 }
@@ -286,8 +286,8 @@ export function isolationText(h: HostView): string {
 export function workStateText(w: HostWorkView): string {
   if (w.cloud && (w.state === 'queued' || w.state === 'preparing')) return tt('Starting environment…')
   switch (w.state) {
-    case 'queued': return tt('Waiting for the host')
-    case 'preparing': return tt('Making the checkout')
+    case 'queued': return tt('Waiting for the machine')
+    case 'preparing': return tt('Getting the code')
     case 'running': return tt('Running')
     case 'done': return tt('Done')
     case 'cancelled': return tt('Cancelled')

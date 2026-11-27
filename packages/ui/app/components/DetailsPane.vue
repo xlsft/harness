@@ -279,7 +279,7 @@ function taskMeta(command: string, tail: string) {
         class="nav-row"
         :title="session.meta.worktree.path"
       >
-        <HIcon name="diff" /><span class="min-w-0 truncate">{{ tt('Worktree') }}</span><span class="min-w-0 truncate text-[11px] text-muted">{{ tt('from {0}', [session.meta.worktree.baseRef]) }}</span>
+        <HIcon name="diff" /><span class="min-w-0 truncate">{{ tt('Separate copy') }}</span><span class="min-w-0 truncate text-[11px] text-muted">{{ tt('from {0}', [session.meta.worktree.baseRef]) }}</span>
       </div>
       <div class="nav-row">
         <HIcon name="relay" /><span class="min-w-0 truncate">{{ tt('Session relay') }}</span><span class="flex-1" /><RowMenu

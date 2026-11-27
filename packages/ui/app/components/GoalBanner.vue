@@ -25,7 +25,7 @@ async function openMoved() {
   if (!m?.workId || !store.transport) return
   try {
     const work = await store.transport.hosts().get(m.workId)
-    if (!work.sessionId) throw new Error(tt('The host has not started it yet'))
+    if (!work.sessionId) throw new Error(tt('The machine has not started it yet'))
     await store.refreshList()
     store.open(work.sessionId)
   } catch (e) {
@@ -79,7 +79,7 @@ const attemptsView = useAttemptsView()
     class="flex items-center gap-2 border border-default bg-surface px-3 py-1.5 text-[12px] text-muted"
   >
     <template v-if="hostWork.error">
-      <span class="text-bad">{{ tt('The host could not land this work: {0}', [hostWork.error]) }}</span>
+      <span class="text-bad">{{ tt('The machine could not push this work: {0}', [hostWork.error]) }}</span>
     </template>
     <template v-else>
       <span class="min-w-0 truncate">{{ tt('Pushed to {0}', [hostWork.branch]) }}</span>

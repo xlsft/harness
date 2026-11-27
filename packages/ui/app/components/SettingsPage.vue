@@ -26,7 +26,7 @@ const SECTIONS = [
   { key: 'codehosts', label: tt('VCS'), icon: 'pull-request', group: 'app' },
   { key: 'trackers', label: tt('Issue trackers'), icon: 'tasks', group: 'app' },
   { key: 'knowledge', label: tt('Knowledge sources'), icon: 'page', group: 'app' },
-  { key: 'hosts', label: tt('Always-on hosts'), icon: 'box', group: 'app' },
+  { key: 'hosts', label: tt('Always-on machines'), icon: 'box', group: 'app' },
   { key: 'remote', label: tt('Remote'), icon: 'relay', group: 'app' },
   { key: 'import', label: tt('Import'), icon: 'download', group: 'app' },
   { key: 'models', label: tt('Models'), icon: 'ai', group: 'ai' },
@@ -211,12 +211,12 @@ const notifications = computed({
         </p>
         <div class="set-row">
           <div class="set-label">
-            <span>{{ tt('Worktree') }}</span>
-            <span class="set-desc">{{ tt('Run each new session in its own git worktree.') }}</span>
+            <span>{{ tt('Separate copy') }}</span>
+            <span class="set-desc">{{ tt('Each new session works on its own copy of the repository, on a new branch, so your folder stays as it is. (It uses a git worktree.)') }}</span>
           </div>
           <HToggle
             v-model="worktree"
-            :label="tt('Worktree by default')"
+            :label="tt('Separate copy by default')"
           />
         </div>
         <div class="set-row">

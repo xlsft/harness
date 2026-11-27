@@ -200,7 +200,7 @@ const tone = (g: InboxGroup) => g === InboxGroup.NEEDS_INPUT ? 'border-l-accent'
       </HBtn>
     </div>
     <p class="m-0 text-[12.5px] text-muted">
-      {{ tt('Sessions and agents on all your machines and always-on hosts, by what they need from you. Answer here, or open the session.') }}
+      {{ tt('Everything that needs you, from all your computers and always-on machines: questions, permission requests and plans to approve. Answer here, or open the session.') }}
     </p>
     <p
       v-if="error"

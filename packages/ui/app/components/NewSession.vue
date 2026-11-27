@@ -108,7 +108,7 @@ const hostName = computed(() => (cloud.value ? tt('Cloud') : hosts.value.find(h 
 const waitingWork = ref<HostWorkView | null>(null)
 const landingOptions = computed(() => cloud.value
   ? [{ value: 'pull_request', label: tt('A draft pull request') }, { value: 'branch', label: tt('A branch') }]
-  : [{ value: 'pull_request', label: tt('A draft pull request') }, { value: 'branch', label: tt('A branch') }, { value: 'none', label: tt('Nothing: it stays on the host') }])
+  : [{ value: 'pull_request', label: tt('A draft pull request') }, { value: 'branch', label: tt('A branch') }, { value: 'none', label: tt('Nothing: it stays on that machine') }])
 async function loadHosts() {
   try {
     hosts.value = await store.transport!.hosts().list()
@@ -500,9 +500,9 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
         >
           <HToggle
             v-model="freshClone"
-            :label="tt('A clone of its own rather than a worktree')"
+            :label="tt('A full copy of the repository (slower, fully separate)')"
           />
-          {{ tt('A clone of its own rather than a worktree') }}
+          {{ tt('A full copy of the repository (slower, fully separate)') }}
         </span>
         <div
           v-if="waiting"
@@ -640,8 +640,8 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
           :size="14"
           :class="worktree ? 'text-accent' : 'text-muted'"
         />
-        <span class="text-strong">{{ worktree ? tt('Worktree on') : tt('Turn on Worktree') }}</span>
-        <span class="min-w-0 truncate text-muted">{{ worktree ? (fromPr.trim() ? tt('new branch from pull request {0}', [fromPr.trim()]) : `new branch from ${baseRef || current || 'HEAD'}`) : tt('Session running here') }}</span>
+        <span class="text-strong">{{ worktree ? tt('Separate copy') : tt('Work on a separate copy') }}</span>
+        <span class="min-w-0 truncate text-muted">{{ worktree ? (fromPr.trim() ? tt('on a new branch from pull request {0}', [fromPr.trim()]) : tt('on a new branch from {0}', [baseRef || current || 'HEAD'])) : tt('edits this folder directly') }}</span>
       </button>
       <input
         v-if="cwd && !noWorktree && worktree && !host"
@@ -688,13 +688,13 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
               v-if="worktreeFailed"
               class="flex items-center gap-2 px-2.5 py-1 text-[12px] text-muted"
             >
-              <span class="min-w-0 flex-1">{{ tt('Nothing started. The session can work in the folder itself instead.') }}</span>
+              <span class="min-w-0 flex-1">{{ tt('Could not make a separate copy, so nothing started. The session can edit the folder itself instead.') }}</span>
               <button
                 type="button"
                 class="shrink-0 border border-accented px-2 py-0.5 text-toned hover:bg-hover"
                 @click="startInPlace"
               >
-                {{ tt('Start without a worktree') }}
+                {{ tt('Work in the folder itself') }}
               </button>
             </div>
             <div
@@ -785,6 +785,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
                 type="button"
                 role="switch"
                 :aria-checked="worktree"
+                :title="tt('The session works on its own copy of the repository, on a new branch, so your folder stays as it is')"
                 :class="[CHIP, 'border-transparent']"
                 @click="worktree = !worktree"
               >
@@ -792,7 +793,7 @@ const CHIP = 'flex shrink-0 items-center gap-1.5 px-2 py-1 text-[11.5px] whitesp
                   :name="worktree ? 'checkbox-checked' : 'checkbox'"
                   :size="12"
                   :class="worktree && 'text-accent'"
-                /><span :class="worktree && 'text-strong'">{{ tt('Worktree') }}</span>
+                /><span :class="worktree && 'text-strong'">{{ tt('Separate copy') }}</span>
               </button>
 
               <button

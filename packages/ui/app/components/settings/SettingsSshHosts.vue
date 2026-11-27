@@ -112,7 +112,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
             :dim="!hosts.length"
           />
           <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span class="text-[12.5px] text-strong">{{ tt('Add a host') }}</span>
+            <span class="text-[12.5px] text-strong">{{ tt('Add a machine') }}</span>
             <span class="truncate text-[11.5px] text-muted">{{ tt('An alias from ~/.ssh/config or user@host, signed in with your own ssh setup.') }}</span>
           </span>
           <HBtn
@@ -133,7 +133,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 text-[12.5px] t
           @submit.prevent="add"
         >
           <label class="flex flex-col gap-1 text-[11.5px] text-muted">
-            {{ tt('Host') }}
+            {{ tt('Machine') }}
             <input
               v-model="destination"
               required

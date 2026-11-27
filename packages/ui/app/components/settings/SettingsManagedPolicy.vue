@@ -252,17 +252,17 @@ const input = 'h-8 w-full border border-accented bg-default px-2 font-mono text-
       </div>
 
       <h3 class="m-0 mt-2 text-[12.5px] font-semibold text-strong">
-        {{ tt('Always-on hosts') }}
+        {{ tt('Always-on machines') }}
       </h3>
       <div class="set-row">
         <div class="set-label">
-          <span>{{ tt('Only hosts an admin registered') }}</span>
-          <span class="set-desc">{{ tt('Nobody registers a host of their own. Hosts need a sandbox driver when the sandbox is required.') }}</span>
+          <span>{{ tt('Only machines an admin added') }}</span>
+          <span class="set-desc">{{ tt('Nobody adds an always-on machine of their own. When the sandbox is required, these machines need one too.') }}</span>
         </div>
         <HToggle
           v-model="policy.personalHostsDisabled"
           :disabled="!writable"
-          :label="tt('Only hosts an admin registered')"
+          :label="tt('Only machines an admin added')"
         />
       </div>
 

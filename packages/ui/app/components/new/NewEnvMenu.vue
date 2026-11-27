@@ -122,7 +122,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
           :size="13"
         />
         <span class="min-w-0 flex-1 truncate">{{ tt('Cloud') }}</span>
-        <span class="shrink-0 text-[11px] text-muted">{{ cloudReason ? tt('unavailable') : tt('a container per session') }}</span>
+        <span class="shrink-0 text-[11px] text-muted">{{ cloudReason ? tt('unavailable') : tt('a fresh machine for each session') }}</span>
         <HIcon
           v-if="current === CLOUD_HOST"
           name="check"
@@ -134,7 +134,7 @@ const ROW = 'flex cursor-pointer items-center gap-2 border-l-2 px-2.5 py-[5px]'
     <template v-if="shownAgentHosts.length">
       <div class="my-1 h-px bg-line-strong" />
       <div class="px-2.5 pt-[5px] pb-0.5 text-[11px] text-muted">
-        {{ tt('Always-on hosts') }}
+        {{ tt('Always-on machines') }}
       </div>
       <div
         v-for="h in shownAgentHosts"

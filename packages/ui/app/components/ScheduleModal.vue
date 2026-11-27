@@ -257,10 +257,10 @@ const area = 'w-full resize-y border border-accented bg-default px-3 py-2.5 text
                   />
                 </label>
                 <label class="flex items-center justify-between gap-3 text-toned">
-                  {{ tt('Each run in a new git worktree') }}
+                  {{ tt('Each run on its own copy of the repository') }}
                   <HToggle
                     v-model="d.worktree"
-                    :label="tt('Each run in a new git worktree')"
+                    :label="tt('Each run on its own copy of the repository')"
                   />
                 </label>
                 <div
