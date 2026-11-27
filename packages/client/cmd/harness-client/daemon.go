@@ -19,6 +19,7 @@ import (
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/daemon"
 	relayv1 "github.com/xlsft/harness/packages/client/gen/harness/relay/v1"
+	"github.com/xlsft/harness/packages/client/machineid"
 	"github.com/xlsft/harness/packages/client/permissions"
 	"github.com/xlsft/harness/packages/client/relay"
 	"github.com/xlsft/harness/packages/client/rpc"
@@ -136,7 +137,7 @@ func daemonLogin(ctx context.Context, args []string) int {
 	}
 	url := strings.TrimRight(args[0], "/")
 	host, _ := os.Hostname()
-	info := auth.DeviceInfo{ClientName: "harness-client daemon", DeviceName: host, OS: runtime.GOOS, Arch: runtime.GOARCH}
+	info := auth.DeviceInfo{ClientName: "harness-client daemon", DeviceName: host, OS: runtime.GOOS, Arch: runtime.GOARCH, Fingerprint: machineid.Fingerprint()}
 	prompt := func(uri, code string) {
 		fmt.Fprintf(os.Stderr, "To register this host, open %s\nand confirm the code: %s\n", uri, code)
 	}

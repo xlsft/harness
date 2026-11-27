@@ -38,7 +38,7 @@ func userFrom(u *authv1.User) User {
 
 func (s *ConnectService) RequestDeviceCode(ctx context.Context, info DeviceInfo) (*DeviceCode, error) {
 	resp, err := s.rpc.StartDeviceAuth(ctx, connect.NewRequest(&authv1.StartDeviceAuthRequest{
-		ClientName: info.ClientName, DeviceName: info.DeviceName, Os: info.OS, Arch: info.Arch, ClientVersion: config.Version,
+		ClientName: info.ClientName, DeviceName: info.DeviceName, Os: info.OS, Arch: info.Arch, ClientVersion: config.Version, Fingerprint: info.Fingerprint,
 	}))
 	if err != nil {
 		return nil, rpc.ToAPIError(err)

@@ -235,6 +235,29 @@ describe("devices", () => {
     await ts.as(admin.accessToken).auth.revokeDevice({ deviceId: u2.deviceId });
   });
 
+  it("reuses the device of a machine that signs in again (same fingerprint and client)", async () => {
+    const admin = await deviceLogin(ts);
+    await createUserAndLogin(ts, admin.cookie, "fp-owner@test.local");
+    const login = async (fingerprint: string, clientName = "harness-client") => {
+      const cookie = await signIn(ts.url, "fp-owner@test.local", "user-password-1");
+      const start = await ts.auth.startDeviceAuth({ clientName, deviceName: "mac", os: "darwin", arch: "arm64", fingerprint });
+      expect((await decideOnDevicePage(ts.url, cookie, start.userCode, "approve")).status).toBe(200);
+      return (await ts.auth.pollDeviceAuth({ deviceCode: start.deviceCode })).credentials!;
+    };
+    const fp = "a".repeat(64);
+    const first = await login(fp);
+    const again = await login(fp);
+    expect(again.deviceId).toBe(first.deviceId);
+    // the earlier sign-in of that machine stops working
+    await expectConnectError(ts.as(first.accessToken).auth.getMe({}), Code.Unauthenticated, ErrorType.UNAUTHENTICATED);
+    await expectConnectError(ts.auth.refreshAccessToken({ deviceToken: first.deviceToken }), Code.Unauthenticated, ErrorType.UNAUTHENTICATED);
+    expect((await ts.as(again.accessToken).auth.getMe({})).device?.id).toBe(first.deviceId);
+    // another machine, another client on the same machine, or a malformed fingerprint: a device of its own
+    expect((await login("b".repeat(64))).deviceId).not.toBe(first.deviceId);
+    expect((await login(fp, "harness-client daemon")).deviceId).not.toBe(first.deviceId);
+    expect((await login("not hex")).deviceId).not.toBe(first.deviceId);
+  });
+
   it("advances last_seen_at on refresh", async () => {
     const c = await deviceLogin(ts);
     const before = (await ts.as(c.accessToken).auth.getMe({})).device!.lastSeenAt;
