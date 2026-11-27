@@ -76,3 +76,31 @@ func TestCodexSessionImport(t *testing.T) {
 		t.Errorf("held: %+v", it)
 	}
 }
+
+// Gemini CLI's chat recordings: both formats, the latest line of an id, a rewind, thoughts left out, the folder from
+// .project_root, and a chat whose folder is unknown.
+func TestGeminiSessions(t *testing.T) {
+	f := userFound(t, "gemini")
+	slow := want(t, f, "session/List the slow endpoints.")
+	if slow.Session == nil || slow.Session.Cwd != "/work/shop" || slow.Session.ID != importer.ImportedSessionID("gemini", "a1b2c3d4-0000-4000-8000-000000000001") {
+		t.Fatalf("jsonl: %+v", slow)
+	}
+	tr := string(slow.Session.Transcript)
+	for _, bad := range []string{"Looking.", "wrong project", "thinking", "Checkpoint"} {
+		if strings.Contains(tr, bad) {
+			t.Errorf("%q came over: %s", bad, tr)
+		}
+	}
+	if !strings.Contains(tr, "/orders and /search are slow.") || !strings.Contains(tr, "*Used Shell: `grep -r slow logs`*") || !strings.Contains(tr, "/search, by twice.") {
+		t.Errorf("transcript: %s", tr)
+	}
+	if slow.Session.Messages != 4 {
+		t.Errorf("messages: %d", slow.Session.Messages)
+	}
+	if old := want(t, f, "session/Rename the config package."); old.Session == nil || old.Session.Messages != 2 {
+		t.Errorf("json: %+v", old)
+	}
+	if lost := want(t, f, "session/Hello."); lost.Status != importer.StatusSkipped || lost.Session != nil {
+		t.Errorf("no folder: %+v", lost)
+	}
+}

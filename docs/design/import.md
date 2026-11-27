@@ -272,8 +272,12 @@ the model, `response_item`), or, before about August 2025, a bare meta object an
 adds in the user's name (`<environment_context>`, `<user_instructions>`, `# AGENTS.md instructions`…) are dropped;
 `["bash", "-lc", X]` shows as X. A subagent's thread and a rollout with no folder recorded are skipped.
 
+Gemini CLI (`sources/gemini_sessions.go`): `~/.gemini/tmp/<project>/chats/session-*.json` (one document) or `.jsonl`
+(the latest line of a message id wins, `$rewindTo` drops a message and what follows, `$set` updates the metadata). The
+folder is `tmp/<project>/.project_root`, else `projects.json`. Thoughts and the CLI's own `info` messages stay behind.
+
 ### Not done yet
 
-- Sessions of Gemini CLI (its chat recordings) are not converted yet; Codex's `.jsonl.zst` rollouts are counted, not read.
+- Codex's `.jsonl.zst` rollouts are counted, not read. Cursor, Copilot and the others keep chats in app databases: not read.
 - User-level settings mapping (listed as manual).
 - When the registry is unreachable, MCP names are checked against this device's servers only.

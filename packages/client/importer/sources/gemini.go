@@ -281,13 +281,13 @@ func geminiUser(env importer.Env) []importer.Found {
 			}
 		}
 	}
-	return out
+	return append(out, geminiSessions(env, d)...)
 }
 
 func init() {
 	register(&reader{
 		info: importer.SourceInfo{ID: "gemini", Name: "Gemini CLI", Logo: "gemini",
-			Description: "GEMINI.md, MCP servers, commands, agents, skills and extensions from ~/.gemini; a folder's GEMINI.md files and .gemini/settings.json."},
+			Description: "GEMINI.md, MCP servers, commands, agents, skills, extensions and sessions from ~/.gemini; a folder's GEMINI.md files and .gemini/settings.json."},
 		detect: func(env importer.Env) bool { return exists(filepath.Join(env.Home, ".gemini")) },
 		user:   geminiUser,
 		patterns: []importer.FolderPattern{

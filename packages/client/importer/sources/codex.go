@@ -243,7 +243,7 @@ func codexUser(env importer.Env) []importer.Found {
 func init() {
 	register(&reader{
 		info: importer.SourceInfo{ID: "codex", Name: "Codex CLI", Logo: "codex",
-			Description: "AGENTS.md, MCP servers, custom prompts, agents and skills from ~/.codex; a folder's AGENTS.override.md."},
+			Description: "AGENTS.md, MCP servers, custom prompts, agents, skills and sessions from ~/.codex; a folder's AGENTS.override.md."},
 		detect: func(env importer.Env) bool { return exists(env.Codex()) },
 		user:   codexUser,
 		patterns: []importer.FolderPattern{

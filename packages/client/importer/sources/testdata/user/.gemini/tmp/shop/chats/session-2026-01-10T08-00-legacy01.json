@@ -1,0 +1,10 @@
+{
+  "sessionId": "legacy01-0000-4000-8000-000000000002",
+  "projectHash": "fixturehash",
+  "startTime": "2026-01-10T08:00:00.000Z",
+  "lastUpdated": "2026-01-10T08:01:00.000Z",
+  "messages": [
+    {"id": "a", "timestamp": "2026-01-10T08:00:01.000Z", "type": "user", "content": "Rename the config package."},
+    {"id": "b", "timestamp": "2026-01-10T08:00:30.000Z", "type": "gemini", "content": "Renamed it to settings.", "model": "fixture-model"}
+  ]
+}
