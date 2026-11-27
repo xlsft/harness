@@ -36,6 +36,7 @@ import { ApiError } from "../lib/errors.ts";
 import { assertResolvesPublic } from "../lib/ssrf.ts";
 import { clearBalanceCache } from "../limits/balance.ts";
 import { forgetRateLimits } from "../limits/headers.ts";
+import { clearPlanUsageCache } from "../limits/plan-usage.ts";
 import { setBalanceEstimate } from "../limits/policy.ts";
 import type { PublicUser } from "./devices.ts";
 import { cloudBaseUrl, cloudModeOf, CloudOptionProblem, cloudSecretHint, cloudSecretRequired, validateCloudOptions } from "./presets-cloud.ts";
@@ -457,6 +458,7 @@ export async function deleteProvider(id: string, owner: ProviderOwner = null) {
   await db.delete(schema.provider).where(eq(schema.provider.id, id));
   forgetRateLimits(id);
   clearBalanceCache(id);
+  clearPlanUsageCache(id);
   await setBalanceEstimate(id, undefined);
   return { deleted: true };
 }

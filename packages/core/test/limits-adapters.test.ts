@@ -1,9 +1,10 @@
 /**
  * Provider limits building blocks without a server: rate-limit header parsing (limits/headers.ts) and the
- * balance adapters with a mocked fetch (limits/balance.ts). No real API calls.
+ * balance and plan usage adapters with a mocked fetch (limits/balance.ts, limits/plan-usage.ts). No real API calls.
  */
 import { beforeEach, describe, expect, it } from "vitest";
 import { BALANCE_TTL_MS, balanceAdapterFor, clearBalanceCache, getBalance, type FetchFn } from "../src/limits/balance.ts";
+import { clearPlanUsageCache, durationLabel, getPlanUsage, kimiUsageLabel, parseKimiUsages, planUsageAdapterFor } from "../src/limits/plan-usage.ts";
 import { captureRateLimits, forgetRateLimits, parseDurationMs, parseRateLimitHeaders, parseReset, windowSnapshot } from "../src/limits/headers.ts";
 
 const NOW = Date.parse("2026-11-03T12:00:00Z");
@@ -223,5 +224,98 @@ describe("balance adapters", () => {
     clearBalanceCache();
     const rejected = mockFetch({ "https://api.deepseek.com/user/balance": { status: 401, json: {} } });
     expect((await getBalance(p, rejected.f, NOW)!).error).toBe("The key was rejected (HTTP 401)");
+  });
+});
+
+describe("plan usage adapters", () => {
+  beforeEach(() => clearPlanUsageCache());
+
+  // The shape kimi-cli parses (src/kimi_cli/ui/shell/usage.py): a weekly `usage` and rolling `limits[]`.
+  const kimi = {
+    usage: { limit: "100", remaining: "74", resetTime: "2026-11-08T00:00:00Z" },
+    limits: [{ window: { duration: 300, timeUnit: "TIME_UNIT_MINUTE" }, detail: { limit: "50", remaining: "10", resetTime: "2026-11-03T14:00:00Z" } }],
+  };
+
+  it("picks Kimi Code by host, not the Kimi platform", () => {
+    expect(planUsageAdapterFor("https://api.kimi.com/coding")).toBe("kimi-code");
+    expect(planUsageAdapterFor("https://api.kimi.ai/coding")).toBe("kimi-code");
+    expect(planUsageAdapterFor("https://api.moonshot.ai/v1")).toBeUndefined();
+    expect(planUsageAdapterFor("not a url")).toBeUndefined();
+  });
+
+  it("labels window lengths like the header windows", () => {
+    expect(durationLabel(300, "TIME_UNIT_MINUTE")).toBe("5h");
+    expect(durationLabel(5, "HOUR")).toBe("5h");
+    expect(durationLabel(7, "TIME_UNIT_DAY")).toBe("weekly");
+    expect(durationLabel(1, "DAY")).toBe("1d");
+    expect(durationLabel(90, "MINUTE")).toBe("90m");
+    expect(durationLabel(0, "MINUTE")).toBeUndefined();
+    expect(durationLabel(3, "FORTNIGHT")).toBeUndefined();
+  });
+
+  it("parses the /usages answer: remaining or used, reset spellings, the weekly window last", () => {
+    expect(parseKimiUsages(kimi, NOW)).toEqual([
+      { label: "5h", used_percent: 80, limit: 50, remaining: 10, resets_at: "2026-11-03T14:00:00.000Z", plan: true },
+      { label: "weekly", used_percent: 26, limit: 100, remaining: 74, resets_at: "2026-11-08T00:00:00.000Z", plan: true },
+    ]);
+    // Flat items, `used`, seconds until reset, a name when there is no window length.
+    expect(parseKimiUsages({ limits: [{ name: "burst", limit: 10, used: 4, reset_in: 60 }, { limit: 0, used: 0 }, "junk", { detail: { title: "x" } }] }, NOW)).toEqual([
+      { label: "burst", used_percent: 40, limit: 10, remaining: 6, resets_at: "2026-11-03T12:01:00.000Z", plan: true },
+      { label: "limit 2", used_percent: 0, limit: 0, remaining: 0, resets_at: "", plan: true },
+    ]);
+    expect(parseKimiUsages({}, NOW)).toEqual([]);
+  });
+
+  it("parses a real api.kimi.ai answer (2026-11-27): counted 5h window, monthly fractions", () => {
+    const real = {
+      limits: [{ window: { duration: 300, timeUnit: "TIME_UNIT_MINUTE" }, detail: { limit: "100", used: "35", remaining: "65", resetTime: "2026-11-27T12:51:39.007507Z" } }],
+      usages: {
+        limit_5h: { used_ratio: 0.3501, reset_time: "2026-11-27T12:51:38Z" },
+        limit_month_total: { used_ratio: 0.7931, reset_time: "2026-11-29T00:00:00Z" },
+        limit_month_code: { used_ratio: 0.7941, reset_time: "2026-11-29T00:00:00Z" },
+      },
+    };
+    expect(parseKimiUsages(real, NOW)).toEqual([
+      { label: "5h", used_percent: 35, limit: 100, remaining: 65, resets_at: "2026-11-27T12:51:39.007Z", plan: true },
+      { label: "monthly", used_percent: 79.31, resets_at: "2026-11-29T00:00:00.000Z", plan: true },
+      { label: "monthly (Code)", used_percent: 79.41, resets_at: "2026-11-29T00:00:00.000Z", plan: true },
+    ]);
+    expect(kimiUsageLabel("limit_5h")).toBe("5h");
+    expect(kimiUsageLabel("limit_week_total")).toBe("weekly");
+    expect(kimiUsageLabel("limit_day_chat")).toBe("daily (Chat)");
+    expect(kimiUsageLabel("burst")).toBe("burst");
+  });
+
+  it("reads <base>/v1/usages with the key, whichever base the provider has", async () => {
+    for (const base of ["https://api.kimi.com/coding", "https://api.kimi.com/coding/v1/", "https://api.kimi.ai/coding"]) {
+      clearPlanUsageCache();
+      const url = `${base.replace(/\/v1\/?$/, "").replace(/\/$/, "")}/v1/usages`;
+      const m = mockFetch({ [url]: { json: kimi } });
+      const u = await getPlanUsage(prov("kc", base), m.f, NOW)!;
+      expect(m.calls).toEqual([{ url, auth: `Bearer ${KEY}` }]);
+      expect(u.source).toBe("kimi:/coding/v1/usages");
+      expect(u.windows.map((w) => w.label)).toEqual(["5h", "weekly"]);
+    }
+    expect(getPlanUsage(prov("ms", "https://api.moonshot.ai/v1"), mockFetch({}).f, NOW)).toBeUndefined();
+    expect(getPlanUsage({ ...prov("kc2", "https://api.kimi.com/coding"), apiKey: undefined }, mockFetch({}).f, NOW)).toBeUndefined();
+  });
+
+  it("caches for the TTL (failures too) and turns failures into no windows without the key", async () => {
+    let n = 0;
+    const f: FetchFn = async () => {
+      n++;
+      throw new Error(`connect failed for ${KEY}`);
+    };
+    const p = prov("kc", "https://api.kimi.com/coding");
+    const [a, b] = await Promise.all([getPlanUsage(p, f, NOW)!, getPlanUsage(p, f, NOW + 10)!]);
+    expect(n).toBe(1);
+    expect(a).toBe(b);
+    expect(a).toMatchObject({ windows: [], error: "The provider could not be reached" });
+    expect(JSON.stringify(a)).not.toContain(KEY);
+    clearPlanUsageCache();
+    expect((await getPlanUsage(p, mockFetch({}).f, NOW)!).error).toBe("HTTP 404");
+    clearPlanUsageCache();
+    const rejected = mockFetch({ "https://api.kimi.com/coding/v1/usages": { status: 401, json: {} } });
+    expect((await getPlanUsage(p, rejected.f, NOW)!).error).toBe("The key was rejected (HTTP 401)");
   });
 });

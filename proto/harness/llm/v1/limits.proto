@@ -106,7 +106,7 @@ message ProviderLimits {
   repeated LimitWindow windows = 7;
   // RFC 3339, UTC: when the windows were captured; empty without windows.
   string windows_updated_at = 8;
-  // "response_headers" for the windows; see ProviderBalance.source for the balance.
+  // Where the windows came from: "response_headers", or the plan's usage API (e.g. "kimi:/coding/v1/usages"); see ProviderBalance.source for the balance.
   string windows_source = 9;
   // The caller may enter a starting balance (SetProviderBalanceEstimate): a metered provider without a balance API
   // that they may change.
