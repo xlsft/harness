@@ -293,6 +293,8 @@ func (s *Store) Save(in Input) (Connection, error) {
 	if at >= 0 {
 		old := list[at]
 		c.Healthy, c.LastError, c.LastCheckedAt = old.Healthy, old.LastError, old.LastCheckedAt
+		// Not migrated yet (a failed start): keep the legacy flags for the next MigrateKnowledge, whatever the form sent.
+		c.KnowledgeEnabled, c.KnowledgeQuery = old.KnowledgeEnabled, old.KnowledgeQuery
 		// A changed instance or client: what was authorized there means nothing here.
 		if old.BaseURL != c.BaseURL || old.OAuthClientID != c.OAuthClientID {
 			creds.AccessToken, creds.RefreshToken, creds.ExpiresAt = "", "", 0
