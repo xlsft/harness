@@ -196,6 +196,7 @@
   "Always on this device",
   "Always-on hosts",
   "An admin of the instance creates the OAuth client first, with Authorization Code and PKCE. Save, then Authorize.",
+  "An alias from ~/.ssh/config or user@host, signed in with your own ssh setup.",
   "An earlier import, or a file already in .harness. Off, those stay as they are.",
   "An estimate: this amount minus what requests through harness cost from then on. Spending elsewhere isn't seen; after a top-up, enter it again.",
   "and your user settings, and run with your own rights, outside the sandbox. Sessions of an external ACP agent run none of these: that agent runs its own.",
