@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generated from packages/client/settings/policy.schema.json by scripts/policy-templates.sh. Don't edit it here: change the schema and run the script. -->
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="1.0" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>xlsft`s harness</displayName>
+  <description>Server, updates and managed policy of xlsft`s harness.</description>
+  <resources>
+    <stringTable>
+      <string id="harness">xlsft`s harness</string>
+      <string id="SUPPORTED_harness">xlsft`s harness on Windows</string>
+      <string id="harness_permissions">Permissions</string>
+      <string id="harness_sandbox">Sandbox</string>
+      <string id="allowManagedHooksOnly">Only managed hooks</string>
+      <string id="allowManagedHooksOnly_Explain">Only the hooks of policies run.
+
+Key: allowManagedHooksOnly (registry value allowManagedHooksOnly).
+Policy: has the force of the server&#39;s managed policy.</string>
+      <string id="allowManagedPermissionRulesOnly">Only managed permission rules</string>
+      <string id="allowManagedPermissionRulesOnly_Explain">Permission rules from user, project and local settings are ignored.
+
+Key: allowManagedPermissionRulesOnly (registry value allowManagedPermissionRulesOnly).
+Policy: has the force of the server&#39;s managed policy.</string>
+      <string id="disableAllHooks">Turn off hooks</string>
+      <string id="disableAllHooks_Explain">No hooks run, from any level.
+
+Key: disableAllHooks (registry value disableAllHooks).
+Policy: has the force of the server&#39;s managed policy.</string>
+      <string id="disableExternalSkillSearch">No public skill search</string>
+      <string id="disableExternalSkillSearch_Explain">No search of public skill directories.
+
+Key: disableExternalSkillSearch (registry value disableExternalSkillSearch).
+Policy: has the force of the server&#39;s managed policy.</string>
+      <string id="disableLocalModels">No local models</string>
+      <string id="disableLocalModels_Explain">Models running on this machine can&#39;t be used.
+
+Key: disableLocalModels (registry value disableLocalModels).
+Policy: has the force of the server&#39;s managed policy.</string>
+      <string id="disablePersonalProviders">No personal providers</string>
+      <string id="disablePersonalProviders_Explain">Users can&#39;t add or use their own model providers.
+
+Key: disablePersonalProviders (registry value disablePersonalProviders).
+Policy: has the force of the server&#39;s managed policy.</string>
+      <string id="disableUpdates">Turn off updates</string>
+      <string id="disableUpdates_Explain">The desktop app and `harness-client update` don&#39;t look for or install updates. Use it when you deploy new versions yourself, for example as a package through device management.
+
+Key: disableUpdates (registry value disableUpdates).
+Machine setting: read only from this machine, never from the server.</string>
+      <string id="permissions_defaultMode">Default permission mode</string>
+      <string id="permissions_defaultMode_Explain">The mode new sessions start in.
+
+Key: permissions.defaultMode (registry value permissions.defaultMode).
+Policy: has the force of the server&#39;s managed policy.</string>
+      <string id="permissions_defaultMode_default">default</string>
+      <string id="permissions_defaultMode_acceptEdits">acceptEdits</string>
+      <string id="permissions_defaultMode_plan">plan</string>
+      <string id="permissions_defaultMode_dontAsk">dontAsk</string>
+      <string id="permissions_defaultMode_bypassPermissions">bypassPermissions</string>
+      <string id="permissions_defaultMode_auto">auto</string>
+      <string id="permissions_disableAutoMode">Turn off auto mode</string>
+      <string id="permissions_disableAutoMode_Explain">&#34;disable&#34;: nobody can switch to auto mode.
+
+Key: permissions.disableAutoMode (registry value permissions.disableAutoMode).
+Policy: has the force of the server&#39;s managed policy.</string>
+      <string id="permissions_disableBypassPermissionsMode">Turn off bypass mode</string>
+      <string id="permissions_disableBypassPermissionsMode_Explain">&#34;disable&#34;: nobody can switch to bypassPermissions.
+
+Key: permissions.disableBypassPermissionsMode (registry value permissions.disableBypassPermissionsMode).
+Policy: has the force of the server&#39;s managed policy.</string>
+      <string id="remoteControl">Remote control</string>
+      <string id="remoteControl_Explain">false: sessions are never mirrored to the server for watching and control from the web.
+
+Key: remoteControl (registry value remoteControl).
+Policy: has the force of the server&#39;s managed policy.</string>
+      <string id="sandbox_allowOutside">Allow commands outside the sandbox</string>
+      <string id="sandbox_allowOutside_Explain">false: commands can&#39;t run outside the sandbox at all.
+
+Key: sandbox.allowOutside (registry value sandbox.allowOutside).
+Policy: has the force of the server&#39;s managed policy.</string>
+      <string id="sandbox_enabled">Require the sandbox</string>
+      <string id="sandbox_enabled_Explain">true: the sandbox can&#39;t be turned off.
+
+Key: sandbox.enabled (registry value sandbox.enabled).
+Policy: has the force of the server&#39;s managed policy.</string>
+      <string id="serverUrl">Server URL</string>
+      <string id="serverUrl_Explain">The harness server this machine signs in to. The desktop app&#39;s sign-in screen uses it and can&#39;t change it, and `harness-client login` takes it when no URL is given.
+
+Key: serverUrl (registry value serverUrl).
+Machine setting: read only from this machine, never from the server.</string>
+      <string id="updateMirrorUrl">Update mirror</string>
+      <string id="updateMirrorUrl_Explain">Where updates come from instead of GitHub: a folder with latest.json and one subfolder per release tag, as scripts/release/offline-bundle.sh makes it. Updates are still verified with the release key built into the app and the client.
+
+Key: updateMirrorUrl (registry value updateMirrorUrl).
+Machine setting: read only from this machine, never from the server.</string>
+      <string id="webSearchMode">Web search</string>
+      <string id="webSearchMode_Explain">live, cached, or disabled for the WebSearch tool.
+
+Key: webSearchMode (registry value webSearchMode).
+Policy: has the force of the server&#39;s managed policy.</string>
+      <string id="webSearchMode_live">live</string>
+      <string id="webSearchMode_cached">cached</string>
+      <string id="webSearchMode_disabled">disabled</string>
+      <string id="Settings">Settings (JSON)</string>
+      <string id="Settings_Explain">A JSON object with any keys of the policy, for those that are lists or dictionaries: allowedMcpServers, allowedProviders, allowedSkills, blockedMarketplaces, blockedSkills, enabledPlugins, permissions.allow, permissions.ask, permissions.deny, permissions.disabledModes, strictKnownMarketplaces. A single value of the same key, set by another policy here, wins over it.</string>
+    </stringTable>
+    <presentationTable>
+      <presentation id="permissions_defaultMode">
+        <dropdownList refId="permissions_defaultMode" noSort="true">Default permission mode</dropdownList>
+      </presentation>
+      <presentation id="serverUrl">
+        <textBox refId="serverUrl">
+          <label>Server URL</label>
+        </textBox>
+      </presentation>
+      <presentation id="updateMirrorUrl">
+        <textBox refId="updateMirrorUrl">
+          <label>Update mirror</label>
+        </textBox>
+      </presentation>
+      <presentation id="webSearchMode">
+        <dropdownList refId="webSearchMode" noSort="true">Web search</dropdownList>
+      </presentation>
+      <presentation id="Settings">
+        <textBox refId="Settings">
+          <label>JSON</label>
+        </textBox>
+      </presentation>
+    </presentationTable>
+  </resources>
+</policyDefinitionResources>

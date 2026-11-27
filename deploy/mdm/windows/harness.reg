@@ -1,0 +1,10 @@
+Windows Registry Editor Version 5.00
+
+; Generated from packages/client/settings/policy.schema.json by scripts/policy-templates.sh. Don't edit it here: change the schema and run the script.
+; An example: set serverUrl, then import it with `reg import harness.reg` as an administrator.
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\Policies\xlsft\harness]
+"disableUpdates"=dword:00000000
+"permissions.disableBypassPermissionsMode"="disable"
+"serverUrl"="https://harness.example.com"
+"Settings"="{\"permissions\":{\"deny\":[\"Read(./.env)\"]}}"

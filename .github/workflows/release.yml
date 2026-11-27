@@ -110,6 +110,9 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPLE_INSTALLER_CERTIFICATE: ${{ secrets.APPLE_INSTALLER_CERTIFICATE }}
+      APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+      APPLE_INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
 
   # The harness-client archives and their SBOMs. Goreleaser publishes nothing here (.goreleaser.yaml).
   client-archives:
@@ -237,5 +240,5 @@ jobs:
           gh release edit "$TAG" --draft=false --latest="$NEWEST"
           {
             echo "Released [$TAG]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG)"
-            echo "Newest stable release: $NEWEST. Signing of the app: $(cat "$RUNNER_TEMP/signing")"
+            echo "Newest stable release: $NEWEST. Signing of the app: $(cat "$RUNNER_TEMP/signing"), of the installer package: $(cat "$RUNNER_TEMP/pkg-signing")"
           } >> "$GITHUB_STEP_SUMMARY"

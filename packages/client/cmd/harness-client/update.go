@@ -15,6 +15,7 @@ import (
 
 	"github.com/xlsft/harness/packages/client/config"
 	"github.com/xlsft/harness/packages/client/selfupdate"
+	"github.com/xlsft/harness/packages/client/settings"
 	"github.com/xlsft/harness/packages/client/sshhost"
 )
 
@@ -22,6 +23,20 @@ const releaseRepo = "xlsft/harness"
 
 // releasesWeb is where releases are looked for; a test points it at a fake.
 var releasesWeb = "https://github.com"
+
+// releaseUpdater finds releases on GitHub, or in the update mirror the machine's policy names (updateMirrorUrl). Either
+// way they are verified with the key built into this binary.
+func releaseUpdater(machine settings.Machine, goos, goarch string) selfupdate.Updater {
+	return selfupdate.Updater{
+		Web:       releasesWeb,
+		Repo:      releaseRepo,
+		Mirror:    machine.UpdateMirrorURL,
+		PublicKey: selfupdate.PublicKey,
+		HTTP:      &http.Client{Timeout: 10 * time.Minute},
+		OS:        goos,
+		Arch:      goarch,
+	}
+}
 
 func runUpdate(ctx context.Context, args []string) int {
 	fs := pflag.NewFlagSet("update", pflag.ContinueOnError)
@@ -44,14 +59,12 @@ func runUpdate(ctx context.Context, args []string) int {
 		fmt.Fprintf(os.Stderr, "This harness-client is the desktop app's sidecar. It is updated with the app, not by this command: use Settings → About in the app.\n")
 		return 1
 	}
-	u := selfupdate.Updater{
-		Web:       releasesWeb,
-		Repo:      releaseRepo,
-		PublicKey: selfupdate.PublicKey,
-		HTTP:      &http.Client{Timeout: 10 * time.Minute},
-		OS:        runtime.GOOS,
-		Arch:      runtime.GOARCH,
+	machine := settings.MachineConfig()
+	if machine.DisableUpdates {
+		fmt.Fprintf(os.Stderr, "Updates are turned off by your administrator (disableUpdates in %s). New versions come the way this one came.\n", machine.Origins[settings.KeyDisableUpdates])
+		return 1
 	}
+	u := releaseUpdater(machine, runtime.GOOS, runtime.GOARCH)
 	checkCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	tag, err := u.LatestTag(checkCtx)
@@ -95,7 +108,7 @@ func sshBinaries(ctx context.Context, goos, goarch string) (string, func(), erro
 		done()
 		return "", nil, err
 	}
-	u := selfupdate.Updater{Web: releasesWeb, Repo: releaseRepo, PublicKey: selfupdate.PublicKey, HTTP: &http.Client{Timeout: 10 * time.Minute}, OS: goos, Arch: goarch}
+	u := releaseUpdater(settings.MachineConfig(), goos, goarch)
 	if err := u.Install(ctx, "v"+strings.TrimPrefix(config.Version, "v"), exe); err != nil {
 		done()
 		return "", nil, err

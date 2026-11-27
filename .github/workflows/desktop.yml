@@ -28,11 +28,17 @@ on:
         required: false
       APPLE_TEAM_ID:
         required: false
+      APPLE_INSTALLER_CERTIFICATE:
+        required: false
+      APPLE_INSTALLER_CERTIFICATE_PASSWORD:
+        required: false
+      APPLE_INSTALLER_IDENTITY:
+        required: false
   push:
     branches: [main]
-    paths: ['packages/desktop/**', 'packages/client/computeruse/helper/**', '.github/workflows/desktop.yml']
+    paths: ['packages/desktop/**', 'packages/client/computeruse/helper/**', 'scripts/release/build-pkg.sh', '.github/workflows/desktop.yml']
   pull_request:
-    paths: ['packages/desktop/**', 'packages/client/computeruse/helper/**', '.github/workflows/desktop.yml']
+    paths: ['packages/desktop/**', 'packages/client/computeruse/helper/**', 'scripts/release/build-pkg.sh', '.github/workflows/desktop.yml']
 
 permissions:
   contents: read
@@ -115,6 +121,9 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_INSTALLER_CERTIFICATE: ${{ secrets.APPLE_INSTALLER_CERTIFICATE }}
+          APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+          APPLE_INSTALLER_IDENTITY: ${{ secrets.APPLE_INSTALLER_IDENTITY }}
         run: bash packages/desktop/scripts/build-release.sh "$TARGET" "$RUNNER_TEMP/release"
 
       - name: Keep for the release

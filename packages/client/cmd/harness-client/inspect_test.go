@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/xlsft/harness/packages/client/settings"
@@ -66,6 +69,76 @@ func TestConfigCommands(t *testing.T) {
 	}
 	if got := runConfig(ctx, nil); got != 0 {
 		t.Errorf("no verb: exit %d", got)
+	}
+}
+
+// machinePolicy puts a drop-in in a system folder of the test's own, with device management off.
+func machinePolicy(t *testing.T, content string) {
+	t.Helper()
+	prevRoot, prevMac, prevWin := settings.ManagedRoot, settings.MacPreferences, settings.WindowsPolicyKey
+	settings.ManagedRoot, settings.MacPreferences, settings.WindowsPolicyKey = t.TempDir(), "", ""
+	settings.ResetDevicePolicyCache()
+	t.Cleanup(func() {
+		settings.ManagedRoot, settings.MacPreferences, settings.WindowsPolicyKey = prevRoot, prevMac, prevWin
+		settings.ResetDevicePolicyCache()
+	})
+	if err := os.MkdirAll(filepath.Join(settings.ManagedRoot, "settings.d"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(settings.ManagedRoot, "settings.d", "10-machine.json"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func captureStdout(t *testing.T, f func()) string {
+	t.Helper()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	prev := os.Stdout
+	os.Stdout = w
+	f()
+	os.Stdout = prev
+	w.Close()
+	b, _ := io.ReadAll(r)
+	return string(b)
+}
+
+func TestMachineConfigCommand(t *testing.T) {
+	machinePolicy(t, `{"serverUrl":"https://harness.example.com/","disableUpdates":true,"updateMirrorUrl":"https://mirror.example.com/harness"}`)
+	out := captureStdout(t, func() {
+		if got := runConfig(context.Background(), []string{"machine", "--json"}); got != 0 {
+			t.Errorf("exit %d", got)
+		}
+	})
+	var m settings.Machine
+	if err := json.Unmarshal([]byte(out), &m); err != nil {
+		t.Fatalf("%q: %v", out, err)
+	}
+	if m.ServerURL != "https://harness.example.com" || !m.DisableUpdates || m.UpdateMirrorURL != "https://mirror.example.com/harness" {
+		t.Fatalf("%+v", m)
+	}
+	if text := captureStdout(t, func() { runConfig(context.Background(), []string{"machine"}) }); !strings.Contains(text, "10-machine.json") {
+		t.Fatalf("the text form names no origin: %q", text)
+	}
+}
+
+func TestUpdateTurnedOffByPolicy(t *testing.T) {
+	machinePolicy(t, `{"disableUpdates":true}`)
+	prev := releasesWeb
+	releasesWeb = "http://github.invalid" // nothing may be asked
+	t.Cleanup(func() { releasesWeb = prev })
+	if got := runUpdate(context.Background(), []string{"--check"}); got != 1 {
+		t.Fatalf("exit %d", got)
+	}
+}
+
+func TestUpdatesFromTheMirror(t *testing.T) {
+	machinePolicy(t, `{"updateMirrorUrl":"https://mirror.example.com/harness/"}`)
+	u := releaseUpdater(settings.MachineConfig(), "darwin", "arm64")
+	if u.Mirror != "https://mirror.example.com/harness" || u.ReleaseURL("v1.0.0") != "https://mirror.example.com/harness/v1.0.0/" {
+		t.Fatalf("%+v", u)
 	}
 }
 

@@ -19,14 +19,28 @@ pub enum Check {
 }
 
 /// Why this build can't update, if so. An empty pubkey is the state of the repository until the release key is generated
-/// (docs/release.md): the app builds and runs, and says so in Settings → About, while a release refuses to build.
-fn unavailable(pubkey: &str, debug: bool) -> Option<String> {
+/// (docs/release.md): the app builds and runs, and says so in Settings → About, while a release refuses to build. An
+/// administrator can turn updates off (disableUpdates), for machines that get new versions as a package.
+fn unavailable(pubkey: &str, debug: bool, disabled_by_policy: bool) -> Option<String> {
     if debug {
         Some("development build".into())
     } else if pubkey.trim().is_empty() {
         Some("built without an update key".into())
+    } else if disabled_by_policy {
+        Some("updates are turned off by your administrator".into())
     } else {
         None
+    }
+}
+
+/// The latest.json of an update mirror (updateMirrorUrl), which replaces GitHub's. The download it names is verified
+/// against the same pubkey, so the mirror is trusted with nothing but availability.
+fn mirror_endpoint(mirror: &str) -> Option<String> {
+    let base = mirror.trim().trim_end_matches('/');
+    if base.is_empty() {
+        None
+    } else {
+        Some(format!("{base}/latest.json"))
     }
 }
 
@@ -38,10 +52,19 @@ fn configured_pubkey(app: &AppHandle) -> String {
 #[tauri::command]
 pub async fn update_check(app: AppHandle, shell: State<'_, Shell>) -> Result<Check, String> {
     let current = app.package_info().version.to_string();
-    if let Some(reason) = unavailable(&configured_pubkey(&app), cfg!(debug_assertions)) {
+    let machine = crate::machine();
+    if let Some(reason) = unavailable(&configured_pubkey(&app), cfg!(debug_assertions), machine.disable_updates) {
         return Ok(Check::Unavailable { reason, current });
     }
-    let update = app.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())?;
+    let updater = match mirror_endpoint(&machine.update_mirror_url) {
+        Some(endpoint) => {
+            let url = endpoint.parse().map_err(|e| format!("updateMirrorUrl: {e}"))?;
+            app.updater_builder().endpoints(vec![url]).map_err(|e| e.to_string())?.build()
+        }
+        None => app.updater(),
+    }
+    .map_err(|e| e.to_string())?;
+    let update = updater.check().await.map_err(|e| e.to_string())?;
     let check = match &update {
         Some(u) => Check::Available {
             current,

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Generated from packages/client/settings/policy.schema.json by scripts/policy-templates.sh. Don't edit it here: change the schema and run the script. The preference file for Intune (macOS, Preference file), or any MDM that takes plain keys. -->
+<plist version="1.0">
+<dict>
+	<key>disableUpdates</key>
+	<false/>
+	<key>permissions</key>
+	<dict>
+		<key>disableBypassPermissionsMode</key>
+		<string>disable</string>
+	</dict>
+	<key>serverUrl</key>
+	<string>https://harness.example.com</string>
+</dict>
+</plist>

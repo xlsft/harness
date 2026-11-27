@@ -106,6 +106,9 @@ expect "the first release lists from the beginning" "grep -q '^- First$' '$work/
 expect "unsigned notes say how to open it" "grep -q 'Open' '$work/unsigned' && grep -q 'com.apple.quarantine' '$work/unsigned' && grep -q 'Accessibility' '$work/unsigned'"
 (cd "$repo" && $notes full v0.2.0 notarized) >"$work/notarized"
 refuse "notarized notes don't" "grep -q 'com.apple.quarantine' '$work/notarized'"
+expect "notes name the installer packages" "grep -q 'harness_0.2.0_darwin_arm64.pkg' '$work/unsigned' && grep -q 'It is unsigned' '$work/unsigned'"
+(cd "$repo" && $notes full v0.2.0 notarized signed) >"$work/pkg-signed"
+expect "...and how the package is signed" "grep -q 'Developer ID Installer certificate, not notarized' '$work/pkg-signed'"
 
 release() { (cd "$repo" && PATH="$stub:$PATH" scripts/release.sh "$@"); }
 g tag -d v0.1.0 v0.2.0-rc.1 v0.2.0 >/dev/null
@@ -137,6 +140,88 @@ expect "release.sh --create-tag" "release v0.1.0 --create-tag"
 expect "...creates the tag" "g rev-parse -q --verify refs/tags/v0.1.0"
 refuse "...and pushes nothing" "git -C '$work/origin.git' rev-parse -q --verify refs/tags/v0.1.0"
 refuse "release.sh refuses an existing tag" "release v0.1.0"
+
+# offline-bundle.sh from a folder of release files: no download, no image.
+bundle="$root/scripts/release/offline-bundle.sh"
+rel="$work/rel"
+mkdir -p "$rel"
+for f in harness_1.2.3_darwin_arm64.dmg harness_1.2.3_darwin_arm64.pkg harness_1.2.3_darwin_arm64.app.tar.gz harness-client_1.2.3_darwin_arm64.tar.gz; do
+  echo "$f" >"$rel/$f"
+done
+echo '{"version":"1.2.3","platforms":{"darwin-aarch64":{"signature":"S","url":"https://github.com/xlsft/harness/releases/download/v1.2.3/harness_1.2.3_darwin_arm64.app.tar.gz"}}}' >"$rel/latest.json"
+(cd "$rel" && sums="$(shasum -a 256 ./* | sed "s|  \./|  |")" && printf "%s\n" "$sums" >checksums.txt && echo SIG >checksums.txt.sig)
+off() { PATH="$stub:$PATH" "$bundle" "$@" 2>/dev/null; }
+refuse "offline-bundle needs the URL it will be served at" "off v1.2.3 '$work/mirror' --from '$rel' --no-image"
+refuse "offline-bundle refuses a bad tag" "off 1.2.3 '$work/mirror' --from '$rel' --no-image --base-url https://m.example.com"
+expect "offline-bundle copies a release" "off v1.2.3 '$work/mirror' --from '$rel' --no-image --base-url https://m.example.com/harness/"
+expect "...every file under its tag" "cmp '$rel/checksums.txt' '$work/mirror/v1.2.3/checksums.txt' && test -f '$work/mirror/v1.2.3/harness_1.2.3_darwin_arm64.pkg'"
+[[ "$(node -p "require('$work/mirror/latest.json').platforms['darwin-aarch64'].url")" == https://m.example.com/harness/v1.2.3/harness_1.2.3_darwin_arm64.app.tar.gz ]] && ok "...latest.json points into the mirror" || no "...latest.json points into the mirror"
+[[ "$(node -p "require('$work/mirror/latest.json').platforms['darwin-aarch64'].signature")" == S ]] && ok "...with the release's signatures" || no "...with the release's signatures"
+expect "...and SHA256SUMS covers the folder" "(cd '$work/mirror' && shasum -a 256 -c --quiet SHA256SUMS) && grep -q 'v1.2.3/latest.json' '$work/mirror/SHA256SUMS'"
+echo '{"version":"1.2.2","platforms":{}}' >"$rel/latest.json"
+(cd "$rel" && sums="$(shasum -a 256 ./* | grep -v checksums | sed "s|  \./|  |")" && printf "%s\n" "$sums" >checksums.txt)
+rm -rf "$work/mirror/v1.2.2"
+expect "--keep-latest adds a release without offering it" "off v1.2.2 '$work/mirror' --from '$rel' --no-image --keep-latest --base-url https://m.example.com/harness && [[ \$(node -p \"require('$work/mirror/latest.json').version\") == 1.2.3 ]]"
+echo tampered >"$rel/harness_1.2.3_darwin_arm64.dmg"
+refuse "offline-bundle refuses files that don't match checksums.txt" "off v1.2.2 '$work/mirror2' --from '$rel' --no-image --base-url https://m.example.com"
+
+# The dev container feature's install.sh, from a mirror folder over file://, into folders of the test's own.
+feature="$root/deploy/devcontainer/harness-client/install.sh"
+case "$(uname -s)" in Linux) fos=linux ;; *) fos=darwin ;; esac
+case "$(uname -m)" in x86_64 | amd64) farch=amd64 ;; *) farch=arm64 ;; esac
+fm="$work/fmirror"
+mkdir -p "$fm/v3.4.5" "$work/fbin"
+printf '#!/bin/sh\necho harness-client/3.4.5\n' >"$work/fbin/harness-client"
+chmod 755 "$work/fbin/harness-client"
+tar -czf "$fm/v3.4.5/harness-client_3.4.5_${fos}_${farch}.tar.gz" -C "$work/fbin" harness-client
+(cd "$fm/v3.4.5" && shasum -a 256 ./*.tar.gz | sed 's|  \./|  |' >checksums.txt)
+echo '{"version":"3.4.5","platforms":{}}' >"$fm/latest.json"
+finstall() { env -u VERSION HARNESS_INSTALL_DIR="$work/fout/bin" HARNESS_POLICY_DIR="$work/fout/policy" PATH="/usr/bin:/bin:/usr/sbin:/sbin" "$@" sh "$feature" 2>/dev/null; }
+expect "the feature installs the latest release of a mirror" "finstall MIRROR='file://$fm' SERVERURL=https://harness.example.com/"
+expect "...a client that runs" "'$work/fout/bin/harness-client' version | grep -q 3.4.5"
+fpolicy="$work/fout/policy/00-devcontainer.json"
+[[ "$(node -p "const p=require('$fpolicy'); [p.serverUrl, p.disableUpdates, p.updateMirrorUrl].join(' ')")" == "https://harness.example.com true " ]] && ok "...and the container's machine policy" || no "...and the container's machine policy"
+refuse "the feature refuses a serverUrl that isn't a plain URL" "finstall MIRROR='file://$fm' SERVERURL='https://x/\"y'"
+refuse "the feature refuses a version the mirror doesn't have" "finstall MIRROR='file://$fm' VERSION=9.9.9"
+echo tampered >>"$fm/v3.4.5/harness-client_3.4.5_${fos}_${farch}.tar.gz"
+refuse "the feature refuses an archive that doesn't match checksums.txt" "finstall MIRROR='file://$fm' VERSION=3.4.5"
+fkey="$(sed -n 's/^PUBKEY="\(.*\)"$/\1/p' "$feature")"
+[[ "$(node -p "require('$root/packages/desktop/src-tauri/tauri.conf.json').plugins.updater.pubkey" | base64 -d | tail -n1)" == "$fkey" ]] && ok "the feature trusts the release key of tauri.conf.json" || no "the feature trusts the release key of tauri.conf.json"
+
+# build-pkg.sh on a stand-in app (macOS only: pkgbuild). Nothing is installed: the package is taken apart, and its
+# postinstall script runs against a folder of the test's own.
+if command -v pkgbuild >/dev/null && command -v productbuild >/dev/null; then
+  pkg="$root/scripts/release/build-pkg.sh"
+  fake="$work/pkg/Fake.app"
+  mkdir -p "$fake/Contents/MacOS"
+  cp /usr/bin/true "$fake/Contents/MacOS/fake"
+  info="$fake/Contents/Info.plist"
+  plutil -create xml1 "$info"
+  for kv in CFBundleIdentifier=dev.xlsft.harness CFBundleShortVersionString=1.2.3 CFBundleExecutable=fake LSMinimumSystemVersion=11.0 CFBundlePackageType=APPL; do
+    plutil -insert "${kv%%=*}" -string "${kv#*=}" "$info"
+  done
+  codesign -s - --force --deep "$fake" 2>/dev/null
+  (cd "$work/pkg" && tar -czf Fake.app.tar.gz Fake.app)
+  for bad in "ftp://x" "https://a.example.com/'quoted'" "not a url"; do
+    refuse "build-pkg refuses the server URL '$bad'" "APPLE_INSTALLER_IDENTITY= '$pkg' '$fake' '$work/pkg/bad.pkg' --server-url \"$bad\""
+  done
+  expect "build-pkg makes a package from the app" "APPLE_INSTALLER_IDENTITY= '$pkg' '$fake' '$work/pkg/plain.pkg' >'$work/pkg/plain.out'"
+  [[ "$(tail -n1 "$work/pkg/plain.out")" == unsigned ]] && ok "...unsigned without an installer certificate" || no "...unsigned without an installer certificate"
+  expect "...and from the release's .app.tar.gz, with a server URL" "'$pkg' '$work/pkg/Fake.app.tar.gz' '$work/pkg/server.pkg' --server-url https://harness.example.com/ --version 1.2.4 >/dev/null 2>&1"
+  pkgutil --expand-full "$work/pkg/plain.pkg" "$work/pkg/plain" >/dev/null
+  pkgutil --expand-full "$work/pkg/server.pkg" "$work/pkg/server" >/dev/null
+  expect "the payload is the app alone, into /Applications" "[[ \$(ls '$work/pkg/plain/harness.pkg/Payload') == Fake.app ]] && grep -q 'install-location=\"/Applications\"' '$work/pkg/plain/harness.pkg/PackageInfo'"
+  expect "...and it isn't relocated to another copy" "grep -q 'relocatable=\"false\"' '$work/pkg/plain/harness.pkg/PackageInfo'"
+  expect "the package names the app's architectures and macOS" "grep -q 'hostArchitectures=\"arm64,x86_64\"' '$work/pkg/plain/Distribution' && grep -q 'os-version min=\"11.0\"' '$work/pkg/plain/Distribution'"
+  expect "the version is the app's, or the one given" "grep -q 'version=\"1.2.3\"' '$work/pkg/plain/harness.pkg/PackageInfo' && grep -q 'version=\"1.2.4\"' '$work/pkg/server/harness.pkg/PackageInfo'"
+  refuse "a package without a URL has no scripts" "test -e '$work/pkg/plain/harness.pkg/Scripts'"
+  mkdir -p "$work/pkg/target"
+  expect "the postinstall script writes the server URL" "sh '$work/pkg/server/harness.pkg/Scripts/postinstall' x / '$work/pkg/target'"
+  written="$work/pkg/target/Library/Application Support/harness/settings.d/00-server.json"
+  expect "...as the machine policy the client reads" "[[ \"\$(node -p \"require('$written').serverUrl\")\" == https://harness.example.com ]]"
+else
+  echo "skip build-pkg.sh: no pkgbuild (not macOS)"
+fi
 
 # The real image never sets a minimum client version.
 refuse "the image sets no minimum client version" "grep -rq HARNESS_MIN_CLIENT_VERSION '$root/deploy/Dockerfile' '$root/deploy/rootfs'"

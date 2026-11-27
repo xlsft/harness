@@ -29,7 +29,15 @@ async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T
   return invoke<T>(cmd, args)
 }
 
+/** What the machine's administrator configured (deploy/mdm): a server set here is the only one offered. */
+export interface MachineConfig {
+  serverUrl: string
+  disableUpdates: boolean
+  updateMirrorUrl: string
+}
+
 export const authStatus = () => invoke<AuthStatus>('auth_status')
+export const machineConfig = () => invoke<MachineConfig>('machine_config')
 export const agentEndpoint = () => invoke<Endpoint>('agent_endpoint')
 export const logout = () => invoke<null>('logout')
 export const cancelLogin = () => invoke<null>('cancel_login')

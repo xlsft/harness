@@ -352,6 +352,9 @@ them, marked as set by their administrator, in the same section and under Sessio
 A modified client can ignore what only a client can enforce. Rules and the sandbox take effect at a session's next start; modes
 switch live.
 
+The same keys can also be put on each machine, by device management or an installer, with the server URL and update source:
+[docs/enterprise.md](../docs/enterprise.md) and the templates in [mdm](mdm).
+
 ## Volumes
 
 Everything stateful is under `/data` (declared as a volume):

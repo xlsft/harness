@@ -1,0 +1,257 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/xlsft/harness/packages/client/settings/policy.schema.json",
+  "title": "xlsft`s harness machine policy",
+  "description": "The keys an administrator sets on a machine: through a macOS profile (domain com.xlsft.harness), the Windows registry (HKLM\\SOFTWARE\\Policies\\xlsft\\harness) or settings.json and settings.d/*.json in the system folder. Policy keys have the force of the server's POLICY documents; machine keys are read only from these places. The templates under deploy/mdm are generated from this file (scripts/policy-templates.sh).",
+  "type": "object",
+  "x-harness": {
+    "domain": "com.xlsft.harness",
+    "registryKey": "SOFTWARE\\Policies\\xlsft\\harness",
+    "registryJsonValue": "Settings"
+  },
+  "properties": {
+    "serverUrl": {
+      "title": "Server URL",
+      "description": "The harness server this machine signs in to. The desktop app's sign-in screen uses it and can't change it, and `harness-client login` takes it when no URL is given.",
+      "type": "string",
+      "format": "uri",
+      "examples": ["https://harness.example.com"],
+      "x-harness": { "scope": "machine", "template": "https://harness.example.com" }
+    },
+    "disableUpdates": {
+      "title": "Turn off updates",
+      "description": "The desktop app and `harness-client update` don't look for or install updates. Use it when you deploy new versions yourself, for example as a package through device management.",
+      "type": "boolean",
+      "examples": [true],
+      "x-harness": { "scope": "machine", "template": false }
+    },
+    "updateMirrorUrl": {
+      "title": "Update mirror",
+      "description": "Where updates come from instead of GitHub: a folder with latest.json and one subfolder per release tag, as scripts/release/offline-bundle.sh makes it. Updates are still verified with the release key built into the app and the client.",
+      "type": "string",
+      "format": "uri",
+      "examples": ["https://mirror.example.com/harness"],
+      "x-harness": { "scope": "machine" }
+    },
+    "permissions": {
+      "title": "Permissions",
+      "description": "Permission rules and modes, in the settings syntax. Rules of every policy add up.",
+      "type": "object",
+      "properties": {
+        "allow": {
+          "title": "Allowed without asking",
+          "description": "Permission rules, e.g. Bash(npm test *).",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["Bash(npm test *)"]],
+          "x-harness": { "scope": "policy" }
+        },
+        "ask": {
+          "title": "Always ask",
+          "description": "Permission rules that always ask, e.g. Bash(git push *).",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["Bash(git push *)"]],
+          "x-harness": { "scope": "policy" }
+        },
+        "deny": {
+          "title": "Always denied",
+          "description": "Permission rules that are always denied, e.g. Read(./.env).",
+          "type": "array",
+          "items": { "type": "string" },
+          "examples": [["Read(./.env)"]],
+          "x-harness": { "scope": "policy" }
+        },
+        "defaultMode": {
+          "title": "Default permission mode",
+          "description": "The mode new sessions start in.",
+          "type": "string",
+          "enum": ["default", "acceptEdits", "plan", "dontAsk", "bypassPermissions", "auto"],
+          "examples": ["default"],
+          "x-harness": { "scope": "policy" }
+        },
+        "disableBypassPermissionsMode": {
+          "title": "Turn off bypass mode",
+          "description": "\"disable\": nobody can switch to bypassPermissions.",
+          "type": "string",
+          "enum": ["disable"],
+          "examples": ["disable"],
+          "x-harness": { "scope": "policy", "template": "disable" }
+        },
+        "disableAutoMode": {
+          "title": "Turn off auto mode",
+          "description": "\"disable\": nobody can switch to auto mode.",
+          "type": "string",
+          "enum": ["disable"],
+          "examples": ["disable"],
+          "x-harness": { "scope": "policy" }
+        },
+        "disabledModes": {
+          "title": "Turned off modes",
+          "description": "Permission modes nobody may use. The default mode can't be turned off.",
+          "type": "array",
+          "items": { "type": "string", "enum": ["acceptEdits", "plan", "dontAsk", "bypassPermissions", "auto"] },
+          "examples": [["dontAsk"]],
+          "x-harness": { "scope": "policy" }
+        }
+      }
+    },
+    "allowManagedPermissionRulesOnly": {
+      "title": "Only managed permission rules",
+      "description": "Permission rules from user, project and local settings are ignored.",
+      "type": "boolean",
+      "examples": [true],
+      "x-harness": { "scope": "policy" }
+    },
+    "sandbox": {
+      "title": "Sandbox",
+      "description": "The sandbox of the model's commands.",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "title": "Require the sandbox",
+          "description": "true: the sandbox can't be turned off.",
+          "type": "boolean",
+          "examples": [true],
+          "x-harness": { "scope": "policy" }
+        },
+        "allowOutside": {
+          "title": "Allow commands outside the sandbox",
+          "description": "false: commands can't run outside the sandbox at all.",
+          "type": "boolean",
+          "examples": [false],
+          "x-harness": { "scope": "policy" }
+        }
+      }
+    },
+    "allowedProviders": {
+      "title": "Allowed model providers",
+      "description": "Only these providers (id or preset id) serve models. An empty list allows none.",
+      "type": "array",
+      "items": { "type": "string" },
+      "examples": [["anthropic"]],
+      "x-harness": { "scope": "policy" }
+    },
+    "disablePersonalProviders": {
+      "title": "No personal providers",
+      "description": "Users can't add or use their own model providers.",
+      "type": "boolean",
+      "examples": [true],
+      "x-harness": { "scope": "policy" }
+    },
+    "disableLocalModels": {
+      "title": "No local models",
+      "description": "Models running on this machine can't be used.",
+      "type": "boolean",
+      "examples": [true],
+      "x-harness": { "scope": "policy" }
+    },
+    "allowedMcpServers": {
+      "title": "Allowed MCP servers",
+      "description": "Only MCP servers with these names may be used, at any scope. An empty list allows none.",
+      "type": "array",
+      "items": { "type": "string" },
+      "examples": [["github"]],
+      "x-harness": { "scope": "policy" }
+    },
+    "allowedSkills": {
+      "title": "Allowed skills",
+      "description": "Only skills of these names may run; \"kit:*\" names all of a plugin. An empty list allows none.",
+      "type": "array",
+      "items": { "type": "string" },
+      "examples": [["review"]],
+      "x-harness": { "scope": "policy" }
+    },
+    "blockedSkills": {
+      "title": "Blocked skills",
+      "description": "Skills that may not run, checked before allowedSkills.",
+      "type": "array",
+      "items": { "type": "string" },
+      "examples": [["deploy"]],
+      "x-harness": { "scope": "policy" }
+    },
+    "disableExternalSkillSearch": {
+      "title": "No public skill search",
+      "description": "No search of public skill directories.",
+      "type": "boolean",
+      "examples": [true],
+      "x-harness": { "scope": "policy" }
+    },
+    "strictKnownMarketplaces": {
+      "title": "Allowed plugin sources",
+      "description": "Plugins and marketplaces come only from these sources. An empty list allows none.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source": { "type": "string", "enum": ["github", "git", "url", "directory", "file", "hostPattern", "pathPattern"] },
+          "repo": { "type": "string" },
+          "url": { "type": "string" },
+          "path": { "type": "string" },
+          "ref": { "type": "string" },
+          "hostPattern": { "type": "string" },
+          "pathPattern": { "type": "string" }
+        },
+        "required": ["source"]
+      },
+      "examples": [[{ "source": "github", "repo": "example/*" }]],
+      "x-harness": { "scope": "policy" }
+    },
+    "blockedMarketplaces": {
+      "title": "Blocked plugin sources",
+      "description": "Plugin sources that are refused, in the same forms, checked first.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source": { "type": "string" },
+          "repo": { "type": "string" },
+          "url": { "type": "string" },
+          "path": { "type": "string" },
+          "hostPattern": { "type": "string" },
+          "pathPattern": { "type": "string" }
+        },
+        "required": ["source"]
+      },
+      "examples": [[{ "source": "github", "repo": "example/untrusted" }]],
+      "x-harness": { "scope": "policy" }
+    },
+    "enabledPlugins": {
+      "title": "Distributed and blocked plugins",
+      "description": "name@marketplace: true installs and keeps it on, false blocks it at every level.",
+      "type": "object",
+      "additionalProperties": { "type": "boolean" },
+      "examples": [{ "formatter@example": true }],
+      "x-harness": { "scope": "policy" }
+    },
+    "disableAllHooks": {
+      "title": "Turn off hooks",
+      "description": "No hooks run, from any level.",
+      "type": "boolean",
+      "examples": [true],
+      "x-harness": { "scope": "policy" }
+    },
+    "allowManagedHooksOnly": {
+      "title": "Only managed hooks",
+      "description": "Only the hooks of policies run.",
+      "type": "boolean",
+      "examples": [true],
+      "x-harness": { "scope": "policy" }
+    },
+    "remoteControl": {
+      "title": "Remote control",
+      "description": "false: sessions are never mirrored to the server for watching and control from the web.",
+      "type": "boolean",
+      "examples": [false],
+      "x-harness": { "scope": "policy" }
+    },
+    "webSearchMode": {
+      "title": "Web search",
+      "description": "live, cached, or disabled for the WebSearch tool.",
+      "type": "string",
+      "enum": ["live", "cached", "disabled"],
+      "examples": ["cached"],
+      "x-harness": { "scope": "policy" }
+    }
+  }
+}

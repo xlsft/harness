@@ -1,0 +1,261 @@
+{
+  "description": "Server, updates and managed policy of xlsft`s harness. Generated from packages/client/settings/policy.schema.json by scripts/policy-templates.sh. Don't edit it here: change the schema and run the script.",
+  "properties": {
+    "allowManagedHooksOnly": {
+      "description": "Only the hooks of policies run.",
+      "title": "Only managed hooks",
+      "type": "boolean"
+    },
+    "allowManagedPermissionRulesOnly": {
+      "description": "Permission rules from user, project and local settings are ignored.",
+      "title": "Only managed permission rules",
+      "type": "boolean"
+    },
+    "allowedMcpServers": {
+      "description": "Only MCP servers with these names may be used, at any scope. An empty list allows none.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed MCP servers",
+      "type": "array"
+    },
+    "allowedProviders": {
+      "description": "Only these providers (id or preset id) serve models. An empty list allows none.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed model providers",
+      "type": "array"
+    },
+    "allowedSkills": {
+      "description": "Only skills of these names may run; \"kit:*\" names all of a plugin. An empty list allows none.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed skills",
+      "type": "array"
+    },
+    "blockedMarketplaces": {
+      "description": "Plugin sources that are refused, in the same forms, checked first.",
+      "items": {
+        "properties": {
+          "hostPattern": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "pathPattern": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "title": "Blocked plugin sources",
+      "type": "array"
+    },
+    "blockedSkills": {
+      "description": "Skills that may not run, checked before allowedSkills.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Blocked skills",
+      "type": "array"
+    },
+    "disableAllHooks": {
+      "description": "No hooks run, from any level.",
+      "title": "Turn off hooks",
+      "type": "boolean"
+    },
+    "disableExternalSkillSearch": {
+      "description": "No search of public skill directories.",
+      "title": "No public skill search",
+      "type": "boolean"
+    },
+    "disableLocalModels": {
+      "description": "Models running on this machine can't be used.",
+      "title": "No local models",
+      "type": "boolean"
+    },
+    "disablePersonalProviders": {
+      "description": "Users can't add or use their own model providers.",
+      "title": "No personal providers",
+      "type": "boolean"
+    },
+    "disableUpdates": {
+      "default": false,
+      "description": "The desktop app and `harness-client update` don't look for or install updates. Use it when you deploy new versions yourself, for example as a package through device management.",
+      "title": "Turn off updates",
+      "type": "boolean"
+    },
+    "permissions": {
+      "description": "Permission rules and modes, in the settings syntax. Rules of every policy add up.",
+      "properties": {
+        "allow": {
+          "description": "Permission rules, e.g. Bash(npm test *).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed without asking",
+          "type": "array"
+        },
+        "ask": {
+          "description": "Permission rules that always ask, e.g. Bash(git push *).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Always ask",
+          "type": "array"
+        },
+        "defaultMode": {
+          "description": "The mode new sessions start in.",
+          "enum": [
+            "default",
+            "acceptEdits",
+            "plan",
+            "dontAsk",
+            "bypassPermissions",
+            "auto"
+          ],
+          "title": "Default permission mode",
+          "type": "string"
+        },
+        "deny": {
+          "description": "Permission rules that are always denied, e.g. Read(./.env).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Always denied",
+          "type": "array"
+        },
+        "disableAutoMode": {
+          "description": "\"disable\": nobody can switch to auto mode.",
+          "enum": [
+            "disable"
+          ],
+          "title": "Turn off auto mode",
+          "type": "string"
+        },
+        "disableBypassPermissionsMode": {
+          "default": "disable",
+          "description": "\"disable\": nobody can switch to bypassPermissions.",
+          "enum": [
+            "disable"
+          ],
+          "title": "Turn off bypass mode",
+          "type": "string"
+        },
+        "disabledModes": {
+          "description": "Permission modes nobody may use. The default mode can't be turned off.",
+          "items": {
+            "enum": [
+              "acceptEdits",
+              "plan",
+              "dontAsk",
+              "bypassPermissions",
+              "auto"
+            ],
+            "type": "string"
+          },
+          "title": "Turned off modes",
+          "type": "array"
+        }
+      },
+      "title": "Permissions",
+      "type": "object"
+    },
+    "remoteControl": {
+      "description": "false: sessions are never mirrored to the server for watching and control from the web.",
+      "title": "Remote control",
+      "type": "boolean"
+    },
+    "sandbox": {
+      "description": "The sandbox of the model's commands.",
+      "properties": {
+        "allowOutside": {
+          "description": "false: commands can't run outside the sandbox at all.",
+          "title": "Allow commands outside the sandbox",
+          "type": "boolean"
+        },
+        "enabled": {
+          "description": "true: the sandbox can't be turned off.",
+          "title": "Require the sandbox",
+          "type": "boolean"
+        }
+      },
+      "title": "Sandbox",
+      "type": "object"
+    },
+    "serverUrl": {
+      "default": "https://harness.example.com",
+      "description": "The harness server this machine signs in to. The desktop app's sign-in screen uses it and can't change it, and `harness-client login` takes it when no URL is given.",
+      "title": "Server URL",
+      "type": "string"
+    },
+    "strictKnownMarketplaces": {
+      "description": "Plugins and marketplaces come only from these sources. An empty list allows none.",
+      "items": {
+        "properties": {
+          "hostPattern": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "pathPattern": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "repo": {
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "github",
+              "git",
+              "url",
+              "directory",
+              "file",
+              "hostPattern",
+              "pathPattern"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "title": "Allowed plugin sources",
+      "type": "array"
+    },
+    "updateMirrorUrl": {
+      "description": "Where updates come from instead of GitHub: a folder with latest.json and one subfolder per release tag, as scripts/release/offline-bundle.sh makes it. Updates are still verified with the release key built into the app and the client.",
+      "title": "Update mirror",
+      "type": "string"
+    },
+    "webSearchMode": {
+      "description": "live, cached, or disabled for the WebSearch tool.",
+      "enum": [
+        "live",
+        "cached",
+        "disabled"
+      ],
+      "title": "Web search",
+      "type": "string"
+    }
+  },
+  "title": "xlsft`s harness (com.xlsft.harness)"
+}

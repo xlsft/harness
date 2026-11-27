@@ -1,13 +1,14 @@
 name: workflows
 
-# A mistake in the release workflow or its scripts otherwise shows only at the next tag.
+# A mistake in the release workflow or its scripts otherwise shows only at the next tag. The release scripts tests also
+# cover the dev container feature, which installs from releases.
 on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['.github/workflows/**', '.goreleaser.yaml', 'scripts/release.sh', 'scripts/release/**', 'packages/desktop/scripts/build-release.sh', 'packages/desktop/src-tauri/tauri.conf.json']
+    paths: ['.github/workflows/**', '.goreleaser.yaml', 'scripts/release.sh', 'scripts/release/**', 'packages/desktop/scripts/build-release.sh', 'packages/desktop/src-tauri/tauri.conf.json', 'deploy/devcontainer/**']
   pull_request:
-    paths: ['.github/workflows/**', '.goreleaser.yaml', 'scripts/release.sh', 'scripts/release/**', 'packages/desktop/scripts/build-release.sh', 'packages/desktop/src-tauri/tauri.conf.json']
+    paths: ['.github/workflows/**', '.goreleaser.yaml', 'scripts/release.sh', 'scripts/release/**', 'packages/desktop/scripts/build-release.sh', 'packages/desktop/src-tauri/tauri.conf.json', 'deploy/devcontainer/**']
 
 permissions:
   contents: read

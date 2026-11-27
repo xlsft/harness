@@ -1,0 +1,35 @@
+{
+  "id": "harness-client",
+  "version": "0.1.0",
+  "name": "xlsft`s harness client",
+  "description": "Installs harness-client from a release (or an update mirror) and points it at your xlsft`s harness server. docs/devcontainers.md is the guide.",
+  "documentationURL": "https://github.com/xlsft/harness/blob/main/docs/devcontainers.md",
+  "licenseURL": "https://github.com/xlsft/harness/blob/main/LICENSE",
+  "options": {
+    "version": {
+      "type": "string",
+      "default": "latest",
+      "proposals": ["latest"],
+      "description": "A release version such as 0.2.0, or latest."
+    },
+    "serverUrl": {
+      "type": "string",
+      "default": "",
+      "description": "Your server. Written to the container's machine policy (/etc/harness/settings.d/00-server.json), so `harness-client login` needs no URL."
+    },
+    "mirror": {
+      "type": "string",
+      "default": "",
+      "description": "An update mirror (scripts/release/offline-bundle.sh) to install from instead of GitHub. Also written as updateMirrorUrl."
+    },
+    "disableUpdates": {
+      "type": "boolean",
+      "default": true,
+      "description": "Turn off `harness-client update` inside the container: the image is rebuilt to update it."
+    }
+  },
+  "containerEnv": {
+    "HARNESS_KEYRING": "0"
+  },
+  "installsAfter": ["ghcr.io/devcontainers/features/common-utils"]
+}

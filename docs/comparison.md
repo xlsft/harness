@@ -66,8 +66,8 @@ Plan names in brackets are the lowest tier the vendor lists. Codex rows cover al
 | SBOM and provenance | In development: on `main` | ? | ? |
 | Health check command | No | Yes (`claude doctor`) | Yes (`codex doctor`) |
 | Shell completions | No | ? | Yes |
-| Dev container guide | No | Yes | ? |
-| Enterprise offline packaging | No | Yes (MDM templates) | Yes (Intune package) |
+| Dev container guide | Partial: guide and a feature that installs `harness-client` ([devcontainers.md](devcontainers.md)); Linux client archives not released yet, so it builds from source until they are | Yes | ? |
+| Enterprise offline packaging | In development: macOS `.pkg` per release, profile, Intune preference file, Jamf schema and ADMX generated from one schema, offline mirror bundle ([enterprise.md](enterprise.md)); never run against a real MDM | Yes (MDM templates) | Yes (Intune package) |
 | Import from another tool | In development: Claude Code only (never run on a real profile) | Yes (Codex, Gemini, Cursor) | Yes (Claude Code, Cursor) |
 
 ## Models and providers
@@ -534,7 +534,7 @@ Plan names in brackets are the lowest tier the vendor lists. Codex rows cover al
 | Read Claude Code settings files | Yes | Yes | ? |
 | Policy from central server | Yes (POLICY documents) | Yes (Team+) | Yes (Agent Security) |
 | Role-targeted policy | Yes | No (no per-group yet) | ? |
-| Policy via MDM | No | Yes | Yes |
+| Policy via MDM | In development: macOS managed preferences and the Windows registry, with generated templates; never run against a real profile | Yes | Yes |
 | Policy via system file | Partial: managed `CLAUDE.md` only | Yes | Yes (`requirements.toml`) |
 | Self-hosted config server | Yes (the server) | Yes (gateway) | Yes (`[config_server]`) |
 | Admin UI for policy | Partial: modes, local models, limits visibility | Yes | Yes |
@@ -880,7 +880,7 @@ Derived from the tables above, ordered by how much each matters to someone switc
 28. **Artifacts, knowledge base, task tracker, customize screen absent.** UI shows "soon"; the artifacts page runs on demo data.
 29. **PDF page ranges not honored.** Large PDFs are all or nothing. No `run` for notebooks.
 30. **No i18n, screen reader mode or color-blind themes.** English only; ARIA labels and reduced motion exist.
-31. **Live voice, image generation, MDM policy, session export, full-text transcript search, CSV usage export.** Smaller gaps, each with a clear workaround or low urgency.
+31. **Live voice, image generation, session export, full-text transcript search, CSV usage export.** Smaller gaps, each with a clear workaround or low urgency.
 
 Where xlsft\`s harness has something the others don't document, as far as we could confirm: any model behind three API shapes, provider keys kept off clients, a self-hosted server including search and object store, LDAP, local TTS and STT with 10 cloud speech vendors, a classifier with a choice of model or HTTP service, sessions synced to your own server, MIT license. See the tables for limits.
 

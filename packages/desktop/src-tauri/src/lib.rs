@@ -80,6 +80,32 @@ fn auth_status() -> Result<Value, String> {
     serde_json::from_str(line.trim()).map_err(|e| format!("whoami: {e}: {line}"))
 }
 
+/// What the machine's administrator configured for this installation, from `harness-client config machine --json`: the
+/// sidecar is the one reader of the profile, the registry and the policy files (deploy/mdm). Nothing configured, or a
+/// sidecar that can't say, is the default: the user picks the server, and updates come from GitHub.
+#[derive(Clone, Default, Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Machine {
+    #[serde(default)]
+    server_url: String,
+    #[serde(default)]
+    disable_updates: bool,
+    #[serde(default)]
+    update_mirror_url: String,
+}
+
+pub(crate) fn machine() -> Machine {
+    let Ok(path) = sidecar() else { return Machine::default() };
+    let Ok(out) = Command::new(path).args(["config", "machine", "--json"]).output() else { return Machine::default() };
+    serde_json::from_slice(&out.stdout).unwrap_or_default()
+}
+
+/// For the sign-in screen: a server set by the administrator is the only one offered.
+#[tauri::command]
+fn machine_config() -> Machine {
+    machine()
+}
+
 /// Starts the device-flow sign-in. Each JSON line of `login --json` is emitted as `login-event`
 /// ({event: code | signed_in | error, ...}); the verification page opens in the default browser.
 #[tauri::command]
@@ -356,6 +382,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             auth_status,
+            machine_config,
             login,
             cancel_login,
             logout,

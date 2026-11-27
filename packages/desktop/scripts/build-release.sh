@@ -6,10 +6,12 @@
 #   TAURI_SIGNING_PRIVATE_KEY[_PASSWORD]  signs the updater archive; without a key there is no archive (a pull request's build)
 #   APPLE_CERTIFICATE[_PASSWORD], APPLE_SIGNING_IDENTITY   a real signature with a Developer ID
 #   APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID   notarization on top of a Developer ID
+#   APPLE_INSTALLER_CERTIFICATE[_PASSWORD], APPLE_INSTALLER_IDENTITY   signs the installer package (.pkg) with a Developer ID
+#                                   Installer certificate; without them the package is unsigned
 #
 # Whichever Apple values are missing, the release still builds. With no certificate, the whole bundle is signed ad-hoc
 # (signingIdentity "-"), which Apple Silicon requires of every binary to run at all. docs/release.md says what each level
-# means for whoever opens the app. Leaves <output>/signing.txt saying which one it got.
+# means for whoever opens the app. Leaves <output>/signing.txt saying which one it got, and pkg-signing.txt for the package.
 set -euo pipefail
 here="$(cd "$(dirname "$0")/.." && pwd)"
 triple="${1:?usage: build-release.sh <target triple> <output directory>}"
@@ -25,7 +27,7 @@ case "$triple" in
 esac
 
 # An empty value (an unset secret, in a workflow) counts as missing: tauri would try to use it.
-for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD; do
+for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD APPLE_INSTALLER_CERTIFICATE APPLE_INSTALLER_CERTIFICATE_PASSWORD APPLE_INSTALLER_IDENTITY; do
   [[ -n "${!name:-}" ]] || unset "$name"
 done
 
@@ -101,4 +103,12 @@ if [[ "$updater" == true ]]; then
   [[ -s "$out/$base.app.tar.gz.sig" ]] || { echo "no signed updater archive in $bundle/macos" >&2; exit 1; }
 fi
 echo "$signing" >"$out/signing.txt"
-echo "built $version for $triple ($signing): $out"
+
+# The installer package for device management, from the very app above (scripts/release/build-pkg.sh). Signed with the
+# Developer ID Installer values when they exist; notarized only when the app inside is.
+pkg_args=(--version "$version")
+[[ "$signing" == notarized ]] && pkg_args+=(--notarize)
+pkg_signing="$(bash "$here/../../scripts/release/build-pkg.sh" "$app" "$out/$base.pkg" "${pkg_args[@]}" | tail -n1)"
+[[ -s "$out/$base.pkg" ]] || { echo "no installer package" >&2; exit 1; }
+echo "$pkg_signing" >"$out/pkg-signing.txt"
+echo "built $version for $triple ($signing, package $pkg_signing): $out"

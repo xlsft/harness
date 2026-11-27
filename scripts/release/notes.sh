@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Release notes from the commits on main since the previous stable tag (their subjects: merges name what landed).
 #   notes.sh changes <tag>           the list alone; the desktop updater shows it
-#   notes.sh full <tag> <signing>    what the GitHub Release says; signing is unsigned, signed or notarized
+#   notes.sh full <tag> <signing> [<package signing>]   what the GitHub Release says; each is unsigned, signed or notarized
 set -euo pipefail
-mode="${1:?usage: notes.sh changes|full <tag> [signing]}"
-tag="${2:?usage: notes.sh changes|full <tag> [signing]}"
+mode="${1:?usage: notes.sh changes|full <tag> [signing] [package signing]}"
+tag="${2:?usage: notes.sh changes|full <tag> [signing] [package signing]}"
 signing="${3:-unsigned}"
+pkg_signing="${4:-unsigned}"
 repo="${GITHUB_REPOSITORY:-xlsft/harness}"
 version="${tag#v}"
 MAX=100
@@ -69,7 +70,19 @@ EOF
     ;;
 esac
 
+case "$pkg_signing" in
+  notarized) pkg_note="It is signed with a Developer ID Installer certificate and notarized." ;;
+  signed) pkg_note="It is signed with a Developer ID Installer certificate, not notarized." ;;
+  *) pkg_note="It is unsigned: device management that accepts unsigned packages installs it, and opening it by hand needs **Open Anyway** in System Settings → Privacy & Security, as for the app." ;;
+esac
+
 cat <<EOF
+
+## Installer package (macOS, for device management)
+
+\`harness_${version}_darwin_arm64.pkg\` and \`harness_${version}_darwin_amd64.pkg\` install the app into /Applications. ${pkg_note}
+Profiles, a package with your server's URL in it, and an offline mirror:
+[docs/enterprise.md](https://github.com/${repo}/blob/${tag}/docs/enterprise.md).
 
 ## Command-line client (macOS)
 

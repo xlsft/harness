@@ -47,6 +47,9 @@ func runConfig(ctx context.Context, args []string) int {
 	if len(args) > 0 {
 		verb = args[0]
 	}
+	if verb == "machine" {
+		return machineConfig(args[1:])
+	}
 	st, _, err := localSettings(ctx, "")
 	if err != nil {
 		return fail(err)
@@ -58,9 +61,34 @@ func runConfig(ctx context.Context, args []string) int {
 	case "features":
 		fmt.Println(settings.FeatureReport(st))
 	default:
-		fmt.Fprintln(os.Stderr, "usage: harness-client config [debug|features]")
+		fmt.Fprintln(os.Stderr, "usage: harness-client config [debug|features|machine [--json]]")
 		return 2
 	}
+	return 0
+}
+
+// machineConfig prints what the machine's administrator configured for this installation (serverUrl, disableUpdates,
+// updateMirrorUrl). The desktop app reads the --json form: one reader of the profile, the registry and the files.
+func machineConfig(args []string) int {
+	m := settings.MachineConfig()
+	if len(args) > 0 && args[0] == "--json" {
+		jsonLine(m)
+		return 0
+	}
+	if m.ServerURL == "" && !m.DisableUpdates && m.UpdateMirrorURL == "" {
+		fmt.Println("Nothing is configured for this machine.")
+		return 0
+	}
+	line := func(key, value string) {
+		if value != "" {
+			fmt.Printf("%-16s %s  (%s)\n", key, value, m.Origins[key])
+		}
+	}
+	line(settings.KeyServerURL, m.ServerURL)
+	if m.DisableUpdates {
+		line(settings.KeyDisableUpdates, "true")
+	}
+	line(settings.KeyUpdateMirrorURL, m.UpdateMirrorURL)
 	return 0
 }
 
