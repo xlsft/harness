@@ -6,11 +6,11 @@ from the branch. What is built and what comes next is in section 9.
 
 The name: the product surface is **Issues** (sidebar, `/issues`, the `Issues` tool). In code and contracts an issue here is a
 **card**, so it isn't taken for a provider's issue (`TrackerIssue`); "tracker" means an external one (`tracker` packages,
-Settings > Trackers). Likewise **Knowledge** to users, `/knowledge` as the route.
+Settings > Issue trackers). Likewise **Knowledge** to users, `/knowledge` as the route.
 
 ## 1. Provider connections
 
-A connection is one configured account on one tracker instance, managed like a model provider in **Settings > Trackers**:
+A connection is one configured account on one tracker instance, managed like a model provider in **Settings > Issue trackers**:
 connect, test, disable, remove. YouTrack is first. Jira, Linear and GitHub Issues follow by implementing the provider interface.
 
 | | Personal, on the device | Admin, on the server |

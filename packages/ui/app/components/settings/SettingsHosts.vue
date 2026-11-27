@@ -107,26 +107,25 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 text-[12.5px]">
-    <div>
-      <h2 class="m-0 text-[14px] font-semibold text-strong">
-        {{ tt('Always-on hosts') }}
-      </h2>
-      <p class="m-0 mt-1 text-muted">
-        {{ tt('A host keeps working when your laptop sleeps: it takes new sessions, schedules whose machine is away, and auto-fix jobs. Run') }} <code>harness-client daemon</code> {{ tt('on a server or in a container (') }}<code>deploy/compose.host.yml</code>{{ tt('), with the token you get here.') }}
-      </p>
-    </div>
+  <div class="flex flex-col">
+    <h2 class="set-h">
+      {{ tt('Always-on hosts') }}
+    </h2>
+    <p class="set-sub">
+      {{ tt('A host keeps working when your laptop sleeps: it takes new sessions, schedules whose machine is away, and auto-fix jobs. Run') }} <code>harness-client daemon</code> {{ tt('on a server or in a container (') }}<code>deploy/compose.host.yml</code>{{ tt('), with the token you get here.') }}
+    </p>
 
     <p
       v-if="error"
-      class="m-0 border border-bad px-2.5 py-1.5 text-bad"
+      role="alert"
+      class="m-0 mb-3 border border-bad px-3 py-2 text-[12px] text-bad"
     >
       {{ error }}
     </p>
 
     <div
       v-if="token"
-      class="flex flex-col gap-2 border border-accent p-3"
+      class="mb-3 flex flex-col gap-2 border border-accent p-3 text-[12.5px]"
     >
       <span class="text-strong">{{ tt('The host\'s token. It is not shown again: put it in HARNESS_DEVICE_TOKEN, or a secret file for HARNESS_DEVICE_TOKEN_FILE.') }}</span>
       <code class="break-all text-[11.5px] text-toned">{{ token }}</code>
@@ -146,233 +145,260 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
       </div>
     </div>
 
-    <div
-      v-for="h in hosts"
-      :key="h.id"
-      class="flex flex-col gap-2 border border-line p-3"
+    <section
+      :aria-label="tt('Hosts')"
+      class="mb-8 flex flex-col"
     >
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="font-semibold text-strong">{{ h.name }}</span>
-        <span class="border border-default px-1 text-[10px] leading-[14px] text-muted">{{ h.scope === 'team' ? tt('Team: {0}', [h.groupName || 'no group']) : tt('Personal') }}</span>
-        <span :class="h.online ? 'text-toned' : 'text-muted'">{{ hostLoadText(h) }}</span>
-        <span
-          v-if="h.draining"
-          class="text-warn"
-        >{{ tt('draining') }}</span>
-        <span class="flex-1" />
-        <span
-          v-if="h.ownerName && canAll"
-          class="text-muted"
-        >{{ h.ownerName }}</span>
-      </div>
-      <p
-        v-if="h.unavailableReason"
-        class="m-0 text-warn"
-      >
-        {{ h.unavailableReason }}
-      </p>
-      <div class="flex flex-wrap gap-x-4 gap-y-1 text-muted">
-        <span>{{ isolationText(h) }}</span>
-        <span>{{ tt('Sandbox: {0}', [h.sandboxDriver || 'none on this host']) }}</span>
-        <span v-if="h.os">{{ h.os }}/{{ h.arch }}<template v-if="h.cpuCount">{{ tt(', {0} CPUs, load {1}', [h.cpuCount, h.loadAverage.toFixed(1)]) }}</template></span>
-        <span v-if="h.diskFreeBytes">{{ tt('{0} free', [formatBytes(h.diskFreeBytes)]) }}</span>
-        <span v-if="h.clientVersion">{{ h.clientVersion }}</span>
-      </div>
-      <div
-        v-if="h.workers.length"
-        class="flex flex-wrap gap-x-4 gap-y-1 text-muted"
-      >
-        <span
-          v-for="w in h.workers"
-          :key="w.userId"
-        >{{ w.userName }}: {{ w.online ? `${w.workingSessions} working` : 'offline' }}</span>
-      </div>
-      <div class="flex flex-wrap items-center gap-3">
-        <label class="flex items-center gap-1.5 text-muted">
-          {{ tt('Sessions at once') }}
-          <input
-            :value="h.maxSessions"
-            :disabled="h.scope === 'team' && !canWrite"
-            type="number"
-            min="1"
-            :class="[FIELD, 'w-16']"
-            @change="setLimit(h, 'maxSessions', ($event.target as HTMLInputElement).value)"
-          >
-        </label>
-        <label
-          v-if="h.scope === 'team'"
-          class="flex items-center gap-1.5 text-muted"
+      <div class="overflow-hidden border border-default text-[12.5px]">
+        <div
+          v-for="h in hosts"
+          :key="h.id"
+          class="flex flex-col border-b border-default"
         >
-          {{ tt('Per user') }}
-          <input
-            :value="h.maxSessionsPerUser"
-            :disabled="!canWrite"
-            type="number"
-            min="0"
-            :class="[FIELD, 'w-16']"
-            @change="setLimit(h, 'maxSessionsPerUser', ($event.target as HTMLInputElement).value)"
-          >
-        </label>
-        <span class="flex items-center gap-1.5 text-muted">
-          <HToggle
-            :model-value="h.awayHost"
-            :label="tt('Takes my work while my machines are away')"
-            @update:model-value="setAway(h, $event)"
-          />
-          {{ tt('Takes my work while my machines are away') }}
-        </span>
-        <span class="flex items-center gap-1.5 text-muted">
-          <HToggle
-            :model-value="h.draining"
-            :label="tt('Takes no new work')"
-            @update:model-value="setDraining(h, $event)"
-          />
-          {{ tt('Takes no new work') }}
-        </span>
-        <span class="flex-1" />
-        <HBtn
-          size="sm"
-          @click="remove(h)"
-        >
-          {{ confirming === h.id ? tt('Remove: sure?') : tt('Remove') }}
-        </HBtn>
-      </div>
-      <label
-        v-if="canWrite"
-        class="flex flex-col gap-1 text-muted"
-      >
-        {{ tt('Repositories it may use the connection\'s own identity on, one per line, like github.com/acme/*. Elsewhere each user needs their own account connected.') }}
-        <textarea
-          :value="h.allowedRepositories.join('\n')"
-          rows="2"
-          class="border border-line bg-transparent p-2 text-[12.5px] text-strong outline-none focus:border-accent"
-          @change="setRepositories(h, ($event.target as HTMLTextAreaElement).value)"
-        />
-      </label>
-    </div>
-
-    <p
-      v-if="!hosts.length && !adding"
-      class="m-0 text-muted"
-    >
-      {{ tt('No hosts yet.') }}
-    </p>
-
-    <div
-      v-if="adding"
-      class="flex flex-col gap-2 border border-line p-3"
-    >
-      <label class="flex flex-col gap-1 text-muted">
-        {{ tt('Name') }}
-        <input
-          v-model="draft.name"
-          :class="FIELD"
-          placeholder="build-box"
-        >
-      </label>
-      <template v-if="canWrite">
-        <span class="flex items-center gap-1.5 text-muted">
-          <HToggle
-            v-model="draft.team"
-            :label="tt('For a team')"
-          />
-          {{ tt('For a team') }}
-        </span>
-        <template v-if="draft.team">
-          <p class="m-0 text-warn">
-            {{ tt('A team host must run as root on Linux with') }} <code>--shared</code>{{ tt(', so each member\'s work runs under a Unix user of its own, or it takes no work. Members still share the kernel, the loopback network and CPU; see docs/design/hosts.md. Give people who must not trust each other a host each.') }}
-          </p>
-          <label class="flex flex-col gap-1 text-muted">
-            {{ tt('Group') }}
-            <select
-              v-model="draft.groupId"
-              :class="FIELD"
+          <div class="flex items-center gap-3 px-3 py-2.5">
+            <SettingsMonogram
+              icon="box"
+              :dim="!h.online"
+            />
+            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span class="flex flex-wrap items-center gap-2 text-[12.5px] text-strong">
+                {{ h.name }}
+                <span class="border border-default px-1 text-[10px] leading-[14px] text-muted">{{ h.scope === 'team' ? tt('Team: {0}', [h.groupName || 'no group']) : tt('Personal') }}</span>
+                <span
+                  class="text-[11px]"
+                  :class="h.online ? 'text-ok' : 'text-dimmed'"
+                >{{ hostLoadText(h) }}</span>
+                <span
+                  v-if="h.draining"
+                  class="text-[11px] text-warn"
+                >{{ tt('draining') }}</span>
+              </span>
+              <span class="truncate text-[11.5px] text-muted">
+                {{ isolationText(h) }} · {{ tt('Sandbox: {0}', [h.sandboxDriver || 'none on this host']) }}<template v-if="h.os"> · {{ h.os }}/{{ h.arch }}<template v-if="h.cpuCount">{{ tt(', {0} CPUs, load {1}', [h.cpuCount, h.loadAverage.toFixed(1)]) }}</template></template><template v-if="h.diskFreeBytes"> · {{ tt('{0} free', [formatBytes(h.diskFreeBytes)]) }}</template><template v-if="h.clientVersion"> · {{ h.clientVersion }}</template>
+              </span>
+            </span>
+            <span
+              v-if="h.ownerName && canAll"
+              class="text-[11px] text-muted max-sm:hidden"
+            >{{ h.ownerName }}</span>
+            <HBtn
+              size="sm"
+              tone="danger"
+              :aria-label="tt('Remove {0}', [h.name])"
+              @click="remove(h)"
             >
-              <option
-                v-for="g in groups"
-                :key="g.id"
-                :value="g.id"
+              {{ confirming === h.id ? tt('Remove: sure?') : tt('Remove') }}
+            </HBtn>
+          </div>
+          <div class="flex flex-col gap-2 pr-3 pb-3 pl-[52px] text-[12px]">
+            <p
+              v-if="h.unavailableReason"
+              class="m-0 text-warn"
+            >
+              {{ h.unavailableReason }}
+            </p>
+            <div
+              v-if="h.workers.length"
+              class="flex flex-wrap gap-x-4 gap-y-1 text-muted"
+            >
+              <span
+                v-for="w in h.workers"
+                :key="w.userId"
+              >{{ w.userName }}: {{ w.online ? `${w.workingSessions} working` : 'offline' }}</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              <label class="flex items-center gap-1.5 text-muted">
+                {{ tt('Sessions at once') }}
+                <input
+                  :value="h.maxSessions"
+                  :disabled="h.scope === 'team' && !canWrite"
+                  type="number"
+                  min="1"
+                  :class="[FIELD, 'w-16']"
+                  @change="setLimit(h, 'maxSessions', ($event.target as HTMLInputElement).value)"
+                >
+              </label>
+              <label
+                v-if="h.scope === 'team'"
+                class="flex items-center gap-1.5 text-muted"
               >
-                {{ g.name }}
-              </option>
-            </select>
-          </label>
-          <label class="flex items-center gap-1.5 text-muted">
-            {{ tt('Sessions at once per user (0: no limit)') }}
-            <input
-              v-model="draft.maxSessionsPerUser"
-              type="number"
-              min="0"
-              :class="[FIELD, 'w-16']"
+                {{ tt('Per user') }}
+                <input
+                  :value="h.maxSessionsPerUser"
+                  :disabled="!canWrite"
+                  type="number"
+                  min="0"
+                  :class="[FIELD, 'w-16']"
+                  @change="setLimit(h, 'maxSessionsPerUser', ($event.target as HTMLInputElement).value)"
+                >
+              </label>
+              <span class="flex items-center gap-1.5 text-muted">
+                <HToggle
+                  :model-value="h.awayHost"
+                  :label="tt('Takes my work while my machines are away')"
+                  @update:model-value="setAway(h, $event)"
+                />
+                {{ tt('Takes my work while my machines are away') }}
+              </span>
+              <span class="flex items-center gap-1.5 text-muted">
+                <HToggle
+                  :model-value="h.draining"
+                  :label="tt('Takes no new work')"
+                  @update:model-value="setDraining(h, $event)"
+                />
+                {{ tt('Takes no new work') }}
+              </span>
+            </div>
+            <label
+              v-if="canWrite"
+              class="flex flex-col gap-1 text-muted"
             >
-          </label>
-        </template>
-      </template>
-      <label class="flex items-center gap-1.5 text-muted">
-        {{ tt('Sessions at once') }}
-        <input
-          v-model="draft.maxSessions"
-          type="number"
-          min="1"
-          :class="[FIELD, 'w-16']"
-        >
-      </label>
-      <div class="flex gap-2">
-        <HBtn
-          variant="primary"
-          size="sm"
-          :disabled="!draft.name.trim() || (draft.team && !draft.groupId)"
-          @click="create"
-        >
-          {{ tt('Add host') }}
-        </HBtn>
-        <HBtn
-          size="sm"
-          @click="adding = false"
-        >
-          {{ tt('Close') }}
-        </HBtn>
-      </div>
-    </div>
-    <div v-else>
-      <HBtn
-        size="sm"
-        @click="adding = true"
-      >
-        {{ tt('Add a host') }}
-      </HBtn>
-    </div>
+              {{ tt('Repositories it may use the connection\'s own identity on, one per line, like github.com/acme/*. Elsewhere each user needs their own account connected.') }}
+              <textarea
+                :value="h.allowedRepositories.join('\n')"
+                rows="2"
+                class="border border-line bg-transparent p-2 text-[12.5px] text-strong outline-none focus:border-accent"
+                @change="setRepositories(h, ($event.target as HTMLTextAreaElement).value)"
+              />
+            </label>
+          </div>
+        </div>
 
-    <div
+        <div class="flex flex-col">
+          <div class="flex items-center gap-3 px-3 py-2.5">
+            <SettingsMonogram
+              icon="plus"
+              :dim="!hosts.length"
+            />
+            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span class="text-[12.5px] text-strong">{{ tt('Add a host') }}</span>
+              <span class="truncate text-[11.5px] text-muted">{{ tt('A server or a container that runs harness-client daemon with the token it gets here.') }}</span>
+            </span>
+            <HBtn
+              v-if="!adding"
+              size="sm"
+              @click="adding = true"
+            >
+              <HIcon
+                name="plus"
+                :size="12"
+              />{{ tt('Add') }}
+            </HBtn>
+          </div>
+          <div
+            v-if="adding"
+            class="flex flex-col gap-2 border-t border-default py-3 pr-3 pl-[52px] text-[12px]"
+          >
+            <label class="flex flex-col gap-1 text-muted">
+              {{ tt('Name') }}
+              <input
+                v-model="draft.name"
+                :class="FIELD"
+                placeholder="build-box"
+              >
+            </label>
+            <template v-if="canWrite">
+              <span class="flex items-center gap-1.5 text-muted">
+                <HToggle
+                  v-model="draft.team"
+                  :label="tt('For a team')"
+                />
+                {{ tt('For a team') }}
+              </span>
+              <template v-if="draft.team">
+                <p class="m-0 text-warn">
+                  {{ tt('A team host must run as root on Linux with') }} <code>--shared</code>{{ tt(', so each member\'s work runs under a Unix user of its own, or it takes no work. Members still share the kernel, the loopback network and CPU; see docs/design/hosts.md. Give people who must not trust each other a host each.') }}
+                </p>
+                <label class="flex flex-col gap-1 text-muted">
+                  {{ tt('Group') }}
+                  <select
+                    v-model="draft.groupId"
+                    :class="FIELD"
+                  >
+                    <option
+                      v-for="g in groups"
+                      :key="g.id"
+                      :value="g.id"
+                    >
+                      {{ g.name }}
+                    </option>
+                  </select>
+                </label>
+                <label class="flex items-center gap-1.5 text-muted">
+                  {{ tt('Sessions at once per user (0: no limit)') }}
+                  <input
+                    v-model="draft.maxSessionsPerUser"
+                    type="number"
+                    min="0"
+                    :class="[FIELD, 'w-16']"
+                  >
+                </label>
+              </template>
+            </template>
+            <label class="flex items-center gap-1.5 text-muted">
+              {{ tt('Sessions at once') }}
+              <input
+                v-model="draft.maxSessions"
+                type="number"
+                min="1"
+                :class="[FIELD, 'w-16']"
+              >
+            </label>
+            <div class="flex gap-2">
+              <HBtn
+                variant="primary"
+                size="sm"
+                :disabled="!draft.name.trim() || (draft.team && !draft.groupId)"
+                @click="create"
+              >
+                {{ tt('Add host') }}
+              </HBtn>
+              <HBtn
+                size="sm"
+                @click="adding = false"
+              >
+                {{ tt('Close') }}
+              </HBtn>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section
       v-if="work.length"
-      class="flex flex-col gap-1"
+      :aria-label="tt('Your work on hosts')"
+      class="mb-8 flex flex-col"
     >
-      <h3 class="m-0 text-[12.5px] font-semibold text-strong">
+      <h3 class="m-0 mb-3 text-[13px] font-semibold text-strong">
         {{ tt('Your work on hosts') }}
       </h3>
-      <div
-        v-for="w in work.slice(0, 20)"
-        :key="w.id"
-        class="flex flex-wrap items-center gap-2 border-b border-line py-1"
-      >
-        <span class="min-w-0 flex-1 truncate text-toned">{{ w.title || w.repositoryKey }}</span>
-        <span class="text-muted">{{ w.hostName }}</span>
-        <span class="text-muted">{{ workStateText(w) }}</span>
-        <a
-          v-if="w.pullRequestUrl"
-          :href="w.pullRequestUrl"
-          target="_blank"
-          rel="noopener"
-          class="text-accent"
-        >{{ tt('Pull request') }}</a>
-        <HBtn
-          v-if="liveStates.includes(w.state)"
-          size="sm"
-          @click="cancel(w)"
+      <div class="overflow-hidden border border-default text-[12.5px]">
+        <div
+          v-for="(w, i) in work.slice(0, 20)"
+          :key="w.id"
+          class="flex flex-wrap items-center gap-2 px-3 py-2"
+          :class="{ 'border-t border-default': i > 0 }"
         >
-          {{ tt('Cancel') }}
-        </HBtn>
+          <span class="min-w-0 flex-1 truncate text-toned">{{ w.title || w.repositoryKey }}</span>
+          <span class="text-muted">{{ w.hostName }}</span>
+          <span class="text-muted">{{ workStateText(w) }}</span>
+          <a
+            v-if="w.pullRequestUrl"
+            :href="w.pullRequestUrl"
+            target="_blank"
+            rel="noopener"
+            class="text-accent"
+          >{{ tt('Pull request') }}</a>
+          <HBtn
+            v-if="liveStates.includes(w.state)"
+            size="sm"
+            @click="cancel(w)"
+          >
+            {{ tt('Cancel') }}
+          </HBtn>
+        </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>

@@ -1,4 +1,4 @@
-// IssuesApi: the Issues screen and Settings > Trackers. Projects, boards and cards are the server's (harness.library.v1 through the
+// IssuesApi: the Issues screen and Settings > Issue trackers. Projects, boards and cards are the server's (harness.library.v1 through the
 // client's proxy), connections on this device and folder links are the client's (harness.agent.v1.LocalTrackerService). Both decide
 // what exists and who may do what; this only names things for the screens. Two implementations: connect.ts and mock.ts.
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Settings > Trackers: external trackers as providers. Personal connections stay on this device, with their credentials in the
+// Settings > Issue trackers: external trackers as providers. Personal connections stay on this device, with their credentials in the
 // system keychain; company ones are the server's, for admins to manage. Secrets are write-only and never come back here.
 import { openExternal } from '~/lib/desktop'
 import { PROVIDER_LOGOS } from '~/utils/providerLogos'
@@ -181,7 +181,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
 <template>
   <div>
     <h2 class="set-h">
-      {{ tt('Trackers') }}
+      {{ tt('Issue trackers') }}
     </h2>
     <p class="set-sub">
       {{ tt('Connect external issue trackers. Board stages pull issues from them and update them, and Knowledge can read their documents.') }}
