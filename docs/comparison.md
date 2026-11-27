@@ -153,7 +153,7 @@ Plan names in brackets are the lowest tier the vendor lists. Codex rows cover al
 | Rewind conversation | Yes | Yes | Partial: drops turns, not files |
 | Rewind code | Yes | Yes | ? (docs suggest own Git checkpoints) |
 | Summarize from a point | Yes | Yes | ? |
-| Automatic file checkpoints | Yes | Yes (file tools only) | ? (docs suggest own Git checkpoints) |
+| Automatic file checkpoints | Yes (the whole working tree each turn, Bash edits included) | Yes (file tools only) | ? (docs suggest own Git checkpoints) |
 | Context usage view | Yes (breakdown pane) | Yes (`/context`) | Yes (`/status`) |
 | Message queue while running | Yes | Yes | Yes |
 | Steer mid-turn | Yes (send now) | ? | Yes |

@@ -1327,6 +1327,7 @@ type outcome struct {
 // one tool_result; on interrupt unfinished calls get a synthetic error.
 // rationale maps tool_use ids to the assistant text before them.
 func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, rationale map[string]string, res *TurnResult) ([]outcome, bool) {
+	a.waitCheckpoint(ctx) // before any tool of the batch starts, so none shows as running while it waits
 	outcomes := make([]outcome, len(uses))
 	autos := make([]*AutoDecision, len(uses))
 	defer func() {
@@ -1586,6 +1587,20 @@ func sameCheckedInput(a, b json.RawMessage) bool {
 	}
 	return reflect.DeepEqual(x, y)
 }
+
+// waitCheckpoint holds a tool until the turn's git checkpoint is taken (bounded by its budget), so no edit, by any
+// tool, comes before it; the repositories it had to skip become notices.
+func (a *Agent) waitCheckpoint(ctx context.Context) {
+	if a.cfg.FileHistory == nil {
+		return
+	}
+	for _, text := range a.cfg.FileHistory.WaitCheckpoint(ctx) {
+		a.emit(Event{Kind: EventNotice, Notice: &Notice{Level: "warning", Kind: NoticeCheckpointSkipped, Text: text}})
+	}
+}
+
+// NoticeCheckpointSkipped: a turn's git checkpoint skipped a repository (session.FileHistory.WaitCheckpoint).
+const NoticeCheckpointSkipped = "checkpoint_skipped"
 
 func (a *Agent) runTool(ctx context.Context, t tools.Tool, id string, input json.RawMessage) (r tools.Result) {
 	defer func() {

@@ -304,6 +304,9 @@ func (s *Session) Close() error {
 	if s.browsers != nil {
 		s.browsers.CloseSession(s.ID)
 	}
+	if s.FileHistory != nil {
+		s.FileHistory.Close() // a turn checkpoint still being taken records into the transcript
+	}
 	var err error
 	if s.Transcript != nil {
 		err = s.Transcript.Close()
@@ -503,6 +506,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 			}
 			if err := session.CopyDir(FileHistoryDir(id), FileHistoryDir(newID)); err != nil {
 				log.Warn("copy file history failed", "err", err)
+			}
+			if err := session.ForkGitCheckpoints(FileHistoryDir(id), FileHistoryDir(newID), id, newID); err != nil {
+				log.Warn("copy git checkpoints failed", "err", err)
 			}
 			if err := session.CopyDir(FolderBaselineDir(id), FolderBaselineDir(newID)); err != nil {
 				log.Warn("copy folder baselines failed", "err", err)
@@ -794,6 +800,10 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 	s.FileHistory = session.NewFileHistory(FileHistoryDir(s.ID), s.Transcript, conv.Snapshots)
 	s.ToolEnv.BeforeEdit = s.FileHistory.TrackEdit
 	s.ToolEnv.BeforeEditChecked = s.FileHistory.TrackEditChecked
+	if !o.NoPersistence && os.Getenv("HARNESS_NO_GIT_CHECKPOINTS") != "1" {
+		// Turn checkpoints of whole working trees, so a rewind also undoes what Bash changed.
+		s.FileHistory.EnableGit(session.GitOptions{SessionID: s.ID, Dirs: s.ToolEnv.WorkingDirs, Folders: true, Exclude: []string{config.Home()}})
+	}
 
 	todos := tools.RestoreTodos(conv.Todos, conv.TodoLinks)
 
