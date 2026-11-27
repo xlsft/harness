@@ -370,7 +370,10 @@ func (r *Runner) runWork(ctx context.Context, w *relayv1.HostWork, gitName, gitE
 	if r.o.Cloud && w.GetSessionId() != "" {
 		if err := r.resumeCloudWork(renew, w, gitName, gitEmail); err != nil {
 			fail(err)
+			return
 		}
+		r.startWatching(ctx, w.GetSessionId())
+		r.kickReport()
 		return
 	}
 	cred, err := r.credentials(renew, w.GetRepositoryKey())

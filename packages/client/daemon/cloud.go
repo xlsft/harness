@@ -54,8 +54,6 @@ func (r *Runner) resumeCloudWork(ctx context.Context, w *relayv1.HostWork, gitNa
 	t := &tracked{SessionID: id, WorkID: w.GetId(), RepositoryKey: w.GetRepositoryKey(), Dir: p.Dir, Branch: p.Branch, Base: p.Base, Landing: int32(cloudLanding(w.GetLanding())), Title: w.GetTitle(), PullRequest: w.GetPullRequestUrl()}
 	r.track(t)
 	r.update(ctx, &relayv1.UpdateHostWorkRequest{WorkId: w.GetId(), State: relayv1.HostWorkState_HOST_WORK_STATE_RUNNING, SessionId: id, Branch: p.Branch})
-	r.startWatching(ctx, id)
-	r.kickReport()
 	r.log.Info("resumed a cloud session", "session", id, "branch", p.Branch)
 	return nil
 }
