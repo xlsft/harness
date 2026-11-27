@@ -2,7 +2,6 @@
 // Sessions sidebar (Main.dc.html): window row, wordmark, primary nav, sessions grouped by project (sessions
 // without a folder under Chats, first), account footer.
 // Sub-sessions (forks) are listed under their parent with an └ connector; a parent row folds them (▾/▸).
-import { avatarUrl } from '~/lib/account/types'
 import { isDesktop } from '~/lib/desktop'
 import type { SessionState } from '~/lib/session/types'
 import { groupSessions, limitTree, sessionTree } from '~/lib/session/tree'
@@ -109,18 +108,7 @@ function newSession(cwd?: string) {
 const desktop = isDesktop()
 const update = useAppUpdate()
 
-// Footer: who is signed in and on which server.
-// The profile (name, avatar) from the server; the shell's whoami until it loads.
-const { profile, load: loadProfile } = useAccountProfile()
-onMounted(() => loadProfile())
-const displayName = computed(() => profile.value?.name || store.account.name || store.userEmail.split('@')[0] || 'Not signed in')
-const host = computed(() => {
-  try {
-    return store.account.server ? new URL(store.account.server).host : ''
-  } catch {
-    return store.account.server
-  }
-})
+// Footer: the account menu (AccountMenu) and the settings button.
 
 const NuxtLink = resolveComponent('NuxtLink')
 
@@ -345,27 +333,7 @@ const isCurrent = (to?: string) => !!to && route.path.startsWith(to)
     </button>
 
     <template #footer>
-      <img
-        v-if="profile?.image"
-        :src="avatarUrl(profile)"
-        alt=""
-        class="size-[22px] shrink-0 rounded-chip object-cover"
-      >
-      <span
-        v-else
-        class="flex size-[22px] shrink-0 items-center justify-center rounded-chip bg-accent text-[10.5px] font-bold text-on-accent uppercase"
-      >{{ displayName.charAt(0) }}</span>
-      <span
-        class="flex min-w-0 items-baseline gap-1.5"
-        :title="store.userEmail"
-      >
-        <!-- The host gives way first, then the name. -->
-        <span class="min-w-[4ch] truncate text-[12px] text-strong">{{ displayName }}</span>
-        <span
-          v-if="host"
-          class="min-w-0 shrink-[9999] truncate text-[10.5px] text-muted"
-        >{{ host }}</span>
-      </span>
+      <AccountMenu @navigate="open = false" />
       <span class="flex-1" />
       <HIconBtn
         icon="settings"
