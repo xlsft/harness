@@ -4,17 +4,19 @@
  * rows in Settings. docs/design/tracker.md, "Writing a provider".
  */
 import { CONFLUENCE } from "../knowledge/confluence.ts";
+import { LINEAR_DOCS } from "../knowledge/linear-docs.ts";
 import type { KnowledgeModule } from "../knowledge/provider.ts";
 import { YOUTRACK_KB } from "../knowledge/youtrack-kb.ts";
 import { JIRA } from "./jira.ts";
+import { LINEAR } from "./linear.ts";
 import type { TrackerModule } from "./provider.ts";
 import { YOUTRACK } from "./youtrack.ts";
 
 /** Issue trackers. One line per provider. */
-export const TRACKERS: TrackerModule[] = [YOUTRACK, JIRA];
+export const TRACKERS: TrackerModule[] = [YOUTRACK, JIRA, LINEAR];
 
 /** Knowledge sources. One line per provider. */
-export const KNOWLEDGE: KnowledgeModule[] = [YOUTRACK_KB, CONFLUENCE];
+export const KNOWLEDGE: KnowledgeModule[] = [YOUTRACK_KB, CONFLUENCE, LINEAR_DOCS];
 
 export const trackerModule = (provider: string): TrackerModule | undefined => TRACKERS.find((m) => m.capabilities.provider === provider);
 export const knowledgeModule = (provider: string): KnowledgeModule | undefined => KNOWLEDGE.find((m) => m.capabilities.provider === provider);
