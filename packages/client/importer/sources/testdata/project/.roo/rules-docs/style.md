@@ -1,0 +1,1 @@
+Docs use sentence case.

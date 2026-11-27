@@ -73,6 +73,7 @@ import { EventBuilder, type UsageLimitInit } from './events'
 import { MAIN_SESSION, MODELS, mainHistory, otherHistory, sessionList } from './scenario'
 import { MockClaudeImportApi, type MockImportedSession } from '~/lib/import/mock'
 import { MockProjectImportApi } from '~/lib/import/project'
+import { MockImportSourcesApi } from '~/lib/import/sourcesMock'
 import type { AddLocalProviderInput, LocalModel, LocalModelsApi, LocalProvider, LocalProviderKindName, LocalProviderPatch, LocalProvidersState, PullHandle, PullHandlers, PullProgress } from './localModels'
 import { contextUsageFromProto } from '~/lib/session/context'
 import { backgroundReasonPb, permissionModeName, permissionModePb, usageLimitVM } from '~/lib/session/reducer'
@@ -410,6 +411,11 @@ export class MockTransport implements SessionTransport {
   private projectImportApi?: MockProjectImportApi
   projectImport() {
     return (this.projectImportApi ??= new MockProjectImportApi())
+  }
+
+  private importSourcesApi?: MockImportSourcesApi
+  importSources() {
+    return (this.importSourcesApi ??= new MockImportSourcesApi({ tick: this.tick * 3 }))
   }
 
   // An imported session joins the session list, as its transcript does on a real client.

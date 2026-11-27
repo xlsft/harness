@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/username/Desktop"]
+    },
+    "weather api": {
+      "command": "uvx",
+      "args": ["weather-mcp"],
+      "env": { "WEATHER_API_KEY": "test-not-a-real-key", "UNITS": "metric" }
+    }
+  },
+  "globalShortcut": "Ctrl+Space"
+}

@@ -1,0 +1,7 @@
+---
+description: React components
+globs: src/components/**/*.tsx, src/ui/**/*.tsx
+alwaysApply: false
+---
+
+Components are function components.

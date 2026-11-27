@@ -58,7 +58,7 @@ const visible = computed(() => filterProjects(scan.value?.projects ?? [], query.
 const allState = computed(() => selectAllState(visible.value, selection.value.projects))
 const total = computed(() => (scan.value ? selectionTotal(scan.value, selection.value) : { items: 0, sessions: 0, bytes: 0 }))
 const ready = computed(() => !!scan.value && canImport(scan.value, selection.value))
-const settingsChosen = computed(() => selection.value.sections.has('settings'))
+const secretsMatter = computed(() => selection.value.sections.has('settings') || selection.value.sections.has('mcp'))
 const totalLine = computed(() => {
   const parts = []
   if (total.value.items) parts.push(`${total.value.items} config ${total.value.items === 1 ? 'item' : 'items'}`)
@@ -266,8 +266,8 @@ function itemsLine(r: { fresh: number, exists: number, items: unknown[] }) {
       v-if="manual.length"
       class="flex items-start justify-between gap-4 py-1.5 text-[12.5px]"
     >
-      <span class="text-muted">{{ tt('MCP servers') }}</span>
-      <span class="text-right text-[11.5px] text-muted">{{ tt('{0}: not imported, set them up by hand', [manual.map(i => i.name).join(', ')]) }}</span>
+      <span class="text-muted">{{ tt('Set up by hand') }}</span>
+      <span class="text-right text-[11.5px] text-muted">{{ tt('{0}: not imported', [manual.map(i => i.name).join(', ')]) }}</span>
     </div>
 
     <div class="mt-4 mb-2 flex items-center gap-2">
@@ -345,12 +345,12 @@ function itemsLine(r: { fresh: number, exists: number, items: unknown[] }) {
         <span
           class="set-desc"
           :class="secrets ? 'text-error' : ''"
-        >{{ tt('Uploads env values in settings that look like API keys or tokens to your server. Off keeps them out.') }}</span>
+        >{{ tt('Uploads env values in settings that look like API keys or tokens to your server, and stores MCP server secrets on this device. Off keeps them out.') }}</span>
       </div>
       <HToggle
         v-model="secrets"
         :label="tt('Include secrets')"
-        :disabled="!settingsChosen"
+        :disabled="!secretsMatter"
       />
     </div>
     <div class="set-row items-center">

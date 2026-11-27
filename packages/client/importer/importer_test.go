@@ -91,7 +91,7 @@ func TestDryRun(t *testing.T) {
 	if it := find(rep, "skill", "broken"); it == nil || it.Status != StatusSkipped {
 		t.Errorf("broken skill: %+v", it)
 	}
-	if it := find(rep, "mcp", "fs"); it == nil || it.Status != StatusNoted || !strings.Contains(it.Note, "stdio npx") || !strings.Contains(it.Note, "1 env/header") {
+	if it := find(rep, "mcp", "fs"); it == nil || it.Status != StatusNoted || !strings.Contains(it.Note, "stdio npx") || !strings.Contains(it.Note, "secret values left empty: TOKEN") {
 		t.Errorf("mcp: %+v", it)
 	}
 	if it := find(rep, "session", "-w/"+sessionID+".jsonl"); it == nil || it.Status != StatusPlanned {
@@ -129,7 +129,7 @@ func TestImportUploads(t *testing.T) {
 	user := func(kind syncv1.DocumentKind, key string) *syncv1.Document {
 		return fs.Document(&syncv1.DocumentRef{Scope: commonv1.Scope_SCOPE_USER, Kind: kind, Key: key})
 	}
-	if d := user(syncv1.DocumentKind_DOCUMENT_KIND_MEMORY, "user"); d == nil || !strings.Contains(d.GetContent(), "Prefer small diffs") || d.GetSource() != Source {
+	if d := user(syncv1.DocumentKind_DOCUMENT_KIND_MEMORY, "user"); d == nil || !strings.Contains(d.GetContent(), "Prefer small diffs") || d.GetSource() != ClaudeSource {
 		t.Fatalf("memory: %v", d)
 	}
 	var settings map[string]any

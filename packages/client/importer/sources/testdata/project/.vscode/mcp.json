@@ -1,0 +1,10 @@
+{
+  "inputs": [{ "type": "promptString", "id": "gh-token", "password": true }],
+  "servers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.example.com/mcp/",
+      "headers": { "Authorization": "Bearer ${input:gh-token}" }
+    }
+  }
+}

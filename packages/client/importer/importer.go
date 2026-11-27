@@ -1,4 +1,5 @@
-// Package importer is the only reader of Claude Code's files; the rest of the client never looks at them.
+// Package importer is the only reader of other tools' files (Claude Code here, the rest through the engine in source.go and
+// engine.go with readers in importer/sources); the rest of the client never looks at them.
 //
 // `harness-client import claude` is a one-time import of the user-level Claude Code configuration (~/.claude) into the
 // harness server, and optionally of Claude Code session transcripts into ~/.harness/projects with upload to the server.
@@ -17,7 +18,7 @@
 //	~/.claude/output-styles/*.md     → OUTPUT_STYLE (key: frontmatter name or file name)
 //	~/.claude/workflows/*            → copied to ~/.harness/workflows (this device)
 //	~/.claude/hooks/**               → copied to ~/.harness/hooks (this device); the hooks' commands are rewritten to match
-//	~/.claude.json mcpServers        → reported only (McpService arrives in M2)
+//	~/.claude.json mcpServers        → MCP servers of this device (Options.MCP; engine_mcp.go), secrets as there
 //	~/.claude/projects/**/*.jsonl    → copied to ~/.harness/projects and queued for upload (--sessions)
 //
 // Env values that look like secrets are never uploaded without
@@ -44,8 +45,8 @@ import (
 	"github.com/xlsft/harness/packages/client/memory"
 )
 
-// Source label of imported documents.
-const Source = "import:claude"
+// ClaudeSource is the source label of documents imported from Claude Code; other sources use "import:<id>".
+const ClaudeSource = "import:claude"
 
 // Limits for skill directories.
 const (
@@ -106,6 +107,8 @@ type Options struct {
 	OnProgress func(Progress)
 	// ForceHint and SecretsHint name the switches in notes; defaults: the CLI's flags.
 	ForceHint, SecretsHint string
+	// MCP receives the MCP servers of ~/.claude.json; nil: they are listed for manual setup.
+	MCP MCPTarget
 }
 
 // Section is a choosable part of the configuration.
@@ -174,6 +177,8 @@ type Item struct {
 	Note   string
 
 	req *syncv1.PutDocumentRequest
+	// mcp is an MCP server a run creates through Options.MCP.
+	mcp *MCPServer
 }
 
 // Report is the import result.
@@ -215,9 +220,13 @@ func (r *Report) Print(w io.Writer) {
 }
 
 type run struct {
+	// label is the source label of the documents; "": ClaudeSource.
+	label       string
 	o           Options
 	rep         *Report
 	done, total int
+	// mcpExisting are the MCP servers already there, by name.
+	mcpExisting map[string]ExistingMCP
 }
 
 func (r *run) wants(s Section) bool { return r.o.Sections == nil || r.o.Sections[s] }
@@ -244,7 +253,7 @@ func (r *run) add(it Item) { r.rep.Items = append(r.rep.Items, it) }
 func (r *run) doc(kind syncv1.DocumentKind, label, key, content string, files []*syncv1.DocumentFile, note string) {
 	req := &syncv1.PutDocumentRequest{
 		Ref:     &syncv1.DocumentRef{Scope: commonv1.Scope_SCOPE_USER, Kind: kind, Key: key},
-		Content: content, Files: files, Source: Source,
+		Content: content, Files: files, Source: firstNonEmpty(r.label, ClaudeSource),
 	}
 	if !r.o.Force {
 		req.BaseVersion = proto.Int64(0)
@@ -291,7 +300,7 @@ func Run(ctx context.Context, o Options) (*Report, error) {
 		r.markdownDir("output-style", syncv1.DocumentKind_DOCUMENT_KIND_OUTPUT_STYLE, filepath.Join(o.ClaudeHome, "output-styles"), false)
 	}
 	if r.wants(SectionMCP) {
-		r.mcp()
+		r.mcp(ctx)
 	}
 	var units []sessionUnit
 	if o.Sessions {
@@ -299,9 +308,14 @@ func Run(ctx context.Context, o Options) (*Report, error) {
 	}
 	r.total = len(r.rep.Items) + len(units)
 	if !o.DryRun {
-		for _, it := range r.rep.Items {
+		for i := range r.rep.Items {
+			it := &r.rep.Items[i]
+			if it.mcp != nil && it.Status == StatusPlanned {
+				r.started(it.Kind, it.Key)
+				it.Status, it.Note, _ = mcpUser(ctx, o.MCP, r.mcpExisting, it.Key, it.mcp, true, o.IncludeSecrets, o.Force, filepath.Dir(o.ClaudeHome), o.ForceHint, o.SecretsHint)
+			}
 			if it.req == nil {
-				r.finished(it)
+				r.finished(*it)
 			}
 		}
 		if err := r.upload(ctx); err != nil {
@@ -658,7 +672,8 @@ func (r *run) markdownDir(label string, kind syncv1.DocumentKind, dir string, re
 	})
 }
 
-func (r *run) mcp() {
+// mcp brings the servers of ~/.claude.json, through the engine's MCP path (engine_mcp.go).
+func (r *run) mcp(ctx context.Context) {
 	if r.o.ClaudeJSON == "" {
 		return
 	}
@@ -666,46 +681,23 @@ func (r *run) mcp() {
 	if err != nil {
 		return
 	}
-	var cfg struct {
-		MCPServers map[string]struct {
-			Type    string            `json:"type"`
-			Command string            `json:"command"`
-			URL     string            `json:"url"`
-			Env     map[string]string `json:"env"`
-			Headers map[string]string `json:"headers"`
-		} `json:"mcpServers"`
-	}
-	if err := json.Unmarshal(data, &cfg); err != nil {
+	servers, err := ParseMCPServers(data, "mcpServers")
+	if err != nil {
 		r.add(Item{Kind: "mcp", Key: filepath.Base(r.o.ClaudeJSON), Status: StatusError, Note: "invalid JSON: " + err.Error()})
 		return
 	}
-	names := make([]string, 0, len(cfg.MCPServers))
-	for n := range cfg.MCPServers {
-		names = append(names, n)
+	if r.mcpExisting, err = existingMCP(ctx, r.o.MCP); err != nil {
+		r.add(Item{Kind: "mcp", Key: filepath.Base(r.o.ClaudeJSON), Status: StatusError, Note: "listing MCP servers: " + err.Error()})
+		return
 	}
-	sort.Strings(names)
-	for _, n := range names {
-		s := cfg.MCPServers[n]
-		typ := s.Type
-		if typ == "" {
-			typ = "stdio"
-			if s.URL != "" {
-				typ = "http"
-			}
+	for _, n := range sortedKeys(servers) {
+		m := servers[n]
+		if m == nil {
+			r.add(Item{Kind: "mcp", Key: n, Status: StatusError, Note: "not a server entry"})
+			continue
 		}
-		target := s.Command
-		if target == "" {
-			target = s.URL
-		}
-		note := typ
-		if target != "" {
-			note += " " + target
-		}
-		if len(s.Env)+len(s.Headers) > 0 {
-			note += fmt.Sprintf("; %d env/header values not imported", len(s.Env)+len(s.Headers))
-		}
-		note += "; add it on the server (MCP import arrives with McpService)"
-		r.add(Item{Kind: "mcp", Key: n, Status: StatusNoted, Note: note})
+		st, note, _ := mcpUser(ctx, r.o.MCP, r.mcpExisting, n, m, false, r.o.IncludeSecrets, r.o.Force, filepath.Dir(r.o.ClaudeHome), r.o.ForceHint, r.o.SecretsHint)
+		r.add(Item{Kind: "mcp", Key: n, Status: st, Note: note, mcp: m})
 	}
 }
 

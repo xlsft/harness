@@ -83,7 +83,7 @@ func (s *Server) ScanClaudeImport(ctx context.Context, req *connect.Request[agen
 		return nil, err
 	}
 	o := importer.ScanOptions{ClaudeHome: dir, ClaudeJSON: cj, ProjectsDir: config.ProjectsDir(), HarnessHome: config.Home(),
-		SecretsHint: importSecretsHint, HoldSession: s.holdSession, SessionDone: sessionUploaded}
+		SecretsHint: importSecretsHint, HoldSession: s.holdSession, SessionDone: sessionUploaded, MCP: s.importMCPTarget()}
 	if s.ImportTo != nil {
 		o.Exists = func(ctx context.Context, ref *syncv1.DocumentRef) (bool, error) {
 			_, err := s.ImportTo.GetDocument(ctx, &syncv1.GetDocumentRequest{Selector: &syncv1.GetDocumentRequest_Ref{Ref: ref}})
@@ -198,7 +198,7 @@ func (s *Server) RunClaudeImport(ctx context.Context, req *connect.Request[agent
 		IncludeSecrets: m.GetIncludeSecrets(), Force: m.GetForce(), Putter: s.ImportTo,
 		Queue:          syncclient.NewUploader(syncclient.UploaderOptions{API: s.ImportTo, DeviceID: s.DeviceID, DeviceName: host, Logger: s.log(), Objects: syncclient.SharedObjectQueue(s.ImportTo, s.log())}),
 		UploadSessions: true, HoldSession: s.holdSession, SessionDone: sessionUploaded,
-		ForceHint: importForceHint, SecretsHint: importSecretsHint,
+		ForceHint: importForceHint, SecretsHint: importSecretsHint, MCP: s.importMCPTarget(),
 	}
 	// What the sessions are called, and which folders the chosen projects are, come from the same walk a scan does.
 	labels := map[string]string{}

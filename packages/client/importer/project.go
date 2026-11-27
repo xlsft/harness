@@ -169,8 +169,19 @@ func RunProject(ctx context.Context, o ProjectOptions) (*ProjectReport, error) {
 // projectDirs lists the root and the subfolders with something to import, root first.
 func (r *projectRun) projectDirs(ctx context.Context) []string {
 	var out []string
+	walkProjectDirs(ctx, r.o.Root, r.o.Home, func(p string) {
+		if exists(filepath.Join(p, ".claude")) || exists(filepath.Join(p, "CLAUDE.md")) || exists(filepath.Join(p, "CLAUDE.local.md")) {
+			out = append(out, p)
+		}
+	})
+	return out
+}
+
+// walkProjectDirs visits root and its subfolders, root first, as every folder import does: hidden folders, the
+// projectSkipDirs, the home folder and repositories of their own (a .git) are left out, and the walk is bounded.
+func walkProjectDirs(ctx context.Context, root, home string, visit func(dir string)) {
 	entries := 0
-	_ = filepath.WalkDir(r.o.Root, func(p string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			if d != nil && d.IsDir() {
 				return filepath.SkipDir
@@ -183,20 +194,17 @@ func (r *projectRun) projectDirs(ctx context.Context) []string {
 		if !d.IsDir() {
 			return nil
 		}
-		if p != r.o.Root {
-			rel, _ := filepath.Rel(r.o.Root, p)
+		if p != root {
+			rel, _ := filepath.Rel(root, p)
 			name := d.Name()
 			if strings.HasPrefix(name, ".") || projectSkipDirs[name] || strings.Count(rel, string(filepath.Separator)) >= projectMaxDepth ||
-				(r.o.Home != "" && samePath(p, r.o.Home)) || exists(filepath.Join(p, ".git")) {
+				(home != "" && samePath(p, home)) || exists(filepath.Join(p, ".git")) {
 				return filepath.SkipDir // a repository of its own gets its own import
 			}
 		}
-		if exists(filepath.Join(p, ".claude")) || exists(filepath.Join(p, "CLAUDE.md")) || exists(filepath.Join(p, "CLAUDE.local.md")) {
-			out = append(out, p)
-		}
+		visit(p)
 		return nil
 	})
-	return out
 }
 
 func exists(p string) bool {
@@ -498,11 +506,28 @@ func (r *projectRun) entry(kind, src, dst string, transform bool) {
 		r.add(kind, src, dst, StatusSkipped, joinNotes(append(notes, "nothing to bring")))
 		return
 	}
+	status, more, err := r.place(files)
+	switch {
+	case err != nil:
+		r.add(kind, src, dst, StatusError, err.Error())
+		return
+	case status == StatusExists:
+		r.add(kind, src, dst, StatusExists, joinNotes(append(notes, "already there")))
+		return
+	case status == StatusSkipped:
+		r.add(kind, src, dst, StatusSkipped, joinNotes(append(notes, r.rel(dst)+" differs and was left as it is; import with force to replace it")))
+		return
+	}
+	r.add(kind, src, dst, status, joinNotes(append(notes, more...)))
+}
+
+// place writes a set of files as one item: StatusExists when all are there already, StatusSkipped when one differs
+// and force is off, else the files are written (planned in a dry run).
+func (r *projectRun) place(files []plannedFile) (Status, []string, error) {
 	same, differ := 0, false
 	for _, f := range files {
 		if err := r.checkTarget(f.dst); err != nil {
-			r.add(kind, src, dst, StatusError, err.Error())
-			return
+			return StatusError, nil, err
 		}
 		if cur, ok := r.readTarget(f.dst); ok {
 			if cur == string(f.data) {
@@ -514,22 +539,20 @@ func (r *projectRun) entry(kind, src, dst string, transform bool) {
 	}
 	switch {
 	case same == len(files):
-		r.add(kind, src, dst, StatusExists, joinNotes(append(notes, "already there")))
-		return
+		return StatusExists, nil, nil
 	case differ && !r.o.Force:
-		r.add(kind, src, dst, StatusSkipped, joinNotes(append(notes, r.rel(dst)+" differs and was left as it is; import with force to replace it")))
-		return
+		return StatusSkipped, nil, nil
 	}
 	for _, f := range files {
 		if err := r.write(f.dst, f.data, f.mode); err != nil {
-			r.add(kind, src, dst, StatusError, err.Error())
-			return
+			return StatusError, nil, err
 		}
 	}
+	var notes []string
 	if len(files) > 1 {
 		notes = append(notes, fmt.Sprintf("%d files", len(files)))
 	}
-	r.add(kind, src, dst, r.doneStatus(), joinNotes(notes))
+	return r.doneStatus(), notes, nil
 }
 
 // plan lists the files of src, a file or a folder. Links and oversized files stay behind, and are named.
