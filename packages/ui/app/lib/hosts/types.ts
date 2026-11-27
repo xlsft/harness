@@ -2,8 +2,7 @@
 // only the words for it.
 
 import { tt } from '~/utils/i18n'
-import type { AttemptCheckVM, SessionMovedVM } from '~/lib/session/types'
-import type { CloudEnvironmentName } from '~/lib/session/types'
+import type { AttemptCheckVM, SessionMovedVM, CloudEnvironmentName } from '~/lib/session/types'
 
 // The new-session menu's choice of "Cloud": the server picks a runner (docs/design/cloud-sessions.md).
 export const CLOUD_HOST = 'cloud'

@@ -29,6 +29,7 @@ require (
 )
 
 require (
+	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/JohannesKaufmann/dom v0.2.0 // indirect
 	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.0 // indirect
 	github.com/UserExistsError/conpty v0.1.4 // indirect
