@@ -242,3 +242,87 @@ func yamlString(s string) string {
 	}
 	return s
 }
+
+// vscodeGlobalStorage is an extension's globalStorage folder in each VS Code family editor that exists on this machine:
+// VS Code, Insiders, VSCodium, Cursor and Windsurf all keep it under <config>/<app>/User/globalStorage/<extension id>.
+func vscodeGlobalStorage(env importer.Env, extension string) []string {
+	var out []string
+	for _, app := range []string{"Code", "Code - Insiders", "VSCodium", "Cursor", "Windsurf"} {
+		p := filepath.Join(env.UserConfigDir(), app, "User", "globalStorage", extension)
+		if exists(p) {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// userRules reads the rule files below dir (recursive) with the given extensions, each limited by `paths:` frontmatter;
+// prefix goes before each name ("" or "<mode>/"), note on each item.
+func userRules(env importer.Env, dir, prefix, note string, exts ...string) []importer.Found {
+	var out []importer.Found
+	for _, ext := range exts {
+		for _, rel := range userFiles(dir, ext, true) {
+			p := filepath.Join(dir, filepath.FromSlash(rel))
+			name := prefix + trimExt(rel, ext)
+			data, _, err := readUser(p)
+			if err != nil {
+				out = append(out, failed(env, importer.KindRule, name, p, err))
+				continue
+			}
+			md := string(data)
+			f := rule(name, md, globList(md, "paths"), "")
+			f.Source, f.Note = env.Display(p), note
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// dedupe marks every item after the first of the same kind and name skipped, so two files naming one MCP server (or
+// command) do not both import.
+func dedupe(items []importer.Found) []importer.Found {
+	seen := map[string]string{}
+	for i := range items {
+		f := &items[i]
+		if f.Status != "" {
+			continue
+		}
+		key := string(f.Kind) + "/" + f.Name
+		if first, ok := seen[key]; ok {
+			f.Status, f.Note = importer.StatusSkipped, joinNotes(f.Note, "also in "+first+", which is imported")
+			continue
+		}
+		seen[key] = f.Source
+	}
+	return items
+}
+
+// noted is an item to set up by hand.
+func noted(kind importer.Kind, name, source, note string) importer.Found {
+	return importer.Found{Kind: kind, Name: name, Source: source, Status: importer.StatusNoted, Note: note}
+}
+
+// sseByDefault marks servers with a bare url and no type as SSE, for tools that mean SSE by it (Cline).
+func sseByDefault(items []importer.Found) []importer.Found {
+	for _, f := range items {
+		if m := f.MCP; m != nil && m.Transport == "" && m.Command == "" && m.URL != "" {
+			m.Transport = "sse"
+		}
+	}
+	return items
+}
+
+// readDirNames lists the names of dir's subfolders, sorted.
+func readDirNames(dir string) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	var out []string
+	for _, e := range entries {
+		if e.IsDir() {
+			out = append(out, e.Name())
+		}
+	}
+	return out, nil
+}

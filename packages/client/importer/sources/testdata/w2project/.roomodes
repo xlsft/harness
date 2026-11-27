@@ -1,0 +1,5 @@
+customModes:
+  - slug: proj
+    name: Project mode
+    roleDefinition: Project role.
+    groups: [read, edit]

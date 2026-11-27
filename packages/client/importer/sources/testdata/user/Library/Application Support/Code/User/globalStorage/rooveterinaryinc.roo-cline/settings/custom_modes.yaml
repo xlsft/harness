@@ -1,0 +1,15 @@
+customModes:
+  - slug: reviewer
+    name: Reviewer
+    roleDefinition: You review code.
+    whenToUse: Reviews
+    customInstructions: Be brief.
+    groups:
+      - read
+  - slug: docs
+    name: Docs writer
+    roleDefinition: You write docs.
+    groups:
+      - read
+      - - edit
+        - fileRegex: \.md$

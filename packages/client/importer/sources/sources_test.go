@@ -278,7 +278,7 @@ func TestToolFolderSource(t *testing.T) {
 	if len(scan.Items) != 4 {
 		t.Errorf("cursor items: %+v", scan.Items)
 	}
-	if _, err := importer.ScanSource(context.Background(), Get("kiro"), "", importer.EngineOptions{}); err == nil {
+	if _, err := importer.ScanSource(context.Background(), Get("aider"), "", importer.EngineOptions{}); err == nil {
 		t.Error("a folder-only source must ask for a folder")
 	}
 }

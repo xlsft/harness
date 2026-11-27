@@ -1,0 +1,4 @@
+{
+  // kilo
+  "mcp": {"servers": {"kilo-search": {"type": "remote", "url": "https://k.example.com/mcp", "headers": {"Authorization": "Bearer {env:KILO_TOKEN}"}}}}
+}

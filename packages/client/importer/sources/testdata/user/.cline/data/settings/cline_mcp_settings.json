@@ -1,0 +1,1 @@
+{"mcpServers": {"events": {"url": "https://e.example.com/sse"}, "fs": {"command": "fs-mcp", "disabled": true}}}

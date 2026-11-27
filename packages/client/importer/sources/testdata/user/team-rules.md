@@ -1,0 +1,1 @@
+Team rules from OpenCode

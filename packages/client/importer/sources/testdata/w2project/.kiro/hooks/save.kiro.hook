@@ -1,0 +1,1 @@
+{"name": "on save", "when": {"type": "fileEdited"}, "then": {"type": "askAgent", "prompt": "x"}}

@@ -1,0 +1,1 @@
+{"mcp": {"local-fs": {"type": "local", "command": ["npx", "-y", "fs"], "environment": {"KEY": "{env:FS_KEY}"}, "enabled": false}}, "agent": {"build": {"model": "x"}, "writer": {"description": "Writes", "prompt": "Write well."}}, "command": {"test": {"template": "Run tests", "description": "Tests"}}, "instructions": ["~/team-rules.md", "docs/rules.md", "https://example.com/r.md"]}

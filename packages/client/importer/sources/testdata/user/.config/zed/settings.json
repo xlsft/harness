@@ -1,0 +1,4 @@
+{
+  // zed
+  "context_servers": {"zed-new": {"command": "zed-mcp", "args": ["--x"]}, "zed-old": {"source": "custom", "command": {"path": "old-mcp", "args": [], "env": {}}}, "zed-ext": {"settings": {}}, "zed-url": {"url": "https://z.example.com/mcp"}},
+}

@@ -1,0 +1,27 @@
+name: me
+version: 1.0.0
+schema: v1
+models:
+  - name: x
+rules:
+  - Always write tests
+  - name: Go style
+    rule: Use gofmt
+    globs: "**/*.go"
+  - uses: someone/rules
+prompts:
+  - name: Write tests
+    description: Tests
+    prompt: Write tests for the selection
+mcpServers:
+  - name: cont-sqlite
+    command: uvx
+    args: [mcp-sqlite]
+    env:
+      TOKEN: ${{ secrets.SQLITE_TOKEN }}
+  - name: cont-remote
+    type: streamable-http
+    url: https://c.example.com/mcp
+    requestOptions:
+      headers:
+        X-Key: ${{ secrets.C_KEY }}
