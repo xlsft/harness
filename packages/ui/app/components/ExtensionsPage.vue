@@ -275,7 +275,7 @@ function added(said: string) {
     :aria-label="tt('Extensions')"
     class="overflow-y-auto bg-default"
   >
-    <div class="mx-auto w-full max-w-[1040px] px-10 max-sm:px-4">
+    <div class="mx-auto w-full max-w-[1080px] px-10 max-sm:px-4">
       <h1 class="m-0 pt-3 pb-4 font-display text-[26px] font-bold text-strong">
         {{ tt('Extensions') }}
       </h1>
@@ -295,7 +295,7 @@ function added(said: string) {
       @filter="setFilter"
     />
 
-    <div class="mx-auto flex w-full max-w-[1040px] flex-col gap-6 px-10 pt-5 pb-12 max-sm:px-4">
+    <div class="mx-auto flex w-full max-w-[1080px] flex-col gap-6 px-10 pt-5 pb-12 max-sm:px-4">
       <p
         v-if="error"
         role="alert"

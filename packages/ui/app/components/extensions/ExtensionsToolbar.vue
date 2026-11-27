@@ -32,7 +32,7 @@ const active = computed(() => props.filters.filter(f => props.filterValues[f.key
     data-pinned-row
     class="sticky top-0 z-20 border-b border-default bg-default"
   >
-    <div class="mx-auto flex w-full max-w-[1040px] flex-wrap items-center gap-x-2 gap-y-2 px-10 py-2.5 max-sm:px-4">
+    <div class="mx-auto flex w-full max-w-[1080px] flex-wrap items-center gap-x-2 gap-y-2 px-10 py-2.5 max-sm:px-4">
       <div
         role="tablist"
         :aria-label="tt('What to show')"

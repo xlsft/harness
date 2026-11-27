@@ -221,7 +221,7 @@ const stageName = (id: string) => board.value?.stages.find(s => s.id === id)?.na
     :aria-label="tt('Issues')"
     class="flex h-full flex-col overflow-hidden bg-default"
   >
-    <div class="flex flex-col gap-3 px-10 pt-[52px] pb-3 max-sm:px-4">
+    <div class="mx-auto flex w-full max-w-[1080px] flex-col gap-3 px-10 pt-[52px] pb-3 max-sm:px-4">
       <div class="flex flex-wrap items-center gap-2">
         <h1 class="m-0 mr-2 font-display text-[26px] font-bold text-strong">
           {{ tt('Issues') }}
@@ -467,7 +467,7 @@ const stageName = (id: string) => board.value?.stages.find(s => s.id === id)?.na
 
     <div
       v-if="mode === 'board'"
-      class="flex min-h-0 flex-1 gap-3 overflow-x-auto px-10 pb-6 max-sm:px-4"
+      class="mx-auto flex min-h-0 w-full max-w-[1080px] flex-1 gap-3 overflow-x-auto px-10 pb-6 max-sm:px-4"
     >
       <p
         v-if="loaded && !board"
@@ -575,7 +575,7 @@ const stageName = (id: string) => board.value?.stages.find(s => s.id === id)?.na
 
     <div
       v-else
-      class="min-h-0 flex-1 overflow-y-auto px-10 pb-6 max-sm:px-4"
+      class="mx-auto min-h-0 w-full max-w-[1080px] flex-1 overflow-y-auto px-10 pb-6 max-sm:px-4"
     >
       <p
         v-if="!list.length"

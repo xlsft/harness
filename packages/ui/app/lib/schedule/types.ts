@@ -44,7 +44,7 @@ const CHOICE_KIND: Record<TriggerChoice, ScheduleTriggerKind> = {
 export const TRIGGER_OPTIONS: { value: TriggerChoice, label: string }[] = [
   { value: 'once', label: tt('Once') },
   { value: 'interval', label: tt('Every…') },
-  { value: 'cron', label: tt('Cron') },
+  { value: 'cron', label: tt('Schedule') },
   { value: 'file', label: tt('When files change') },
   { value: 'webhook', label: tt('When a webhook arrives') }
 ]
@@ -166,11 +166,84 @@ export function triggerText(s: Schedule): string {
   switch (t?.kind) {
     case ScheduleTriggerKind.ONCE: return `Once, ${formatWhen(t.at)}`
     case ScheduleTriggerKind.INTERVAL: return everyText(Number(t.everySeconds))
-    case ScheduleTriggerKind.CRON: return `Cron ${t.cron}${t.timezone ? ` (${t.timezone})` : ''}`
+    case ScheduleTriggerKind.CRON: return `${cronText(t.cron)}${t.timezone ? ` (${t.timezone})` : ''}`
     case ScheduleTriggerKind.FILE_CHANGED: return `When ${t.paths.join(', ')} change`
     case ScheduleTriggerKind.WEBHOOK: return 'When a webhook arrives'
   }
   return 'No trigger'
+}
+
+// The common cron shapes as the form's plain choices; anything else stays a cron line.
+export type Frequency = 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'custom'
+
+export interface SimpleCron {
+  frequency: Frequency
+  // HH:MM; for hourly only the minutes count.
+  time: string
+  // 0 = Sunday … 6 = Saturday, for weekly.
+  weekday: number
+}
+
+export const FREQUENCY_OPTIONS: { value: Frequency, label: string }[] = [
+  { value: 'hourly', label: tt('Hourly') },
+  { value: 'daily', label: tt('Daily') },
+  { value: 'weekdays', label: tt('Weekdays') },
+  { value: 'weekly', label: tt('Weekly') },
+  { value: 'custom', label: tt('Custom (cron)') }
+]
+
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+export const WEEKDAY_OPTIONS = WEEKDAYS.map((d, i) => ({ value: String(i), label: tt(d) }))
+
+const num = (s: string | undefined, max: number) => (s !== undefined && /^\d{1,2}$/.test(s) && Number(s) <= max ? Number(s) : -1)
+
+export function simpleOfCron(cron: string): SimpleCron {
+  const f = cron.trim().split(/\s+/)
+  const custom: SimpleCron = { frequency: 'custom', time: '09:00', weekday: 1 }
+  if (f.length !== 5) return custom
+  const [mi, ho, dom, mon, dow] = f
+  const m = num(mi, 59)
+  if (m < 0 || dom !== '*' || mon !== '*') return custom
+  if (ho === '*' && dow === '*') return { frequency: 'hourly', time: `00:${pad(m)}`, weekday: 1 }
+  const h = num(ho, 23)
+  if (h < 0) return custom
+  const time = `${pad(h)}:${pad(m)}`
+  if (dow === '*') return { frequency: 'daily', time, weekday: 1 }
+  if (dow === '1-5') return { frequency: 'weekdays', time, weekday: 1 }
+  const d = num(dow, 7)
+  if (d >= 0) return { frequency: 'weekly', time, weekday: d % 7 }
+  return custom
+}
+
+// The cron line for a plain choice; custom keeps the line given.
+export function cronOfSimple(s: SimpleCron, custom = ''): string {
+  const [h = 9, m = 0] = s.time.split(':').map(Number)
+  switch (s.frequency) {
+    case 'hourly': return `${m} * * * *`
+    case 'daily': return `${m} ${h} * * *`
+    case 'weekdays': return `${m} ${h} * * 1-5`
+    case 'weekly': return `${m} ${h} * * ${s.weekday}`
+  }
+  return custom
+}
+
+function clock(time: string): string {
+  const [h = 0, m = 0] = time.split(':').map(Number)
+  const d = new Date(2000, 0, 1, h, m)
+  return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+}
+
+// A cron line in words: "Weekdays at 9:00 AM", or the line itself when it is not one of the plain shapes.
+export function cronText(cron: string): string {
+  const s = simpleOfCron(cron)
+  switch (s.frequency) {
+    case 'hourly': return `Every hour at :${s.time.slice(3)}`
+    case 'daily': return `Daily at ${clock(s.time)}`
+    case 'weekdays': return `Weekdays at ${clock(s.time)}`
+    case 'weekly': return `Every ${WEEKDAYS[s.weekday]} at ${clock(s.time)}`
+  }
+  return `Cron ${cron.trim()}`
 }
 
 const STATUS_TEXT: Partial<Record<ScheduleRunStatus, string>> = {

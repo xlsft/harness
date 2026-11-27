@@ -4,12 +4,16 @@ import { SessionEventSchema, type SessionEvent } from '~/gen/harness/agent/v1/ag
 import { ScheduleSchema } from '~/gen/harness/agent/v1/schedules_pb'
 import { GoalState, TaskNodeStatus } from '~/gen/harness/agent/v1/teamwork_pb'
 import { MockSchedulesApi } from '~/lib/schedule/mock'
+import { draftOfTemplate, SCHEDULE_TEMPLATES } from '~/lib/schedule/templates'
 import {
+  cronOfSimple,
+  cronText,
   emptyScheduleDraft,
   machineText,
   scheduleDraftOf,
   scheduleOfDraft,
   ScheduleRunStatus,
+  simpleOfCron,
   ScheduleTriggerKind,
   sortSchedules,
   stateText,
@@ -108,5 +112,35 @@ describe('session events', () => {
     expect(taskNodeLine(s.taskGraph[1]!)).toBe('Waits for t1')
     s = reduce(s, ev({ case: 'taskGraphUpdated', value: { tasks: [node('t1', TaskNodeStatus.DONE)] } as never }))
     expect(taskGraphCounts(s.taskGraph)).toEqual({ done: 1, total: 1 })
+  })
+})
+
+describe('plain schedule choices', () => {
+  it('reads the common cron shapes and writes them back', () => {
+    for (const cron of ['15 * * * *', '0 9 * * *', '30 7 * * 1-5', '0 16 * * 5']) {
+      const s = simpleOfCron(cron)
+      expect(s.frequency).not.toBe('custom')
+      expect(cronOfSimple(s)).toBe(cron)
+    }
+    expect(simpleOfCron('*/5 * * * *').frequency).toBe('custom')
+    expect(simpleOfCron('0 9 1 * *').frequency).toBe('custom')
+    expect(cronOfSimple({ frequency: 'custom', time: '09:00', weekday: 1 }, '*/5 * * * *')).toBe('*/5 * * * *')
+  })
+
+  it('words them', () => {
+    expect(cronText('15 * * * *')).toBe('Every hour at :15')
+    expect(cronText('30 7 * * 1-5')).toMatch(/^Weekdays at 7:30/)
+    expect(cronText('0 16 * * 5')).toMatch(/^Every Friday at /)
+    expect(cronText('*/5 * * * *')).toBe('Cron */5 * * * *')
+  })
+
+  it('gives every template a plain schedule and a form to save', () => {
+    expect(SCHEDULE_TEMPLATES).toHaveLength(8)
+    for (const t of SCHEDULE_TEMPLATES) {
+      expect(simpleOfCron(t.cron).frequency).not.toBe('custom')
+      const d = draftOfTemplate(t, '/repo')
+      expect(scheduleOfDraft(d).trigger?.cron).toBe(t.cron)
+      expect(d.cwd).toBe('/repo')
+    }
   })
 })

@@ -14,15 +14,16 @@ import {
   scheduleDraftOf,
   scheduleOfDraft,
   ScheduleTriggerKind,
+  cronText,
   sortSchedules,
   stateText,
-  TRIGGER_OPTIONS,
   triggerText,
   type Schedule,
   type ScheduleDraft,
   type ScheduleList,
   type ScheduleRun
 } from '~/lib/schedule/types'
+import { draftOfTemplate, SCHEDULE_TEMPLATES, type ScheduleTemplate } from '~/lib/schedule/templates'
 
 const store = useSessionStore()
 const api = computed(() => store.transport?.schedules())
@@ -31,7 +32,8 @@ const error = ref('')
 const notice = ref('')
 const folders = ref<RecentFolder[]>([])
 const draft = ref<ScheduleDraft | null>(null)
-const saving = ref(false)
+const tab = ref<'yours' | 'templates'>('yours')
+const TABS = [{ value: 'yours', label: tt('Yours') }, { value: 'templates', label: tt('Templates') }] as const
 const openRuns = ref('')
 const runs = ref<ScheduleRun[]>([])
 
@@ -55,11 +57,18 @@ const modeOptions = [
 
 const message = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
+let turnedOn = false
+
 async function load() {
   if (!api.value) return
   try {
     data.value = await api.value.list()
     error.value = ''
+    // Schedules always run on their own; an older switch left off is turned back on once.
+    if (!data.value.enabled && !turnedOn) {
+      turnedOn = true
+      await store.transport?.updateUserPreferences({ schedulesEnabled: true })
+    }
     if (openRuns.value) runs.value = await api.value.runs(openRuns.value)
   } catch (err) {
     error.value = message(err)
@@ -93,28 +102,35 @@ async function act(fn: () => Promise<unknown>) {
   }
 }
 
+const currentFolder = () => (store.current?.meta.noFolder ? '' : store.current?.meta.cwd ?? '')
+
 function startNew() {
-  draft.value = emptyScheduleDraft(store.current?.meta.noFolder ? '' : store.current?.meta.cwd ?? '')
+  draft.value = emptyScheduleDraft(currentFolder())
+}
+
+function fromTemplate(t: ScheduleTemplate) {
+  draft.value = draftOfTemplate(t, currentFolder())
 }
 
 function edit(s: Schedule) {
+  saveError.value = ''
   draft.value = scheduleDraftOf(s)
 }
 
-async function save() {
-  const d = draft.value
-  if (!d || !api.value) return
-  saving.value = true
+// The dialog's save: true closes it; a refusal shows on the page under the dialog's backdrop and in the dialog.
+const saveError = ref('')
+async function save(d: ScheduleDraft): Promise<boolean> {
+  if (!api.value) return false
   try {
     const out = scheduleOfDraft(d)
     await (d.id ? api.value.update(out) : api.value.create(out))
-    draft.value = null
-    error.value = ''
+    saveError.value = ''
+    tab.value = 'yours'
     await load()
+    return true
   } catch (err) {
-    error.value = message(err)
-  } finally {
-    saving.value = false
+    saveError.value = message(err)
+    return false
   }
 }
 
@@ -142,303 +158,184 @@ function openSession(id: string) {
   navigateTo({ path: '/' })
 }
 
-async function setEnabled(on: boolean) {
-  await act(() => store.transport!.updateUserPreferences({ schedulesEnabled: on }))
-}
-
 const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHOOK
 </script>
 
 <template>
-  <section
-    :aria-label="tt('Scheduled')"
-    class="h-full overflow-y-auto bg-default"
-  >
-    <div class="mx-auto flex max-w-[860px] flex-col gap-[22px] px-10 pt-[52px] pb-10 max-sm:px-4">
-      <div class="flex items-center gap-3">
-        <h1 class="m-0 flex-1 font-display text-[26px] font-bold text-strong">
-          {{ tt('Scheduled') }}
-        </h1>
-        <div
-          v-if="data"
-          class="flex items-center gap-2 text-[12px] text-muted"
-        >
-          <span>{{ tt('Run on their own') }}</span>
-          <HToggle
-            :model-value="data.enabled"
-            :label="tt('Run schedules on their own')"
-            @update:model-value="setEnabled"
+  <PageShell :title="tt('Scheduled tasks')">
+    <div class="flex flex-wrap items-center gap-2">
+      <PageTabs
+        v-model="tab"
+        :tabs="TABS"
+      />
+      <span class="flex-1" />
+      <HBtn
+        variant="primary"
+        size="md"
+        @click="startNew"
+      >
+        <HIcon
+          name="plus"
+          :size="12"
+        />{{ tt('New task') }}
+      </HBtn>
+    </div>
+
+    <p class="m-0 text-[12.5px] text-muted">
+      {{ tt('Tasks run on a machine where xlsft`s harness is up: what comes due while it\'s down runs when it\'s back, or is recorded as missed.') }}
+      <template v-if="data && !data.synced">
+        {{ tt('No server is connected, so these stay on this machine.') }}
+      </template>
+    </p>
+
+    <p
+      v-if="error"
+      role="alert"
+      class="m-0 border border-l-2 border-default border-l-bad px-2.5 py-1.5 text-[12.5px] text-toned"
+    >
+      {{ error }}
+    </p>
+    <p
+      v-if="notice"
+      role="status"
+      class="m-0 border border-l-2 border-default border-l-accent px-2.5 py-1.5 text-[12.5px] text-toned"
+    >
+      {{ notice }}
+    </p>
+
+    <template v-if="tab === 'yours'">
+      <!-- Nothing yet: a way to start from scratch, and the templates right under it. -->
+      <div
+        v-if="data && !list.length"
+        class="flex flex-col items-center gap-3 py-10 text-center"
+      >
+        <span class="flex size-14 items-center justify-center rounded-full border border-line text-muted">
+          <HIcon
+            name="clock"
+            :size="26"
           />
-        </div>
+        </span>
+        <p class="m-0 text-[13px] text-muted">
+          {{ tt('No scheduled tasks yet.') }}
+        </p>
+        <p class="m-0 max-w-[420px] text-[12px] text-dimmed">
+          {{ tt('Start from a template below, set one up by hand, or type /loop 10m <prompt> in a session.') }}
+        </p>
         <HBtn
-          variant="primary"
           size="md"
           @click="startNew"
         >
-          {{ tt('New schedule') }}
+          {{ tt('Set up manually') }}
         </HBtn>
       </div>
 
-      <p class="m-0 text-[12.5px] text-muted">
-        {{ tt('Tasks run on a machine where xlsft`s harness is up: what comes due while it\'s down runs when it\'s back, or is recorded as missed.') }}
-        <template v-if="data && !data.synced">
-          {{ tt('No server is connected, so these stay on this machine.') }}
-        </template>
-      </p>
-
-      <p
-        v-if="error"
-        role="alert"
-        class="m-0 border border-l-2 border-default border-l-bad px-2.5 py-1.5 text-[12.5px] text-toned"
+      <div
+        v-else-if="list.length"
+        class="overflow-hidden border border-default"
       >
-        {{ error }}
-      </p>
-      <p
-        v-if="notice"
-        role="status"
-        class="m-0 border border-l-2 border-default border-l-accent px-2.5 py-1.5 text-[12.5px] text-toned"
-      >
-        {{ notice }}
-      </p>
-
-      <form
-        v-if="draft"
-        :aria-label="tt('Schedule')"
-        class="flex flex-col gap-3 border border-default p-4 text-[12.5px]"
-        @submit.prevent="save"
-      >
-        <label class="flex flex-col gap-1 text-muted">
-          {{ tt('Name') }}
-          <input
-            v-model="draft.name"
-            class="border border-default bg-transparent px-2 py-1 text-strong outline-none focus:border-accent"
-            :placeholder="tt('Optional')"
-          >
-        </label>
-        <label class="flex flex-col gap-1 text-muted">
-          {{ tt('Prompt') }}
-          <textarea
-            v-model="draft.prompt"
-            rows="4"
-            class="resize-y border border-default bg-transparent px-2 py-1 text-strong outline-none focus:border-accent"
-            :placeholder="tt('What to do. A slash command works too.')"
-          />
-        </label>
-        <div class="flex flex-wrap gap-3">
-          <div class="flex min-w-[220px] flex-1 flex-col gap-1 text-muted">
-            {{ tt('When') }}
-            <HSelect
-              v-model="draft.trigger"
-              :options="TRIGGER_OPTIONS"
-              :aria-label="tt('When')"
-            />
-          </div>
-          <label
-            v-if="draft.trigger === 'once'"
-            class="flex min-w-[220px] flex-1 flex-col gap-1 text-muted"
-          >
-            {{ tt('At') }}
-            <input
-              v-model="draft.at"
-              type="datetime-local"
-              class="border border-default bg-transparent px-2 py-1 text-strong outline-none focus:border-accent"
-            >
-          </label>
-          <label
-            v-if="draft.trigger === 'interval'"
-            class="flex min-w-[220px] flex-1 flex-col gap-1 text-muted"
-          >
-            {{ tt('Minutes between runs') }}
-            <input
-              v-model="draft.everyMinutes"
-              inputmode="decimal"
-              class="border border-default bg-transparent px-2 py-1 text-strong outline-none focus:border-accent"
-            >
-          </label>
-          <label
-            v-if="draft.trigger === 'cron'"
-            class="flex min-w-[220px] flex-1 flex-col gap-1 text-muted"
-          >
-            {{ tt('Minute, hour, day, month, weekday') }}
-            <input
-              v-model="draft.cron"
-              class="border border-default bg-transparent px-2 py-1 font-mono text-strong outline-none focus:border-accent"
-            >
-          </label>
-        </div>
-        <label
-          v-if="draft.trigger === 'file'"
-          class="flex flex-col gap-1 text-muted"
-        >
-          {{ tt('Files to watch in the folder, one pattern per line') }}
-          <textarea
-            v-model="draft.paths"
-            rows="2"
-            class="resize-y border border-default bg-transparent px-2 py-1 font-mono text-strong outline-none focus:border-accent"
-            placeholder="src/**/*.go"
-          />
-        </label>
-        <p
-          v-if="draft.trigger === 'webhook'"
-          class="m-0 text-muted"
-        >
-          {{ tt('The address to post to appears here once the schedule has reached the server. What is posted reaches the run as data, never as instructions.') }}
-        </p>
-        <div class="flex flex-wrap gap-3">
-          <div class="flex min-w-[220px] flex-1 flex-col gap-1 text-muted">
-            {{ tt('Folder') }}
-            <HSelect
-              v-model="draft.cwd"
-              :options="folderOptions"
-              :aria-label="tt('Folder')"
-            />
-          </div>
-          <div class="flex min-w-[220px] flex-1 flex-col gap-1 text-muted">
-            {{ tt('Permissions') }}
-            <HSelect
-              v-model="draft.permissionMode"
-              :options="modeOptions"
-              :aria-label="tt('Permissions')"
-            />
-          </div>
-        </div>
-        <div class="flex flex-wrap items-center gap-5 text-muted">
-          <span class="flex items-center gap-2">
-            <HToggle
-              v-model="draft.catchUp"
-              :label="tt('Run once when back if a time was missed')"
-            />
-            {{ tt('Run once when back if a time was missed') }}
-          </span>
-          <span class="flex items-center gap-2">
-            <HToggle
-              v-model="draft.worktree"
-              :label="tt('Each run in a new git worktree')"
-            />
-            {{ tt('Each run in a new git worktree') }}
-          </span>
-        </div>
         <div
-          v-if="hostChoices.length > 1"
-          class="flex flex-wrap items-center gap-3 text-muted"
-        >
-          <span class="flex items-center gap-2">
-            {{ tt('While its machine is away') }}
-            <HSelect
-              v-model="draft.awayHostId"
-              :options="hostChoices"
-              :aria-label="tt('While its machine is away')"
-            />
-          </span>
-          <input
-            v-if="draft.awayHostId"
-            v-model="draft.repositoryKey"
-            placeholder="host/owner/repository (default: the folder's remote)"
-            class="h-8 min-w-[280px] flex-1 border border-line bg-transparent px-2 text-strong outline-none focus:border-accent"
-          >
-        </div>
-        <div class="flex gap-2">
-          <HBtn
-            variant="primary"
-            size="md"
-            type="submit"
-            :disabled="saving"
-          >
-            {{ draft.id ? tt('Save') : tt('Create') }}
-          </HBtn>
-          <HBtn
-            size="md"
-            @click="draft = null"
-          >
-            {{ tt('Cancel') }}
-          </HBtn>
-        </div>
-      </form>
-
-      <p
-        v-if="data && !list.length && !draft"
-        class="m-0 text-[12.5px] text-muted"
-      >
-        {{ tt('Nothing is scheduled. Make a task here, or type /loop 10m <prompt> in a session.') }}
-      </p>
-
-      <div class="flex flex-col">
-        <div
-          v-for="s in list"
+          v-for="(s, i) in list"
           :key="s.id"
           data-schedule
-          class="flex flex-col gap-1.5 border-t border-default py-3 text-[12.5px]"
-          :class="(s.paused || s.done) && 'opacity-70'"
+          class="flex flex-col"
+          :class="{ 'border-t border-default': i > 0 }"
         >
-          <div class="flex flex-wrap items-baseline gap-2">
-            <span class="text-strong">{{ s.name || s.prompt.slice(0, 60) }}</span>
-            <span
-              v-if="originText(s)"
-              class="border border-default px-1 text-[10px] leading-[14px] text-muted"
-            >{{ originText(s) }}</span>
-            <span class="border border-default px-1 text-[10px] leading-[14px] text-muted">{{ machineText(s) }}</span>
-            <span class="text-muted">{{ stateText(s) }}</span>
+          <div
+            class="flex items-start gap-3 px-3 py-2.5"
+            :class="(s.paused || s.done) && 'opacity-70'"
+          >
+            <SettingsMonogram :icon="isWebhook(s) ? 'hook' : 'clock'" />
+            <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span class="flex flex-wrap items-center gap-1.5 text-[12.5px] text-strong">
+                <span class="truncate">{{ s.name || s.prompt.slice(0, 60) }}</span>
+                <span
+                  v-if="originText(s)"
+                  class="border border-default px-1 text-[10px] leading-[14px] text-muted"
+                >{{ originText(s) }}</span>
+                <span class="text-[11px] text-muted">· {{ stateText(s) }}</span>
+              </span>
+              <span class="flex items-center gap-1.5 truncate text-[11.5px] text-muted">
+                <HIcon
+                  name="clock"
+                  :size="11"
+                />{{ triggerText(s) }}<template v-if="s.cwd"> · {{ s.cwd }}</template>
+              </span>
+              <span class="text-[11px] text-dimmed">
+                {{ machineText(s) }}<template v-if="s.lastRun"> · {{ tt('last run {0}:', [formatWhen(s.lastRun.startedAt)]) }} <span :class="runStatusTone(s.lastRun)">{{ runStatusText(s.lastRun) }}</span></template>
+              </span>
+              <span
+                v-if="s.problem"
+                class="text-[11.5px] text-warn"
+              >{{ s.problem }}</span>
+            </span>
+            <div class="flex shrink-0 items-center gap-0.5">
+              <HBtn
+                v-if="s.needsTrust"
+                variant="primary"
+                @click="act(() => api!.trust(s.id))"
+              >
+                {{ tt('Allow on this machine') }}
+              </HBtn>
+              <HIconBtn
+                icon="play"
+                :size="26"
+                :label="tt('Run now')"
+                :tooltip="tt('Run now')"
+                @click="runNow(s)"
+              />
+              <HIconBtn
+                v-if="!s.done"
+                :icon="s.paused ? 'reload' : 'stop'"
+                :size="26"
+                :label="s.paused ? tt('Resume') : tt('Pause')"
+                :tooltip="s.paused ? tt('Resume') : tt('Pause')"
+                @click="act(() => api!.setPaused(s.id, !s.paused))"
+              />
+              <HIconBtn
+                v-if="!s.sessionId"
+                icon="edit"
+                :size="26"
+                :label="tt('Edit')"
+                :tooltip="tt('Edit')"
+                @click="edit(s)"
+              />
+              <HIconBtn
+                icon="history"
+                :size="26"
+                :label="tt('History')"
+                :tooltip="tt('History')"
+                :pressed="openRuns === s.id"
+                @click="toggleRuns(s)"
+              />
+              <HIconBtn
+                icon="trash"
+                :size="26"
+                :label="tt('Delete')"
+                :tooltip="tt('Delete')"
+                @click="act(() => api!.remove(s.id))"
+              />
+            </div>
           </div>
-          <span class="text-toned">{{ triggerText(s) }}<template v-if="s.cwd"> · {{ s.cwd }}</template></span>
-          <span
-            v-if="s.lastRun"
-            class="text-[11.5px] text-muted"
-          >{{ tt('Last run {0}:', [formatWhen(s.lastRun.startedAt)]) }} <span :class="runStatusTone(s.lastRun)">{{ runStatusText(s.lastRun) }}</span></span>
-          <span
-            v-if="s.problem"
-            class="text-[11.5px] text-warn"
-          >{{ s.problem }}</span>
           <div
             v-if="isWebhook(s) && s.trigger?.webhookUrl"
-            class="flex items-center gap-2 text-[11.5px] text-muted"
+            class="flex items-center gap-2 pr-3 pb-2.5 pl-[52px] text-[11.5px] text-muted"
           >
             <code class="min-w-0 flex-1 truncate">{{ s.trigger.webhookUrl }}</code>
             <HBtn @click="act(() => api!.rotateWebhook(s.id))">
               {{ tt('New address') }}
             </HBtn>
           </div>
-          <div class="flex flex-wrap gap-1.5 pt-1">
-            <HBtn
-              v-if="s.needsTrust"
-              variant="primary"
-              @click="act(() => api!.trust(s.id))"
-            >
-              {{ tt('Allow on this machine') }}
-            </HBtn>
-            <HBtn @click="runNow(s)">
-              {{ tt('Run now') }}
-            </HBtn>
-            <HBtn
-              v-if="!s.done"
-              @click="act(() => api!.setPaused(s.id, !s.paused))"
-            >
-              {{ s.paused ? tt('Resume') : tt('Pause') }}
-            </HBtn>
-            <HBtn
-              v-if="!s.sessionId"
-              @click="edit(s)"
-            >
-              {{ tt('Edit') }}
-            </HBtn>
-            <HBtn
-              v-if="!s.thisDevice && data?.deviceId && !s.deviceLocal"
-              @click="act(() => api!.update({ ...s, deviceId: data!.deviceId }))"
-            >
+          <div
+            v-if="!s.thisDevice && data?.deviceId && !s.deviceLocal"
+            class="pr-3 pb-2.5 pl-[52px]"
+          >
+            <HBtn @click="act(() => api!.update({ ...s, deviceId: data!.deviceId }))">
               {{ tt('Run here instead') }}
-            </HBtn>
-            <HBtn @click="toggleRuns(s)">
-              {{ tt('History') }}
-            </HBtn>
-            <HBtn
-              tone="danger"
-              @click="act(() => api!.remove(s.id))"
-            >
-              {{ tt('Delete') }}
             </HBtn>
           </div>
           <div
             v-if="openRuns === s.id"
-            class="mt-1 flex flex-col border-l border-default pl-3"
+            class="flex flex-col pr-3 pb-2.5 pl-[52px]"
           >
             <span
               v-if="!runs.length"
@@ -447,7 +344,7 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
             <div
               v-for="r in runs"
               :key="r.id"
-              class="flex flex-col gap-0.5 py-1 text-[11.5px]"
+              class="flex flex-col gap-0.5 border-t border-default py-1.5 text-[11.5px] first:border-t-0"
             >
               <div class="flex flex-wrap items-baseline gap-2">
                 <span :class="runStatusTone(r)">{{ runStatusText(r) }}</span>
@@ -472,6 +369,46 @@ const isWebhook = (s: Schedule) => s.trigger?.kind === ScheduleTriggerKind.WEBHO
           </div>
         </div>
       </div>
-    </div>
-  </section>
+    </template>
+
+    <template v-if="tab === 'templates' || (data && !list.length)">
+      <div class="grid grid-cols-2 gap-x-8 gap-y-6 max-sm:grid-cols-1">
+        <button
+          v-for="t in SCHEDULE_TEMPLATES"
+          :key="t.id"
+          type="button"
+          class="-m-2 flex items-start gap-3 rounded-control p-2 text-left hover:bg-hover"
+          @click="fromTemplate(t)"
+        >
+          <span class="flex size-9 shrink-0 items-center justify-center rounded-control border border-line bg-raised text-toned">
+            <HIcon
+              :name="t.icon"
+              :size="16"
+            />
+          </span>
+          <span class="flex min-w-0 flex-col gap-1">
+            <span class="text-[13px] text-strong">{{ t.name }}</span>
+            <span class="text-[12px] leading-[1.45] text-muted">{{ t.about }}</span>
+            <span class="flex items-center gap-1.5 text-[11.5px] text-dimmed">
+              <HIcon
+                name="clock"
+                :size="11"
+              />{{ cronText(t.cron) }}
+            </span>
+          </span>
+        </button>
+      </div>
+    </template>
+
+    <ScheduleModal
+      v-if="draft"
+      :draft="draft"
+      :folders="folderOptions"
+      :modes="modeOptions"
+      :hosts="hostChoices"
+      :save="save"
+      :error="saveError"
+      @close="draft = null"
+    />
+  </PageShell>
 </template>

@@ -171,262 +171,254 @@ async function remove() {
 </script>
 
 <template>
-  <section
-    :aria-label="tt('Knowledge')"
-    class="h-full overflow-y-auto bg-default"
-  >
-    <div class="mx-auto flex max-w-[980px] flex-col gap-[18px] px-10 pt-[52px] pb-10 max-sm:px-4">
-      <div class="flex items-center gap-3">
-        <h1 class="m-0 flex-1 font-display text-[26px] font-bold text-strong">
-          {{ tt('Knowledge') }}
-        </h1>
-        <HBtn
-          size="md"
-          variant="primary"
-          @click="newDocument"
-        >
-          {{ tt('Add a document') }}
-        </HBtn>
-      </div>
-      <p class="m-0 text-[12.5px] text-muted">
-        {{ tt('Agents search all of these with KnowledgeSearch, as reference material rather than instructions. Documents from a tracker are read live and never copied here. What is yours stays visible to you alone.') }}
-      </p>
-
-      <p
-        v-if="error"
-        role="alert"
-        class="m-0 border border-l-2 border-default border-l-bad px-2.5 py-1.5 text-[12.5px] text-toned"
+  <PageShell :title="tt('Knowledge')">
+    <template #actions>
+      <HBtn
+        size="md"
+        variant="primary"
+        @click="newDocument"
       >
-        {{ error }}
-      </p>
+        {{ tt('Add a document') }}
+      </HBtn>
+    </template>
+    <p class="m-0 text-[12.5px] text-muted">
+      {{ tt('Agents search all of these with KnowledgeSearch, as reference material rather than instructions. Documents from a tracker are read live and never copied here. What is yours stays visible to you alone.') }}
+    </p>
 
-      <form
-        v-if="editing"
-        class="flex flex-col gap-2.5 border border-line p-3.5"
-        @submit.prevent="save"
+    <p
+      v-if="error"
+      role="alert"
+      class="m-0 border border-l-2 border-default border-l-bad px-2.5 py-1.5 text-[12.5px] text-toned"
+    >
+      {{ error }}
+    </p>
+
+    <form
+      v-if="editing"
+      class="flex flex-col gap-2.5 border border-line p-3.5"
+      @submit.prevent="save"
+    >
+      <input
+        v-model="editing.title"
+        :placeholder="tt('Title')"
+        :aria-label="tt('Title')"
+        :readonly="!editing.editable"
+        class="border border-line bg-transparent px-2.5 py-1.5 text-[13px] text-strong outline-none focus:border-accent"
       >
-        <input
-          v-model="editing.title"
-          :placeholder="tt('Title')"
-          :aria-label="tt('Title')"
-          :readonly="!editing.editable"
-          class="border border-line bg-transparent px-2.5 py-1.5 text-[13px] text-strong outline-none focus:border-accent"
-        >
-        <div
-          v-if="editing.sourceLabel"
-          class="flex flex-wrap items-center gap-2 text-[12px] text-muted"
-        >
-          <span>{{ tt('From {0}', [editing.sourceLabel]) }}</span>
-          <button
-            v-if="editing.url"
-            type="button"
-            class="text-accent hover:underline"
-            @click="openExternal(editing.url)"
-          >
-            {{ tt('Open in the tracker') }}
-          </button>
-        </div>
-        <div
-          v-if="!editing.id"
-          class="flex flex-wrap items-center gap-3 text-[12.5px] text-toned"
-        >
-          <template v-if="writableScopes.length > 1">
-            <span>{{ tt('Visible to') }}</span>
-            <div class="w-[150px] shrink-0">
-              <HSelect
-                :model-value="String(editing.scope)"
-                :options="[{ value: String(Scope.USER), label: tt('Only you') }, { value: String(Scope.ORG), label: tt('Everyone') }]"
-                :aria-label="tt('Visible to')"
-                @update:model-value="editing!.scope = Number($event)"
-              />
-            </div>
-          </template>
-          <label class="cursor-pointer text-accent hover:underline">
-            {{ tt('Load from a text file') }}
-            <input
-              type="file"
-              accept=".md,.markdown,.txt,.rst,.csv,.json,.yaml,.yml,.html,text/*"
-              class="sr-only"
-              @change="pickFile"
-            >
-          </label>
-          <span
-            v-if="editing.sourceName"
-            class="text-muted"
-          >{{ editing.sourceName }}</span>
-        </div>
-        <textarea
-          v-model="editing.content"
-          :placeholder="tt('Text or Markdown')"
-          :aria-label="tt('Content')"
-          rows="14"
-          :readonly="!editing.editable"
-          class="resize-y border border-line bg-transparent p-2.5 font-mono text-[12px] text-strong outline-none focus:border-accent"
-        />
-        <div class="flex items-center gap-2">
-          <HBtn
-            v-if="editing.editable"
-            size="md"
-            variant="primary"
-            type="submit"
-            :disabled="saving"
-          >
-            {{ tt('Save') }}
-          </HBtn>
-          <HBtn
-            size="md"
-            variant="ghost"
-            @click="editing = null"
-          >
-            {{ editing.editable ? tt('Cancel') : tt('Close') }}
-          </HBtn>
-          <span class="flex-1" />
-          <HBtn
-            v-if="editing.id && editing.editable"
-            size="md"
-            tone="danger"
-            @click="remove"
-          >
-            {{ confirming ? tt('Delete for good') : tt('Delete') }}
-          </HBtn>
-        </div>
-      </form>
-
-      <label class="flex h-8 items-center gap-2 border border-line px-2.5 text-muted focus-within:border-accent">
-        <HIcon
-          name="search"
-          :size="13"
-        />
-        <input
-          v-model="search"
-          :placeholder="tt('Search every source, as an agent would')"
-          :aria-label="tt('Search Knowledge')"
-          class="min-w-0 flex-1 bg-transparent text-[12.5px] text-strong outline-none placeholder:text-muted"
-        >
-      </label>
-
       <div
-        v-if="hits"
-        class="flex flex-col gap-2"
+        v-if="editing.sourceLabel"
+        class="flex flex-wrap items-center gap-2 text-[12px] text-muted"
       >
-        <p
-          v-for="w in warnings"
-          :key="w.source?.id"
-          role="status"
-          class="m-0 text-[12px] text-bad"
-        >
-          {{ tt('{0} could not answer: {1}', [w.source?.name ?? '', w.message]) }}
-        </p>
-        <p
-          v-if="!hits.length"
-          class="m-0 text-[12.5px] text-muted"
-        >
-          {{ tt('Nothing matches.') }}
-        </p>
+        <span>{{ tt('From {0}', [editing.sourceLabel]) }}</span>
         <button
-          v-for="(h, i) in hits"
-          :key="`${h.documentId}:${i}`"
+          v-if="editing.url"
           type="button"
-          class="flex flex-col gap-1 border border-line p-2.5 text-left hover:border-line-strong"
-          @click="openDocument(h.documentId)"
+          class="text-accent hover:underline"
+          @click="openExternal(editing.url)"
         >
-          <span class="flex items-center gap-2 text-[12.5px] text-strong">{{ h.title }}<span class="text-[11px] text-muted">{{ h.source?.name }}</span></span>
-          <span class="line-clamp-4 whitespace-pre-wrap text-[12px] text-toned">{{ h.snippet }}</span>
+          {{ tt('Open in the tracker') }}
         </button>
       </div>
-
       <div
-        v-else
-        class="flex gap-5 max-sm:flex-col"
+        v-if="!editing.id"
+        class="flex flex-wrap items-center gap-3 text-[12.5px] text-toned"
       >
-        <nav
-          :aria-label="tt('Sources')"
-          class="flex w-[220px] shrink-0 flex-col gap-[2px] max-sm:w-full"
+        <template v-if="writableScopes.length > 1">
+          <span>{{ tt('Visible to') }}</span>
+          <div class="w-[150px] shrink-0">
+            <HSelect
+              :model-value="String(editing.scope)"
+              :options="[{ value: String(Scope.USER), label: tt('Only you') }, { value: String(Scope.ORG), label: tt('Everyone') }]"
+              :aria-label="tt('Visible to')"
+              @update:model-value="editing!.scope = Number($event)"
+            />
+          </div>
+        </template>
+        <label class="cursor-pointer text-accent hover:underline">
+          {{ tt('Load from a text file') }}
+          <input
+            type="file"
+            accept=".md,.markdown,.txt,.rst,.csv,.json,.yaml,.yml,.html,text/*"
+            class="sr-only"
+            @change="pickFile"
+          >
+        </label>
+        <span
+          v-if="editing.sourceName"
+          class="text-muted"
+        >{{ editing.sourceName }}</span>
+      </div>
+      <textarea
+        v-model="editing.content"
+        :placeholder="tt('Text or Markdown')"
+        :aria-label="tt('Content')"
+        rows="14"
+        :readonly="!editing.editable"
+        class="resize-y border border-line bg-transparent p-2.5 font-mono text-[12px] text-strong outline-none focus:border-accent"
+      />
+      <div class="flex items-center gap-2">
+        <HBtn
+          v-if="editing.editable"
+          size="md"
+          variant="primary"
+          type="submit"
+          :disabled="saving"
+        >
+          {{ tt('Save') }}
+        </HBtn>
+        <HBtn
+          size="md"
+          variant="ghost"
+          @click="editing = null"
+        >
+          {{ editing.editable ? tt('Cancel') : tt('Close') }}
+        </HBtn>
+        <span class="flex-1" />
+        <HBtn
+          v-if="editing.id && editing.editable"
+          size="md"
+          tone="danger"
+          @click="remove"
+        >
+          {{ confirming ? tt('Delete for good') : tt('Delete') }}
+        </HBtn>
+      </div>
+    </form>
+
+    <label class="flex h-8 items-center gap-2 border border-line px-2.5 text-muted focus-within:border-accent">
+      <HIcon
+        name="search"
+        :size="13"
+      />
+      <input
+        v-model="search"
+        :placeholder="tt('Search every source, as an agent would')"
+        :aria-label="tt('Search Knowledge')"
+        class="min-w-0 flex-1 bg-transparent text-[12.5px] text-strong outline-none placeholder:text-muted"
+      >
+    </label>
+
+    <div
+      v-if="hits"
+      class="flex flex-col gap-2"
+    >
+      <p
+        v-for="w in warnings"
+        :key="w.source?.id"
+        role="status"
+        class="m-0 text-[12px] text-bad"
+      >
+        {{ tt('{0} could not answer: {1}', [w.source?.name ?? '', w.message]) }}
+      </p>
+      <p
+        v-if="!hits.length"
+        class="m-0 text-[12.5px] text-muted"
+      >
+        {{ tt('Nothing matches.') }}
+      </p>
+      <button
+        v-for="(h, i) in hits"
+        :key="`${h.documentId}:${i}`"
+        type="button"
+        class="flex flex-col gap-1 border border-line p-2.5 text-left hover:border-line-strong"
+        @click="openDocument(h.documentId)"
+      >
+        <span class="flex items-center gap-2 text-[12.5px] text-strong">{{ h.title }}<span class="text-[11px] text-muted">{{ h.source?.name }}</span></span>
+        <span class="line-clamp-4 whitespace-pre-wrap text-[12px] text-toned">{{ h.snippet }}</span>
+      </button>
+    </div>
+
+    <div
+      v-else
+      class="flex gap-5 max-sm:flex-col"
+    >
+      <nav
+        :aria-label="tt('Sources')"
+        class="flex w-[220px] shrink-0 flex-col gap-[2px] max-sm:w-full"
+      >
+        <button
+          v-for="s in sources"
+          :key="s.ref?.id"
+          type="button"
+          class="flex flex-col border px-2.5 py-1.5 text-left text-[12.5px]"
+          :class="sourceId === s.ref?.id ? 'border-line bg-raised text-strong' : 'border-transparent text-toned hover:text-strong'"
+          :aria-current="sourceId === s.ref?.id"
+          @click="pick(s.ref?.id ?? '')"
+        >
+          <span class="truncate">{{ s.ref?.name }}</span>
+          <span class="text-[11px] text-muted">{{ scopeText(s.ref?.scope) }}<template v-if="s.ref?.provider"> · {{ s.ref.provider }}</template><template v-else> · {{ s.documentCount }}</template></span>
+        </button>
+      </nav>
+      <div class="flex min-w-0 flex-1 flex-col">
+        <div
+          v-if="crumbs.length"
+          class="flex flex-wrap items-center gap-1.5 pb-2 text-[12px] text-muted"
         >
           <button
-            v-for="s in sources"
-            :key="s.ref?.id"
             type="button"
-            class="flex flex-col border px-2.5 py-1.5 text-left text-[12.5px]"
-            :class="sourceId === s.ref?.id ? 'border-line bg-raised text-strong' : 'border-transparent text-toned hover:text-strong'"
-            :aria-current="sourceId === s.ref?.id"
-            @click="pick(s.ref?.id ?? '')"
+            class="text-accent hover:underline"
+            @click="crumbs = []; browse()"
           >
-            <span class="truncate">{{ s.ref?.name }}</span>
-            <span class="text-[11px] text-muted">{{ scopeText(s.ref?.scope) }}<template v-if="s.ref?.provider"> · {{ s.ref.provider }}</template><template v-else> · {{ s.documentCount }}</template></span>
+            {{ source?.ref?.name }}
           </button>
-        </nav>
-        <div class="flex min-w-0 flex-1 flex-col">
-          <div
-            v-if="crumbs.length"
-            class="flex flex-wrap items-center gap-1.5 pb-2 text-[12px] text-muted"
+          <template
+            v-for="(c, i) in crumbs"
+            :key="c.id"
           >
+            <span>/</span>
             <button
               type="button"
               class="text-accent hover:underline"
-              @click="crumbs = []; browse()"
+              @click="crumbs = crumbs.slice(0, i + 1); browse()"
             >
-              {{ source?.ref?.name }}
+              {{ c.title }}
             </button>
-            <template
-              v-for="(c, i) in crumbs"
-              :key="c.id"
-            >
-              <span>/</span>
-              <button
-                type="button"
-                class="text-accent hover:underline"
-                @click="crumbs = crumbs.slice(0, i + 1); browse()"
-              >
-                {{ c.title }}
-              </button>
-            </template>
-          </div>
-          <p
-            v-if="loaded && !documents.length && !error"
-            class="m-0 text-[12.5px] text-muted"
-          >
-            {{ tt('No documents here.') }}
-          </p>
-          <div
-            v-for="d in documents"
-            :key="d.id"
-            class="flex items-center gap-3 border-b border-line px-1 hover:bg-hover"
-          >
-            <button
-              type="button"
-              class="flex min-w-0 flex-1 items-center gap-3 py-2.5 text-left"
-              @click="openDocument(d.id)"
-            >
-              <HIcon
-                name="page"
-                class="shrink-0 text-muted"
-              />
-              <span class="min-w-0 flex-1 truncate text-[13px] text-strong">{{ d.title }}</span>
-              <span
-                v-if="isInternal"
-                class="w-[70px] shrink-0 text-[11.5px] text-muted max-sm:hidden"
-              >{{ formatSize(d.size) }}</span>
-              <span class="w-[90px] shrink-0 text-[11.5px] text-muted">{{ timeAgo(d.updatedAt) }}</span>
-            </button>
-            <HBtn
-              v-if="d.hasChildren"
-              size="sm"
-              variant="ghost"
-              :aria-label="tt('Open what is under {0}', [d.title])"
-              @click="openChildren(d)"
-            >
-              {{ tt('Inside') }}
-            </HBtn>
-          </div>
-          <p
-            v-if="hasMore"
-            class="m-0 pt-2 text-[12px] text-muted"
-          >
-            {{ tt('There are more; search to find them.') }}
-          </p>
+          </template>
         </div>
+        <p
+          v-if="loaded && !documents.length && !error"
+          class="m-0 text-[12.5px] text-muted"
+        >
+          {{ tt('No documents here.') }}
+        </p>
+        <div
+          v-for="d in documents"
+          :key="d.id"
+          class="flex items-center gap-3 border-b border-line px-1 hover:bg-hover"
+        >
+          <button
+            type="button"
+            class="flex min-w-0 flex-1 items-center gap-3 py-2.5 text-left"
+            @click="openDocument(d.id)"
+          >
+            <HIcon
+              name="page"
+              class="shrink-0 text-muted"
+            />
+            <span class="min-w-0 flex-1 truncate text-[13px] text-strong">{{ d.title }}</span>
+            <span
+              v-if="isInternal"
+              class="w-[70px] shrink-0 text-[11.5px] text-muted max-sm:hidden"
+            >{{ formatSize(d.size) }}</span>
+            <span class="w-[90px] shrink-0 text-[11.5px] text-muted">{{ timeAgo(d.updatedAt) }}</span>
+          </button>
+          <HBtn
+            v-if="d.hasChildren"
+            size="sm"
+            variant="ghost"
+            :aria-label="tt('Open what is under {0}', [d.title])"
+            @click="openChildren(d)"
+          >
+            {{ tt('Inside') }}
+          </HBtn>
+        </div>
+        <p
+          v-if="hasMore"
+          class="m-0 pt-2 text-[12px] text-muted"
+        >
+          {{ tt('There are more; search to find them.') }}
+        </p>
       </div>
     </div>
-  </section>
+  </PageShell>
 </template>
