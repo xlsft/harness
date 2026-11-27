@@ -180,7 +180,7 @@ describe('Yours: plugins', () => {
   it('groups by source and lists marketplaces; the built-in one has no Remove', async () => {
     await open({ type: 'plugins' })
     const groups = wrapper.findAll('[data-group]').map(g => g.attributes('data-group'))
-    expect(groups).toEqual(['marketplace:acme', 'organization', 'marketplaces'])
+    expect(groups).toEqual(['marketplace:acme', 'organization', 'marketplace:harness-catalog', 'marketplaces'])
     const markets = wrapper.get('[data-group="marketplaces"]')
     expect(markets.text()).toContain('Built in')
     await markets.findAll('[aria-label="Actions for harness-catalog"]')[0]!.trigger('click')

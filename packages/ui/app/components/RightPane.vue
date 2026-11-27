@@ -20,16 +20,21 @@ const component = computed(() => ({
   tasks: resolveComponent('TasksPane'),
   agents: resolveComponent('AgentsPane'),
   sentfile: resolveComponent('SentFilePane'),
-  visual: resolveComponent('VisualPane')
+  visual: resolveComponent('VisualPane'),
+  plugin: resolveComponent('PluginPane')
 }[props.pane]))
 
 const { isFull, leave } = usePaneFullscreen()
 const full = computed(() => props.pane !== 'details' && isFull(props.session.meta.id, props.pane))
 provide('pane-full-target', computed(() => props.pane === 'details' ? null : { pane: props.pane, sessionId: props.session.meta.id }))
 const desktop = isDesktop()
+// A plugin pane is titled by what it shows.
+const { open: pluginOpen } = usePluginPane()
+const pluginTitle = computed(() => pluginOpen.value[props.session.meta.id]?.title ?? '')
 const TITLES: Record<PaneName, string> = {
   details: tt('Overview'), terminal: tt('Terminal'), diff: tt('Changes'), browser: tt('Browser'), files: tt('Files'),
-  artifact: tt('Artifacts'), sidechat: tt('Side chat'), tasks: tt('Tasks'), agents: tt('Agents'), sentfile: tt('File'), visual: tt('Visual')
+  artifact: tt('Artifacts'), sidechat: tt('Side chat'), tasks: tt('Tasks'), agents: tt('Agents'), sentfile: tt('File'), visual: tt('Visual'),
+  plugin: tt('Plugin')
 }
 function onFullKey(e: KeyboardEvent) {
   if (e.key === 'Escape') leave(props.session.meta.id)
@@ -87,7 +92,7 @@ const highlight = computed(() => ({
         data-tauri-drag-region
         class="m-0 min-w-0 flex-1 self-stretch truncate font-display text-[13.5px] leading-[44px] font-semibold text-strong"
       >
-        {{ TITLES[pane] }}
+        {{ pane === 'plugin' ? pluginTitle || TITLES[pane] : TITLES[pane] }}
       </h2>
     </header>
     <component

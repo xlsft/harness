@@ -401,6 +401,28 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
           :label="tt('Turn off external skill search')"
         />
       </div>
+      <div class="flex items-center justify-between gap-4">
+        <div class="set-label">
+          <span>{{ tt('Turn off plugin panes') }}</span>
+          <span class="set-desc">{{ tt('Plugins show no panes or status-bar items on any device. The rest of a plugin still runs as approved.') }}</span>
+        </div>
+        <HToggle
+          v-model="policy.pluginUiDisabled"
+          :disabled="!writable"
+          :label="tt('Turn off plugin panes')"
+        />
+      </div>
+      <div class="flex items-center justify-between gap-4">
+        <div class="set-label">
+          <span>{{ tt('Keep plugin panes offline') }}</span>
+          <span class="set-desc">{{ tt('Plugin panes reach no network, whatever their manifest declares and devices allowed.') }}</span>
+        </div>
+        <HToggle
+          v-model="policy.pluginUiNetworkDisabled"
+          :disabled="!writable"
+          :label="tt('Keep plugin panes offline')"
+        />
+      </div>
 
       <h3 class="m-0 mt-2 text-[12.5px] font-semibold text-strong">
         {{ tt('Tool definitions') }}

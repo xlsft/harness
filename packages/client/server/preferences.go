@@ -10,6 +10,7 @@ import (
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/xlsft/harness/packages/client/bootstrap"
 	agentv1 "github.com/xlsft/harness/packages/client/gen/harness/agent/v1"
 	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
 	syncv1 "github.com/xlsft/harness/packages/client/gen/harness/sync/v1"
@@ -62,6 +63,11 @@ func (s *Server) withManagedPolicy(p *agentv1.UserPreferences) *agentv1.UserPref
 	if m.DeferBuiltinTools != nil {
 		p.DeferBuiltinTools = *m.DeferBuiltinTools
 	}
+	// Plugin UI is the plugin store's part of the same documents.
+	pp := bootstrap.PluginStore().Policy()
+	v := p.ManagedPolicy
+	v.PluginUiDisabled, v.PluginUiNetworkDisabled = pp.UIDisabled, pp.UINetworkDisabled
+	v.Active = v.Active || pp.UIDisabled || pp.UINetworkDisabled
 	return p
 }
 

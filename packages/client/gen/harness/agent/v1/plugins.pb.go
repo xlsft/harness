@@ -247,9 +247,14 @@ type PluginContents struct {
 	// Permission rules its skills and commands grant while they run.
 	AllowedTools []string `protobuf:"bytes,7,rep,name=allowed_tools,json=allowedTools,proto3" json:"allowed_tools,omitempty"`
 	// What it holds and this client does not act on.
-	Skipped       []string `protobuf:"bytes,8,rep,name=skipped,proto3" json:"skipped,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Skipped []string `protobuf:"bytes,8,rep,name=skipped,proto3" json:"skipped,omitempty"`
+	// Its UI: panes, status-bar items, the capabilities of the message API they may ask for, and the origins they may reach.
+	Panes          []*PluginPane       `protobuf:"bytes,9,rep,name=panes,proto3" json:"panes,omitempty"`
+	StatusItems    []*PluginStatusItem `protobuf:"bytes,10,rep,name=status_items,json=statusItems,proto3" json:"status_items,omitempty"`
+	UiCapabilities []string            `protobuf:"bytes,11,rep,name=ui_capabilities,json=uiCapabilities,proto3" json:"ui_capabilities,omitempty"`
+	UiNetwork      []string            `protobuf:"bytes,12,rep,name=ui_network,json=uiNetwork,proto3" json:"ui_network,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *PluginContents) Reset() {
@@ -338,6 +343,272 @@ func (x *PluginContents) GetSkipped() []string {
 	return nil
 }
 
+func (x *PluginContents) GetPanes() []*PluginPane {
+	if x != nil {
+		return x.Panes
+	}
+	return nil
+}
+
+func (x *PluginContents) GetStatusItems() []*PluginStatusItem {
+	if x != nil {
+		return x.StatusItems
+	}
+	return nil
+}
+
+func (x *PluginContents) GetUiCapabilities() []string {
+	if x != nil {
+		return x.UiCapabilities
+	}
+	return nil
+}
+
+func (x *PluginContents) GetUiNetwork() []string {
+	if x != nil {
+		return x.UiNetwork
+	}
+	return nil
+}
+
+// A pane a plugin declares: an HTML page of its folder, shown in the right pane in a sandboxed frame.
+type PluginPane struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	PluginId string                 `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
+	// Unique in the plugin.
+	Id    string `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	Title string `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	// A name of the app's icon set; empty for the default.
+	Icon string `protobuf:"bytes,4,opt,name=icon,proto3" json:"icon,omitempty"`
+	// The page, as the manifest names it (./ui/meter.html).
+	Page          string `protobuf:"bytes,5,opt,name=page,proto3" json:"page,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginPane) Reset() {
+	*x = PluginPane{}
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginPane) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginPane) ProtoMessage() {}
+
+func (x *PluginPane) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginPane.ProtoReflect.Descriptor instead.
+func (*PluginPane) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *PluginPane) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *PluginPane) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *PluginPane) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *PluginPane) GetIcon() string {
+	if x != nil {
+		return x.Icon
+	}
+	return ""
+}
+
+func (x *PluginPane) GetPage() string {
+	if x != nil {
+		return x.Page
+	}
+	return ""
+}
+
+// A status-bar item a plugin declares. A click opens one of its panes, or sends a fixed prompt to the session.
+type PluginStatusItem struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	PluginId string                 `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
+	Id       string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	Text     string                 `protobuf:"bytes,3,opt,name=text,proto3" json:"text,omitempty"`
+	Icon     string                 `protobuf:"bytes,4,opt,name=icon,proto3" json:"icon,omitempty"`
+	Tooltip  string                 `protobuf:"bytes,5,opt,name=tooltip,proto3" json:"tooltip,omitempty"`
+	// The id of a pane of the same plugin; or
+	Pane string `protobuf:"bytes,6,opt,name=pane,proto3" json:"pane,omitempty"`
+	// the text sent to the session, with the session.prompt capability.
+	Prompt        string `protobuf:"bytes,7,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginStatusItem) Reset() {
+	*x = PluginStatusItem{}
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginStatusItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginStatusItem) ProtoMessage() {}
+
+func (x *PluginStatusItem) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginStatusItem.ProtoReflect.Descriptor instead.
+func (*PluginStatusItem) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *PluginStatusItem) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *PluginStatusItem) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *PluginStatusItem) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *PluginStatusItem) GetIcon() string {
+	if x != nil {
+		return x.Icon
+	}
+	return ""
+}
+
+func (x *PluginStatusItem) GetTooltip() string {
+	if x != nil {
+		return x.Tooltip
+	}
+	return ""
+}
+
+func (x *PluginStatusItem) GetPane() string {
+	if x != nil {
+		return x.Pane
+	}
+	return ""
+}
+
+func (x *PluginStatusItem) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+// A capability of a plugin's UI as this device stands on it.
+type PluginUiGrant struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// session.read, session.prompt, files.open, theme.read, or network.
+	Capability string `protobuf:"bytes,1,opt,name=capability,proto3" json:"capability,omitempty"`
+	Granted    bool   `protobuf:"varint,2,opt,name=granted,proto3" json:"granted,omitempty"`
+	// RFC 3339, UTC.
+	GrantedAt     string `protobuf:"bytes,3,opt,name=granted_at,json=grantedAt,proto3" json:"granted_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PluginUiGrant) Reset() {
+	*x = PluginUiGrant{}
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PluginUiGrant) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PluginUiGrant) ProtoMessage() {}
+
+func (x *PluginUiGrant) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PluginUiGrant.ProtoReflect.Descriptor instead.
+func (*PluginUiGrant) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *PluginUiGrant) GetCapability() string {
+	if x != nil {
+		return x.Capability
+	}
+	return ""
+}
+
+func (x *PluginUiGrant) GetGranted() bool {
+	if x != nil {
+		return x.Granted
+	}
+	return false
+}
+
+func (x *PluginUiGrant) GetGrantedAt() string {
+	if x != nil {
+		return x.GrantedAt
+	}
+	return ""
+}
+
 type Plugin struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// name@marketplace.
@@ -366,14 +637,18 @@ type Plugin struct {
 	InstalledAt string          `protobuf:"bytes,17,opt,name=installed_at,json=installedAt,proto3" json:"installed_at,omitempty"`
 	Contents    *PluginContents `protobuf:"bytes,18,opt,name=contents,proto3" json:"contents,omitempty"`
 	// What could not be read; the rest of it still loads.
-	Problems      []string `protobuf:"bytes,19,rep,name=problems,proto3" json:"problems,omitempty"`
+	Problems []string `protobuf:"bytes,19,rep,name=problems,proto3" json:"problems,omitempty"`
+	// Each capability its UI declares, and whether this device approved it for this content.
+	UiGrants []*PluginUiGrant `protobuf:"bytes,20,rep,name=ui_grants,json=uiGrants,proto3" json:"ui_grants,omitempty"`
+	// Why its panes and status-bar items are not shown, when policy says so.
+	UiBlocked     string `protobuf:"bytes,21,opt,name=ui_blocked,json=uiBlocked,proto3" json:"ui_blocked,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Plugin) Reset() {
 	*x = Plugin{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[3]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -385,7 +660,7 @@ func (x *Plugin) String() string {
 func (*Plugin) ProtoMessage() {}
 
 func (x *Plugin) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[3]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -398,7 +673,7 @@ func (x *Plugin) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Plugin.ProtoReflect.Descriptor instead.
 func (*Plugin) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{3}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Plugin) GetId() string {
@@ -534,6 +809,20 @@ func (x *Plugin) GetProblems() []string {
 	return nil
 }
 
+func (x *Plugin) GetUiGrants() []*PluginUiGrant {
+	if x != nil {
+		return x.UiGrants
+	}
+	return nil
+}
+
+func (x *Plugin) GetUiBlocked() string {
+	if x != nil {
+		return x.UiBlocked
+	}
+	return ""
+}
+
 // An entry of a marketplace's catalog.
 type PluginListing struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -548,7 +837,7 @@ type PluginListing struct {
 
 func (x *PluginListing) Reset() {
 	*x = PluginListing{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[4]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -560,7 +849,7 @@ func (x *PluginListing) String() string {
 func (*PluginListing) ProtoMessage() {}
 
 func (x *PluginListing) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[4]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -573,7 +862,7 @@ func (x *PluginListing) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginListing.ProtoReflect.Descriptor instead.
 func (*PluginListing) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{4}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *PluginListing) GetId() string {
@@ -634,7 +923,7 @@ type PluginMarketplace struct {
 
 func (x *PluginMarketplace) Reset() {
 	*x = PluginMarketplace{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[5]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -646,7 +935,7 @@ func (x *PluginMarketplace) String() string {
 func (*PluginMarketplace) ProtoMessage() {}
 
 func (x *PluginMarketplace) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[5]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -659,7 +948,7 @@ func (x *PluginMarketplace) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PluginMarketplace.ProtoReflect.Descriptor instead.
 func (*PluginMarketplace) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{5}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *PluginMarketplace) GetName() string {
@@ -735,7 +1024,7 @@ type ListPluginsRequest struct {
 
 func (x *ListPluginsRequest) Reset() {
 	*x = ListPluginsRequest{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[6]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -747,7 +1036,7 @@ func (x *ListPluginsRequest) String() string {
 func (*ListPluginsRequest) ProtoMessage() {}
 
 func (x *ListPluginsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[6]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -760,7 +1049,7 @@ func (x *ListPluginsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPluginsRequest.ProtoReflect.Descriptor instead.
 func (*ListPluginsRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{6}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListPluginsRequest) GetCwd() string {
@@ -786,7 +1075,7 @@ type ListPluginsResponse struct {
 
 func (x *ListPluginsResponse) Reset() {
 	*x = ListPluginsResponse{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[7]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -798,7 +1087,7 @@ func (x *ListPluginsResponse) String() string {
 func (*ListPluginsResponse) ProtoMessage() {}
 
 func (x *ListPluginsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[7]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -811,7 +1100,7 @@ func (x *ListPluginsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPluginsResponse.ProtoReflect.Descriptor instead.
 func (*ListPluginsResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{7}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ListPluginsResponse) GetPlugins() []*Plugin {
@@ -860,7 +1149,7 @@ type InstallPluginRequest struct {
 
 func (x *InstallPluginRequest) Reset() {
 	*x = InstallPluginRequest{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[8]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -872,7 +1161,7 @@ func (x *InstallPluginRequest) String() string {
 func (*InstallPluginRequest) ProtoMessage() {}
 
 func (x *InstallPluginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[8]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -885,7 +1174,7 @@ func (x *InstallPluginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallPluginRequest.ProtoReflect.Descriptor instead.
 func (*InstallPluginRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{8}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *InstallPluginRequest) GetSpec() string {
@@ -911,7 +1200,7 @@ type InstallPluginResponse struct {
 
 func (x *InstallPluginResponse) Reset() {
 	*x = InstallPluginResponse{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[9]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -923,7 +1212,7 @@ func (x *InstallPluginResponse) String() string {
 func (*InstallPluginResponse) ProtoMessage() {}
 
 func (x *InstallPluginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[9]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -936,7 +1225,7 @@ func (x *InstallPluginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallPluginResponse.ProtoReflect.Descriptor instead.
 func (*InstallPluginResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{9}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *InstallPluginResponse) GetPlugin() *Plugin {
@@ -956,7 +1245,7 @@ type UpdatePluginRequest struct {
 
 func (x *UpdatePluginRequest) Reset() {
 	*x = UpdatePluginRequest{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[10]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -968,7 +1257,7 @@ func (x *UpdatePluginRequest) String() string {
 func (*UpdatePluginRequest) ProtoMessage() {}
 
 func (x *UpdatePluginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[10]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -981,7 +1270,7 @@ func (x *UpdatePluginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePluginRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePluginRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{10}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *UpdatePluginRequest) GetId() string {
@@ -1011,7 +1300,7 @@ type UpdatePluginResponse struct {
 
 func (x *UpdatePluginResponse) Reset() {
 	*x = UpdatePluginResponse{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[11]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1023,7 +1312,7 @@ func (x *UpdatePluginResponse) String() string {
 func (*UpdatePluginResponse) ProtoMessage() {}
 
 func (x *UpdatePluginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[11]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1036,7 +1325,7 @@ func (x *UpdatePluginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePluginResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePluginResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{11}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UpdatePluginResponse) GetPlugin() *Plugin {
@@ -1071,7 +1360,7 @@ type RemovePluginRequest struct {
 
 func (x *RemovePluginRequest) Reset() {
 	*x = RemovePluginRequest{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[12]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1083,7 +1372,7 @@ func (x *RemovePluginRequest) String() string {
 func (*RemovePluginRequest) ProtoMessage() {}
 
 func (x *RemovePluginRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[12]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1096,7 +1385,7 @@ func (x *RemovePluginRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemovePluginRequest.ProtoReflect.Descriptor instead.
 func (*RemovePluginRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{12}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *RemovePluginRequest) GetId() string {
@@ -1121,7 +1410,7 @@ type RemovePluginResponse struct {
 
 func (x *RemovePluginResponse) Reset() {
 	*x = RemovePluginResponse{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[13]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1133,7 +1422,7 @@ func (x *RemovePluginResponse) String() string {
 func (*RemovePluginResponse) ProtoMessage() {}
 
 func (x *RemovePluginResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[13]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1146,7 +1435,7 @@ func (x *RemovePluginResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemovePluginResponse.ProtoReflect.Descriptor instead.
 func (*RemovePluginResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{13}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{16}
 }
 
 type SetPluginEnabledRequest struct {
@@ -1159,7 +1448,7 @@ type SetPluginEnabledRequest struct {
 
 func (x *SetPluginEnabledRequest) Reset() {
 	*x = SetPluginEnabledRequest{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[14]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1171,7 +1460,7 @@ func (x *SetPluginEnabledRequest) String() string {
 func (*SetPluginEnabledRequest) ProtoMessage() {}
 
 func (x *SetPluginEnabledRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[14]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1184,7 +1473,7 @@ func (x *SetPluginEnabledRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPluginEnabledRequest.ProtoReflect.Descriptor instead.
 func (*SetPluginEnabledRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{14}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SetPluginEnabledRequest) GetId() string {
@@ -1209,7 +1498,7 @@ type SetPluginEnabledResponse struct {
 
 func (x *SetPluginEnabledResponse) Reset() {
 	*x = SetPluginEnabledResponse{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[15]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1221,7 +1510,7 @@ func (x *SetPluginEnabledResponse) String() string {
 func (*SetPluginEnabledResponse) ProtoMessage() {}
 
 func (x *SetPluginEnabledResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[15]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1234,7 +1523,7 @@ func (x *SetPluginEnabledResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPluginEnabledResponse.ProtoReflect.Descriptor instead.
 func (*SetPluginEnabledResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{15}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{18}
 }
 
 type SetPluginApprovalRequest struct {
@@ -1249,7 +1538,7 @@ type SetPluginApprovalRequest struct {
 
 func (x *SetPluginApprovalRequest) Reset() {
 	*x = SetPluginApprovalRequest{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[16]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1261,7 +1550,7 @@ func (x *SetPluginApprovalRequest) String() string {
 func (*SetPluginApprovalRequest) ProtoMessage() {}
 
 func (x *SetPluginApprovalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[16]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1274,7 +1563,7 @@ func (x *SetPluginApprovalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPluginApprovalRequest.ProtoReflect.Descriptor instead.
 func (*SetPluginApprovalRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{16}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *SetPluginApprovalRequest) GetId() string {
@@ -1306,7 +1595,7 @@ type SetPluginApprovalResponse struct {
 
 func (x *SetPluginApprovalResponse) Reset() {
 	*x = SetPluginApprovalResponse{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[17]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1318,7 +1607,7 @@ func (x *SetPluginApprovalResponse) String() string {
 func (*SetPluginApprovalResponse) ProtoMessage() {}
 
 func (x *SetPluginApprovalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[17]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1331,7 +1620,7 @@ func (x *SetPluginApprovalResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPluginApprovalResponse.ProtoReflect.Descriptor instead.
 func (*SetPluginApprovalResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{17}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{20}
 }
 
 type SetPluginPinnedRequest struct {
@@ -1344,7 +1633,7 @@ type SetPluginPinnedRequest struct {
 
 func (x *SetPluginPinnedRequest) Reset() {
 	*x = SetPluginPinnedRequest{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[18]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1356,7 +1645,7 @@ func (x *SetPluginPinnedRequest) String() string {
 func (*SetPluginPinnedRequest) ProtoMessage() {}
 
 func (x *SetPluginPinnedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[18]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1369,7 +1658,7 @@ func (x *SetPluginPinnedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPluginPinnedRequest.ProtoReflect.Descriptor instead.
 func (*SetPluginPinnedRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{18}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *SetPluginPinnedRequest) GetId() string {
@@ -1394,7 +1683,7 @@ type SetPluginPinnedResponse struct {
 
 func (x *SetPluginPinnedResponse) Reset() {
 	*x = SetPluginPinnedResponse{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[19]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1406,7 +1695,7 @@ func (x *SetPluginPinnedResponse) String() string {
 func (*SetPluginPinnedResponse) ProtoMessage() {}
 
 func (x *SetPluginPinnedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[19]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1419,7 +1708,7 @@ func (x *SetPluginPinnedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetPluginPinnedResponse.ProtoReflect.Descriptor instead.
 func (*SetPluginPinnedResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{19}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{22}
 }
 
 type AddPluginMarketplaceRequest struct {
@@ -1432,7 +1721,7 @@ type AddPluginMarketplaceRequest struct {
 
 func (x *AddPluginMarketplaceRequest) Reset() {
 	*x = AddPluginMarketplaceRequest{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[20]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1444,7 +1733,7 @@ func (x *AddPluginMarketplaceRequest) String() string {
 func (*AddPluginMarketplaceRequest) ProtoMessage() {}
 
 func (x *AddPluginMarketplaceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[20]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1457,7 +1746,7 @@ func (x *AddPluginMarketplaceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddPluginMarketplaceRequest.ProtoReflect.Descriptor instead.
 func (*AddPluginMarketplaceRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{20}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *AddPluginMarketplaceRequest) GetSource() string {
@@ -1476,7 +1765,7 @@ type AddPluginMarketplaceResponse struct {
 
 func (x *AddPluginMarketplaceResponse) Reset() {
 	*x = AddPluginMarketplaceResponse{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[21]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1488,7 +1777,7 @@ func (x *AddPluginMarketplaceResponse) String() string {
 func (*AddPluginMarketplaceResponse) ProtoMessage() {}
 
 func (x *AddPluginMarketplaceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[21]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1501,7 +1790,7 @@ func (x *AddPluginMarketplaceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddPluginMarketplaceResponse.ProtoReflect.Descriptor instead.
 func (*AddPluginMarketplaceResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{21}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *AddPluginMarketplaceResponse) GetName() string {
@@ -1520,7 +1809,7 @@ type UpdatePluginMarketplaceRequest struct {
 
 func (x *UpdatePluginMarketplaceRequest) Reset() {
 	*x = UpdatePluginMarketplaceRequest{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[22]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1532,7 +1821,7 @@ func (x *UpdatePluginMarketplaceRequest) String() string {
 func (*UpdatePluginMarketplaceRequest) ProtoMessage() {}
 
 func (x *UpdatePluginMarketplaceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[22]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1545,7 +1834,7 @@ func (x *UpdatePluginMarketplaceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePluginMarketplaceRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePluginMarketplaceRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{22}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *UpdatePluginMarketplaceRequest) GetName() string {
@@ -1563,7 +1852,7 @@ type UpdatePluginMarketplaceResponse struct {
 
 func (x *UpdatePluginMarketplaceResponse) Reset() {
 	*x = UpdatePluginMarketplaceResponse{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[23]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1575,7 +1864,7 @@ func (x *UpdatePluginMarketplaceResponse) String() string {
 func (*UpdatePluginMarketplaceResponse) ProtoMessage() {}
 
 func (x *UpdatePluginMarketplaceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[23]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1588,7 +1877,7 @@ func (x *UpdatePluginMarketplaceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePluginMarketplaceResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePluginMarketplaceResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{23}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{26}
 }
 
 type RemovePluginMarketplaceRequest struct {
@@ -1600,7 +1889,7 @@ type RemovePluginMarketplaceRequest struct {
 
 func (x *RemovePluginMarketplaceRequest) Reset() {
 	*x = RemovePluginMarketplaceRequest{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[24]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1612,7 +1901,7 @@ func (x *RemovePluginMarketplaceRequest) String() string {
 func (*RemovePluginMarketplaceRequest) ProtoMessage() {}
 
 func (x *RemovePluginMarketplaceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[24]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1625,7 +1914,7 @@ func (x *RemovePluginMarketplaceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemovePluginMarketplaceRequest.ProtoReflect.Descriptor instead.
 func (*RemovePluginMarketplaceRequest) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{24}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *RemovePluginMarketplaceRequest) GetName() string {
@@ -1643,7 +1932,7 @@ type RemovePluginMarketplaceResponse struct {
 
 func (x *RemovePluginMarketplaceResponse) Reset() {
 	*x = RemovePluginMarketplaceResponse{}
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[25]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1655,7 +1944,7 @@ func (x *RemovePluginMarketplaceResponse) String() string {
 func (*RemovePluginMarketplaceResponse) ProtoMessage() {}
 
 func (x *RemovePluginMarketplaceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_harness_agent_v1_plugins_proto_msgTypes[25]
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1668,7 +1957,537 @@ func (x *RemovePluginMarketplaceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemovePluginMarketplaceResponse.ProtoReflect.Descriptor instead.
 func (*RemovePluginMarketplaceResponse) Descriptor() ([]byte, []int) {
-	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{25}
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{28}
+}
+
+type ListPluginUiRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The session the panes would serve; its folder decides which plugins may run.
+	SessionId     string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPluginUiRequest) Reset() {
+	*x = ListPluginUiRequest{}
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPluginUiRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPluginUiRequest) ProtoMessage() {}
+
+func (x *ListPluginUiRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPluginUiRequest.ProtoReflect.Descriptor instead.
+func (*ListPluginUiRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *ListPluginUiRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type ListPluginUiResponse struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Panes       []*PluginPane          `protobuf:"bytes,1,rep,name=panes,proto3" json:"panes,omitempty"`
+	StatusItems []*PluginStatusItem    `protobuf:"bytes,2,rep,name=status_items,json=statusItems,proto3" json:"status_items,omitempty"`
+	// Display names by plugin id.
+	PluginNames map[string]string `protobuf:"bytes,3,rep,name=plugin_names,json=pluginNames,proto3" json:"plugin_names,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// Set when policy hides all plugin UI; the lists are then empty.
+	Blocked string `protobuf:"bytes,4,opt,name=blocked,proto3" json:"blocked,omitempty"`
+	// Plugin.content_hash by plugin id: what a grant made from a status-bar item applies to.
+	ContentHashes map[string]string `protobuf:"bytes,5,rep,name=content_hashes,json=contentHashes,proto3" json:"content_hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPluginUiResponse) Reset() {
+	*x = ListPluginUiResponse{}
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPluginUiResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPluginUiResponse) ProtoMessage() {}
+
+func (x *ListPluginUiResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPluginUiResponse.ProtoReflect.Descriptor instead.
+func (*ListPluginUiResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *ListPluginUiResponse) GetPanes() []*PluginPane {
+	if x != nil {
+		return x.Panes
+	}
+	return nil
+}
+
+func (x *ListPluginUiResponse) GetStatusItems() []*PluginStatusItem {
+	if x != nil {
+		return x.StatusItems
+	}
+	return nil
+}
+
+func (x *ListPluginUiResponse) GetPluginNames() map[string]string {
+	if x != nil {
+		return x.PluginNames
+	}
+	return nil
+}
+
+func (x *ListPluginUiResponse) GetBlocked() string {
+	if x != nil {
+		return x.Blocked
+	}
+	return ""
+}
+
+func (x *ListPluginUiResponse) GetContentHashes() map[string]string {
+	if x != nil {
+		return x.ContentHashes
+	}
+	return nil
+}
+
+type GetPluginPaneRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PluginId      string                 `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
+	PaneId        string                 `protobuf:"bytes,2,opt,name=pane_id,json=paneId,proto3" json:"pane_id,omitempty"`
+	SessionId     string                 `protobuf:"bytes,3,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPluginPaneRequest) Reset() {
+	*x = GetPluginPaneRequest{}
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPluginPaneRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPluginPaneRequest) ProtoMessage() {}
+
+func (x *GetPluginPaneRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPluginPaneRequest.ProtoReflect.Descriptor instead.
+func (*GetPluginPaneRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *GetPluginPaneRequest) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *GetPluginPaneRequest) GetPaneId() string {
+	if x != nil {
+		return x.PaneId
+	}
+	return ""
+}
+
+func (x *GetPluginPaneRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type GetPluginPaneResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Pane  *PluginPane            `protobuf:"bytes,1,opt,name=pane,proto3" json:"pane,omitempty"`
+	// The page with the CSP as the first element of its head, followed by the comment <!--harness-host--> where the frontend
+	// puts the theme and the bridge of the message API.
+	Html string `protobuf:"bytes,2,opt,name=html,proto3" json:"html,omitempty"`
+	// The CSP in the document, for showing.
+	Csp string `protobuf:"bytes,3,opt,name=csp,proto3" json:"csp,omitempty"`
+	// Origins the manifest declares that this device has not approved: the pane runs without them until it does.
+	NetworkPending []string `protobuf:"bytes,4,rep,name=network_pending,json=networkPending,proto3" json:"network_pending,omitempty"`
+	// The display name of the plugin.
+	PluginName string `protobuf:"bytes,5,opt,name=plugin_name,json=pluginName,proto3" json:"plugin_name,omitempty"`
+	// Plugin.content_hash: what a grant made from this pane applies to.
+	ContentHash   string `protobuf:"bytes,6,opt,name=content_hash,json=contentHash,proto3" json:"content_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPluginPaneResponse) Reset() {
+	*x = GetPluginPaneResponse{}
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPluginPaneResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPluginPaneResponse) ProtoMessage() {}
+
+func (x *GetPluginPaneResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPluginPaneResponse.ProtoReflect.Descriptor instead.
+func (*GetPluginPaneResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *GetPluginPaneResponse) GetPane() *PluginPane {
+	if x != nil {
+		return x.Pane
+	}
+	return nil
+}
+
+func (x *GetPluginPaneResponse) GetHtml() string {
+	if x != nil {
+		return x.Html
+	}
+	return ""
+}
+
+func (x *GetPluginPaneResponse) GetCsp() string {
+	if x != nil {
+		return x.Csp
+	}
+	return ""
+}
+
+func (x *GetPluginPaneResponse) GetNetworkPending() []string {
+	if x != nil {
+		return x.NetworkPending
+	}
+	return nil
+}
+
+func (x *GetPluginPaneResponse) GetPluginName() string {
+	if x != nil {
+		return x.PluginName
+	}
+	return ""
+}
+
+func (x *GetPluginPaneResponse) GetContentHash() string {
+	if x != nil {
+		return x.ContentHash
+	}
+	return ""
+}
+
+type CallPluginUiRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	PluginId  string                 `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
+	SessionId string                 `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// Version of the message API the pane speaks; 1.
+	Version int32 `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
+	// session.read, session.prompt, files.open or theme.read.
+	Method string `protobuf:"bytes,4,opt,name=method,proto3" json:"method,omitempty"`
+	// JSON object.
+	ParamsJson    string `protobuf:"bytes,5,opt,name=params_json,json=paramsJson,proto3" json:"params_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CallPluginUiRequest) Reset() {
+	*x = CallPluginUiRequest{}
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CallPluginUiRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CallPluginUiRequest) ProtoMessage() {}
+
+func (x *CallPluginUiRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CallPluginUiRequest.ProtoReflect.Descriptor instead.
+func (*CallPluginUiRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *CallPluginUiRequest) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *CallPluginUiRequest) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *CallPluginUiRequest) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *CallPluginUiRequest) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *CallPluginUiRequest) GetParamsJson() string {
+	if x != nil {
+		return x.ParamsJson
+	}
+	return ""
+}
+
+type CallPluginUiResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// JSON for the pane, when the call is done here.
+	ResultJson string `protobuf:"bytes,1,opt,name=result_json,json=resultJson,proto3" json:"result_json,omitempty"`
+	// The capability the call needs and this device has not decided on: the frontend asks the user, then calls again.
+	NeedsApproval string `protobuf:"bytes,2,opt,name=needs_approval,json=needsApproval,proto3" json:"needs_approval,omitempty"`
+	// files.open: the file to show in the Files pane, absolute.
+	OpenFile string `protobuf:"bytes,3,opt,name=open_file,json=openFile,proto3" json:"open_file,omitempty"`
+	// theme.read: the frontend answers with the theme's tokens.
+	Theme         bool `protobuf:"varint,4,opt,name=theme,proto3" json:"theme,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CallPluginUiResponse) Reset() {
+	*x = CallPluginUiResponse{}
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CallPluginUiResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CallPluginUiResponse) ProtoMessage() {}
+
+func (x *CallPluginUiResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CallPluginUiResponse.ProtoReflect.Descriptor instead.
+func (*CallPluginUiResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *CallPluginUiResponse) GetResultJson() string {
+	if x != nil {
+		return x.ResultJson
+	}
+	return ""
+}
+
+func (x *CallPluginUiResponse) GetNeedsApproval() string {
+	if x != nil {
+		return x.NeedsApproval
+	}
+	return ""
+}
+
+func (x *CallPluginUiResponse) GetOpenFile() string {
+	if x != nil {
+		return x.OpenFile
+	}
+	return ""
+}
+
+func (x *CallPluginUiResponse) GetTheme() bool {
+	if x != nil {
+		return x.Theme
+	}
+	return false
+}
+
+type SetPluginUiGrantRequest struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	PluginId   string                 `protobuf:"bytes,1,opt,name=plugin_id,json=pluginId,proto3" json:"plugin_id,omitempty"`
+	Capability string                 `protobuf:"bytes,2,opt,name=capability,proto3" json:"capability,omitempty"`
+	Granted    bool                   `protobuf:"varint,3,opt,name=granted,proto3" json:"granted,omitempty"`
+	// Plugin.content_hash of what was shown. Required to grant: other content is refused.
+	ContentHash   string `protobuf:"bytes,4,opt,name=content_hash,json=contentHash,proto3" json:"content_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetPluginUiGrantRequest) Reset() {
+	*x = SetPluginUiGrantRequest{}
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetPluginUiGrantRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetPluginUiGrantRequest) ProtoMessage() {}
+
+func (x *SetPluginUiGrantRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetPluginUiGrantRequest.ProtoReflect.Descriptor instead.
+func (*SetPluginUiGrantRequest) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *SetPluginUiGrantRequest) GetPluginId() string {
+	if x != nil {
+		return x.PluginId
+	}
+	return ""
+}
+
+func (x *SetPluginUiGrantRequest) GetCapability() string {
+	if x != nil {
+		return x.Capability
+	}
+	return ""
+}
+
+func (x *SetPluginUiGrantRequest) GetGranted() bool {
+	if x != nil {
+		return x.Granted
+	}
+	return false
+}
+
+func (x *SetPluginUiGrantRequest) GetContentHash() string {
+	if x != nil {
+		return x.ContentHash
+	}
+	return ""
+}
+
+type SetPluginUiGrantResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetPluginUiGrantResponse) Reset() {
+	*x = SetPluginUiGrantResponse{}
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetPluginUiGrantResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetPluginUiGrantResponse) ProtoMessage() {}
+
+func (x *SetPluginUiGrantResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_harness_agent_v1_plugins_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetPluginUiGrantResponse.ProtoReflect.Descriptor instead.
+func (*SetPluginUiGrantResponse) Descriptor() ([]byte, []int) {
+	return file_harness_agent_v1_plugins_proto_rawDescGZIP(), []int{36}
 }
 
 var File_harness_agent_v1_plugins_proto protoreflect.FileDescriptor
@@ -1687,7 +2506,7 @@ const file_harness_agent_v1_plugins_proto_rawDesc = "" +
 	"\x0fPluginMcpServer\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1c\n" +
 	"\ttransport\x18\x02 \x01(\tR\ttransport\x12\x18\n" +
-	"\acommand\x18\x03 \x01(\tR\acommand\"\xb8\x02\n" +
+	"\acommand\x18\x03 \x01(\tR\acommand\"\xfb\x03\n" +
 	"\x0ePluginContents\x12\x16\n" +
 	"\x06skills\x18\x01 \x03(\tR\x06skills\x12\x1a\n" +
 	"\bcommands\x18\x02 \x03(\tR\bcommands\x12\x16\n" +
@@ -1697,7 +2516,35 @@ const file_harness_agent_v1_plugins_proto_rawDesc = "" +
 	"\vmcp_servers\x18\x06 \x03(\v2!.harness.agent.v1.PluginMcpServerR\n" +
 	"mcpServers\x12#\n" +
 	"\rallowed_tools\x18\a \x03(\tR\fallowedTools\x12\x18\n" +
-	"\askipped\x18\b \x03(\tR\askipped\"\xd8\x04\n" +
+	"\askipped\x18\b \x03(\tR\askipped\x122\n" +
+	"\x05panes\x18\t \x03(\v2\x1c.harness.agent.v1.PluginPaneR\x05panes\x12E\n" +
+	"\fstatus_items\x18\n" +
+	" \x03(\v2\".harness.agent.v1.PluginStatusItemR\vstatusItems\x12'\n" +
+	"\x0fui_capabilities\x18\v \x03(\tR\x0euiCapabilities\x12\x1d\n" +
+	"\n" +
+	"ui_network\x18\f \x03(\tR\tuiNetwork\"w\n" +
+	"\n" +
+	"PluginPane\x12\x1b\n" +
+	"\tplugin_id\x18\x01 \x01(\tR\bpluginId\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12\x12\n" +
+	"\x04icon\x18\x04 \x01(\tR\x04icon\x12\x12\n" +
+	"\x04page\x18\x05 \x01(\tR\x04page\"\xad\x01\n" +
+	"\x10PluginStatusItem\x12\x1b\n" +
+	"\tplugin_id\x18\x01 \x01(\tR\bpluginId\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\x12\x12\n" +
+	"\x04text\x18\x03 \x01(\tR\x04text\x12\x12\n" +
+	"\x04icon\x18\x04 \x01(\tR\x04icon\x12\x18\n" +
+	"\atooltip\x18\x05 \x01(\tR\atooltip\x12\x12\n" +
+	"\x04pane\x18\x06 \x01(\tR\x04pane\x12\x16\n" +
+	"\x06prompt\x18\a \x01(\tR\x06prompt\"h\n" +
+	"\rPluginUiGrant\x12\x1e\n" +
+	"\n" +
+	"capability\x18\x01 \x01(\tR\n" +
+	"capability\x12\x18\n" +
+	"\agranted\x18\x02 \x01(\bR\agranted\x12\x1d\n" +
+	"\n" +
+	"granted_at\x18\x03 \x01(\tR\tgrantedAt\"\xb5\x05\n" +
 	"\x06Plugin\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -1718,7 +2565,10 @@ const file_harness_agent_v1_plugins_proto_rawDesc = "" +
 	"\x06source\x18\x10 \x01(\tR\x06source\x12!\n" +
 	"\finstalled_at\x18\x11 \x01(\tR\vinstalledAt\x12<\n" +
 	"\bcontents\x18\x12 \x01(\v2 .harness.agent.v1.PluginContentsR\bcontents\x12\x1a\n" +
-	"\bproblems\x18\x13 \x03(\tR\bproblems\"\x8d\x01\n" +
+	"\bproblems\x18\x13 \x03(\tR\bproblems\x12<\n" +
+	"\tui_grants\x18\x14 \x03(\v2\x1f.harness.agent.v1.PluginUiGrantR\buiGrants\x12\x1d\n" +
+	"\n" +
+	"ui_blocked\x18\x15 \x01(\tR\tuiBlocked\"\x8d\x01\n" +
 	"\rPluginListing\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
@@ -1785,7 +2635,57 @@ const file_harness_agent_v1_plugins_proto_rawDesc = "" +
 	"\x1fUpdatePluginMarketplaceResponse\"4\n" +
 	"\x1eRemovePluginMarketplaceRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\"!\n" +
-	"\x1fRemovePluginMarketplaceResponse*\xac\x02\n" +
+	"\x1fRemovePluginMarketplaceResponse\"4\n" +
+	"\x13ListPluginUiRequest\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\"\xeb\x03\n" +
+	"\x14ListPluginUiResponse\x122\n" +
+	"\x05panes\x18\x01 \x03(\v2\x1c.harness.agent.v1.PluginPaneR\x05panes\x12E\n" +
+	"\fstatus_items\x18\x02 \x03(\v2\".harness.agent.v1.PluginStatusItemR\vstatusItems\x12Z\n" +
+	"\fplugin_names\x18\x03 \x03(\v27.harness.agent.v1.ListPluginUiResponse.PluginNamesEntryR\vpluginNames\x12\x18\n" +
+	"\ablocked\x18\x04 \x01(\tR\ablocked\x12`\n" +
+	"\x0econtent_hashes\x18\x05 \x03(\v29.harness.agent.v1.ListPluginUiResponse.ContentHashesEntryR\rcontentHashes\x1a>\n" +
+	"\x10PluginNamesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a@\n" +
+	"\x12ContentHashesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"k\n" +
+	"\x14GetPluginPaneRequest\x12\x1b\n" +
+	"\tplugin_id\x18\x01 \x01(\tR\bpluginId\x12\x17\n" +
+	"\apane_id\x18\x02 \x01(\tR\x06paneId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x03 \x01(\tR\tsessionId\"\xdc\x01\n" +
+	"\x15GetPluginPaneResponse\x120\n" +
+	"\x04pane\x18\x01 \x01(\v2\x1c.harness.agent.v1.PluginPaneR\x04pane\x12\x12\n" +
+	"\x04html\x18\x02 \x01(\tR\x04html\x12\x10\n" +
+	"\x03csp\x18\x03 \x01(\tR\x03csp\x12'\n" +
+	"\x0fnetwork_pending\x18\x04 \x03(\tR\x0enetworkPending\x12\x1f\n" +
+	"\vplugin_name\x18\x05 \x01(\tR\n" +
+	"pluginName\x12!\n" +
+	"\fcontent_hash\x18\x06 \x01(\tR\vcontentHash\"\xa4\x01\n" +
+	"\x13CallPluginUiRequest\x12\x1b\n" +
+	"\tplugin_id\x18\x01 \x01(\tR\bpluginId\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\x05R\aversion\x12\x16\n" +
+	"\x06method\x18\x04 \x01(\tR\x06method\x12\x1f\n" +
+	"\vparams_json\x18\x05 \x01(\tR\n" +
+	"paramsJson\"\x91\x01\n" +
+	"\x14CallPluginUiResponse\x12\x1f\n" +
+	"\vresult_json\x18\x01 \x01(\tR\n" +
+	"resultJson\x12%\n" +
+	"\x0eneeds_approval\x18\x02 \x01(\tR\rneedsApproval\x12\x1b\n" +
+	"\topen_file\x18\x03 \x01(\tR\bopenFile\x12\x14\n" +
+	"\x05theme\x18\x04 \x01(\bR\x05theme\"\x93\x01\n" +
+	"\x17SetPluginUiGrantRequest\x12\x1b\n" +
+	"\tplugin_id\x18\x01 \x01(\tR\bpluginId\x12\x1e\n" +
+	"\n" +
+	"capability\x18\x02 \x01(\tR\n" +
+	"capability\x12\x18\n" +
+	"\agranted\x18\x03 \x01(\bR\agranted\x12!\n" +
+	"\fcontent_hash\x18\x04 \x01(\tR\vcontentHash\"\x1a\n" +
+	"\x18SetPluginUiGrantResponse*\xac\x02\n" +
 	"\fPluginStatus\x12\x1d\n" +
 	"\x19PLUGIN_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14PLUGIN_STATUS_ACTIVE\x10\x01\x12 \n" +
@@ -1795,7 +2695,7 @@ const file_harness_agent_v1_plugins_proto_rawDesc = "" +
 	"\x1fPLUGIN_STATUS_BLOCKED_BY_POLICY\x10\x05\x12!\n" +
 	"\x1dPLUGIN_STATUS_CHANGED_ON_DISK\x10\x06\x12\x18\n" +
 	"\x14PLUGIN_STATUS_BROKEN\x10\a\x12\x1f\n" +
-	"\x1bPLUGIN_STATUS_NOT_INSTALLED\x10\b2\xc3\b\n" +
+	"\x1bPLUGIN_STATUS_NOT_INSTALLED\x10\b2\xce\v\n" +
 	"\rPluginService\x12Z\n" +
 	"\vListPlugins\x12$.harness.agent.v1.ListPluginsRequest\x1a%.harness.agent.v1.ListPluginsResponse\x12`\n" +
 	"\rInstallPlugin\x12&.harness.agent.v1.InstallPluginRequest\x1a'.harness.agent.v1.InstallPluginResponse\x12]\n" +
@@ -1806,7 +2706,11 @@ const file_harness_agent_v1_plugins_proto_rawDesc = "" +
 	"\x0fSetPluginPinned\x12(.harness.agent.v1.SetPluginPinnedRequest\x1a).harness.agent.v1.SetPluginPinnedResponse\x12u\n" +
 	"\x14AddPluginMarketplace\x12-.harness.agent.v1.AddPluginMarketplaceRequest\x1a..harness.agent.v1.AddPluginMarketplaceResponse\x12~\n" +
 	"\x17UpdatePluginMarketplace\x120.harness.agent.v1.UpdatePluginMarketplaceRequest\x1a1.harness.agent.v1.UpdatePluginMarketplaceResponse\x12~\n" +
-	"\x17RemovePluginMarketplace\x120.harness.agent.v1.RemovePluginMarketplaceRequest\x1a1.harness.agent.v1.RemovePluginMarketplaceResponseB\xcd\x01\n" +
+	"\x17RemovePluginMarketplace\x120.harness.agent.v1.RemovePluginMarketplaceRequest\x1a1.harness.agent.v1.RemovePluginMarketplaceResponse\x12]\n" +
+	"\fListPluginUi\x12%.harness.agent.v1.ListPluginUiRequest\x1a&.harness.agent.v1.ListPluginUiResponse\x12`\n" +
+	"\rGetPluginPane\x12&.harness.agent.v1.GetPluginPaneRequest\x1a'.harness.agent.v1.GetPluginPaneResponse\x12]\n" +
+	"\fCallPluginUi\x12%.harness.agent.v1.CallPluginUiRequest\x1a&.harness.agent.v1.CallPluginUiResponse\x12i\n" +
+	"\x10SetPluginUiGrant\x12).harness.agent.v1.SetPluginUiGrantRequest\x1a*.harness.agent.v1.SetPluginUiGrantResponseB\xcd\x01\n" +
 	"\x14com.harness.agent.v1B\fPluginsProtoP\x01ZEgithub.com/xlsft/harness/packages/client/gen/harness/agent/v1;agentv1\xa2\x02\x03HAX\xaa\x02\x10Harness.Agent.V1\xca\x02\x10Harness\\Agent\\V1\xe2\x02\x1cHarness\\Agent\\V1\\GPBMetadata\xea\x02\x12Harness::Agent::V1b\x06proto3"
 
 var (
@@ -1822,73 +2726,102 @@ func file_harness_agent_v1_plugins_proto_rawDescGZIP() []byte {
 }
 
 var file_harness_agent_v1_plugins_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_harness_agent_v1_plugins_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_harness_agent_v1_plugins_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_harness_agent_v1_plugins_proto_goTypes = []any{
 	(PluginStatus)(0),                       // 0: harness.agent.v1.PluginStatus
 	(*PluginHook)(nil),                      // 1: harness.agent.v1.PluginHook
 	(*PluginMcpServer)(nil),                 // 2: harness.agent.v1.PluginMcpServer
 	(*PluginContents)(nil),                  // 3: harness.agent.v1.PluginContents
-	(*Plugin)(nil),                          // 4: harness.agent.v1.Plugin
-	(*PluginListing)(nil),                   // 5: harness.agent.v1.PluginListing
-	(*PluginMarketplace)(nil),               // 6: harness.agent.v1.PluginMarketplace
-	(*ListPluginsRequest)(nil),              // 7: harness.agent.v1.ListPluginsRequest
-	(*ListPluginsResponse)(nil),             // 8: harness.agent.v1.ListPluginsResponse
-	(*InstallPluginRequest)(nil),            // 9: harness.agent.v1.InstallPluginRequest
-	(*InstallPluginResponse)(nil),           // 10: harness.agent.v1.InstallPluginResponse
-	(*UpdatePluginRequest)(nil),             // 11: harness.agent.v1.UpdatePluginRequest
-	(*UpdatePluginResponse)(nil),            // 12: harness.agent.v1.UpdatePluginResponse
-	(*RemovePluginRequest)(nil),             // 13: harness.agent.v1.RemovePluginRequest
-	(*RemovePluginResponse)(nil),            // 14: harness.agent.v1.RemovePluginResponse
-	(*SetPluginEnabledRequest)(nil),         // 15: harness.agent.v1.SetPluginEnabledRequest
-	(*SetPluginEnabledResponse)(nil),        // 16: harness.agent.v1.SetPluginEnabledResponse
-	(*SetPluginApprovalRequest)(nil),        // 17: harness.agent.v1.SetPluginApprovalRequest
-	(*SetPluginApprovalResponse)(nil),       // 18: harness.agent.v1.SetPluginApprovalResponse
-	(*SetPluginPinnedRequest)(nil),          // 19: harness.agent.v1.SetPluginPinnedRequest
-	(*SetPluginPinnedResponse)(nil),         // 20: harness.agent.v1.SetPluginPinnedResponse
-	(*AddPluginMarketplaceRequest)(nil),     // 21: harness.agent.v1.AddPluginMarketplaceRequest
-	(*AddPluginMarketplaceResponse)(nil),    // 22: harness.agent.v1.AddPluginMarketplaceResponse
-	(*UpdatePluginMarketplaceRequest)(nil),  // 23: harness.agent.v1.UpdatePluginMarketplaceRequest
-	(*UpdatePluginMarketplaceResponse)(nil), // 24: harness.agent.v1.UpdatePluginMarketplaceResponse
-	(*RemovePluginMarketplaceRequest)(nil),  // 25: harness.agent.v1.RemovePluginMarketplaceRequest
-	(*RemovePluginMarketplaceResponse)(nil), // 26: harness.agent.v1.RemovePluginMarketplaceResponse
-	nil,                                     // 27: harness.agent.v1.ListPluginsResponse.SuggestedMarketplacesEntry
+	(*PluginPane)(nil),                      // 4: harness.agent.v1.PluginPane
+	(*PluginStatusItem)(nil),                // 5: harness.agent.v1.PluginStatusItem
+	(*PluginUiGrant)(nil),                   // 6: harness.agent.v1.PluginUiGrant
+	(*Plugin)(nil),                          // 7: harness.agent.v1.Plugin
+	(*PluginListing)(nil),                   // 8: harness.agent.v1.PluginListing
+	(*PluginMarketplace)(nil),               // 9: harness.agent.v1.PluginMarketplace
+	(*ListPluginsRequest)(nil),              // 10: harness.agent.v1.ListPluginsRequest
+	(*ListPluginsResponse)(nil),             // 11: harness.agent.v1.ListPluginsResponse
+	(*InstallPluginRequest)(nil),            // 12: harness.agent.v1.InstallPluginRequest
+	(*InstallPluginResponse)(nil),           // 13: harness.agent.v1.InstallPluginResponse
+	(*UpdatePluginRequest)(nil),             // 14: harness.agent.v1.UpdatePluginRequest
+	(*UpdatePluginResponse)(nil),            // 15: harness.agent.v1.UpdatePluginResponse
+	(*RemovePluginRequest)(nil),             // 16: harness.agent.v1.RemovePluginRequest
+	(*RemovePluginResponse)(nil),            // 17: harness.agent.v1.RemovePluginResponse
+	(*SetPluginEnabledRequest)(nil),         // 18: harness.agent.v1.SetPluginEnabledRequest
+	(*SetPluginEnabledResponse)(nil),        // 19: harness.agent.v1.SetPluginEnabledResponse
+	(*SetPluginApprovalRequest)(nil),        // 20: harness.agent.v1.SetPluginApprovalRequest
+	(*SetPluginApprovalResponse)(nil),       // 21: harness.agent.v1.SetPluginApprovalResponse
+	(*SetPluginPinnedRequest)(nil),          // 22: harness.agent.v1.SetPluginPinnedRequest
+	(*SetPluginPinnedResponse)(nil),         // 23: harness.agent.v1.SetPluginPinnedResponse
+	(*AddPluginMarketplaceRequest)(nil),     // 24: harness.agent.v1.AddPluginMarketplaceRequest
+	(*AddPluginMarketplaceResponse)(nil),    // 25: harness.agent.v1.AddPluginMarketplaceResponse
+	(*UpdatePluginMarketplaceRequest)(nil),  // 26: harness.agent.v1.UpdatePluginMarketplaceRequest
+	(*UpdatePluginMarketplaceResponse)(nil), // 27: harness.agent.v1.UpdatePluginMarketplaceResponse
+	(*RemovePluginMarketplaceRequest)(nil),  // 28: harness.agent.v1.RemovePluginMarketplaceRequest
+	(*RemovePluginMarketplaceResponse)(nil), // 29: harness.agent.v1.RemovePluginMarketplaceResponse
+	(*ListPluginUiRequest)(nil),             // 30: harness.agent.v1.ListPluginUiRequest
+	(*ListPluginUiResponse)(nil),            // 31: harness.agent.v1.ListPluginUiResponse
+	(*GetPluginPaneRequest)(nil),            // 32: harness.agent.v1.GetPluginPaneRequest
+	(*GetPluginPaneResponse)(nil),           // 33: harness.agent.v1.GetPluginPaneResponse
+	(*CallPluginUiRequest)(nil),             // 34: harness.agent.v1.CallPluginUiRequest
+	(*CallPluginUiResponse)(nil),            // 35: harness.agent.v1.CallPluginUiResponse
+	(*SetPluginUiGrantRequest)(nil),         // 36: harness.agent.v1.SetPluginUiGrantRequest
+	(*SetPluginUiGrantResponse)(nil),        // 37: harness.agent.v1.SetPluginUiGrantResponse
+	nil,                                     // 38: harness.agent.v1.ListPluginsResponse.SuggestedMarketplacesEntry
+	nil,                                     // 39: harness.agent.v1.ListPluginUiResponse.PluginNamesEntry
+	nil,                                     // 40: harness.agent.v1.ListPluginUiResponse.ContentHashesEntry
 }
 var file_harness_agent_v1_plugins_proto_depIdxs = []int32{
 	1,  // 0: harness.agent.v1.PluginContents.hooks:type_name -> harness.agent.v1.PluginHook
 	2,  // 1: harness.agent.v1.PluginContents.mcp_servers:type_name -> harness.agent.v1.PluginMcpServer
-	0,  // 2: harness.agent.v1.Plugin.status:type_name -> harness.agent.v1.PluginStatus
-	3,  // 3: harness.agent.v1.Plugin.contents:type_name -> harness.agent.v1.PluginContents
-	5,  // 4: harness.agent.v1.PluginMarketplace.plugins:type_name -> harness.agent.v1.PluginListing
-	4,  // 5: harness.agent.v1.ListPluginsResponse.plugins:type_name -> harness.agent.v1.Plugin
-	6,  // 6: harness.agent.v1.ListPluginsResponse.marketplaces:type_name -> harness.agent.v1.PluginMarketplace
-	27, // 7: harness.agent.v1.ListPluginsResponse.suggested_marketplaces:type_name -> harness.agent.v1.ListPluginsResponse.SuggestedMarketplacesEntry
-	4,  // 8: harness.agent.v1.InstallPluginResponse.plugin:type_name -> harness.agent.v1.Plugin
-	4,  // 9: harness.agent.v1.UpdatePluginResponse.plugin:type_name -> harness.agent.v1.Plugin
-	7,  // 10: harness.agent.v1.PluginService.ListPlugins:input_type -> harness.agent.v1.ListPluginsRequest
-	9,  // 11: harness.agent.v1.PluginService.InstallPlugin:input_type -> harness.agent.v1.InstallPluginRequest
-	11, // 12: harness.agent.v1.PluginService.UpdatePlugin:input_type -> harness.agent.v1.UpdatePluginRequest
-	13, // 13: harness.agent.v1.PluginService.RemovePlugin:input_type -> harness.agent.v1.RemovePluginRequest
-	15, // 14: harness.agent.v1.PluginService.SetPluginEnabled:input_type -> harness.agent.v1.SetPluginEnabledRequest
-	17, // 15: harness.agent.v1.PluginService.SetPluginApproval:input_type -> harness.agent.v1.SetPluginApprovalRequest
-	19, // 16: harness.agent.v1.PluginService.SetPluginPinned:input_type -> harness.agent.v1.SetPluginPinnedRequest
-	21, // 17: harness.agent.v1.PluginService.AddPluginMarketplace:input_type -> harness.agent.v1.AddPluginMarketplaceRequest
-	23, // 18: harness.agent.v1.PluginService.UpdatePluginMarketplace:input_type -> harness.agent.v1.UpdatePluginMarketplaceRequest
-	25, // 19: harness.agent.v1.PluginService.RemovePluginMarketplace:input_type -> harness.agent.v1.RemovePluginMarketplaceRequest
-	8,  // 20: harness.agent.v1.PluginService.ListPlugins:output_type -> harness.agent.v1.ListPluginsResponse
-	10, // 21: harness.agent.v1.PluginService.InstallPlugin:output_type -> harness.agent.v1.InstallPluginResponse
-	12, // 22: harness.agent.v1.PluginService.UpdatePlugin:output_type -> harness.agent.v1.UpdatePluginResponse
-	14, // 23: harness.agent.v1.PluginService.RemovePlugin:output_type -> harness.agent.v1.RemovePluginResponse
-	16, // 24: harness.agent.v1.PluginService.SetPluginEnabled:output_type -> harness.agent.v1.SetPluginEnabledResponse
-	18, // 25: harness.agent.v1.PluginService.SetPluginApproval:output_type -> harness.agent.v1.SetPluginApprovalResponse
-	20, // 26: harness.agent.v1.PluginService.SetPluginPinned:output_type -> harness.agent.v1.SetPluginPinnedResponse
-	22, // 27: harness.agent.v1.PluginService.AddPluginMarketplace:output_type -> harness.agent.v1.AddPluginMarketplaceResponse
-	24, // 28: harness.agent.v1.PluginService.UpdatePluginMarketplace:output_type -> harness.agent.v1.UpdatePluginMarketplaceResponse
-	26, // 29: harness.agent.v1.PluginService.RemovePluginMarketplace:output_type -> harness.agent.v1.RemovePluginMarketplaceResponse
-	20, // [20:30] is the sub-list for method output_type
-	10, // [10:20] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	4,  // 2: harness.agent.v1.PluginContents.panes:type_name -> harness.agent.v1.PluginPane
+	5,  // 3: harness.agent.v1.PluginContents.status_items:type_name -> harness.agent.v1.PluginStatusItem
+	0,  // 4: harness.agent.v1.Plugin.status:type_name -> harness.agent.v1.PluginStatus
+	3,  // 5: harness.agent.v1.Plugin.contents:type_name -> harness.agent.v1.PluginContents
+	6,  // 6: harness.agent.v1.Plugin.ui_grants:type_name -> harness.agent.v1.PluginUiGrant
+	8,  // 7: harness.agent.v1.PluginMarketplace.plugins:type_name -> harness.agent.v1.PluginListing
+	7,  // 8: harness.agent.v1.ListPluginsResponse.plugins:type_name -> harness.agent.v1.Plugin
+	9,  // 9: harness.agent.v1.ListPluginsResponse.marketplaces:type_name -> harness.agent.v1.PluginMarketplace
+	38, // 10: harness.agent.v1.ListPluginsResponse.suggested_marketplaces:type_name -> harness.agent.v1.ListPluginsResponse.SuggestedMarketplacesEntry
+	7,  // 11: harness.agent.v1.InstallPluginResponse.plugin:type_name -> harness.agent.v1.Plugin
+	7,  // 12: harness.agent.v1.UpdatePluginResponse.plugin:type_name -> harness.agent.v1.Plugin
+	4,  // 13: harness.agent.v1.ListPluginUiResponse.panes:type_name -> harness.agent.v1.PluginPane
+	5,  // 14: harness.agent.v1.ListPluginUiResponse.status_items:type_name -> harness.agent.v1.PluginStatusItem
+	39, // 15: harness.agent.v1.ListPluginUiResponse.plugin_names:type_name -> harness.agent.v1.ListPluginUiResponse.PluginNamesEntry
+	40, // 16: harness.agent.v1.ListPluginUiResponse.content_hashes:type_name -> harness.agent.v1.ListPluginUiResponse.ContentHashesEntry
+	4,  // 17: harness.agent.v1.GetPluginPaneResponse.pane:type_name -> harness.agent.v1.PluginPane
+	10, // 18: harness.agent.v1.PluginService.ListPlugins:input_type -> harness.agent.v1.ListPluginsRequest
+	12, // 19: harness.agent.v1.PluginService.InstallPlugin:input_type -> harness.agent.v1.InstallPluginRequest
+	14, // 20: harness.agent.v1.PluginService.UpdatePlugin:input_type -> harness.agent.v1.UpdatePluginRequest
+	16, // 21: harness.agent.v1.PluginService.RemovePlugin:input_type -> harness.agent.v1.RemovePluginRequest
+	18, // 22: harness.agent.v1.PluginService.SetPluginEnabled:input_type -> harness.agent.v1.SetPluginEnabledRequest
+	20, // 23: harness.agent.v1.PluginService.SetPluginApproval:input_type -> harness.agent.v1.SetPluginApprovalRequest
+	22, // 24: harness.agent.v1.PluginService.SetPluginPinned:input_type -> harness.agent.v1.SetPluginPinnedRequest
+	24, // 25: harness.agent.v1.PluginService.AddPluginMarketplace:input_type -> harness.agent.v1.AddPluginMarketplaceRequest
+	26, // 26: harness.agent.v1.PluginService.UpdatePluginMarketplace:input_type -> harness.agent.v1.UpdatePluginMarketplaceRequest
+	28, // 27: harness.agent.v1.PluginService.RemovePluginMarketplace:input_type -> harness.agent.v1.RemovePluginMarketplaceRequest
+	30, // 28: harness.agent.v1.PluginService.ListPluginUi:input_type -> harness.agent.v1.ListPluginUiRequest
+	32, // 29: harness.agent.v1.PluginService.GetPluginPane:input_type -> harness.agent.v1.GetPluginPaneRequest
+	34, // 30: harness.agent.v1.PluginService.CallPluginUi:input_type -> harness.agent.v1.CallPluginUiRequest
+	36, // 31: harness.agent.v1.PluginService.SetPluginUiGrant:input_type -> harness.agent.v1.SetPluginUiGrantRequest
+	11, // 32: harness.agent.v1.PluginService.ListPlugins:output_type -> harness.agent.v1.ListPluginsResponse
+	13, // 33: harness.agent.v1.PluginService.InstallPlugin:output_type -> harness.agent.v1.InstallPluginResponse
+	15, // 34: harness.agent.v1.PluginService.UpdatePlugin:output_type -> harness.agent.v1.UpdatePluginResponse
+	17, // 35: harness.agent.v1.PluginService.RemovePlugin:output_type -> harness.agent.v1.RemovePluginResponse
+	19, // 36: harness.agent.v1.PluginService.SetPluginEnabled:output_type -> harness.agent.v1.SetPluginEnabledResponse
+	21, // 37: harness.agent.v1.PluginService.SetPluginApproval:output_type -> harness.agent.v1.SetPluginApprovalResponse
+	23, // 38: harness.agent.v1.PluginService.SetPluginPinned:output_type -> harness.agent.v1.SetPluginPinnedResponse
+	25, // 39: harness.agent.v1.PluginService.AddPluginMarketplace:output_type -> harness.agent.v1.AddPluginMarketplaceResponse
+	27, // 40: harness.agent.v1.PluginService.UpdatePluginMarketplace:output_type -> harness.agent.v1.UpdatePluginMarketplaceResponse
+	29, // 41: harness.agent.v1.PluginService.RemovePluginMarketplace:output_type -> harness.agent.v1.RemovePluginMarketplaceResponse
+	31, // 42: harness.agent.v1.PluginService.ListPluginUi:output_type -> harness.agent.v1.ListPluginUiResponse
+	33, // 43: harness.agent.v1.PluginService.GetPluginPane:output_type -> harness.agent.v1.GetPluginPaneResponse
+	35, // 44: harness.agent.v1.PluginService.CallPluginUi:output_type -> harness.agent.v1.CallPluginUiResponse
+	37, // 45: harness.agent.v1.PluginService.SetPluginUiGrant:output_type -> harness.agent.v1.SetPluginUiGrantResponse
+	32, // [32:46] is the sub-list for method output_type
+	18, // [18:32] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_harness_agent_v1_plugins_proto_init() }
@@ -1902,7 +2835,7 @@ func file_harness_agent_v1_plugins_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_harness_agent_v1_plugins_proto_rawDesc), len(file_harness_agent_v1_plugins_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   27,
+			NumMessages:   40,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

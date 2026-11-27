@@ -31,4 +31,8 @@ message ManagedPolicyView {
   bool external_skill_search_disabled = 18;
   // Deferral of built-in tool definitions forced on or off. Unset: the user chooses.
   optional bool defer_builtin_tools = 420;
+  // Plugins' panes and status-bar items are not shown (docs/design/plugin-ui.md).
+  bool plugin_ui_disabled = 400;
+  // Plugin panes reach no network.
+  bool plugin_ui_network_disabled = 401;
 }

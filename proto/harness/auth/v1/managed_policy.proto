@@ -58,6 +58,10 @@ message ManagedPolicy {
   // deferBuiltinTools: forces the deferral of rarely used built-in tool definitions behind ToolSearch on or off for
   // everyone. Unset: each user chooses (UserPreferences.defer_builtin_tools). Enforced by clients when a session opens.
   optional bool defer_builtin_tools = 420;
+  // disablePluginUi: plugins' panes and status-bar items are not shown on any device (docs/design/plugin-ui.md).
+  bool plugin_ui_disabled = 400;
+  // disablePluginUiNetwork: plugin panes reach no network, whatever their manifest declares and devices approved.
+  bool plugin_ui_network_disabled = 401;
 }
 
 message GetManagedPolicyRequest {}

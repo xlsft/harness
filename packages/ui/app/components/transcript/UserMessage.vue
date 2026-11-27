@@ -5,6 +5,7 @@
 import type { Attachment } from '~/lib/session/types'
 import { imageSrc } from '~/lib/session/objects'
 import { FROM_VISUAL } from '~/lib/visual'
+import { FROM_PLUGIN } from '~/lib/plugins/ui'
 import { RAN_PREFIX } from '~/stores/sessions'
 
 const props = withDefaults(defineProps<{
@@ -34,6 +35,8 @@ const interrupted = computed(() => /^\[Request interrupted by user[^\]]*\]$/.tes
 
 // Sent by a button inside a visual (harness.send): a chip instead of the "[from visual <id>]" prefix.
 const fromVisual = computed(() => props.text.match(FROM_VISUAL)?.[1] ?? '')
+// Sent by a plugin's pane or status-bar item (session.prompt): a chip naming the plugin, so it never reads as the user's own words.
+const fromPlugin = computed(() => fromVisual.value ? '' : props.text.match(FROM_PLUGIN)?.[1] ?? '')
 
 // The text as Markdown-style quotes ("> " lines, one block per run) and the replies between them, each reply split
 // into plain text, a leading /command and @mentions.
@@ -52,7 +55,7 @@ function partsOf(body: string): Part[] {
   return parts
 }
 const parsed = computed(() => {
-  const text = fromVisual.value ? props.text.replace(FROM_VISUAL, '') : props.text
+  const text = fromVisual.value ? props.text.replace(FROM_VISUAL, '') : fromPlugin.value ? props.text.replace(FROM_PLUGIN, '') : props.text
   const blocks: ({ kind: 'quote', text: string } | { kind: 'body', parts: Part[] })[] = []
   let quote: string[] = []
   let body: string[] = []
@@ -201,6 +204,10 @@ const parsed = computed(() => {
         v-if="fromVisual"
         class="self-start border border-accented px-[5px] text-[11.5px] text-muted"
       >{{ tt('from visual') }}</span>
+      <span
+        v-else-if="fromPlugin"
+        class="self-start border border-accented px-[5px] text-[11.5px] text-muted"
+      >{{ tt('from plugin {0}', [fromPlugin]) }}</span>
       <template
         v-for="(b, bi) in parsed.blocks"
         :key="bi"

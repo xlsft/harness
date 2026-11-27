@@ -196,6 +196,8 @@ export interface ManagedPolicy {
   externalSkillSearchDisabled: boolean
   // Built-in tool deferral forced on or off; null: each user chooses (deferBuiltinTools).
   deferBuiltinTools: boolean | null
+  pluginUiDisabled: boolean
+  pluginUiNetworkDisabled: boolean
 }
 
 export interface PolicyChoice {
@@ -211,7 +213,7 @@ export interface ManagedPolicyState {
 }
 
 export function emptyManagedPolicy(): ManagedPolicy {
-  return { allowRules: [], askRules: [], denyRules: [], managedRulesOnly: false, sandboxRequired: false, sandboxOutsideRefused: false, restrictProviders: false, allowedProviders: [], personalProvidersDisabled: false, personalHostsDisabled: false, restrictMcpServers: false, allowedMcpServers: [], restrictPluginSources: false, allowedPluginSources: [], blockedPluginSources: [], distributedMarketplaces: [], distributedPlugins: [], blockedPlugins: [], restrictSkills: false, allowedSkills: [], blockedSkills: [], externalSkillSearchDisabled: false, deferBuiltinTools: null }
+  return { allowRules: [], askRules: [], denyRules: [], managedRulesOnly: false, sandboxRequired: false, sandboxOutsideRefused: false, restrictProviders: false, allowedProviders: [], personalProvidersDisabled: false, personalHostsDisabled: false, restrictMcpServers: false, allowedMcpServers: [], restrictPluginSources: false, allowedPluginSources: [], blockedPluginSources: [], distributedMarketplaces: [], distributedPlugins: [], blockedPlugins: [], restrictSkills: false, allowedSkills: [], blockedSkills: [], externalSkillSearchDisabled: false, deferBuiltinTools: null, pluginUiDisabled: false, pluginUiNetworkDisabled: false }
 }
 
 export interface EnterpriseApi {

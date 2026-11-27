@@ -63,6 +63,18 @@ const (
 	// PluginServiceRemovePluginMarketplaceProcedure is the fully-qualified name of the PluginService's
 	// RemovePluginMarketplace RPC.
 	PluginServiceRemovePluginMarketplaceProcedure = "/harness.agent.v1.PluginService/RemovePluginMarketplace"
+	// PluginServiceListPluginUiProcedure is the fully-qualified name of the PluginService's
+	// ListPluginUi RPC.
+	PluginServiceListPluginUiProcedure = "/harness.agent.v1.PluginService/ListPluginUi"
+	// PluginServiceGetPluginPaneProcedure is the fully-qualified name of the PluginService's
+	// GetPluginPane RPC.
+	PluginServiceGetPluginPaneProcedure = "/harness.agent.v1.PluginService/GetPluginPane"
+	// PluginServiceCallPluginUiProcedure is the fully-qualified name of the PluginService's
+	// CallPluginUi RPC.
+	PluginServiceCallPluginUiProcedure = "/harness.agent.v1.PluginService/CallPluginUi"
+	// PluginServiceSetPluginUiGrantProcedure is the fully-qualified name of the PluginService's
+	// SetPluginUiGrant RPC.
+	PluginServiceSetPluginUiGrantProcedure = "/harness.agent.v1.PluginService/SetPluginUiGrant"
 )
 
 // PluginServiceClient is a client for the harness.agent.v1.PluginService service.
@@ -82,6 +94,16 @@ type PluginServiceClient interface {
 	AddPluginMarketplace(context.Context, *connect.Request[v1.AddPluginMarketplaceRequest]) (*connect.Response[v1.AddPluginMarketplaceResponse], error)
 	UpdatePluginMarketplace(context.Context, *connect.Request[v1.UpdatePluginMarketplaceRequest]) (*connect.Response[v1.UpdatePluginMarketplaceResponse], error)
 	RemovePluginMarketplace(context.Context, *connect.Request[v1.RemovePluginMarketplaceRequest]) (*connect.Response[v1.RemovePluginMarketplaceResponse], error)
+	// Plugin UI (docs/design/plugin-ui.md): panes and status-bar items of the plugins that may run in a session's folder.
+	ListPluginUi(context.Context, *connect.Request[v1.ListPluginUiRequest]) (*connect.Response[v1.ListPluginUiResponse], error)
+	// The document of one pane, ready for a sandboxed frame: its own scripts and styles inlined, the CSP in its head.
+	GetPluginPane(context.Context, *connect.Request[v1.GetPluginPaneRequest]) (*connect.Response[v1.GetPluginPaneResponse], error)
+	// One call of the message API, made by a pane through the frontend that hosts it. The client checks that the plugin
+	// declared the capability and this device approved it.
+	CallPluginUi(context.Context, *connect.Request[v1.CallPluginUiRequest]) (*connect.Response[v1.CallPluginUiResponse], error)
+	// Approves a capability of a plugin's UI on this device, or takes that back. Only the frontend's own controls call this,
+	// never a pane.
+	SetPluginUiGrant(context.Context, *connect.Request[v1.SetPluginUiGrantRequest]) (*connect.Response[v1.SetPluginUiGrantResponse], error)
 }
 
 // NewPluginServiceClient constructs a client for the harness.agent.v1.PluginService service. By
@@ -155,6 +177,30 @@ func NewPluginServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(pluginServiceMethods.ByName("RemovePluginMarketplace")),
 			connect.WithClientOptions(opts...),
 		),
+		listPluginUi: connect.NewClient[v1.ListPluginUiRequest, v1.ListPluginUiResponse](
+			httpClient,
+			baseURL+PluginServiceListPluginUiProcedure,
+			connect.WithSchema(pluginServiceMethods.ByName("ListPluginUi")),
+			connect.WithClientOptions(opts...),
+		),
+		getPluginPane: connect.NewClient[v1.GetPluginPaneRequest, v1.GetPluginPaneResponse](
+			httpClient,
+			baseURL+PluginServiceGetPluginPaneProcedure,
+			connect.WithSchema(pluginServiceMethods.ByName("GetPluginPane")),
+			connect.WithClientOptions(opts...),
+		),
+		callPluginUi: connect.NewClient[v1.CallPluginUiRequest, v1.CallPluginUiResponse](
+			httpClient,
+			baseURL+PluginServiceCallPluginUiProcedure,
+			connect.WithSchema(pluginServiceMethods.ByName("CallPluginUi")),
+			connect.WithClientOptions(opts...),
+		),
+		setPluginUiGrant: connect.NewClient[v1.SetPluginUiGrantRequest, v1.SetPluginUiGrantResponse](
+			httpClient,
+			baseURL+PluginServiceSetPluginUiGrantProcedure,
+			connect.WithSchema(pluginServiceMethods.ByName("SetPluginUiGrant")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -170,6 +216,10 @@ type pluginServiceClient struct {
 	addPluginMarketplace    *connect.Client[v1.AddPluginMarketplaceRequest, v1.AddPluginMarketplaceResponse]
 	updatePluginMarketplace *connect.Client[v1.UpdatePluginMarketplaceRequest, v1.UpdatePluginMarketplaceResponse]
 	removePluginMarketplace *connect.Client[v1.RemovePluginMarketplaceRequest, v1.RemovePluginMarketplaceResponse]
+	listPluginUi            *connect.Client[v1.ListPluginUiRequest, v1.ListPluginUiResponse]
+	getPluginPane           *connect.Client[v1.GetPluginPaneRequest, v1.GetPluginPaneResponse]
+	callPluginUi            *connect.Client[v1.CallPluginUiRequest, v1.CallPluginUiResponse]
+	setPluginUiGrant        *connect.Client[v1.SetPluginUiGrantRequest, v1.SetPluginUiGrantResponse]
 }
 
 // ListPlugins calls harness.agent.v1.PluginService.ListPlugins.
@@ -222,6 +272,26 @@ func (c *pluginServiceClient) RemovePluginMarketplace(ctx context.Context, req *
 	return c.removePluginMarketplace.CallUnary(ctx, req)
 }
 
+// ListPluginUi calls harness.agent.v1.PluginService.ListPluginUi.
+func (c *pluginServiceClient) ListPluginUi(ctx context.Context, req *connect.Request[v1.ListPluginUiRequest]) (*connect.Response[v1.ListPluginUiResponse], error) {
+	return c.listPluginUi.CallUnary(ctx, req)
+}
+
+// GetPluginPane calls harness.agent.v1.PluginService.GetPluginPane.
+func (c *pluginServiceClient) GetPluginPane(ctx context.Context, req *connect.Request[v1.GetPluginPaneRequest]) (*connect.Response[v1.GetPluginPaneResponse], error) {
+	return c.getPluginPane.CallUnary(ctx, req)
+}
+
+// CallPluginUi calls harness.agent.v1.PluginService.CallPluginUi.
+func (c *pluginServiceClient) CallPluginUi(ctx context.Context, req *connect.Request[v1.CallPluginUiRequest]) (*connect.Response[v1.CallPluginUiResponse], error) {
+	return c.callPluginUi.CallUnary(ctx, req)
+}
+
+// SetPluginUiGrant calls harness.agent.v1.PluginService.SetPluginUiGrant.
+func (c *pluginServiceClient) SetPluginUiGrant(ctx context.Context, req *connect.Request[v1.SetPluginUiGrantRequest]) (*connect.Response[v1.SetPluginUiGrantResponse], error) {
+	return c.setPluginUiGrant.CallUnary(ctx, req)
+}
+
 // PluginServiceHandler is an implementation of the harness.agent.v1.PluginService service.
 type PluginServiceHandler interface {
 	// What is installed and registered, and what each plugin can do in a folder.
@@ -239,6 +309,16 @@ type PluginServiceHandler interface {
 	AddPluginMarketplace(context.Context, *connect.Request[v1.AddPluginMarketplaceRequest]) (*connect.Response[v1.AddPluginMarketplaceResponse], error)
 	UpdatePluginMarketplace(context.Context, *connect.Request[v1.UpdatePluginMarketplaceRequest]) (*connect.Response[v1.UpdatePluginMarketplaceResponse], error)
 	RemovePluginMarketplace(context.Context, *connect.Request[v1.RemovePluginMarketplaceRequest]) (*connect.Response[v1.RemovePluginMarketplaceResponse], error)
+	// Plugin UI (docs/design/plugin-ui.md): panes and status-bar items of the plugins that may run in a session's folder.
+	ListPluginUi(context.Context, *connect.Request[v1.ListPluginUiRequest]) (*connect.Response[v1.ListPluginUiResponse], error)
+	// The document of one pane, ready for a sandboxed frame: its own scripts and styles inlined, the CSP in its head.
+	GetPluginPane(context.Context, *connect.Request[v1.GetPluginPaneRequest]) (*connect.Response[v1.GetPluginPaneResponse], error)
+	// One call of the message API, made by a pane through the frontend that hosts it. The client checks that the plugin
+	// declared the capability and this device approved it.
+	CallPluginUi(context.Context, *connect.Request[v1.CallPluginUiRequest]) (*connect.Response[v1.CallPluginUiResponse], error)
+	// Approves a capability of a plugin's UI on this device, or takes that back. Only the frontend's own controls call this,
+	// never a pane.
+	SetPluginUiGrant(context.Context, *connect.Request[v1.SetPluginUiGrantRequest]) (*connect.Response[v1.SetPluginUiGrantResponse], error)
 }
 
 // NewPluginServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -308,6 +388,30 @@ func NewPluginServiceHandler(svc PluginServiceHandler, opts ...connect.HandlerOp
 		connect.WithSchema(pluginServiceMethods.ByName("RemovePluginMarketplace")),
 		connect.WithHandlerOptions(opts...),
 	)
+	pluginServiceListPluginUiHandler := connect.NewUnaryHandler(
+		PluginServiceListPluginUiProcedure,
+		svc.ListPluginUi,
+		connect.WithSchema(pluginServiceMethods.ByName("ListPluginUi")),
+		connect.WithHandlerOptions(opts...),
+	)
+	pluginServiceGetPluginPaneHandler := connect.NewUnaryHandler(
+		PluginServiceGetPluginPaneProcedure,
+		svc.GetPluginPane,
+		connect.WithSchema(pluginServiceMethods.ByName("GetPluginPane")),
+		connect.WithHandlerOptions(opts...),
+	)
+	pluginServiceCallPluginUiHandler := connect.NewUnaryHandler(
+		PluginServiceCallPluginUiProcedure,
+		svc.CallPluginUi,
+		connect.WithSchema(pluginServiceMethods.ByName("CallPluginUi")),
+		connect.WithHandlerOptions(opts...),
+	)
+	pluginServiceSetPluginUiGrantHandler := connect.NewUnaryHandler(
+		PluginServiceSetPluginUiGrantProcedure,
+		svc.SetPluginUiGrant,
+		connect.WithSchema(pluginServiceMethods.ByName("SetPluginUiGrant")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/harness.agent.v1.PluginService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case PluginServiceListPluginsProcedure:
@@ -330,6 +434,14 @@ func NewPluginServiceHandler(svc PluginServiceHandler, opts ...connect.HandlerOp
 			pluginServiceUpdatePluginMarketplaceHandler.ServeHTTP(w, r)
 		case PluginServiceRemovePluginMarketplaceProcedure:
 			pluginServiceRemovePluginMarketplaceHandler.ServeHTTP(w, r)
+		case PluginServiceListPluginUiProcedure:
+			pluginServiceListPluginUiHandler.ServeHTTP(w, r)
+		case PluginServiceGetPluginPaneProcedure:
+			pluginServiceGetPluginPaneHandler.ServeHTTP(w, r)
+		case PluginServiceCallPluginUiProcedure:
+			pluginServiceCallPluginUiHandler.ServeHTTP(w, r)
+		case PluginServiceSetPluginUiGrantProcedure:
+			pluginServiceSetPluginUiGrantHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -377,4 +489,20 @@ func (UnimplementedPluginServiceHandler) UpdatePluginMarketplace(context.Context
 
 func (UnimplementedPluginServiceHandler) RemovePluginMarketplace(context.Context, *connect.Request[v1.RemovePluginMarketplaceRequest]) (*connect.Response[v1.RemovePluginMarketplaceResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.PluginService.RemovePluginMarketplace is not implemented"))
+}
+
+func (UnimplementedPluginServiceHandler) ListPluginUi(context.Context, *connect.Request[v1.ListPluginUiRequest]) (*connect.Response[v1.ListPluginUiResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.PluginService.ListPluginUi is not implemented"))
+}
+
+func (UnimplementedPluginServiceHandler) GetPluginPane(context.Context, *connect.Request[v1.GetPluginPaneRequest]) (*connect.Response[v1.GetPluginPaneResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.PluginService.GetPluginPane is not implemented"))
+}
+
+func (UnimplementedPluginServiceHandler) CallPluginUi(context.Context, *connect.Request[v1.CallPluginUiRequest]) (*connect.Response[v1.CallPluginUiResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.PluginService.CallPluginUi is not implemented"))
+}
+
+func (UnimplementedPluginServiceHandler) SetPluginUiGrant(context.Context, *connect.Request[v1.SetPluginUiGrantRequest]) (*connect.Response[v1.SetPluginUiGrantResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("harness.agent.v1.PluginService.SetPluginUiGrant is not implemented"))
 }

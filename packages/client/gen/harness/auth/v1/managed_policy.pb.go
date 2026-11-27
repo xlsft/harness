@@ -67,8 +67,12 @@ type ManagedPolicy struct {
 	// deferBuiltinTools: forces the deferral of rarely used built-in tool definitions behind ToolSearch on or off for
 	// everyone. Unset: each user chooses (UserPreferences.defer_builtin_tools). Enforced by clients when a session opens.
 	DeferBuiltinTools *bool `protobuf:"varint,420,opt,name=defer_builtin_tools,json=deferBuiltinTools,proto3,oneof" json:"defer_builtin_tools,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// disablePluginUi: plugins' panes and status-bar items are not shown on any device (docs/design/plugin-ui.md).
+	PluginUiDisabled bool `protobuf:"varint,400,opt,name=plugin_ui_disabled,json=pluginUiDisabled,proto3" json:"plugin_ui_disabled,omitempty"`
+	// disablePluginUiNetwork: plugin panes reach no network, whatever their manifest declares and devices approved.
+	PluginUiNetworkDisabled bool `protobuf:"varint,401,opt,name=plugin_ui_network_disabled,json=pluginUiNetworkDisabled,proto3" json:"plugin_ui_network_disabled,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -258,6 +262,20 @@ func (x *ManagedPolicy) GetPersonalHostsDisabled() bool {
 func (x *ManagedPolicy) GetDeferBuiltinTools() bool {
 	if x != nil && x.DeferBuiltinTools != nil {
 		return *x.DeferBuiltinTools
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetPluginUiDisabled() bool {
+	if x != nil {
+		return x.PluginUiDisabled
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetPluginUiNetworkDisabled() bool {
+	if x != nil {
+		return x.PluginUiNetworkDisabled
 	}
 	return false
 }
@@ -520,7 +538,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xf7\b\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xe4\t\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -547,7 +565,9 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\x0eblocked_skills\x18\x14 \x03(\tR\rblockedSkills\x12C\n" +
 	"\x1eexternal_skill_search_disabled\x18\x15 \x01(\bR\x1bexternalSkillSearchDisabled\x127\n" +
 	"\x17personal_hosts_disabled\x18\xe6\x01 \x01(\bR\x15personalHostsDisabled\x124\n" +
-	"\x13defer_builtin_tools\x18\xa4\x03 \x01(\bH\x00R\x11deferBuiltinTools\x88\x01\x01B\x16\n" +
+	"\x13defer_builtin_tools\x18\xa4\x03 \x01(\bH\x00R\x11deferBuiltinTools\x88\x01\x01\x12-\n" +
+	"\x12plugin_ui_disabled\x18\x90\x03 \x01(\bR\x10pluginUiDisabled\x12<\n" +
+	"\x1aplugin_ui_network_disabled\x18\x91\x03 \x01(\bR\x17pluginUiNetworkDisabledB\x16\n" +
 	"\x14_defer_builtin_tools\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +

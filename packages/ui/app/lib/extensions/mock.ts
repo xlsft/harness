@@ -257,7 +257,7 @@ export class MockExtensionsApi implements ExtensionsApi {
       for (const m of st.marketplaces) {
         const items = m.plugins.flatMap((l): DiscoverItem[] => {
           const base = { sourceLabel: m.name, version: l.version, publisher: m.name === 'harness-catalog' ? 'xlsft' : 'Acme', updatedAt: m.updatedAt, category: l.name.includes('format') ? 'Code quality' : l.name.includes('release') ? 'Releases' : 'Getting started', installed: l.installed, pluginId: l.id,
-            contents: { $typeName: 'harness.agent.v1.PluginContents' as const, skills: [`${l.name}:main`], commands: [], agents: [], outputStyles: [], hooks: [], mcpServers: [], allowedTools: [], skipped: [] } }
+            contents: { $typeName: 'harness.agent.v1.PluginContents' as const, skills: [`${l.name}:main`], commands: [], agents: [], outputStyles: [], hooks: [], mcpServers: [], allowedTools: [], skipped: [], panes: [], statusItems: [], uiCapabilities: [], uiNetwork: [] } }
           return skills
             ? [item({ ...base, id: `skill:${l.name}:main@${m.name}`, kind: ExtensionKind.SKILL, name: `${l.name}:main`, description: l.description })]
             : [item({ ...base, id: l.id, kind: ExtensionKind.PLUGIN, name: l.name, description: l.description })]

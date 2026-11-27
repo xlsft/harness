@@ -14,6 +14,7 @@ A plugin is a folder. A manifest is optional and sits at `.harness-plugin/plugin
 | Output styles | `output-styles/*.md` | `outputStyles` | replaces |
 | Hooks | `hooks/hooks.json`, with a top-level `hooks` key | `hooks`: paths or inline event maps | merges |
 | MCP servers | `.mcp.json` | `mcpServers`: paths or inline maps | merges, a later name replacing an earlier one |
+| Panes and status-bar items | none | `ui`, ours: see [plugin UI](plugin-ui.md) | only from the manifest |
 
 Paths in a manifest start with `./` and stay inside the folder, links included; what doesn't is a problem shown with the plugin, and the rest still loads.
 

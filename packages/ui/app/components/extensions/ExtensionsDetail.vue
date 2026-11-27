@@ -4,7 +4,8 @@ import { isDesktop, revealInFolder } from '~/lib/desktop'
 import type { ConnectorOption, DiscoverItem, ExtensionConnector, ExtensionMarketplace, ExtensionPluginVM, ExtensionSkill, GetExternalSkillResponse, GetSkillDetailResponse, InstalledExternalSkill } from '~/lib/extensions/types'
 import { connectorStatus, installsLabel, providedBy, shortDate, TONE_CLASS } from '~/lib/extensions/view'
 import type { InspectMcpServerResponse } from '~/lib/mcp/types'
-import { runsPrograms, statusLabel, type PluginContentsVM } from '~/lib/plugins/types'
+import { capabilityLabel, runsPrograms, statusLabel, type PluginContentsVM } from '~/lib/plugins/types'
+import { contentsFromProto } from '~/lib/plugins/connect'
 import { commandFacts, sourceLabel } from '~/lib/session/slashCommands'
 
 export type DetailTarget
@@ -22,6 +23,8 @@ const closeSheet = () => sheet.value ? sheet.value.close() : emit('close')
 const store = useSessionStore()
 const extensions = () => store.transport!.extensions()
 const plugins = () => store.transport!.plugins()
+// Status-bar items and panes follow what changes here.
+const { refresh: refreshPluginUi } = usePluginPane()
 const mcp = () => store.transport!.mcp()
 
 const error = ref('')
@@ -92,11 +95,7 @@ async function loadExtras() {
 watch(() => props.target, loadExtras, { immediate: true })
 
 function discoverContents(it: DiscoverItem): PluginContentsVM | null {
-  const c = it.contents
-  if (!c) return null
-  return { skills: c.skills, commands: c.commands, agents: c.agents, outputStyles: c.outputStyles, allowedTools: c.allowedTools, skipped: c.skipped,
-    hooks: c.hooks.map(h => ({ event: h.event, matcher: h.matcher, type: h.type, command: h.command, fromSkill: h.fromSkill })),
-    mcpServers: c.mcpServers.map(m => ({ name: m.name, transport: m.transport, command: m.command })) }
+  return it.contents ? contentsFromProto(it.contents) : null
 }
 
 // ---- plugins ----
@@ -114,6 +113,7 @@ async function refreshPlugin(row: ExtensionPluginVM) {
 function pluginChange(row: ExtensionPluginVM, f: () => Promise<unknown>, done = '') {
   return run(async () => {
     await f()
+    refreshPluginUi()
     await refreshPlugin(row)
   }, done)
 }
@@ -121,6 +121,11 @@ function updatePlugin(row: ExtensionPluginVM) {
   return pluginChange(row, async () => {
     const res = await plugins().update(row.plugin.id, props.cwd)
     note.value = res.note
+  })
+}
+function revokeUi(row: ExtensionPluginVM, capability: string) {
+  return pluginChange(row, async () => {
+    await plugins().setUiGrant(row.plugin.id, capability, false, '')
   })
 }
 function removePlugin(row: ExtensionPluginVM) {
@@ -414,6 +419,42 @@ const hasActions = computed(() => {
             {{ tt('What it holds') }}
           </h3>
           <ExtensionsContents :contents="target.row.plugin.contents" />
+        </section>
+        <section
+          v-if="target.row.plugin.uiGrants.length || target.row.plugin.uiBlocked"
+          class="flex flex-col gap-1.5"
+          data-plugin-ui-grants
+        >
+          <h3 class="m-0 text-[12px] font-normal text-muted">
+            {{ tt('Its panes on this device') }}
+          </h3>
+          <p
+            v-if="target.row.plugin.uiBlocked"
+            class="m-0 border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-[12px] text-toned"
+          >
+            {{ target.row.plugin.uiBlocked }}
+          </p>
+          <p class="m-0 text-[12px] text-muted">
+            {{ tt('A pane asks the first time it needs each of these. What you allow holds on this device, for this version.') }}
+          </p>
+          <ul class="m-0 flex list-none flex-col p-0 text-[12px]">
+            <li
+              v-for="g in target.row.plugin.uiGrants"
+              :key="g.capability"
+              class="flex items-center gap-2 border-b border-line py-1.5 last:border-b-0"
+            >
+              <span class="min-w-0 flex-1 text-toned">{{ capabilityLabel(g.capability, target.row.plugin.contents.uiNetwork) }}</span>
+              <span :class="g.granted ? 'text-ok' : 'text-muted'">{{ g.granted ? tt('Allowed') : tt('Not allowed') }}</span>
+              <HBtn
+                v-if="g.granted"
+                size="xs"
+                tone="danger"
+                @click="revokeUi(target.row, g.capability)"
+              >
+                {{ tt('Revoke') }}
+              </HBtn>
+            </li>
+          </ul>
         </section>
         <dl class="m-0 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[12px] max-sm:grid-cols-1">
           <template v-if="target.row.publisher">

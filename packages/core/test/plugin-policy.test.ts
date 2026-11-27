@@ -89,6 +89,20 @@ describe("PolicyService", () => {
     for (const key of ["strictKnownMarketplaces", "blockedMarketplaces", "extraKnownMarketplaces", "enabledPlugins"]) expect(cleared[key]).toBeUndefined();
   });
 
+  it("turns plugin UI off with the keys clients read", async () => {
+    const set = await admin.policy.setManagedPolicy({ policy: { pluginUiDisabled: true, pluginUiNetworkDisabled: true } });
+    expect(set.policy?.pluginUiDisabled).toBe(true);
+    expect(set.policy?.pluginUiNetworkDisabled).toBe(true);
+    const ref = { selector: { case: "ref" as const, value: { scope: Scope.ORG, kind: DocumentKind.POLICY, key: "default" } } };
+    let content = JSON.parse((await admin.sync.getDocument(ref)).document!.content);
+    expect(content.disablePluginUi).toBe(true);
+    expect(content.disablePluginUiNetwork).toBe(true);
+    await admin.policy.setManagedPolicy({ policy: {} });
+    content = JSON.parse((await admin.sync.getDocument(ref)).document!.content);
+    expect(content.disablePluginUi).toBeUndefined();
+    expect(content.disablePluginUiNetwork).toBeUndefined();
+  });
+
   it("refuses what the form can't mean", async () => {
     for (const policy of [
       { restrictPluginSources: true, allowedPluginSources: ["nonsense"] },

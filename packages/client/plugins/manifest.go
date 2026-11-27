@@ -62,6 +62,8 @@ type Manifest struct {
 	Hooks        json.RawMessage `json:"hooks,omitempty"`
 	MCPServers   json.RawMessage `json:"mcpServers,omitempty"`
 	OutputStyles json.RawMessage `json:"outputStyles,omitempty"`
+	// UI holds panes and status-bar items (ui.go). It is ours: other agents' formats have no such field.
+	UI json.RawMessage `json:"ui,omitempty"`
 
 	// What the format has and this client does not act on; they are reported, not ignored in silence.
 	LSPServers   json.RawMessage `json:"lspServers,omitempty"`
@@ -117,6 +119,8 @@ type Contents struct {
 	AllowedTools []string
 	// Skipped names what it holds and this client does not act on.
 	Skipped []string
+	// UI is what its panes and status-bar items are, and what they may ask for.
+	UI UI
 }
 
 // AgentFile is an agent of a plugin, under the name it goes by.
@@ -142,6 +146,8 @@ type Plugin struct {
 	HookBlocks []json.RawMessage
 	// MCP holds the raw server entries by the name inside the plugin.
 	MCP map[string]json.RawMessage
+	// UI is its panes and status-bar items, checked.
+	UI UI
 
 	Contents Contents
 	// Problems say what could not be read; the rest of the plugin still loads.
@@ -165,7 +171,7 @@ func (p *Plugin) Vars() map[string]string {
 
 // Empty reports a folder that holds nothing a plugin can.
 func (c Contents) Empty() bool {
-	return len(c.Skills)+len(c.Commands)+len(c.Agents)+len(c.OutputStyles)+len(c.Hooks)+len(c.MCPServers) == 0
+	return len(c.Skills)+len(c.Commands)+len(c.Agents)+len(c.OutputStyles)+len(c.Hooks)+len(c.MCPServers) == 0 && c.UI.Empty()
 }
 
 // Overlay is what a marketplace entry adds to a manifest.
@@ -209,13 +215,14 @@ func Load(root, name, marketplace, dataDir string, over *Overlay) (*Plugin, erro
 	p.loadStyles(extra)
 	p.loadHooks(extra)
 	p.loadMCP()
+	p.loadUI()
 	p.describe()
 	return p, nil
 }
 
 // dropNulls makes a field set to null the same as one left out.
 func (m *Manifest) dropNulls() {
-	for _, f := range []*json.RawMessage{&m.Skills, &m.Commands, &m.Agents, &m.Hooks, &m.MCPServers, &m.OutputStyles, &m.LSPServers, &m.Workflows, &m.UserConfig, &m.Dependencies, &m.Channels, &m.Experimental, &m.Settings, &m.Themes, &m.Monitors} {
+	for _, f := range []*json.RawMessage{&m.Skills, &m.Commands, &m.Agents, &m.Hooks, &m.MCPServers, &m.OutputStyles, &m.UI, &m.LSPServers, &m.Workflows, &m.UserConfig, &m.Dependencies, &m.Channels, &m.Experimental, &m.Settings, &m.Themes, &m.Monitors} {
 		if string(bytes.TrimSpace(*f)) == "null" {
 			*f = nil
 		}
@@ -680,6 +687,7 @@ func (p *Plugin) describe() {
 		}
 		c.MCPServers = append(c.MCPServers, info)
 	}
+	c.UI = p.UI
 	m := p.Manifest
 	skipped := func(raw json.RawMessage, what string) {
 		if len(raw) > 0 && string(raw) != "null" {

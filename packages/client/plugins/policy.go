@@ -23,6 +23,9 @@ const (
 	keyAllowedAlias   = "allowedMarketplaces"
 	keyExtraAlias     = "additionalMarketplaces"
 	keyAllowedMCP     = "allowedMcpServers"
+	// KeyUIDisabled and KeyUINetworkDisabled are ours: plugin UI (ui.go).
+	KeyUIDisabled        = "disablePluginUi"
+	KeyUINetworkDisabled = "disablePluginUiNetwork"
 )
 
 // Rule matches marketplace sources in an allowlist or a blocklist. Beyond the source types it can be hostPattern or pathPattern.
@@ -48,6 +51,9 @@ type Policy struct {
 	// RestrictMCP and AllowedMCP are allowedMcpServers, which covers plugins' servers too.
 	RestrictMCP bool     `json:"restrictMcp,omitempty"`
 	AllowedMCP  []string `json:"allowedMcp,omitempty"`
+	// UIDisabled hides plugins' panes and status-bar items; UINetworkDisabled keeps panes off the network.
+	UIDisabled        bool `json:"uiDisabled,omitempty"`
+	UINetworkDisabled bool `json:"uiNetworkDisabled,omitempty"`
 }
 
 // Restricted reports whether an allowlist is in force.
@@ -184,6 +190,14 @@ func PolicyFromDocs(docs []*syncv1.Document) Policy {
 					p.Plugins[id] = on
 				}
 			}
+		}
+		var flag bool
+		if json.Unmarshal(raw[KeyUIDisabled], &flag) == nil && flag {
+			p.UIDisabled = true
+		}
+		flag = false
+		if json.Unmarshal(raw[KeyUINetworkDisabled], &flag) == nil && flag {
+			p.UINetworkDisabled = true
 		}
 		if a := raw[keyAllowedMCP]; a != nil {
 			var names []string

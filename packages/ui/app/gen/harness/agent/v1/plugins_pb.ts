@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file harness/agent/v1/plugins.proto.
  */
 export const file_harness_agent_v1_plugins: GenFile = /*@__PURE__*/
-  fileDesc("Ch5oYXJuZXNzL2FnZW50L3YxL3BsdWdpbnMucHJvdG8SEGhhcm5lc3MuYWdlbnQudjEiXwoKUGx1Z2luSG9vaxINCgVldmVudBgBIAEoCRIPCgdtYXRjaGVyGAIgASgJEgwKBHR5cGUYAyABKAkSDwoHY29tbWFuZBgEIAEoCRISCgpmcm9tX3NraWxsGAUgASgJIkMKD1BsdWdpbk1jcFNlcnZlchIMCgRuYW1lGAEgASgJEhEKCXRyYW5zcG9ydBgCIAEoCRIPCgdjb21tYW5kGAMgASgJIuYBCg5QbHVnaW5Db250ZW50cxIOCgZza2lsbHMYASADKAkSEAoIY29tbWFuZHMYAiADKAkSDgoGYWdlbnRzGAMgAygJEhUKDW91dHB1dF9zdHlsZXMYBCADKAkSKwoFaG9va3MYBSADKAsyHC5oYXJuZXNzLmFnZW50LnYxLlBsdWdpbkhvb2sSNgoLbWNwX3NlcnZlcnMYBiADKAsyIS5oYXJuZXNzLmFnZW50LnYxLlBsdWdpbk1jcFNlcnZlchIVCg1hbGxvd2VkX3Rvb2xzGAcgAygJEg8KB3NraXBwZWQYCCADKAkinwMKBlBsdWdpbhIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC21hcmtldHBsYWNlGAMgASgJEhQKDGRpc3BsYXlfbmFtZRgEIAEoCRITCgtkZXNjcmlwdGlvbhgFIAEoCRIPCgd2ZXJzaW9uGAYgASgJEg4KBmNvbW1pdBgHIAEoCRIUCgxjb250ZW50X2hhc2gYCCABKAkSLgoGc3RhdHVzGAkgASgOMh4uaGFybmVzcy5hZ2VudC52MS5QbHVnaW5TdGF0dXMSDgoGcmVhc29uGAogASgJEg8KB2VuYWJsZWQYCyABKAgSEAoIYXBwcm92ZWQYDCABKAgSDgoGcGlubmVkGA0gASgIEg8KB21hbmFnZWQYDiABKAgSFAoMc3VnZ2VzdGVkX2J5GA8gASgJEg4KBnNvdXJjZRgQIAEoCRIUCgxpbnN0YWxsZWRfYXQYESABKAkSMgoIY29udGVudHMYEiABKAsyIC5oYXJuZXNzLmFnZW50LnYxLlBsdWdpbkNvbnRlbnRzEhAKCHByb2JsZW1zGBMgAygJImIKDVBsdWdpbkxpc3RpbmcSCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIPCgd2ZXJzaW9uGAQgASgJEhEKCWluc3RhbGxlZBgFIAEoCCLPAQoRUGx1Z2luTWFya2V0cGxhY2USDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIOCgZzb3VyY2UYAyABKAkSDgoGY29tbWl0GAQgASgJEhIKCnVwZGF0ZWRfYXQYBSABKAkSDwoHbWFuYWdlZBgGIAEoCBIPCgdyZWZ1c2FsGAcgASgJEg8KB3Byb2JsZW0YCCABKAkSMAoHcGx1Z2lucxgJIAMoCzIfLmhhcm5lc3MuYWdlbnQudjEuUGx1Z2luTGlzdGluZyIhChJMaXN0UGx1Z2luc1JlcXVlc3QSCwoDY3dkGAEgASgJIs8CChNMaXN0UGx1Z2luc1Jlc3BvbnNlEikKB3BsdWdpbnMYASADKAsyGC5oYXJuZXNzLmFnZW50LnYxLlBsdWdpbhI5CgxtYXJrZXRwbGFjZXMYAiADKAsyIy5oYXJuZXNzLmFnZW50LnYxLlBsdWdpbk1hcmtldHBsYWNlEhoKEnNvdXJjZXNfcmVzdHJpY3RlZBgDIAEoCBIWCg5mb2xkZXJfdHJ1c3RlZBgEIAEoCBJgChZzdWdnZXN0ZWRfbWFya2V0cGxhY2VzGAUgAygLMkAuaGFybmVzcy5hZ2VudC52MS5MaXN0UGx1Z2luc1Jlc3BvbnNlLlN1Z2dlc3RlZE1hcmtldHBsYWNlc0VudHJ5GjwKGlN1Z2dlc3RlZE1hcmtldHBsYWNlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiMQoUSW5zdGFsbFBsdWdpblJlcXVlc3QSDAoEc3BlYxgBIAEoCRILCgNjd2QYAiABKAkiQQoVSW5zdGFsbFBsdWdpblJlc3BvbnNlEigKBnBsdWdpbhgBIAEoCzIYLmhhcm5lc3MuYWdlbnQudjEuUGx1Z2luIi4KE1VwZGF0ZVBsdWdpblJlcXVlc3QSCgoCaWQYASABKAkSCwoDY3dkGAIgASgJIl8KFFVwZGF0ZVBsdWdpblJlc3BvbnNlEigKBnBsdWdpbhgBIAEoCzIYLmhhcm5lc3MuYWdlbnQudjEuUGx1Z2luEg8KB2NoYW5nZWQYAiABKAgSDAoEbm90ZRgDIAEoCSI0ChNSZW1vdmVQbHVnaW5SZXF1ZXN0EgoKAmlkGAEgASgJEhEKCWtlZXBfZGF0YRgCIAEoCCIWChRSZW1vdmVQbHVnaW5SZXNwb25zZSI2ChdTZXRQbHVnaW5FbmFibGVkUmVxdWVzdBIKCgJpZBgBIAEoCRIPCgdlbmFibGVkGAIgASgIIhoKGFNldFBsdWdpbkVuYWJsZWRSZXNwb25zZSJOChhTZXRQbHVnaW5BcHByb3ZhbFJlcXVlc3QSCgoCaWQYASABKAkSEAoIYXBwcm92ZWQYAiABKAgSFAoMY29udGVudF9oYXNoGAMgASgJIhsKGVNldFBsdWdpbkFwcHJvdmFsUmVzcG9uc2UiNAoWU2V0UGx1Z2luUGlubmVkUmVxdWVzdBIKCgJpZBgBIAEoCRIOCgZwaW5uZWQYAiABKAgiGQoXU2V0UGx1Z2luUGlubmVkUmVzcG9uc2UiLQobQWRkUGx1Z2luTWFya2V0cGxhY2VSZXF1ZXN0Eg4KBnNvdXJjZRgBIAEoCSIsChxBZGRQbHVnaW5NYXJrZXRwbGFjZVJlc3BvbnNlEgwKBG5hbWUYASABKAkiLgoeVXBkYXRlUGx1Z2luTWFya2V0cGxhY2VSZXF1ZXN0EgwKBG5hbWUYASABKAkiIQofVXBkYXRlUGx1Z2luTWFya2V0cGxhY2VSZXNwb25zZSIuCh5SZW1vdmVQbHVnaW5NYXJrZXRwbGFjZVJlcXVlc3QSDAoEbmFtZRgBIAEoCSIhCh9SZW1vdmVQbHVnaW5NYXJrZXRwbGFjZVJlc3BvbnNlKqwCCgxQbHVnaW5TdGF0dXMSHQoZUExVR0lOX1NUQVRVU19VTlNQRUNJRklFRBAAEhgKFFBMVUdJTl9TVEFUVVNfQUNUSVZFEAESIAocUExVR0lOX1NUQVRVU19ORUVEU19BUFBST1ZBTBACEhoKFlBMVUdJTl9TVEFUVVNfRElTQUJMRUQQAxIiCh5QTFVHSU5fU1RBVFVTX1VOVFJVU1RFRF9GT0xERVIQBBIjCh9QTFVHSU5fU1RBVFVTX0JMT0NLRURfQllfUE9MSUNZEAUSIQodUExVR0lOX1NUQVRVU19DSEFOR0VEX09OX0RJU0sQBhIYChRQTFVHSU5fU1RBVFVTX0JST0tFThAHEh8KG1BMVUdJTl9TVEFUVVNfTk9UX0lOU1RBTExFRBAIMsMICg1QbHVnaW5TZXJ2aWNlEloKC0xpc3RQbHVnaW5zEiQuaGFybmVzcy5hZ2VudC52MS5MaXN0UGx1Z2luc1JlcXVlc3QaJS5oYXJuZXNzLmFnZW50LnYxLkxpc3RQbHVnaW5zUmVzcG9uc2USYAoNSW5zdGFsbFBsdWdpbhImLmhhcm5lc3MuYWdlbnQudjEuSW5zdGFsbFBsdWdpblJlcXVlc3QaJy5oYXJuZXNzLmFnZW50LnYxLkluc3RhbGxQbHVnaW5SZXNwb25zZRJdCgxVcGRhdGVQbHVnaW4SJS5oYXJuZXNzLmFnZW50LnYxLlVwZGF0ZVBsdWdpblJlcXVlc3QaJi5oYXJuZXNzLmFnZW50LnYxLlVwZGF0ZVBsdWdpblJlc3BvbnNlEl0KDFJlbW92ZVBsdWdpbhIlLmhhcm5lc3MuYWdlbnQudjEuUmVtb3ZlUGx1Z2luUmVxdWVzdBomLmhhcm5lc3MuYWdlbnQudjEuUmVtb3ZlUGx1Z2luUmVzcG9uc2USaQoQU2V0UGx1Z2luRW5hYmxlZBIpLmhhcm5lc3MuYWdlbnQudjEuU2V0UGx1Z2luRW5hYmxlZFJlcXVlc3QaKi5oYXJuZXNzLmFnZW50LnYxLlNldFBsdWdpbkVuYWJsZWRSZXNwb25zZRJsChFTZXRQbHVnaW5BcHByb3ZhbBIqLmhhcm5lc3MuYWdlbnQudjEuU2V0UGx1Z2luQXBwcm92YWxSZXF1ZXN0GisuaGFybmVzcy5hZ2VudC52MS5TZXRQbHVnaW5BcHByb3ZhbFJlc3BvbnNlEmYKD1NldFBsdWdpblBpbm5lZBIoLmhhcm5lc3MuYWdlbnQudjEuU2V0UGx1Z2luUGlubmVkUmVxdWVzdBopLmhhcm5lc3MuYWdlbnQudjEuU2V0UGx1Z2luUGlubmVkUmVzcG9uc2USdQoUQWRkUGx1Z2luTWFya2V0cGxhY2USLS5oYXJuZXNzLmFnZW50LnYxLkFkZFBsdWdpbk1hcmtldHBsYWNlUmVxdWVzdBouLmhhcm5lc3MuYWdlbnQudjEuQWRkUGx1Z2luTWFya2V0cGxhY2VSZXNwb25zZRJ+ChdVcGRhdGVQbHVnaW5NYXJrZXRwbGFjZRIwLmhhcm5lc3MuYWdlbnQudjEuVXBkYXRlUGx1Z2luTWFya2V0cGxhY2VSZXF1ZXN0GjEuaGFybmVzcy5hZ2VudC52MS5VcGRhdGVQbHVnaW5NYXJrZXRwbGFjZVJlc3BvbnNlEn4KF1JlbW92ZVBsdWdpbk1hcmtldHBsYWNlEjAuaGFybmVzcy5hZ2VudC52MS5SZW1vdmVQbHVnaW5NYXJrZXRwbGFjZVJlcXVlc3QaMS5oYXJuZXNzLmFnZW50LnYxLlJlbW92ZVBsdWdpbk1hcmtldHBsYWNlUmVzcG9uc2VCzQEKFGNvbS5oYXJuZXNzLmFnZW50LnYxQgxQbHVnaW5zUHJvdG9QAVpFZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9hZ2VudC92MTthZ2VudHYxogIDSEFYqgIQSGFybmVzcy5BZ2VudC5WMcoCEEhhcm5lc3NcQWdlbnRcVjHiAhxIYXJuZXNzXEFnZW50XFYxXEdQQk1ldGFkYXRh6gISSGFybmVzczo6QWdlbnQ6OlYxYgZwcm90bzM");
+  fileDesc("Ch5oYXJuZXNzL2FnZW50L3YxL3BsdWdpbnMucHJvdG8SEGhhcm5lc3MuYWdlbnQudjEiXwoKUGx1Z2luSG9vaxINCgVldmVudBgBIAEoCRIPCgdtYXRjaGVyGAIgASgJEgwKBHR5cGUYAyABKAkSDwoHY29tbWFuZBgEIAEoCRISCgpmcm9tX3NraWxsGAUgASgJIkMKD1BsdWdpbk1jcFNlcnZlchIMCgRuYW1lGAEgASgJEhEKCXRyYW5zcG9ydBgCIAEoCRIPCgdjb21tYW5kGAMgASgJIvoCCg5QbHVnaW5Db250ZW50cxIOCgZza2lsbHMYASADKAkSEAoIY29tbWFuZHMYAiADKAkSDgoGYWdlbnRzGAMgAygJEhUKDW91dHB1dF9zdHlsZXMYBCADKAkSKwoFaG9va3MYBSADKAsyHC5oYXJuZXNzLmFnZW50LnYxLlBsdWdpbkhvb2sSNgoLbWNwX3NlcnZlcnMYBiADKAsyIS5oYXJuZXNzLmFnZW50LnYxLlBsdWdpbk1jcFNlcnZlchIVCg1hbGxvd2VkX3Rvb2xzGAcgAygJEg8KB3NraXBwZWQYCCADKAkSKwoFcGFuZXMYCSADKAsyHC5oYXJuZXNzLmFnZW50LnYxLlBsdWdpblBhbmUSOAoMc3RhdHVzX2l0ZW1zGAogAygLMiIuaGFybmVzcy5hZ2VudC52MS5QbHVnaW5TdGF0dXNJdGVtEhcKD3VpX2NhcGFiaWxpdGllcxgLIAMoCRISCgp1aV9uZXR3b3JrGAwgAygJIlYKClBsdWdpblBhbmUSEQoJcGx1Z2luX2lkGAEgASgJEgoKAmlkGAIgASgJEg0KBXRpdGxlGAMgASgJEgwKBGljb24YBCABKAkSDAoEcGFnZRgFIAEoCSJ8ChBQbHVnaW5TdGF0dXNJdGVtEhEKCXBsdWdpbl9pZBgBIAEoCRIKCgJpZBgCIAEoCRIMCgR0ZXh0GAMgASgJEgwKBGljb24YBCABKAkSDwoHdG9vbHRpcBgFIAEoCRIMCgRwYW5lGAYgASgJEg4KBnByb21wdBgHIAEoCSJICg1QbHVnaW5VaUdyYW50EhIKCmNhcGFiaWxpdHkYASABKAkSDwoHZ3JhbnRlZBgCIAEoCBISCgpncmFudGVkX2F0GAMgASgJIucDCgZQbHVnaW4SCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRITCgttYXJrZXRwbGFjZRgDIAEoCRIUCgxkaXNwbGF5X25hbWUYBCABKAkSEwoLZGVzY3JpcHRpb24YBSABKAkSDwoHdmVyc2lvbhgGIAEoCRIOCgZjb21taXQYByABKAkSFAoMY29udGVudF9oYXNoGAggASgJEi4KBnN0YXR1cxgJIAEoDjIeLmhhcm5lc3MuYWdlbnQudjEuUGx1Z2luU3RhdHVzEg4KBnJlYXNvbhgKIAEoCRIPCgdlbmFibGVkGAsgASgIEhAKCGFwcHJvdmVkGAwgASgIEg4KBnBpbm5lZBgNIAEoCBIPCgdtYW5hZ2VkGA4gASgIEhQKDHN1Z2dlc3RlZF9ieRgPIAEoCRIOCgZzb3VyY2UYECABKAkSFAoMaW5zdGFsbGVkX2F0GBEgASgJEjIKCGNvbnRlbnRzGBIgASgLMiAuaGFybmVzcy5hZ2VudC52MS5QbHVnaW5Db250ZW50cxIQCghwcm9ibGVtcxgTIAMoCRIyCgl1aV9ncmFudHMYFCADKAsyHy5oYXJuZXNzLmFnZW50LnYxLlBsdWdpblVpR3JhbnQSEgoKdWlfYmxvY2tlZBgVIAEoCSJiCg1QbHVnaW5MaXN0aW5nEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSDwoHdmVyc2lvbhgEIAEoCRIRCglpbnN0YWxsZWQYBSABKAgizwEKEVBsdWdpbk1hcmtldHBsYWNlEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSDgoGc291cmNlGAMgASgJEg4KBmNvbW1pdBgEIAEoCRISCgp1cGRhdGVkX2F0GAUgASgJEg8KB21hbmFnZWQYBiABKAgSDwoHcmVmdXNhbBgHIAEoCRIPCgdwcm9ibGVtGAggASgJEjAKB3BsdWdpbnMYCSADKAsyHy5oYXJuZXNzLmFnZW50LnYxLlBsdWdpbkxpc3RpbmciIQoSTGlzdFBsdWdpbnNSZXF1ZXN0EgsKA2N3ZBgBIAEoCSLPAgoTTGlzdFBsdWdpbnNSZXNwb25zZRIpCgdwbHVnaW5zGAEgAygLMhguaGFybmVzcy5hZ2VudC52MS5QbHVnaW4SOQoMbWFya2V0cGxhY2VzGAIgAygLMiMuaGFybmVzcy5hZ2VudC52MS5QbHVnaW5NYXJrZXRwbGFjZRIaChJzb3VyY2VzX3Jlc3RyaWN0ZWQYAyABKAgSFgoOZm9sZGVyX3RydXN0ZWQYBCABKAgSYAoWc3VnZ2VzdGVkX21hcmtldHBsYWNlcxgFIAMoCzJALmhhcm5lc3MuYWdlbnQudjEuTGlzdFBsdWdpbnNSZXNwb25zZS5TdWdnZXN0ZWRNYXJrZXRwbGFjZXNFbnRyeRo8ChpTdWdnZXN0ZWRNYXJrZXRwbGFjZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIjEKFEluc3RhbGxQbHVnaW5SZXF1ZXN0EgwKBHNwZWMYASABKAkSCwoDY3dkGAIgASgJIkEKFUluc3RhbGxQbHVnaW5SZXNwb25zZRIoCgZwbHVnaW4YASABKAsyGC5oYXJuZXNzLmFnZW50LnYxLlBsdWdpbiIuChNVcGRhdGVQbHVnaW5SZXF1ZXN0EgoKAmlkGAEgASgJEgsKA2N3ZBgCIAEoCSJfChRVcGRhdGVQbHVnaW5SZXNwb25zZRIoCgZwbHVnaW4YASABKAsyGC5oYXJuZXNzLmFnZW50LnYxLlBsdWdpbhIPCgdjaGFuZ2VkGAIgASgIEgwKBG5vdGUYAyABKAkiNAoTUmVtb3ZlUGx1Z2luUmVxdWVzdBIKCgJpZBgBIAEoCRIRCglrZWVwX2RhdGEYAiABKAgiFgoUUmVtb3ZlUGx1Z2luUmVzcG9uc2UiNgoXU2V0UGx1Z2luRW5hYmxlZFJlcXVlc3QSCgoCaWQYASABKAkSDwoHZW5hYmxlZBgCIAEoCCIaChhTZXRQbHVnaW5FbmFibGVkUmVzcG9uc2UiTgoYU2V0UGx1Z2luQXBwcm92YWxSZXF1ZXN0EgoKAmlkGAEgASgJEhAKCGFwcHJvdmVkGAIgASgIEhQKDGNvbnRlbnRfaGFzaBgDIAEoCSIbChlTZXRQbHVnaW5BcHByb3ZhbFJlc3BvbnNlIjQKFlNldFBsdWdpblBpbm5lZFJlcXVlc3QSCgoCaWQYASABKAkSDgoGcGlubmVkGAIgASgIIhkKF1NldFBsdWdpblBpbm5lZFJlc3BvbnNlIi0KG0FkZFBsdWdpbk1hcmtldHBsYWNlUmVxdWVzdBIOCgZzb3VyY2UYASABKAkiLAocQWRkUGx1Z2luTWFya2V0cGxhY2VSZXNwb25zZRIMCgRuYW1lGAEgASgJIi4KHlVwZGF0ZVBsdWdpbk1hcmtldHBsYWNlUmVxdWVzdBIMCgRuYW1lGAEgASgJIiEKH1VwZGF0ZVBsdWdpbk1hcmtldHBsYWNlUmVzcG9uc2UiLgoeUmVtb3ZlUGx1Z2luTWFya2V0cGxhY2VSZXF1ZXN0EgwKBG5hbWUYASABKAkiIQofUmVtb3ZlUGx1Z2luTWFya2V0cGxhY2VSZXNwb25zZSIpChNMaXN0UGx1Z2luVWlSZXF1ZXN0EhIKCnNlc3Npb25faWQYASABKAkimgMKFExpc3RQbHVnaW5VaVJlc3BvbnNlEisKBXBhbmVzGAEgAygLMhwuaGFybmVzcy5hZ2VudC52MS5QbHVnaW5QYW5lEjgKDHN0YXR1c19pdGVtcxgCIAMoCzIiLmhhcm5lc3MuYWdlbnQudjEuUGx1Z2luU3RhdHVzSXRlbRJNCgxwbHVnaW5fbmFtZXMYAyADKAsyNy5oYXJuZXNzLmFnZW50LnYxLkxpc3RQbHVnaW5VaVJlc3BvbnNlLlBsdWdpbk5hbWVzRW50cnkSDwoHYmxvY2tlZBgEIAEoCRJRCg5jb250ZW50X2hhc2hlcxgFIAMoCzI5Lmhhcm5lc3MuYWdlbnQudjEuTGlzdFBsdWdpblVpUmVzcG9uc2UuQ29udGVudEhhc2hlc0VudHJ5GjIKEFBsdWdpbk5hbWVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ARo0ChJDb250ZW50SGFzaGVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJOChRHZXRQbHVnaW5QYW5lUmVxdWVzdBIRCglwbHVnaW5faWQYASABKAkSDwoHcGFuZV9pZBgCIAEoCRISCgpzZXNzaW9uX2lkGAMgASgJIqIBChVHZXRQbHVnaW5QYW5lUmVzcG9uc2USKgoEcGFuZRgBIAEoCzIcLmhhcm5lc3MuYWdlbnQudjEuUGx1Z2luUGFuZRIMCgRodG1sGAIgASgJEgsKA2NzcBgDIAEoCRIXCg9uZXR3b3JrX3BlbmRpbmcYBCADKAkSEwoLcGx1Z2luX25hbWUYBSABKAkSFAoMY29udGVudF9oYXNoGAYgASgJInIKE0NhbGxQbHVnaW5VaVJlcXVlc3QSEQoJcGx1Z2luX2lkGAEgASgJEhIKCnNlc3Npb25faWQYAiABKAkSDwoHdmVyc2lvbhgDIAEoBRIOCgZtZXRob2QYBCABKAkSEwoLcGFyYW1zX2pzb24YBSABKAkiZQoUQ2FsbFBsdWdpblVpUmVzcG9uc2USEwoLcmVzdWx0X2pzb24YASABKAkSFgoObmVlZHNfYXBwcm92YWwYAiABKAkSEQoJb3Blbl9maWxlGAMgASgJEg0KBXRoZW1lGAQgASgIImcKF1NldFBsdWdpblVpR3JhbnRSZXF1ZXN0EhEKCXBsdWdpbl9pZBgBIAEoCRISCgpjYXBhYmlsaXR5GAIgASgJEg8KB2dyYW50ZWQYAyABKAgSFAoMY29udGVudF9oYXNoGAQgASgJIhoKGFNldFBsdWdpblVpR3JhbnRSZXNwb25zZSqsAgoMUGx1Z2luU3RhdHVzEh0KGVBMVUdJTl9TVEFUVVNfVU5TUEVDSUZJRUQQABIYChRQTFVHSU5fU1RBVFVTX0FDVElWRRABEiAKHFBMVUdJTl9TVEFUVVNfTkVFRFNfQVBQUk9WQUwQAhIaChZQTFVHSU5fU1RBVFVTX0RJU0FCTEVEEAMSIgoeUExVR0lOX1NUQVRVU19VTlRSVVNURURfRk9MREVSEAQSIwofUExVR0lOX1NUQVRVU19CTE9DS0VEX0JZX1BPTElDWRAFEiEKHVBMVUdJTl9TVEFUVVNfQ0hBTkdFRF9PTl9ESVNLEAYSGAoUUExVR0lOX1NUQVRVU19CUk9LRU4QBxIfChtQTFVHSU5fU1RBVFVTX05PVF9JTlNUQUxMRUQQCDLOCwoNUGx1Z2luU2VydmljZRJaCgtMaXN0UGx1Z2lucxIkLmhhcm5lc3MuYWdlbnQudjEuTGlzdFBsdWdpbnNSZXF1ZXN0GiUuaGFybmVzcy5hZ2VudC52MS5MaXN0UGx1Z2luc1Jlc3BvbnNlEmAKDUluc3RhbGxQbHVnaW4SJi5oYXJuZXNzLmFnZW50LnYxLkluc3RhbGxQbHVnaW5SZXF1ZXN0GicuaGFybmVzcy5hZ2VudC52MS5JbnN0YWxsUGx1Z2luUmVzcG9uc2USXQoMVXBkYXRlUGx1Z2luEiUuaGFybmVzcy5hZ2VudC52MS5VcGRhdGVQbHVnaW5SZXF1ZXN0GiYuaGFybmVzcy5hZ2VudC52MS5VcGRhdGVQbHVnaW5SZXNwb25zZRJdCgxSZW1vdmVQbHVnaW4SJS5oYXJuZXNzLmFnZW50LnYxLlJlbW92ZVBsdWdpblJlcXVlc3QaJi5oYXJuZXNzLmFnZW50LnYxLlJlbW92ZVBsdWdpblJlc3BvbnNlEmkKEFNldFBsdWdpbkVuYWJsZWQSKS5oYXJuZXNzLmFnZW50LnYxLlNldFBsdWdpbkVuYWJsZWRSZXF1ZXN0GiouaGFybmVzcy5hZ2VudC52MS5TZXRQbHVnaW5FbmFibGVkUmVzcG9uc2USbAoRU2V0UGx1Z2luQXBwcm92YWwSKi5oYXJuZXNzLmFnZW50LnYxLlNldFBsdWdpbkFwcHJvdmFsUmVxdWVzdBorLmhhcm5lc3MuYWdlbnQudjEuU2V0UGx1Z2luQXBwcm92YWxSZXNwb25zZRJmCg9TZXRQbHVnaW5QaW5uZWQSKC5oYXJuZXNzLmFnZW50LnYxLlNldFBsdWdpblBpbm5lZFJlcXVlc3QaKS5oYXJuZXNzLmFnZW50LnYxLlNldFBsdWdpblBpbm5lZFJlc3BvbnNlEnUKFEFkZFBsdWdpbk1hcmtldHBsYWNlEi0uaGFybmVzcy5hZ2VudC52MS5BZGRQbHVnaW5NYXJrZXRwbGFjZVJlcXVlc3QaLi5oYXJuZXNzLmFnZW50LnYxLkFkZFBsdWdpbk1hcmtldHBsYWNlUmVzcG9uc2USfgoXVXBkYXRlUGx1Z2luTWFya2V0cGxhY2USMC5oYXJuZXNzLmFnZW50LnYxLlVwZGF0ZVBsdWdpbk1hcmtldHBsYWNlUmVxdWVzdBoxLmhhcm5lc3MuYWdlbnQudjEuVXBkYXRlUGx1Z2luTWFya2V0cGxhY2VSZXNwb25zZRJ+ChdSZW1vdmVQbHVnaW5NYXJrZXRwbGFjZRIwLmhhcm5lc3MuYWdlbnQudjEuUmVtb3ZlUGx1Z2luTWFya2V0cGxhY2VSZXF1ZXN0GjEuaGFybmVzcy5hZ2VudC52MS5SZW1vdmVQbHVnaW5NYXJrZXRwbGFjZVJlc3BvbnNlEl0KDExpc3RQbHVnaW5VaRIlLmhhcm5lc3MuYWdlbnQudjEuTGlzdFBsdWdpblVpUmVxdWVzdBomLmhhcm5lc3MuYWdlbnQudjEuTGlzdFBsdWdpblVpUmVzcG9uc2USYAoNR2V0UGx1Z2luUGFuZRImLmhhcm5lc3MuYWdlbnQudjEuR2V0UGx1Z2luUGFuZVJlcXVlc3QaJy5oYXJuZXNzLmFnZW50LnYxLkdldFBsdWdpblBhbmVSZXNwb25zZRJdCgxDYWxsUGx1Z2luVWkSJS5oYXJuZXNzLmFnZW50LnYxLkNhbGxQbHVnaW5VaVJlcXVlc3QaJi5oYXJuZXNzLmFnZW50LnYxLkNhbGxQbHVnaW5VaVJlc3BvbnNlEmkKEFNldFBsdWdpblVpR3JhbnQSKS5oYXJuZXNzLmFnZW50LnYxLlNldFBsdWdpblVpR3JhbnRSZXF1ZXN0GiouaGFybmVzcy5hZ2VudC52MS5TZXRQbHVnaW5VaUdyYW50UmVzcG9uc2VCzQEKFGNvbS5oYXJuZXNzLmFnZW50LnYxQgxQbHVnaW5zUHJvdG9QAVpFZ2l0aHViLmNvbS94bHNmdC9oYXJuZXNzL3BhY2thZ2VzL2NsaWVudC9nZW4vaGFybmVzcy9hZ2VudC92MTthZ2VudHYxogIDSEFYqgIQSGFybmVzcy5BZ2VudC5WMcoCEEhhcm5lc3NcQWdlbnRcVjHiAhxIYXJuZXNzXEFnZW50XFYxXEdQQk1ldGFkYXRh6gISSGFybmVzczo6QWdlbnQ6OlYxYgZwcm90bzM");
 
 /**
  * A handler a plugin would run.
@@ -139,6 +139,28 @@ export type PluginContents = Message<"harness.agent.v1.PluginContents"> & {
    * @generated from field: repeated string skipped = 8;
    */
   skipped: string[];
+
+  /**
+   * Its UI: panes, status-bar items, the capabilities of the message API they may ask for, and the origins they may reach.
+   *
+   * @generated from field: repeated harness.agent.v1.PluginPane panes = 9;
+   */
+  panes: PluginPane[];
+
+  /**
+   * @generated from field: repeated harness.agent.v1.PluginStatusItem status_items = 10;
+   */
+  statusItems: PluginStatusItem[];
+
+  /**
+   * @generated from field: repeated string ui_capabilities = 11;
+   */
+  uiCapabilities: string[];
+
+  /**
+   * @generated from field: repeated string ui_network = 12;
+   */
+  uiNetwork: string[];
 };
 
 /**
@@ -147,6 +169,137 @@ export type PluginContents = Message<"harness.agent.v1.PluginContents"> & {
  */
 export const PluginContentsSchema: GenMessage<PluginContents> = /*@__PURE__*/
   messageDesc(file_harness_agent_v1_plugins, 2);
+
+/**
+ * A pane a plugin declares: an HTML page of its folder, shown in the right pane in a sandboxed frame.
+ *
+ * @generated from message harness.agent.v1.PluginPane
+ */
+export type PluginPane = Message<"harness.agent.v1.PluginPane"> & {
+  /**
+   * @generated from field: string plugin_id = 1;
+   */
+  pluginId: string;
+
+  /**
+   * Unique in the plugin.
+   *
+   * @generated from field: string id = 2;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string title = 3;
+   */
+  title: string;
+
+  /**
+   * A name of the app's icon set; empty for the default.
+   *
+   * @generated from field: string icon = 4;
+   */
+  icon: string;
+
+  /**
+   * The page, as the manifest names it (./ui/meter.html).
+   *
+   * @generated from field: string page = 5;
+   */
+  page: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.PluginPane.
+ * Use `create(PluginPaneSchema)` to create a new message.
+ */
+export const PluginPaneSchema: GenMessage<PluginPane> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_plugins, 3);
+
+/**
+ * A status-bar item a plugin declares. A click opens one of its panes, or sends a fixed prompt to the session.
+ *
+ * @generated from message harness.agent.v1.PluginStatusItem
+ */
+export type PluginStatusItem = Message<"harness.agent.v1.PluginStatusItem"> & {
+  /**
+   * @generated from field: string plugin_id = 1;
+   */
+  pluginId: string;
+
+  /**
+   * @generated from field: string id = 2;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string text = 3;
+   */
+  text: string;
+
+  /**
+   * @generated from field: string icon = 4;
+   */
+  icon: string;
+
+  /**
+   * @generated from field: string tooltip = 5;
+   */
+  tooltip: string;
+
+  /**
+   * The id of a pane of the same plugin; or
+   *
+   * @generated from field: string pane = 6;
+   */
+  pane: string;
+
+  /**
+   * the text sent to the session, with the session.prompt capability.
+   *
+   * @generated from field: string prompt = 7;
+   */
+  prompt: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.PluginStatusItem.
+ * Use `create(PluginStatusItemSchema)` to create a new message.
+ */
+export const PluginStatusItemSchema: GenMessage<PluginStatusItem> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_plugins, 4);
+
+/**
+ * A capability of a plugin's UI as this device stands on it.
+ *
+ * @generated from message harness.agent.v1.PluginUiGrant
+ */
+export type PluginUiGrant = Message<"harness.agent.v1.PluginUiGrant"> & {
+  /**
+   * session.read, session.prompt, files.open, theme.read, or network.
+   *
+   * @generated from field: string capability = 1;
+   */
+  capability: string;
+
+  /**
+   * @generated from field: bool granted = 2;
+   */
+  granted: boolean;
+
+  /**
+   * RFC 3339, UTC.
+   *
+   * @generated from field: string granted_at = 3;
+   */
+  grantedAt: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.PluginUiGrant.
+ * Use `create(PluginUiGrantSchema)` to create a new message.
+ */
+export const PluginUiGrantSchema: GenMessage<PluginUiGrant> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_plugins, 5);
 
 /**
  * @generated from message harness.agent.v1.Plugin
@@ -262,6 +415,20 @@ export type Plugin = Message<"harness.agent.v1.Plugin"> & {
    * @generated from field: repeated string problems = 19;
    */
   problems: string[];
+
+  /**
+   * Each capability its UI declares, and whether this device approved it for this content.
+   *
+   * @generated from field: repeated harness.agent.v1.PluginUiGrant ui_grants = 20;
+   */
+  uiGrants: PluginUiGrant[];
+
+  /**
+   * Why its panes and status-bar items are not shown, when policy says so.
+   *
+   * @generated from field: string ui_blocked = 21;
+   */
+  uiBlocked: string;
 };
 
 /**
@@ -269,7 +436,7 @@ export type Plugin = Message<"harness.agent.v1.Plugin"> & {
  * Use `create(PluginSchema)` to create a new message.
  */
 export const PluginSchema: GenMessage<Plugin> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 3);
+  messageDesc(file_harness_agent_v1_plugins, 6);
 
 /**
  * An entry of a marketplace's catalog.
@@ -308,7 +475,7 @@ export type PluginListing = Message<"harness.agent.v1.PluginListing"> & {
  * Use `create(PluginListingSchema)` to create a new message.
  */
 export const PluginListingSchema: GenMessage<PluginListing> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 4);
+  messageDesc(file_harness_agent_v1_plugins, 7);
 
 /**
  * @generated from message harness.agent.v1.PluginMarketplace
@@ -377,7 +544,7 @@ export type PluginMarketplace = Message<"harness.agent.v1.PluginMarketplace"> & 
  * Use `create(PluginMarketplaceSchema)` to create a new message.
  */
 export const PluginMarketplaceSchema: GenMessage<PluginMarketplace> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 5);
+  messageDesc(file_harness_agent_v1_plugins, 8);
 
 /**
  * @generated from message harness.agent.v1.ListPluginsRequest
@@ -396,7 +563,7 @@ export type ListPluginsRequest = Message<"harness.agent.v1.ListPluginsRequest"> 
  * Use `create(ListPluginsRequestSchema)` to create a new message.
  */
 export const ListPluginsRequestSchema: GenMessage<ListPluginsRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 6);
+  messageDesc(file_harness_agent_v1_plugins, 9);
 
 /**
  * @generated from message harness.agent.v1.ListPluginsResponse
@@ -439,7 +606,7 @@ export type ListPluginsResponse = Message<"harness.agent.v1.ListPluginsResponse"
  * Use `create(ListPluginsResponseSchema)` to create a new message.
  */
 export const ListPluginsResponseSchema: GenMessage<ListPluginsResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 7);
+  messageDesc(file_harness_agent_v1_plugins, 10);
 
 /**
  * @generated from message harness.agent.v1.InstallPluginRequest
@@ -463,7 +630,7 @@ export type InstallPluginRequest = Message<"harness.agent.v1.InstallPluginReques
  * Use `create(InstallPluginRequestSchema)` to create a new message.
  */
 export const InstallPluginRequestSchema: GenMessage<InstallPluginRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 8);
+  messageDesc(file_harness_agent_v1_plugins, 11);
 
 /**
  * @generated from message harness.agent.v1.InstallPluginResponse
@@ -480,7 +647,7 @@ export type InstallPluginResponse = Message<"harness.agent.v1.InstallPluginRespo
  * Use `create(InstallPluginResponseSchema)` to create a new message.
  */
 export const InstallPluginResponseSchema: GenMessage<InstallPluginResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 9);
+  messageDesc(file_harness_agent_v1_plugins, 12);
 
 /**
  * @generated from message harness.agent.v1.UpdatePluginRequest
@@ -502,7 +669,7 @@ export type UpdatePluginRequest = Message<"harness.agent.v1.UpdatePluginRequest"
  * Use `create(UpdatePluginRequestSchema)` to create a new message.
  */
 export const UpdatePluginRequestSchema: GenMessage<UpdatePluginRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 10);
+  messageDesc(file_harness_agent_v1_plugins, 13);
 
 /**
  * @generated from message harness.agent.v1.UpdatePluginResponse
@@ -533,7 +700,7 @@ export type UpdatePluginResponse = Message<"harness.agent.v1.UpdatePluginRespons
  * Use `create(UpdatePluginResponseSchema)` to create a new message.
  */
 export const UpdatePluginResponseSchema: GenMessage<UpdatePluginResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 11);
+  messageDesc(file_harness_agent_v1_plugins, 14);
 
 /**
  * @generated from message harness.agent.v1.RemovePluginRequest
@@ -557,7 +724,7 @@ export type RemovePluginRequest = Message<"harness.agent.v1.RemovePluginRequest"
  * Use `create(RemovePluginRequestSchema)` to create a new message.
  */
 export const RemovePluginRequestSchema: GenMessage<RemovePluginRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 12);
+  messageDesc(file_harness_agent_v1_plugins, 15);
 
 /**
  * @generated from message harness.agent.v1.RemovePluginResponse
@@ -570,7 +737,7 @@ export type RemovePluginResponse = Message<"harness.agent.v1.RemovePluginRespons
  * Use `create(RemovePluginResponseSchema)` to create a new message.
  */
 export const RemovePluginResponseSchema: GenMessage<RemovePluginResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 13);
+  messageDesc(file_harness_agent_v1_plugins, 16);
 
 /**
  * @generated from message harness.agent.v1.SetPluginEnabledRequest
@@ -592,7 +759,7 @@ export type SetPluginEnabledRequest = Message<"harness.agent.v1.SetPluginEnabled
  * Use `create(SetPluginEnabledRequestSchema)` to create a new message.
  */
 export const SetPluginEnabledRequestSchema: GenMessage<SetPluginEnabledRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 14);
+  messageDesc(file_harness_agent_v1_plugins, 17);
 
 /**
  * @generated from message harness.agent.v1.SetPluginEnabledResponse
@@ -605,7 +772,7 @@ export type SetPluginEnabledResponse = Message<"harness.agent.v1.SetPluginEnable
  * Use `create(SetPluginEnabledResponseSchema)` to create a new message.
  */
 export const SetPluginEnabledResponseSchema: GenMessage<SetPluginEnabledResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 15);
+  messageDesc(file_harness_agent_v1_plugins, 18);
 
 /**
  * @generated from message harness.agent.v1.SetPluginApprovalRequest
@@ -634,7 +801,7 @@ export type SetPluginApprovalRequest = Message<"harness.agent.v1.SetPluginApprov
  * Use `create(SetPluginApprovalRequestSchema)` to create a new message.
  */
 export const SetPluginApprovalRequestSchema: GenMessage<SetPluginApprovalRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 16);
+  messageDesc(file_harness_agent_v1_plugins, 19);
 
 /**
  * @generated from message harness.agent.v1.SetPluginApprovalResponse
@@ -647,7 +814,7 @@ export type SetPluginApprovalResponse = Message<"harness.agent.v1.SetPluginAppro
  * Use `create(SetPluginApprovalResponseSchema)` to create a new message.
  */
 export const SetPluginApprovalResponseSchema: GenMessage<SetPluginApprovalResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 17);
+  messageDesc(file_harness_agent_v1_plugins, 20);
 
 /**
  * @generated from message harness.agent.v1.SetPluginPinnedRequest
@@ -669,7 +836,7 @@ export type SetPluginPinnedRequest = Message<"harness.agent.v1.SetPluginPinnedRe
  * Use `create(SetPluginPinnedRequestSchema)` to create a new message.
  */
 export const SetPluginPinnedRequestSchema: GenMessage<SetPluginPinnedRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 18);
+  messageDesc(file_harness_agent_v1_plugins, 21);
 
 /**
  * @generated from message harness.agent.v1.SetPluginPinnedResponse
@@ -682,7 +849,7 @@ export type SetPluginPinnedResponse = Message<"harness.agent.v1.SetPluginPinnedR
  * Use `create(SetPluginPinnedResponseSchema)` to create a new message.
  */
 export const SetPluginPinnedResponseSchema: GenMessage<SetPluginPinnedResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 19);
+  messageDesc(file_harness_agent_v1_plugins, 22);
 
 /**
  * @generated from message harness.agent.v1.AddPluginMarketplaceRequest
@@ -701,7 +868,7 @@ export type AddPluginMarketplaceRequest = Message<"harness.agent.v1.AddPluginMar
  * Use `create(AddPluginMarketplaceRequestSchema)` to create a new message.
  */
 export const AddPluginMarketplaceRequestSchema: GenMessage<AddPluginMarketplaceRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 20);
+  messageDesc(file_harness_agent_v1_plugins, 23);
 
 /**
  * @generated from message harness.agent.v1.AddPluginMarketplaceResponse
@@ -718,7 +885,7 @@ export type AddPluginMarketplaceResponse = Message<"harness.agent.v1.AddPluginMa
  * Use `create(AddPluginMarketplaceResponseSchema)` to create a new message.
  */
 export const AddPluginMarketplaceResponseSchema: GenMessage<AddPluginMarketplaceResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 21);
+  messageDesc(file_harness_agent_v1_plugins, 24);
 
 /**
  * @generated from message harness.agent.v1.UpdatePluginMarketplaceRequest
@@ -735,7 +902,7 @@ export type UpdatePluginMarketplaceRequest = Message<"harness.agent.v1.UpdatePlu
  * Use `create(UpdatePluginMarketplaceRequestSchema)` to create a new message.
  */
 export const UpdatePluginMarketplaceRequestSchema: GenMessage<UpdatePluginMarketplaceRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 22);
+  messageDesc(file_harness_agent_v1_plugins, 25);
 
 /**
  * @generated from message harness.agent.v1.UpdatePluginMarketplaceResponse
@@ -748,7 +915,7 @@ export type UpdatePluginMarketplaceResponse = Message<"harness.agent.v1.UpdatePl
  * Use `create(UpdatePluginMarketplaceResponseSchema)` to create a new message.
  */
 export const UpdatePluginMarketplaceResponseSchema: GenMessage<UpdatePluginMarketplaceResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 23);
+  messageDesc(file_harness_agent_v1_plugins, 26);
 
 /**
  * @generated from message harness.agent.v1.RemovePluginMarketplaceRequest
@@ -765,7 +932,7 @@ export type RemovePluginMarketplaceRequest = Message<"harness.agent.v1.RemovePlu
  * Use `create(RemovePluginMarketplaceRequestSchema)` to create a new message.
  */
 export const RemovePluginMarketplaceRequestSchema: GenMessage<RemovePluginMarketplaceRequest> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 24);
+  messageDesc(file_harness_agent_v1_plugins, 27);
 
 /**
  * @generated from message harness.agent.v1.RemovePluginMarketplaceResponse
@@ -778,7 +945,279 @@ export type RemovePluginMarketplaceResponse = Message<"harness.agent.v1.RemovePl
  * Use `create(RemovePluginMarketplaceResponseSchema)` to create a new message.
  */
 export const RemovePluginMarketplaceResponseSchema: GenMessage<RemovePluginMarketplaceResponse> = /*@__PURE__*/
-  messageDesc(file_harness_agent_v1_plugins, 25);
+  messageDesc(file_harness_agent_v1_plugins, 28);
+
+/**
+ * @generated from message harness.agent.v1.ListPluginUiRequest
+ */
+export type ListPluginUiRequest = Message<"harness.agent.v1.ListPluginUiRequest"> & {
+  /**
+   * The session the panes would serve; its folder decides which plugins may run.
+   *
+   * @generated from field: string session_id = 1;
+   */
+  sessionId: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.ListPluginUiRequest.
+ * Use `create(ListPluginUiRequestSchema)` to create a new message.
+ */
+export const ListPluginUiRequestSchema: GenMessage<ListPluginUiRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_plugins, 29);
+
+/**
+ * @generated from message harness.agent.v1.ListPluginUiResponse
+ */
+export type ListPluginUiResponse = Message<"harness.agent.v1.ListPluginUiResponse"> & {
+  /**
+   * @generated from field: repeated harness.agent.v1.PluginPane panes = 1;
+   */
+  panes: PluginPane[];
+
+  /**
+   * @generated from field: repeated harness.agent.v1.PluginStatusItem status_items = 2;
+   */
+  statusItems: PluginStatusItem[];
+
+  /**
+   * Display names by plugin id.
+   *
+   * @generated from field: map<string, string> plugin_names = 3;
+   */
+  pluginNames: { [key: string]: string };
+
+  /**
+   * Set when policy hides all plugin UI; the lists are then empty.
+   *
+   * @generated from field: string blocked = 4;
+   */
+  blocked: string;
+
+  /**
+   * Plugin.content_hash by plugin id: what a grant made from a status-bar item applies to.
+   *
+   * @generated from field: map<string, string> content_hashes = 5;
+   */
+  contentHashes: { [key: string]: string };
+};
+
+/**
+ * Describes the message harness.agent.v1.ListPluginUiResponse.
+ * Use `create(ListPluginUiResponseSchema)` to create a new message.
+ */
+export const ListPluginUiResponseSchema: GenMessage<ListPluginUiResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_plugins, 30);
+
+/**
+ * @generated from message harness.agent.v1.GetPluginPaneRequest
+ */
+export type GetPluginPaneRequest = Message<"harness.agent.v1.GetPluginPaneRequest"> & {
+  /**
+   * @generated from field: string plugin_id = 1;
+   */
+  pluginId: string;
+
+  /**
+   * @generated from field: string pane_id = 2;
+   */
+  paneId: string;
+
+  /**
+   * @generated from field: string session_id = 3;
+   */
+  sessionId: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.GetPluginPaneRequest.
+ * Use `create(GetPluginPaneRequestSchema)` to create a new message.
+ */
+export const GetPluginPaneRequestSchema: GenMessage<GetPluginPaneRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_plugins, 31);
+
+/**
+ * @generated from message harness.agent.v1.GetPluginPaneResponse
+ */
+export type GetPluginPaneResponse = Message<"harness.agent.v1.GetPluginPaneResponse"> & {
+  /**
+   * @generated from field: harness.agent.v1.PluginPane pane = 1;
+   */
+  pane?: PluginPane | undefined;
+
+  /**
+   * The page with the CSP as the first element of its head, followed by the comment <!--harness-host--> where the frontend
+   * puts the theme and the bridge of the message API.
+   *
+   * @generated from field: string html = 2;
+   */
+  html: string;
+
+  /**
+   * The CSP in the document, for showing.
+   *
+   * @generated from field: string csp = 3;
+   */
+  csp: string;
+
+  /**
+   * Origins the manifest declares that this device has not approved: the pane runs without them until it does.
+   *
+   * @generated from field: repeated string network_pending = 4;
+   */
+  networkPending: string[];
+
+  /**
+   * The display name of the plugin.
+   *
+   * @generated from field: string plugin_name = 5;
+   */
+  pluginName: string;
+
+  /**
+   * Plugin.content_hash: what a grant made from this pane applies to.
+   *
+   * @generated from field: string content_hash = 6;
+   */
+  contentHash: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.GetPluginPaneResponse.
+ * Use `create(GetPluginPaneResponseSchema)` to create a new message.
+ */
+export const GetPluginPaneResponseSchema: GenMessage<GetPluginPaneResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_plugins, 32);
+
+/**
+ * @generated from message harness.agent.v1.CallPluginUiRequest
+ */
+export type CallPluginUiRequest = Message<"harness.agent.v1.CallPluginUiRequest"> & {
+  /**
+   * @generated from field: string plugin_id = 1;
+   */
+  pluginId: string;
+
+  /**
+   * @generated from field: string session_id = 2;
+   */
+  sessionId: string;
+
+  /**
+   * Version of the message API the pane speaks; 1.
+   *
+   * @generated from field: int32 version = 3;
+   */
+  version: number;
+
+  /**
+   * session.read, session.prompt, files.open or theme.read.
+   *
+   * @generated from field: string method = 4;
+   */
+  method: string;
+
+  /**
+   * JSON object.
+   *
+   * @generated from field: string params_json = 5;
+   */
+  paramsJson: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.CallPluginUiRequest.
+ * Use `create(CallPluginUiRequestSchema)` to create a new message.
+ */
+export const CallPluginUiRequestSchema: GenMessage<CallPluginUiRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_plugins, 33);
+
+/**
+ * @generated from message harness.agent.v1.CallPluginUiResponse
+ */
+export type CallPluginUiResponse = Message<"harness.agent.v1.CallPluginUiResponse"> & {
+  /**
+   * JSON for the pane, when the call is done here.
+   *
+   * @generated from field: string result_json = 1;
+   */
+  resultJson: string;
+
+  /**
+   * The capability the call needs and this device has not decided on: the frontend asks the user, then calls again.
+   *
+   * @generated from field: string needs_approval = 2;
+   */
+  needsApproval: string;
+
+  /**
+   * files.open: the file to show in the Files pane, absolute.
+   *
+   * @generated from field: string open_file = 3;
+   */
+  openFile: string;
+
+  /**
+   * theme.read: the frontend answers with the theme's tokens.
+   *
+   * @generated from field: bool theme = 4;
+   */
+  theme: boolean;
+};
+
+/**
+ * Describes the message harness.agent.v1.CallPluginUiResponse.
+ * Use `create(CallPluginUiResponseSchema)` to create a new message.
+ */
+export const CallPluginUiResponseSchema: GenMessage<CallPluginUiResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_plugins, 34);
+
+/**
+ * @generated from message harness.agent.v1.SetPluginUiGrantRequest
+ */
+export type SetPluginUiGrantRequest = Message<"harness.agent.v1.SetPluginUiGrantRequest"> & {
+  /**
+   * @generated from field: string plugin_id = 1;
+   */
+  pluginId: string;
+
+  /**
+   * @generated from field: string capability = 2;
+   */
+  capability: string;
+
+  /**
+   * @generated from field: bool granted = 3;
+   */
+  granted: boolean;
+
+  /**
+   * Plugin.content_hash of what was shown. Required to grant: other content is refused.
+   *
+   * @generated from field: string content_hash = 4;
+   */
+  contentHash: string;
+};
+
+/**
+ * Describes the message harness.agent.v1.SetPluginUiGrantRequest.
+ * Use `create(SetPluginUiGrantRequestSchema)` to create a new message.
+ */
+export const SetPluginUiGrantRequestSchema: GenMessage<SetPluginUiGrantRequest> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_plugins, 35);
+
+/**
+ * @generated from message harness.agent.v1.SetPluginUiGrantResponse
+ */
+export type SetPluginUiGrantResponse = Message<"harness.agent.v1.SetPluginUiGrantResponse"> & {
+};
+
+/**
+ * Describes the message harness.agent.v1.SetPluginUiGrantResponse.
+ * Use `create(SetPluginUiGrantResponseSchema)` to create a new message.
+ */
+export const SetPluginUiGrantResponseSchema: GenMessage<SetPluginUiGrantResponse> = /*@__PURE__*/
+  messageDesc(file_harness_agent_v1_plugins, 36);
 
 /**
  * @generated from enum harness.agent.v1.PluginStatus
@@ -942,6 +1381,48 @@ export const PluginService: GenService<{
     methodKind: "unary";
     input: typeof RemovePluginMarketplaceRequestSchema;
     output: typeof RemovePluginMarketplaceResponseSchema;
+  },
+  /**
+   * Plugin UI (docs/design/plugin-ui.md): panes and status-bar items of the plugins that may run in a session's folder.
+   *
+   * @generated from rpc harness.agent.v1.PluginService.ListPluginUi
+   */
+  listPluginUi: {
+    methodKind: "unary";
+    input: typeof ListPluginUiRequestSchema;
+    output: typeof ListPluginUiResponseSchema;
+  },
+  /**
+   * The document of one pane, ready for a sandboxed frame: its own scripts and styles inlined, the CSP in its head.
+   *
+   * @generated from rpc harness.agent.v1.PluginService.GetPluginPane
+   */
+  getPluginPane: {
+    methodKind: "unary";
+    input: typeof GetPluginPaneRequestSchema;
+    output: typeof GetPluginPaneResponseSchema;
+  },
+  /**
+   * One call of the message API, made by a pane through the frontend that hosts it. The client checks that the plugin
+   * declared the capability and this device approved it.
+   *
+   * @generated from rpc harness.agent.v1.PluginService.CallPluginUi
+   */
+  callPluginUi: {
+    methodKind: "unary";
+    input: typeof CallPluginUiRequestSchema;
+    output: typeof CallPluginUiResponseSchema;
+  },
+  /**
+   * Approves a capability of a plugin's UI on this device, or takes that back. Only the frontend's own controls call this,
+   * never a pane.
+   *
+   * @generated from rpc harness.agent.v1.PluginService.SetPluginUiGrant
+   */
+  setPluginUiGrant: {
+    methodKind: "unary";
+    input: typeof SetPluginUiGrantRequestSchema;
+    output: typeof SetPluginUiGrantResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_harness_agent_v1_plugins, 0);

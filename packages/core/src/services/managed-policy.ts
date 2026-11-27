@@ -51,6 +51,9 @@ export interface ManagedPolicy {
   personal_hosts_disabled: boolean;
   /** deferBuiltinTools: forced on or off for everyone; null or absent: each user chooses. */
   defer_builtin_tools?: boolean | null;
+  /** disablePluginUi and disablePluginUiNetwork: plugins' panes and status-bar items, and their network (docs/design/plugin-ui.md). */
+  plugin_ui_disabled: boolean;
+  plugin_ui_network_disabled: boolean;
 }
 
 const isObject = (v: unknown): v is Json => !!v && typeof v === "object" && !Array.isArray(v);
@@ -152,6 +155,8 @@ export function managedOf(content: Json): ManagedPolicy {
     allowed_mcp_servers: strings(content.allowedMcpServers),
     personal_hosts_disabled: content.disablePersonalHosts === true,
     defer_builtin_tools: typeof content.deferBuiltinTools === "boolean" ? content.deferBuiltinTools : null,
+    plugin_ui_disabled: content.disablePluginUi === true,
+    plugin_ui_network_disabled: content.disablePluginUiNetwork === true,
     ...pluginFields(content),
     ...skillFields(content),
   };
@@ -180,6 +185,8 @@ export function withManaged(content: Json, p: ManagedPolicy): Json {
   setOrDelete(next, "allowedMcpServers", p.allowed_mcp_servers, p.restrict_mcp_servers);
   setOrDelete(next, "disablePersonalHosts", true, p.personal_hosts_disabled);
   setOrDelete(next, "deferBuiltinTools", p.defer_builtin_tools, typeof p.defer_builtin_tools === "boolean");
+  setOrDelete(next, "disablePluginUi", true, p.plugin_ui_disabled);
+  setOrDelete(next, "disablePluginUiNetwork", true, p.plugin_ui_network_disabled);
   setOrDelete(next, "strictKnownMarketplaces", p.allowed_plugin_sources.map(lineToSource), p.restrict_plugin_sources);
   setOrDelete(next, "blockedMarketplaces", p.blocked_plugin_sources.map(lineToSource), p.blocked_plugin_sources.length > 0);
   const extra = Object.fromEntries(

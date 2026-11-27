@@ -38,7 +38,18 @@ func pluginToProto(in plugins.Info) *agentv1.Plugin {
 	for _, m := range c.MCPServers {
 		out.McpServers = append(out.McpServers, &agentv1.PluginMcpServer{Name: m.Name, Transport: m.Transport, Command: m.Command})
 	}
-	return &agentv1.Plugin{Id: in.ID, Name: in.Name, Marketplace: in.Marketplace, DisplayName: in.DisplayName, Description: in.Description, Version: in.Version, Commit: in.Commit,
+	for _, p := range c.UI.Panes {
+		out.Panes = append(out.Panes, paneToProto(in.ID, p))
+	}
+	for _, it := range c.UI.StatusItems {
+		out.StatusItems = append(out.StatusItems, statusItemToProto(in.ID, it))
+	}
+	out.UiCapabilities, out.UiNetwork = c.UI.Capabilities, c.UI.Network
+	var grants []*agentv1.PluginUiGrant
+	for _, g := range in.UIGrants {
+		grants = append(grants, &agentv1.PluginUiGrant{Capability: g.Capability, Granted: g.Granted, GrantedAt: g.At})
+	}
+	return &agentv1.Plugin{UiGrants: grants, UiBlocked: in.UIBlocked, Id: in.ID, Name: in.Name, Marketplace: in.Marketplace, DisplayName: in.DisplayName, Description: in.Description, Version: in.Version, Commit: in.Commit,
 		ContentHash: in.Hash, Status: pluginStatus[in.Status], Reason: in.Reason, Enabled: in.Enabled, Approved: in.Approved, Pinned: in.Pinned, Managed: in.Managed,
 		SuggestedBy: in.SuggestedBy, Source: in.Source, InstalledAt: in.InstalledAt, Contents: out, Problems: in.Problems}
 }

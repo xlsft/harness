@@ -139,6 +139,9 @@ export interface ManagedPolicyView {
   externalSkillSearchDisabled: boolean
   // Built-in tool deferral forced on or off; undefined: the user chooses.
   deferBuiltinTools?: boolean
+  // Plugins' panes and status-bar items are off; plugin panes reach no network.
+  pluginUiDisabled: boolean
+  pluginUiNetworkDisabled: boolean
 }
 
 export interface UserPreferences {

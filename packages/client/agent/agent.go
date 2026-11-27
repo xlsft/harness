@@ -334,10 +334,11 @@ type Agent struct {
 	queue           []queuedMessage
 	cancel          context.CancelFunc
 	warned          map[string]bool
-	// spentUSD is what this agent has spent since it started (MaxBudgetUSD).
-	spentUSD  float64
-	todos     []tools.Todo
-	reminders []pendingReminder
+	// spentUSD is what this agent has spent since it started (MaxBudgetUSD); spentTokens the tokens of that.
+	spentUSD    float64
+	spentTokens llm.Usage
+	todos       []tools.Todo
+	reminders   []pendingReminder
 	// Starts a turn for a notification while idle (SetWake).
 	wake          func()
 	interactor    tools.Interactor
@@ -1100,6 +1101,13 @@ func (a *Agent) onStreamEvent(ev llm.StreamEvent) {
 	a.emit(Event{Kind: EventStream, Raw: ev.Raw})
 }
 
+// Spent is what this agent has spent since it started: the cost the gateway reported, and the tokens.
+func (a *Agent) Spent() (float64, llm.Usage) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.spentUSD, a.spentTokens
+}
+
 // overBudget reports what this agent's run has spent and whether it reached MaxBudgetUSD.
 func (a *Agent) overBudget() (float64, bool) {
 	if a.cfg.MaxBudgetUSD <= 0 {
@@ -1119,6 +1127,7 @@ func (a *Agent) accountUsage(res *TurnResult, resp llm.Response) {
 	res.CostUSD += resp.Harness.CostUSD
 	a.mu.Lock()
 	a.spentUSD += resp.Harness.CostUSD
+	a.spentTokens.Add(resp.Usage)
 	a.mu.Unlock()
 	model := resp.Model
 	if model == "" {
