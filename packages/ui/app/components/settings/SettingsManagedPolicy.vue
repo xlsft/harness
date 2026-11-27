@@ -24,6 +24,16 @@ const pluginsOff = ref('')
 const skillsAllowed = ref('')
 const skillsBlocked = ref('')
 const view = ref<ManagedPolicyView | null>(null)
+// Tool deferral: forced on, forced off, or each user's choice.
+const DEFER_CHOICES = [
+  { value: '', label: tt('Each user chooses') },
+  { value: 'on', label: tt('Loaded on demand') },
+  { value: 'off', label: tt('Always loaded') }
+]
+const deferChoice = computed({
+  get: () => policy.value.deferBuiltinTools === null ? '' : policy.value.deferBuiltinTools ? 'on' : 'off',
+  set: (v: string) => { policy.value.deferBuiltinTools = v === '' ? null : v === 'on' }
+})
 const error = ref('')
 const saved = ref(false)
 
@@ -389,6 +399,22 @@ const label = 'flex flex-col gap-1 text-[11.5px] text-muted'
           v-model="policy.externalSkillSearchDisabled"
           :disabled="!writable"
           :label="tt('Turn off external skill search')"
+        />
+      </div>
+
+      <h3 class="m-0 mt-2 text-[12.5px] font-semibold text-strong">
+        {{ tt('Tool definitions') }}
+      </h3>
+      <div class="set-row">
+        <div class="set-label">
+          <span>{{ tt('Rarely used tools') }}</span>
+          <span class="set-desc">{{ tt('Loaded on demand: smaller, cheaper requests, and one more step the first time an agent needs such a tool. Always loaded: every tool definition in every request. Applies to sessions opened afterwards.') }}</span>
+        </div>
+        <HSelect
+          v-model="deferChoice"
+          :aria-label="tt('Rarely used tools')"
+          :options="DEFER_CHOICES"
+          :disabled="!writable"
         />
       </div>
 

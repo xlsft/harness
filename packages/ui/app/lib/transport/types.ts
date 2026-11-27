@@ -137,6 +137,8 @@ export interface ManagedPolicyView {
   allowedSkills: string[]
   blockedSkills: string[]
   externalSkillSearchDisabled: boolean
+  // Built-in tool deferral forced on or off; undefined: the user chooses.
+  deferBuiltinTools?: boolean
 }
 
 export interface UserPreferences {
@@ -146,6 +148,9 @@ export interface UserPreferences {
   managedPolicy?: ManagedPolicyView
   // Compact sessions idle for 30 minutes whose context is above half the window, in the background.
   compactIdleSessions: boolean
+  // Rarely used built-in tools are listed by name and loaded on demand (settings key deferBuiltinTools); new sessions
+  // follow it. What the managed policy forces, when it does.
+  deferBuiltinTools: boolean
   // How many times per hour a watched pull request may wake a session (1 to 240; the client validates).
   prMonitorWakesPerHour: number
   // How deep subagents nest (1 to 5) and how many of a session run at once (1 to 32); read when an agent starts.

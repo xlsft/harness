@@ -28,6 +28,7 @@ import (
 	"github.com/xlsft/harness/packages/client/prompts"
 	"github.com/xlsft/harness/packages/client/session"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/toolsearch"
 	"github.com/xlsft/harness/packages/client/usagelimit"
 )
 
@@ -290,6 +291,9 @@ type Config struct {
 	// bundle's (MCP tools, which have no bundle entry). Called for every
 	// request; the result must be stable to keep the prompt cache. May be nil.
 	ExtraTools func() []llm.ToolDef
+	// Deferral is the session's deferred-tool loader (nil: nothing is deferred). Deferred tools are left out of
+	// requests until loaded, then follow every other tool in load order (deferral.go).
+	Deferral *toolsearch.Loader
 	// PermissionMode is recorded on user transcript entries.
 	PermissionMode func() string
 	// OutputStyle is the initial output style (nil = default). Its text is
@@ -400,6 +404,9 @@ func New(cfg Config) *Agent {
 	}
 	a.initOutputStyle(cfg.OutputStyle, cfg.History.OutputStyle)
 	a.skills.active = append(a.skills.active, cfg.History.ActiveSkills...)
+	if len(cfg.History.Messages) == 0 {
+		a.remindDeferred()
+	}
 	return a
 }
 
@@ -1183,17 +1190,14 @@ func (a *Agent) markInterrupted(acc *llm.Accumulator) {
 	a.emit(Event{Kind: EventUser, UUID: id, Message: &llm.Message{Role: llm.RoleUser, Content: marker}})
 }
 
-// toolNames returns the tools offered to the model.
+// toolNames returns the registered tools whose definitions go with every request: deferred built-in tools are left
+// out (loadedDefs adds the loaded ones at the end).
 func (a *Agent) toolNames() []string {
 	var names []string
+	search := a.canSearch()
 	for _, n := range a.cfg.Tools.Names() {
-		if a.cfg.DisabledTools[n] {
+		if !a.offerable(n) || (search && a.cfg.Deferral.DefersBuiltin(n)) {
 			continue
-		}
-		if t, ok := a.cfg.Tools.Get(n); ok {
-			if h, ok := t.(tools.ModelHider); ok && h.HiddenFromModel() {
-				continue
-			}
 		}
 		names = append(names, n)
 	}
@@ -1207,13 +1211,17 @@ func (a *Agent) OfferedTools() []llm.ToolDef { return a.toolDefs(a.Bundle()) }
 // ToolDisabled reports whether the session's permission rules took the tool away when the agent was made.
 func (a *Agent) ToolDisabled(name string) bool { return a.cfg.DisabledTools[name] }
 
-// toolDefs returns the bundle tool definitions followed by ExtraTools.
+// toolDefs returns the bundle tool definitions, then ExtraTools, then the loaded deferred tools (deferral.go).
 func (a *Agent) toolDefs(bundle *prompts.Bundle) []llm.ToolDef {
 	defs := bundle.ToolDefs(a.toolNames())
 	if a.cfg.ExtraTools != nil {
 		defs = append(defs, a.cfg.ExtraTools()...)
 	}
-	return defs
+	have := make(map[string]bool, len(defs))
+	for _, d := range defs {
+		have[d.Name] = true
+	}
+	return append(defs, a.loadedDefs(bundle, have)...)
 }
 
 func (a *Agent) systemBlocks(model, display string) []llm.SystemBlock {
@@ -1396,6 +1404,10 @@ func (a *Agent) executeTools(ctx context.Context, uses []llm.ContentBlock, ratio
 			t, ok := a.cfg.Tools.Get(u.Name)
 			if !ok || a.cfg.DisabledTools[u.Name] {
 				setResult(idx, tools.ErrorResult("No such tool available: %s", u.Name), "")
+				continue
+			}
+			if r := a.loadOnCall(u); r != nil {
+				setResult(idx, *r, "")
 				continue
 			}
 			// PreToolUse goes first: a rewritten input is what everything below judges and what runs.

@@ -456,6 +456,23 @@ describe("managed policy", () => {
     }
   });
 
+  it("forces built-in tool deferral on or off, and unset leaves it to each user", async () => {
+    const policyDoc = async () =>
+      JSON.parse((await plain.sync.getDocument({ selector: { case: "ref", value: { scope: Scope.ORG, kind: DocumentKind.POLICY, key: "default", projectKey: "" } } })).document!.content);
+    try {
+      await admin.policy.setManagedPolicy({ policy: { deferBuiltinTools: false } });
+      expect(await policyDoc()).toEqual({ deferBuiltinTools: false });
+      expect((await admin.policy.getManagedPolicy({})).policy!.deferBuiltinTools).toBe(false);
+      await admin.policy.setManagedPolicy({ policy: { deferBuiltinTools: true } });
+      expect(await policyDoc()).toEqual({ deferBuiltinTools: true });
+      await admin.policy.setManagedPolicy({ policy: {} });
+      expect(await policyDoc()).toEqual({});
+      expect((await admin.policy.getManagedPolicy({})).policy!.deferBuiltinTools).toBeUndefined();
+    } finally {
+      await admin.policy.setManagedPolicy({ policy: {} });
+    }
+  });
+
   it("refuses what is not a permission rule", async () => {
     expect(await code(admin.policy.setManagedPolicy({ policy: { denyRules: ["(((not a rule"] } }))).toBe(Code.InvalidArgument);
   });

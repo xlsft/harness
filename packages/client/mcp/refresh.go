@@ -169,8 +169,7 @@ func (m *Manager) applyToolList(s *server, list []*mcpv1.Tool) {
 		if !ok {
 			removed = append(removed, t.name)
 			delete(m.byName, t.name)
-			delete(m.loaded, t.name)
-			m.order = slices.DeleteFunc(m.order, func(n string) bool { return n == t.name })
+			m.loader.Forget(t.name)
 			continue
 		}
 		// The same tool, maybe with a new description or schema.
@@ -189,7 +188,7 @@ func (m *Manager) applyToolList(s *server, list []*mcpv1.Tool) {
 		if _, dup := m.byName[nt.name]; dup {
 			continue
 		}
-		nt.deferred = m.search != nil && !s.cfg.GetAlwaysLoad()
+		nt.deferred = m.defers && !s.cfg.GetAlwaysLoad()
 		m.tools = append(m.tools, nt)
 		m.byName[nt.name] = nt
 		added = append(added, nt.name)

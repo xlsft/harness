@@ -457,7 +457,7 @@ Plan names in brackets are the lowest tier the vendor lists. Codex rows cover al
 | Resources for the agent | Partial: server proxy RPCs, no agent tool | Yes (2 tools, `@`) | Partial: app-server RPC |
 | Prompts as commands | Partial: server proxy RPCs, no command | Yes | ? |
 | Elicitation | No (TODO in proto) | Yes (form, URL) | Yes (form, URL) |
-| Tool search, deferred tools | Yes (`ToolSearch`, 10% default) | Yes | Yes |
+| Tool search, deferred tools | Yes (`ToolSearch`: MCP tools above 10% of the window, rarely used built-in tools by a setting, on by default) | Yes | Yes |
 | Tool allow and deny per server | Partial: permission rules | Yes | Yes |
 | Auto approval per tool | Yes (rules) | Yes (rules) | Yes (modes) |
 | Tool timeouts | Partial: non-call requests (server env) | ? | Yes |

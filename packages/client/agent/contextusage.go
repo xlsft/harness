@@ -32,10 +32,13 @@ type ContextUsage struct {
 	Model string
 	// Window is the model's context window (0 when unknown).
 	Window int
-	// SystemPrompt: the system blocks; SystemTools: definitions of the built-in (bundle) tools; MCPTools:
-	// definitions of the extra tools offered to the model (ExtraTools: MCP tools that are not deferred or were
-	// loaded with ToolSearch); Messages: the conversation.
+	// SystemPrompt: the system blocks; SystemTools: definitions of the built-in (bundle) tools offered, deferred ones
+	// once loaded; MCPTools: definitions of the other tools offered to the model (MCP tools that are not deferred or
+	// were loaded with ToolSearch); Messages: the conversation.
 	SystemPrompt, SystemTools, MCPTools, Messages int
+	// DeferredSystemTools: definitions of the built-in tools held back until loaded. Not part of the context: what
+	// deferral saves on every request.
+	DeferredSystemTools int
 	// MCPInstructions: what MCP servers offer the model. Part of the conversation's first message, so it is taken out of
 	// Messages.
 	MCPInstructions int
@@ -95,12 +98,22 @@ func (a *Agent) ContextUsage() ContextUsage {
 		chars += len(s.Text)
 	}
 	u.SystemPrompt = EstimateTextTokens(chars)
-	for _, d := range bundle.ToolDefs(a.toolNames()) {
-		u.SystemTools += EstimateToolTokens(d)
-	}
-	if a.cfg.ExtraTools != nil {
-		for _, d := range a.cfg.ExtraTools() {
+	offered := map[string]bool{}
+	for _, d := range a.toolDefs(bundle) {
+		offered[d.Name] = true
+		if _, builtin := bundle.Tools[d.Name]; builtin {
+			u.SystemTools += EstimateToolTokens(d)
+		} else {
 			u.MCPTools += EstimateToolTokens(d)
+		}
+	}
+	if a.canSearch() {
+		for _, n := range a.cfg.Tools.Names() {
+			if !offered[n] && a.offerable(n) && a.cfg.Deferral.DefersBuiltin(n) {
+				for _, d := range bundle.ToolDefs([]string{n}) {
+					u.DeferredSystemTools += EstimateToolTokens(d)
+				}
+			}
 		}
 	}
 	overhead := u.SystemPrompt + u.SystemTools + u.MCPTools

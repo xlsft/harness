@@ -129,6 +129,7 @@ Needed later, not written yet (they arrive with their tools; see `docs/PLAN.md` 
 9. TOOL-9. Use TodoWrite for multi-step work, AskUserQuestion for decisions only the user can make, EnterPlanMode before large or ambiguous changes. Why: points weak models at the right tool at the right time; details live in each tool's description.
 10. TOOL-10. Temporary files go in the scratchpad directory, not `/tmp` or the project tree. When naming a scratchpad file to the user, give its full absolute path. Why: keeps the project clean and avoids permission prompts; short paths resolve against the wrong directory.
 11. TOOL-11. (GPT override) Call tools only through the function-calling interface; never write a call as text or claim a call that was not made. Keep going until the task is done. Why: some model families narrate calls instead of making them, or stop after a plan.
+12. TOOL-12. Some tools may be deferred: listed by name in a reminder, their definitions sent only once loaded with ToolSearch. A tool this prompt names may be one of them: load it when it is needed, several at once, and never conclude that a tool is missing because its definition is absent. Why: built-in tool deferral keeps rarely used definitions out of every request while the rest of this prompt still names those tools. Both `tool_policy` files carry it.
 
 ### 2.6 Environment (`env`, dynamic)
 
@@ -285,9 +286,9 @@ Parameter names and schemas stay compatible with the client (`packages/client/to
 
 ### 3.12 ToolSearch
 
-The client offers it only when MCP tools are deferred (their full definitions would take too much of the context window); the `deferred_tools` reminder lists their names.
+The client offers it when tools are deferred: rarely used built-in tools (the user's `deferBuiltinTools` preference, on by default; see `docs/design/tool-deferral.md`) and MCP tools whose definitions would take too much of the context window. The `deferred_tools` reminder lists their names with a one-line summary each.
 
-1. TS-1. A deferred tool's name is known but its parameters are not; it cannot be called until ToolSearch loaded it. Why: the client rejects calls to unloaded deferred tools.
+1. TS-1. A deferred tool's name is known but its parameters are not; load it before calling it. A direct call of a deferred built-in tool loads it, and input that does not match its schema is refused with the definition attached; a deferred MCP tool cannot be called until ToolSearch loaded it. Why: the client rejects unloaded MCP calls and refuses guessed built-in input.
 2. TS-2. `select:<name>[,<name>...]` loads exact names; other queries are keywords matched against names and descriptions, and `+word` requires the word in the tool name. `max_results` limits keyword results (default 5). Why: matches client.
 3. TS-3. Loaded tools come back as full definitions and stay callable for the rest of the session; do not search again for a tool already loaded. Load all the tools a step needs in one call. Why: each search is a round trip.
 4. TS-4. If nothing matches, try other keywords or check the names in the list; do not invent tool names. Why: guessed names fail.
@@ -406,7 +407,7 @@ All reminders except the two interruption markers, `webfetch_summary` (REM-15), 
 11. REM-11. `compacted`: earlier messages were summarized; continue without asking the user to repeat or recapping; re-read files instead of trusting remembered contents; re-check background tasks if needed. Why: smooth continuation.
 12. REM-12. `attribution`: lines to end commit messages and PR bodies with, when not empty; does not license commits. Why: admin-configurable attribution.
 13. REM-13. `output_style`: names the active style and carries its text; it changes how to communicate, never the safety rules or tool rules. Why: styles switch without breaking the prompt cache.
-14. REM-14. `deferred_tools`: names of tools that exist but whose definitions are not loaded (`{{tools}}`, one per line); load them with ToolSearch before calling them. Sent once at session start when MCP tools are deferred. Why: the model must know which tools exist without paying for their schemas.
+14. REM-14. `deferred_tools`: tools that exist but whose definitions are not loaded (`{{tools}}`, one `name: summary` per line, the summary being the first sentence of the tool's description); load them with ToolSearch before calling them, several in one call. Sent at session start (to every agent that can call ToolSearch), after a compaction (without the tools already loaded) and when a resumed session's MCP catalog moved. Why: the model must know which tools exist and what they are for without paying for their schemas.
 
 15. REM-15. `webfetch_summary` is not a reminder but the WebFetch summarization prompt, kept in the reminders map so it ships with the bundle; it is not wrapped in `<system-reminder>`. Placeholders `{{url}}`, `{{prompt}}`, `{{content}}`; the client sends the filled text as the only user message of an auxiliary request to the small-slot model and returns the reply. See section 6.1.
 15a. REM-15a. `skills_listing`: the names and descriptions of the skills the Skill tool can start; replaces any earlier list. Sent with the first request, when the list changes and after a compaction, never in the system prompt. Why: skills come and go during a session, and the prompt cache must hold.

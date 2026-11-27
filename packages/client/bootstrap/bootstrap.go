@@ -48,6 +48,7 @@ import (
 	"github.com/xlsft/harness/packages/client/syncclient"
 	"github.com/xlsft/harness/packages/client/terminal"
 	"github.com/xlsft/harness/packages/client/tools"
+	"github.com/xlsft/harness/packages/client/toolsearch"
 	"github.com/xlsft/harness/packages/client/tracker"
 	_ "github.com/xlsft/harness/packages/client/tracker/providers" // registers every provider
 	"github.com/xlsft/harness/packages/client/vcs"
@@ -227,6 +228,8 @@ type Session struct {
 	LSP *lsp.Manager
 	// MCP holds the session's MCP servers and tools (nil when MCP is off).
 	MCP *mcp.Manager
+	// Deferral holds the session's deferred tools, built-in and MCP, and the ones loaded (deferral.go).
+	Deferral *toolsearch.Loader
 	// Sync and Uploader are nil when sync is disabled or the server is unreachable at start.
 	Sync     *syncclient.Syncer
 	Uploader *syncclient.Uploader
@@ -334,19 +337,10 @@ func (s *Session) Close() error {
 	return err
 }
 
-// ToolNames returns the tools offered to the model.
+// ToolNames returns the tools offered to the model, in request order.
 func (s *Session) ToolNames() []string {
 	var out []string
-	b := s.Agent.Bundle()
-	for _, n := range s.Tools.Names() {
-		if _, ok := b.Tools[n]; ok && !s.Permissions.IsDisabled(n) {
-			out = append(out, n)
-		}
-	}
-	for _, d := range s.MCP.ToolDefs() {
-		out = append(out, d.Name)
-	}
-	for _, d := range s.browserFallbackDefs() {
+	for _, d := range s.Agent.OfferedTools() {
 		out = append(out, d.Name)
 	}
 	return out
@@ -739,7 +733,9 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		log.Warn(msg)
 		s.Warnings = append(s.Warnings, msg)
 	}
+	s.openDeferral(o, st)
 	s.openMCP(ctx, o, info.ContextWindow, conv, log)
+	s.registerToolSearch()
 	disabled := map[string]bool{}
 	for _, n := range s.Tools.Names() {
 		if s.Permissions.IsDisabled(n) {
@@ -825,7 +821,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		MaxBudgetUSD: o.MaxBudgetUSD, OtherSpendUSD: s.subagentSpend,
 		SystemPrompt: o.SystemPrompt, AppendSystemPrompt: o.AppendSystemPrompt,
 		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), History: conv, Todos: todos,
-		DisabledTools: disabled, OutputStyle: style, ExtraTools: s.extraTools(useBrowser),
+		DisabledTools: disabled, OutputStyle: style, ExtraTools: s.extraTools(useBrowser), Deferral: s.Deferral,
 		DisableInterruptReply: (st != nil && !st.InterruptReply) || os.Getenv("HARNESS_NO_INTERRUPT_REPLY") == "1",
 		UsageMonitor:          o.UsageMonitor, Skills: s.skillSource(), Hooks: s.Hooks,
 		OnEvent: onEvent, Logger: log,
@@ -850,7 +846,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 			}
 			return loader.Get(ctx, m)
 		},
-		LeadEnv: s.ToolEnv, Tools: s.Tools, DisabledTools: disabled, ExtraTools: s.extraTools(useBrowser),
+		LeadEnv: s.ToolEnv, Tools: s.Tools, DisabledTools: disabled, ExtraTools: s.extraTools(useBrowser), Deferral: s.Deferral,
 		Permissions: s.Permissions, Mode: func() string { return string(s.Permissions.Mode()) }, AddWorkDir: s.Permissions.AddWorkDir,
 		Vars: env.Vars(), ProjectContext: projectContext, MCPInstructions: s.mcpInstructions(), AutoCompactPct: o.AutoCompactPct, UsageMonitor: o.UsageMonitor, Skills: s.skillSource(), Hooks: s.Hooks,
 		CustomTypes: append(append(append([]subagent.Type(nil), o.Agents...), subagent.LoadDefinitionsOver(s.syncedAgents(), subagent.DefinitionDirs(config.Home(), cwd, s.Trusted))...), pluginAgents(cwd, s.Trusted)...),
@@ -878,6 +874,7 @@ func Open(ctx context.Context, o Options) (*Session, error) {
 		startVCSPoller()
 	}
 	s.ConnectPR(nil)
+	s.startDeferral(conv)
 	s.startMCP(conv)
 	s.open, s.log = o, log
 	// Info for the client's log file (cmd's logger); a caller with the default logger (tests, embedders) gets no line on stderr.

@@ -46,3 +46,17 @@ func TestPolicyManaged(t *testing.T) {
 		t.Fatal("no list means no restriction")
 	}
 }
+
+func TestPolicyDeferBuiltinTools(t *testing.T) {
+	if PolicyManaged([]*syncv1.Document{orgPolicy(`{}`)}).DeferBuiltinTools != nil {
+		t.Fatal("unset: the user chooses")
+	}
+	on := PolicyManaged([]*syncv1.Document{orgPolicy(`{"deferBuiltinTools":true}`)})
+	if on.DeferBuiltinTools == nil || !*on.DeferBuiltinTools || !on.Active() {
+		t.Fatalf("forced on: %+v", on)
+	}
+	both := PolicyManaged([]*syncv1.Document{orgPolicy(`{"deferBuiltinTools":false}`), orgPolicy(`{"deferBuiltinTools":true}`)})
+	if both.DeferBuiltinTools == nil || *both.DeferBuiltinTools {
+		t.Fatalf("off in any document wins: %+v", both)
+	}
+}

@@ -29,4 +29,6 @@ message ManagedPolicyView {
   repeated string allowed_skills = 16;
   repeated string blocked_skills = 17;
   bool external_skill_search_disabled = 18;
+  // Deferral of built-in tool definitions forced on or off. Unset: the user chooses.
+  optional bool defer_builtin_tools = 420;
 }

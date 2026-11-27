@@ -22,12 +22,14 @@ type ManagedPolicy struct {
 	RestrictSkills                  bool
 	AllowedSkills, BlockedSkills    []string
 	ExternalSkillSearchDisabled     bool
+	// DeferBuiltinTools forces the deferral of built-in tool definitions on or off (nil: the user chooses).
+	DeferBuiltinTools *bool
 }
 
 // Active reports whether it imposes anything.
 func (m ManagedPolicy) Active() bool {
 	return len(m.AllowRules)+len(m.AskRules)+len(m.DenyRules)+len(m.DisabledModes) > 0 || m.ManagedRulesOnly || m.SandboxRequired ||
-		m.SandboxOutsideRefused || m.RestrictProviders || m.PersonalProvidersDisabled || m.RestrictMcpServers || m.LocalModelsDisabled || m.RestrictSkills || len(m.BlockedSkills) > 0 || m.ExternalSkillSearchDisabled
+		m.SandboxOutsideRefused || m.RestrictProviders || m.PersonalProvidersDisabled || m.RestrictMcpServers || m.LocalModelsDisabled || m.RestrictSkills || len(m.BlockedSkills) > 0 || m.ExternalSkillSearchDisabled || m.DeferBuiltinTools != nil
 }
 
 // SkillAllowed reports whether a skill or command of this name may run. "kit:*" in a list names all of a plugin.

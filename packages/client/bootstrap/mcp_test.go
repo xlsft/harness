@@ -110,7 +110,7 @@ func TestMCPDeferredToolsEndToEnd(t *testing.T) {
 	if !slices.Contains(first, mcp.ToolSearchName) || slices.Contains(first, "mcp__local__echo") {
 		t.Fatalf("first request tools = %v", first)
 	}
-	if txt := requestText(reqs[0]); !strings.Contains(txt, "Deferred tools:\nmcp__local__add\nmcp__local__echo\nmcp__local__fail") {
+	if txt := requestText(reqs[0]); !strings.Contains(txt, "\nmcp__local__add: Adds two numbers.\nmcp__local__echo: Echoes the given text back.\nmcp__local__fail: Always fails.</system-reminder>") {
 		t.Fatalf("deferred reminder missing from the first request: %q", txt)
 	}
 	if second := toolDefNames(reqs[1]); !slices.Contains(second, "mcp__local__echo") || slices.Contains(second, "mcp__local__add") {

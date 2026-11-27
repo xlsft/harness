@@ -16,6 +16,7 @@ const (
 	ToolReasonNoPrompt    = "no_prompt"    // the session's prompt bundle has no definition for it
 	ToolReasonNeedsSync   = "needs_sync"   // it needs the server's sync service, which this session does not have
 	ToolReasonMCPDeferred = "mcp_deferred" // an MCP tool the model loads with ToolSearch
+	ToolReasonDeferred    = "deferred"     // a built-in tool listed by name until the model loads it (tool deferral)
 )
 
 // ToolStatus is one tool of a session and whether the model is offered it now.
@@ -86,6 +87,8 @@ func (s *Session) ToolReport() []ToolStatus {
 			st.Reason, st.Detail = ToolReasonHidden, "the tool is switched off on this device"
 		case deferred[n]:
 			st.Reason, st.Detail = ToolReasonMCPDeferred, "deferred: the model loads it with ToolSearch"
+		case inBundle && s.Deferral.DefersBuiltin(n):
+			st.Reason, st.Detail = ToolReasonDeferred, "deferred: listed by name, loaded with ToolSearch or by its first call"
 		case !inBundle && !mcpTools[n]:
 			st.Reason, st.Detail = ToolReasonNoPrompt, fmt.Sprintf("the prompt bundle %s has no definition for it", bundle.Version)
 		default:
@@ -132,8 +135,12 @@ func syncWarning(reason string) string {
 
 // FormatToolReport renders a report for a terminal or a slash command reply.
 func FormatToolReport(list []ToolStatus) string {
-	var on, off []string
+	var on, off, deferred []string
 	for _, t := range list {
+		if t.Reason == ToolReasonDeferred || (t.Reason == ToolReasonMCPDeferred && strings.HasPrefix(t.Detail, "deferred")) {
+			deferred = append(deferred, t.Name)
+			continue
+		}
 		if t.Offered {
 			name := t.Name
 			if t.Source != "builtin" {
@@ -146,6 +153,9 @@ func FormatToolReport(list []ToolStatus) string {
 	}
 	var b strings.Builder
 	fmt.Fprintf(&b, "Offered to the model (%d): %s\n", len(on), strings.Join(on, ", "))
+	if len(deferred) > 0 {
+		fmt.Fprintf(&b, "\nDeferred, loaded when the model first needs them (%d): %s\n", len(deferred), strings.Join(deferred, ", "))
+	}
 	if len(off) > 0 {
 		fmt.Fprintf(&b, "\nNot offered (%d):\n%s\n", len(off), strings.Join(off, "\n"))
 	}

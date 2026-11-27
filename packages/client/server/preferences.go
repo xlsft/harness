@@ -57,6 +57,10 @@ func (s *Server) withManagedPolicy(p *agentv1.UserPreferences) *agentv1.UserPref
 		RestrictProviders: m.RestrictProviders, AllowedProviders: m.AllowedProviders, PersonalProvidersDisabled: m.PersonalProvidersDisabled,
 		RestrictMcpServers: m.RestrictMcpServers, AllowedMcpServers: m.AllowedMcpServers, LocalModelsDisabled: m.LocalModelsDisabled,
 		RestrictSkills: m.RestrictSkills, AllowedSkills: m.AllowedSkills, BlockedSkills: m.BlockedSkills, ExternalSkillSearchDisabled: m.ExternalSkillSearchDisabled,
+		DeferBuiltinTools: m.DeferBuiltinTools,
+	}
+	if m.DeferBuiltinTools != nil {
+		p.DeferBuiltinTools = *m.DeferBuiltinTools
 	}
 	return p
 }
@@ -71,6 +75,12 @@ func (s *Server) UpdateUserPreferences(ctx context.Context, req *connect.Request
 	}
 	if req.Msg.AutoMemoryEnabled != nil {
 		set[settings.KeyAutoMemoryEnabled] = req.Msg.GetAutoMemoryEnabled()
+	}
+	if req.Msg.DeferBuiltinTools != nil {
+		if s.Base.ModePolicy.Managed().DeferBuiltinTools != nil {
+			return nil, connect.NewError(connect.CodeFailedPrecondition, errors.New("your organization's policy sets whether built-in tools are deferred"))
+		}
+		set[settings.KeyDeferBuiltinTools] = req.Msg.GetDeferBuiltinTools()
 	}
 	if req.Msg.LspEnabled != nil {
 		set[settings.KeyLSPEnabled] = req.Msg.GetLspEnabled()
@@ -223,7 +233,8 @@ func (s *Server) userSettings(ctx context.Context) (*syncv1.Document, error) {
 func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	p := &agentv1.UserPreferences{CompactIdleSessions: true, LspEnabled: true, LspDiagnostics: true, PrMonitorWakesPerHour: settings.DefaultPRMonitorWakesPerHour,
 		SubagentMaxDepth: settings.DefaultSubagentMaxDepth, SubagentMaxRunning: settings.DefaultSubagentMaxRunning, WorkflowMaxAgents: settings.DefaultWorkflowMaxAgents,
-		Sandbox: &agentv1.SandboxPreferences{Enabled: true, AllowLocalhost: true}, HooksEnabled: true, AutoMemoryEnabled: true, SchedulesEnabled: true, GoalMaxTurns: settings.DefaultGoalMaxTurns}
+		Sandbox: &agentv1.SandboxPreferences{Enabled: true, AllowLocalhost: true}, HooksEnabled: true, AutoMemoryEnabled: true, SchedulesEnabled: true, GoalMaxTurns: settings.DefaultGoalMaxTurns,
+		DeferBuiltinTools: true}
 	var raw map[string]json.RawMessage
 	if json.Unmarshal([]byte(doc.GetContent()), &raw) != nil {
 		return p
@@ -239,7 +250,7 @@ func preferencesOf(doc *syncv1.Document) *agentv1.UserPreferences {
 	if v, ok := raw[settings.KeyCompactIdleSessions]; ok && json.Unmarshal(v, &b) == nil {
 		p.CompactIdleSessions = b
 	}
-	for key, dst := range map[string]*bool{settings.KeyAutoMemoryEnabled: &p.AutoMemoryEnabled, settings.KeyLSPEnabled: &p.LspEnabled, settings.KeyLSPDiagnostics: &p.LspDiagnostics, settings.KeyLSPDiagnosticsStartServer: &p.LspDiagnosticsStartServer} {
+	for key, dst := range map[string]*bool{settings.KeyAutoMemoryEnabled: &p.AutoMemoryEnabled, settings.KeyDeferBuiltinTools: &p.DeferBuiltinTools, settings.KeyLSPEnabled: &p.LspEnabled, settings.KeyLSPDiagnostics: &p.LspDiagnostics, settings.KeyLSPDiagnosticsStartServer: &p.LspDiagnosticsStartServer} {
 		if v, ok := raw[key]; ok && json.Unmarshal(v, &b) == nil {
 			*dst = b
 		}

@@ -1602,6 +1602,11 @@ message UserPreferences {
   ManagedPolicyView managed_policy = 16;
   // How requests use the models (settings keys speedTier, cacheTtl, advisorModel).
   ModelTuning model_tuning = 26;
+  // Send the definitions of rarely used built-in tools only once the model loads them with ToolSearch (settings key
+  // deferBuiltinTools). Default true. Fewer tokens in every request; the first use of a deferred tool takes one more
+  // step. Applies to sessions opened from then on. managed_policy.defer_builtin_tools, when set, overrides it and is
+  // what this field reports.
+  bool defer_builtin_tools = 60;
 }
 
 // Choices about how a user's requests run. Sessions opened from then on follow them.
@@ -1652,6 +1657,8 @@ message UpdateUserPreferencesRequest {
   optional bool auto_memory_enabled = 24;
   optional bool schedules_enabled = 18;
   optional int32 goal_max_turns = 19;
+  // FAILED_PRECONDITION while the managed policy forces the choice.
+  optional bool defer_builtin_tools = 60;
 }
 
 message UpdateUserPreferencesResponse {

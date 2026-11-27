@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -199,6 +200,9 @@ type Entry struct {
 	// McpCatalogVersion is the MCP tool catalog snapshot the session uses
 	// (frozen per session; the last one on record wins on resume).
 	McpCatalogVersion string `json:"mcpCatalogVersion,omitempty"`
+	// LoadedTools are deferred tools the session loaded (ToolSearch, or a direct call). Every record adds to the set, in
+	// order, across compactions and rewinds, and a resumed session loads them again.
+	LoadedTools []string `json:"loadedTools,omitempty"`
 	// Worktree is the git worktree the session runs in (written when the client creates it or the session moves;
 	// the last one on record wins). A record without a path means the session left its worktree.
 	Worktree *Worktree `json:"worktree,omitempty"`
@@ -543,6 +547,8 @@ type Conversation struct {
 	OutputStyle string
 	// McpCatalogVersion is the last recorded MCP tool catalog snapshot.
 	McpCatalogVersion string
+	// LoadedTools are the deferred tools the session loaded, in load order.
+	LoadedTools []string
 	// Worktree is the last recorded worktree (nil when the session does not
 	// run in one).
 	Worktree *Worktree
@@ -725,6 +731,11 @@ func Rebuild(entries []Entry) Conversation {
 			}
 			if e.McpCatalogVersion != "" {
 				c.McpCatalogVersion = e.McpCatalogVersion
+			}
+			for _, n := range e.LoadedTools {
+				if !slices.Contains(c.LoadedTools, n) {
+					c.LoadedTools = append(c.LoadedTools, n)
+				}
 			}
 			if e.Worktree != nil {
 				w := *e.Worktree

@@ -64,8 +64,11 @@ type ManagedPolicy struct {
 	ExternalSkillSearchDisabled bool `protobuf:"varint,21,opt,name=external_skill_search_disabled,json=externalSkillSearchDisabled,proto3" json:"external_skill_search_disabled,omitempty"`
 	// Only always-on hosts registered by an admin may be used: nobody registers or runs a host of their own.
 	PersonalHostsDisabled bool `protobuf:"varint,230,opt,name=personal_hosts_disabled,json=personalHostsDisabled,proto3" json:"personal_hosts_disabled,omitempty"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	// deferBuiltinTools: forces the deferral of rarely used built-in tool definitions behind ToolSearch on or off for
+	// everyone. Unset: each user chooses (UserPreferences.defer_builtin_tools). Enforced by clients when a session opens.
+	DeferBuiltinTools *bool `protobuf:"varint,420,opt,name=defer_builtin_tools,json=deferBuiltinTools,proto3,oneof" json:"defer_builtin_tools,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ManagedPolicy) Reset() {
@@ -248,6 +251,13 @@ func (x *ManagedPolicy) GetExternalSkillSearchDisabled() bool {
 func (x *ManagedPolicy) GetPersonalHostsDisabled() bool {
 	if x != nil {
 		return x.PersonalHostsDisabled
+	}
+	return false
+}
+
+func (x *ManagedPolicy) GetDeferBuiltinTools() bool {
+	if x != nil && x.DeferBuiltinTools != nil {
+		return *x.DeferBuiltinTools
 	}
 	return false
 }
@@ -510,7 +520,7 @@ var File_harness_auth_v1_managed_policy_proto protoreflect.FileDescriptor
 
 const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\n" +
-	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xa9\b\n" +
+	"$harness/auth/v1/managed_policy.proto\x12\x0fharness.auth.v1\"\xf7\b\n" +
 	"\rManagedPolicy\x12\x1f\n" +
 	"\vallow_rules\x18\x01 \x03(\tR\n" +
 	"allowRules\x12\x1b\n" +
@@ -536,7 +546,9 @@ const file_harness_auth_v1_managed_policy_proto_rawDesc = "" +
 	"\x0eallowed_skills\x18\x13 \x03(\tR\rallowedSkills\x12%\n" +
 	"\x0eblocked_skills\x18\x14 \x03(\tR\rblockedSkills\x12C\n" +
 	"\x1eexternal_skill_search_disabled\x18\x15 \x01(\bR\x1bexternalSkillSearchDisabled\x127\n" +
-	"\x17personal_hosts_disabled\x18\xe6\x01 \x01(\bR\x15personalHostsDisabled\"\x19\n" +
+	"\x17personal_hosts_disabled\x18\xe6\x01 \x01(\bR\x15personalHostsDisabled\x124\n" +
+	"\x13defer_builtin_tools\x18\xa4\x03 \x01(\bH\x00R\x11deferBuiltinTools\x88\x01\x01B\x16\n" +
+	"\x14_defer_builtin_tools\"\x19\n" +
 	"\x17GetManagedPolicyRequest\"\xee\x01\n" +
 	"\x18GetManagedPolicyResponse\x126\n" +
 	"\x06policy\x18\x01 \x01(\v2\x1e.harness.auth.v1.ManagedPolicyR\x06policy\x12\x1d\n" +
@@ -602,6 +614,7 @@ func file_harness_auth_v1_managed_policy_proto_init() {
 	if File_harness_auth_v1_managed_policy_proto != nil {
 		return
 	}
+	file_harness_auth_v1_managed_policy_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
