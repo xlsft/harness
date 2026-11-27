@@ -6,5 +6,6 @@ package providers
 import (
 	// One line per provider package, sorted.
 	_ "github.com/xlsft/harness/packages/client/tracker/jira"     // Jira, Confluence
+	_ "github.com/xlsft/harness/packages/client/tracker/linear"   // Linear, Linear documents
 	_ "github.com/xlsft/harness/packages/client/tracker/youtrack" // YouTrack, YouTrack Knowledge Base
 )
