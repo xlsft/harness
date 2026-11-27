@@ -1,9 +1,9 @@
 import { ApiError } from "../../lib/errors.ts";
 import { getSlots, setSlots, type Slots } from "../../services/models.ts";
-import { api, readJson, requireAdmin } from "../util.ts";
+import { api, readJson, requireCapability } from "../util.ts";
 
 export default api(async (event) => {
-  await requireAdmin(event);
+  await requireCapability(event, "providers.write");
   switch (event.req.method) {
     case "GET":
       return { slots: await getSlots() };

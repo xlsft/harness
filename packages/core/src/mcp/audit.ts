@@ -1,6 +1,7 @@
 /** Audit log of sensitive MCP operations. Entries never contain secret values or tool arguments. */
 import { and, desc, eq, lt, or } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
+import { need } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId } from "../lib/ids.ts";
 import type { Principal } from "../services/devices.ts";
@@ -73,7 +74,7 @@ export async function listAudit(
   p: Principal,
   f: { serverId: string; userId: string; action: string; limit: number; cursor: string },
 ): Promise<{ entries: AuditView[]; nextCursor: string }> {
-  if (p.user.role !== "admin") throw new ApiError("permission", "Only admins can read the MCP audit log");
+  need(p.user, "mcp.audit");
   await ensureDb();
   const a = schema.mcpAudit;
   const limit = f.limit > 0 ? Math.min(f.limit, 200) : 50;

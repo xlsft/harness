@@ -1,9 +1,9 @@
 import { ApiError } from "../../lib/errors.ts";
 import { createProvider, listProviders, type ProviderInput } from "../../services/providers.ts";
-import { api, json, readJson, requireAdmin } from "../util.ts";
+import { api, json, readJson, requireCapability } from "../util.ts";
 
 export default api(async (event) => {
-  await requireAdmin(event);
+  await requireCapability(event, "providers.write");
   switch (event.req.method) {
     case "GET":
       return { providers: await listProviders() };

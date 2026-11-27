@@ -30,7 +30,8 @@ import { getPromptBundle } from "../services/prompts.ts";
 import { checkClientVersion, rateLimitByIp, requirePrincipal } from "./context.ts";
 import { bundleToProto, eventToProto, messagesFromProto, modelsToProto, streamRequestToCanonical, toolsFromProto } from "./convert.ts";
 import { guard, toConnectError } from "./errors.ts";
-import { registerAdminService, roleToProto } from "./admin.ts";
+import { registerAdminService } from "./admin.ts";
+import { registerRoleService, roleFields } from "./roles.ts";
 import { registerEnterpriseServices } from "./enterprise.ts";
 import { registerDecisionService } from "./decision.ts";
 import { registerMcpService } from "./mcp.ts";
@@ -70,7 +71,7 @@ function deviceToProto(d: DeviceInfo) {
 }
 
 function userToProto(u: PublicUser) {
-  return { id: u.id, email: u.email, name: u.name, role: roleToProto(u.role) };
+  return { id: u.id, email: u.email, name: u.name, ...roleFields(u.role) };
 }
 
 function profileToProto(p: Profile) {
@@ -250,6 +251,7 @@ export function registerServices(router: ConnectRouter): ConnectRouter {
   registerBoardServices(router);
   registerUsageService(router);
   registerAdminService(router);
+  registerRoleService(router);
   registerEnterpriseServices(router);
   registerSyncService(router);
   registerSearchService(router);

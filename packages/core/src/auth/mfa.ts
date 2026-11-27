@@ -40,7 +40,8 @@ export async function getMfaPolicy(): Promise<MfaPolicy> {
 export function policyCovers(p: MfaPolicy, role: string, viaSso: boolean): boolean {
   if (!p.required) return false;
   if (viaSso && p.exempt_sso) return false;
-  return p.roles.length === 0 || p.roles.includes(normalizeRole(role));
+  // The stored role as it is, not as this process knows it: a custom role this replica has not loaded yet is still covered.
+  return p.roles.length === 0 || p.roles.includes(role || "user") || p.roles.includes(normalizeRole(role));
 }
 
 /** Replaces the policy. Refused when it would lock the caller out of the very settings they are changing. */

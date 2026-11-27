@@ -333,5 +333,11 @@ export const migrations: { id: string; statements: string[] }[] = [
       "CREATE INDEX \"host_work_user_idx\" ON \"host_work\" USING btree (\"user_id\",\"created_at\");",
       "CREATE UNIQUE INDEX \"host_work_idem_idx\" ON \"host_work\" USING btree (\"user_id\",\"idempotency_key\");"
     ]
+  },
+  {
+    "id": "0018_custom_roles",
+    "statements": [
+      "CREATE TABLE \"custom_role\" (\n\t\"id\" text PRIMARY KEY NOT NULL,\n\t\"name\" text NOT NULL,\n\t\"name_key\" text NOT NULL,\n\t\"description\" text DEFAULT '' NOT NULL,\n\t\"permissions\" jsonb DEFAULT '[]'::jsonb NOT NULL,\n\t\"created_at\" timestamp with time zone NOT NULL,\n\t\"updated_at\" timestamp with time zone NOT NULL,\n\tCONSTRAINT \"custom_role_name_key_unique\" UNIQUE(\"name_key\")\n);"
+    ]
   }
 ];

@@ -5,10 +5,10 @@
  */
 import { ApiError } from "../../lib/errors.ts";
 import { setAllowPrivateNetwork } from "../../mcp/registry.ts";
-import { api, param, readJson, requireAdmin } from "../util.ts";
+import { api, param, readJson, requireCapability } from "../util.ts";
 
 export default api(async (event) => {
-  const p = await requireAdmin(event);
+  const p = await requireCapability(event, "mcp.write");
   const id = param(event, "id");
   if (event.req.method !== "PATCH") throw new ApiError("invalid_request", "Method not allowed", { status: 405 });
   const body = await readJson<{ allow_private_network?: unknown }>(event);

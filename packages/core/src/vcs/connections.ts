@@ -7,6 +7,7 @@ import { ensureDb, getDb, schema } from "../db/index.ts";
 import { config } from "../env.ts";
 import { ProviderType } from "../gen/harness/vcs/v1/vcs_pb.ts";
 import { decryptSecret, deriveKey, encryptSecret } from "../lib/crypto.ts";
+import { need } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId } from "../lib/ids.ts";
 import { assertResolvesPublic, assertUrlAllowed } from "../lib/ssrf.ts";
@@ -46,7 +47,7 @@ function encodeSecrets(id: string, s: ConnSecrets): string {
 }
 
 export function requireAdmin(p: Principal): void {
-  if (p.user.role !== "admin") throw new ApiError("permission", "Only admins can manage code host connections");
+  need(p.user, "connections.write");
 }
 
 export function isServerType(t: number): t is ProviderType.GITHUB | ProviderType.GITLAB {

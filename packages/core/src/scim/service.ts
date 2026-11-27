@@ -284,6 +284,8 @@ async function scimGroup(id: string): Promise<typeof g.$inferSelect> {
 async function remapRoles(userIds: string[]): Promise<void> {
   const { role_mappings: rules } = await getScimSettings();
   if (!rules.length || !userIds.length) return;
+  const { rolesFresh } = await import("../services/roles.ts");
+  await rolesFresh();
   const db = getDb();
   for (const id of new Set(userIds)) {
     const names = (await db.select({ name: g.name }).from(gm).innerJoin(g, eq(g.id, gm.groupId)).where(and(eq(gm.userId, id), eq(g.source, "scim")))).map((r) => r.name);

@@ -7,10 +7,10 @@ import {
   updateModel,
   type ModelInput,
 } from "../../services/models.ts";
-import { api, param, readJson, requireAdmin } from "../util.ts";
+import { api, param, readJson, requireCapability } from "../util.ts";
 
 export default api(async (event) => {
-  await requireAdmin(event);
+  await requireCapability(event, "providers.write");
   const id = param(event, "id");
   switch (event.req.method) {
     case "GET":

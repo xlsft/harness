@@ -16,6 +16,7 @@ import {
   type ClassifierOverride,
   type ClassifierSettings,
 } from "../decision/classifier.ts";
+import { can, need } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "../services/devices.ts";
 import { discoverModelsForUser, listedCapabilitiesOf, listedLimitsOf, listedPriceOf, testLlmProvider } from "../services/discovery.ts";
@@ -82,7 +83,7 @@ function modelToProto(m: ModelEntry) {
 }
 
 async function providerToProto(p: PublicProvider, user: PublicUser) {
-  const editable = p.scope === "personal" || user.role === "admin";
+  const editable = p.scope === "personal" || can(user, "providers.write");
   return {
     id: p.id,
     scope: p.scope === "personal" ? ProviderScope.PERSONAL : ProviderScope.GLOBAL,
@@ -125,7 +126,7 @@ async function writableOwner(id: string, user: PublicUser) {
 }
 
 function requireAdmin(user: PublicUser) {
-  if (user.role !== "admin") throw new ApiError("permission", "Admin role required");
+  need(user, "providers.write");
 }
 
 function classifierToProto(c: ClassifierSettings): Classifier {
@@ -226,7 +227,7 @@ export function registerProviderService(router: ConnectRouter): void {
       return {
         providers: await Promise.all(providers.map((p) => providerToProto(p, user))),
         types: [...PROVIDER_TYPES],
-        canManageGlobal: user.role === "admin",
+        canManageGlobal: can(user, "providers.write"),
         priceCatalog: await priceCatalogToProto(),
       };
     }),
@@ -414,7 +415,7 @@ export function registerProviderService(router: ConnectRouter): void {
       const first = String(catalog.models[0]?.id ?? "");
       const small = catalog.slots.small ? String(catalog.slots.small) : first;
       const defaults: Slots = { main: first, small: first, plan: first, title: small };
-      return { slots: slotsToProto(await getSlots()), editable: user.role === "admin", defaults: slotsToProto(defaults) };
+      return { slots: slotsToProto(await getSlots()), editable: can(user, "providers.write"), defaults: slotsToProto(defaults) };
     }),
 
     setSlots: guard(async (req, ctx: HandlerContext) => {

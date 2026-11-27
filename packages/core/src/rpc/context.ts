@@ -4,6 +4,7 @@ import { config } from "../env.ts";
 import { ApiError } from "../lib/errors.ts";
 import { enforceIpRateLimit } from "../lib/rate-limit.ts";
 import { authenticateAccessToken, toPublicUser, type Principal } from "../services/devices.ts";
+import { rolesFresh } from "../services/roles.ts";
 
 /**
  * Internal header carrying the peer address from the HTTP layer into the Connect handlers on the
@@ -73,6 +74,7 @@ const COOKIE_SERVICES = new Set([
   "harness.auth.v1.DecisionLogService",
   "harness.auth.v1.BillingService",
   "harness.auth.v1.DirectoryService",
+  "harness.auth.v1.RoleService",
   "harness.auth.v1.MfaService",
   "harness.auth.v1.PolicyService",
   "harness.auth.v1.SsoService",
@@ -97,6 +99,7 @@ async function principalFromCookie(ctx: HandlerContext): Promise<Principal | und
 /** Authenticates `Authorization: Bearer hat_…`, or the session cookie of the web console. */
 export async function requirePrincipal(ctx: HandlerContext): Promise<Principal> {
   checkClientVersion(ctx);
+  await rolesFresh();
   const authz = ctx.requestHeader.get("authorization");
   const m = authz ? /^Bearer\s+(\S+)$/i.exec(authz.trim()) : null;
   const p = m ? await authenticateAccessToken(m[1]!) : authz ? undefined : await principalFromCookie(ctx);

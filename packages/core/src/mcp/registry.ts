@@ -15,6 +15,7 @@ import { Scope } from "../gen/harness/common/v1/scope_pb.ts";
 import { Transport } from "../gen/harness/mcp/v1/mcp_pb.ts";
 import { DocumentKind } from "../gen/harness/sync/v1/sync_pb.ts";
 import { decryptSecret, deriveKey, encryptSecret } from "../lib/crypto.ts";
+import { can, need } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import { newId } from "../lib/ids.ts";
 import type { Principal, PublicUser } from "../services/devices.ts";
@@ -92,13 +93,13 @@ function roles(row: ServerRow): string[] {
 export function canSee(row: ServerRow, user: PublicUser): boolean {
   if (row.scope === Scope.ORG) {
     const r = roles(row);
-    return user.role === "admin" || r.length === 0 || r.includes(user.role);
+    return can(user, "mcp.write") || r.length === 0 || r.includes(user.role);
   }
   return row.ownerId === user.id;
 }
 
 export function canWrite(row: ServerRow, user: PublicUser): boolean {
-  return row.scope === Scope.ORG ? user.role === "admin" : row.ownerId === user.id;
+  return row.scope === Scope.ORG ? can(user, "mcp.write") : row.ownerId === user.id;
 }
 
 // --- reads -------------------------------------------------------------------------------------
@@ -237,11 +238,11 @@ async function assertNameFree(tx: Tx, row: { ownerId: string; scope: number; pro
 }
 
 function assertMaySetPrivate(user: PublicUser): void {
-  if (user.role !== "admin") throw new ApiError("permission", "Only admins can set allow_private_network");
+  need(user, "mcp.write");
 }
 
 export async function createServer(p: Principal, input: ServerInput | undefined, secretChanges?: SecretChangesInput): Promise<ServerView> {
-  const v = validateServer(input, p.user.role === "admin");
+  const v = validateServer(input, can(p.user, "mcp.write"));
   if (v.scope !== Scope.ORG) await assertMcpAllowed(p.user, v.name);
   const allowPrivateNetwork = !!input?.allowPrivateNetwork;
   if (allowPrivateNetwork) assertMaySetPrivate(p.user);
@@ -297,7 +298,7 @@ export async function updateServer(
   if (scope !== cur0.scope) throw new ApiError("invalid_request", "scope cannot be changed; create a new server");
   const projectKey = cur0.scope === Scope.PROJECT ? input.projectKey || cur0.projectKey : input.projectKey;
   if (cur0.scope === Scope.PROJECT && projectKey !== cur0.projectKey) throw new ApiError("invalid_request", "project_key cannot be changed");
-  const v = validateServer({ ...input, scope, projectKey }, p.user.role === "admin");
+  const v = validateServer({ ...input, scope, projectKey }, can(p.user, "mcp.write"));
   const ch = validateSecretChanges(secretChanges);
 
   const result = await runSyncWrite(async (tx): Promise<{ value: { row: ServerRow; conflict: boolean; changed: boolean }; publish: DocRow[] }> => {

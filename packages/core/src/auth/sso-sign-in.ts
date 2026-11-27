@@ -273,6 +273,8 @@ export async function provisionSsoUser(cfg: SsoRuntime, id: SsoIdentity): Promis
   const { getAuth } = await import("./better-auth.ts");
   const adapter = (await getAuth().$context).internalAdapter as unknown as AccountCreator;
   const db = getDb();
+  const { rolesFresh } = await import("../services/roles.ts");
+  await rolesFresh();
   const mapped = cfg.role_mappings.length ? roleFromGroups(cfg.role_mappings, id.groups) : undefined;
   const name = id.name || id.username || id.email;
 

@@ -9,6 +9,7 @@
  */
 import { and, asc, eq, isNull, or } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
+import { can, need } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "../services/devices.ts";
 import { BUILTIN_SEARCH_ID, findPreset, type SearchType } from "../services/presets.ts";
@@ -74,12 +75,12 @@ async function effectiveMine(user: PublicUser): Promise<string> {
 
 export async function getSearchSettings(user: PublicUser): Promise<SearchSettings> {
   const [def, mine] = await Promise.all([effectiveDefault(), effectiveMine(user)]);
-  return { default_provider_id: def, my_provider_id: mine, effective_provider_id: mine || def, editable: user.role === "admin" };
+  return { default_provider_id: def, my_provider_id: mine, effective_provider_id: mine || def, editable: can(user, "providers.write") };
 }
 
 /** Admins: the server default (a global, enabled search provider; "" or "searxng": the built-in). */
 export async function setSearchDefault(user: PublicUser, providerId: string): Promise<SearchSettings> {
-  if (user.role !== "admin") throw new ApiError("permission", "Admin role required");
+  need(user, "providers.write");
   const id = providerId.trim();
   if (id && id !== BUILTIN_SEARCH_ID && !(await usableRow(id, null))) throw new ApiError("invalid_request", `Unknown search provider ${id}`);
   await writeSetting(DEFAULT_KEY, id === BUILTIN_SEARCH_ID ? "" : id);

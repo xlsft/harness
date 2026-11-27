@@ -1,9 +1,9 @@
 import { ApiError } from "../../lib/errors.ts";
 import { createModel, listModelsAdmin, type ModelInput } from "../../services/models.ts";
-import { api, json, readJson, requireAdmin } from "../util.ts";
+import { api, json, readJson, requireCapability } from "../util.ts";
 
 export default api(async (event) => {
-  await requireAdmin(event);
+  await requireCapability(event, "providers.write");
   switch (event.req.method) {
     case "GET":
       return { models: await listModelsAdmin() };

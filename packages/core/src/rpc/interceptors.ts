@@ -31,6 +31,7 @@ const has = (v: unknown) => typeof v === "string" && v.length > 0;
 const ADMIN = "harness.auth.v1.AdminService";
 const SSO = "harness.auth.v1.SsoService";
 const DIRECTORY = "harness.auth.v1.DirectoryService";
+const ROLES = "harness.auth.v1.RoleService";
 const BILLING = "harness.auth.v1.BillingService";
 const POLICY = "harness.auth.v1.PolicyService";
 const MFA = "harness.auth.v1.MfaService";
@@ -52,9 +53,9 @@ export const AUDITED: Record<string, Audited> = {
   [`${HOSTS}/CancelHostWork`]: { action: "host.cancel_work", targetType: "host_work", target: "id" },
   [`${HOST_AGENT}/IssueGitCredentials`]: { action: "host.git_credentials", targetType: "repository", target: "repositoryKey" },
   [`${HOST_AGENT}/IssueWorkerToken`]: { action: "host.worker_token", targetType: "user", target: "userId" },
-  [`${ADMIN}/CreateUser`]: { action: "user.create", targetType: "user", target: "email", details: ["name", "username", "role", "ldap", "generatePassword"] },
+  [`${ADMIN}/CreateUser`]: { action: "user.create", targetType: "user", target: "email", details: ["name", "username", "role", "roleId", "ldap", "generatePassword"] },
   [`${ADMIN}/ResetPassword`]: { action: "user.reset_password", targetType: "user", target: "userId", details: ["generate", "revokeSessions"] },
-  [`${ADMIN}/SetRole`]: { action: "user.set_role", targetType: "user", target: "userId", details: ["role"] },
+  [`${ADMIN}/SetRole`]: { action: "user.set_role", targetType: "user", target: "userId", details: ["role", "roleId"] },
   [`${ADMIN}/SetDisabled`]: { action: "user.set_disabled", targetType: "user", target: "userId", details: ["disabled", "reason"] },
   [`${ADMIN}/DeleteUser`]: { action: "user.delete", targetType: "user", target: "userId" },
   [`${ADMIN}/RevokeUserSessions`]: { action: "user.revoke_sessions", targetType: "user", target: "userId", details: ["deviceId"] },
@@ -86,13 +87,16 @@ export const AUDITED: Record<string, Audited> = {
   [`${DIRECTORY}/RenameGroup`]: { action: "group.rename", targetType: "group", target: "id", details: ["name"] },
   [`${DIRECTORY}/DeleteGroup`]: { action: "group.delete", targetType: "group", target: "id" },
   [`${DIRECTORY}/SetGroupMembers`]: { action: "group.set_members", targetType: "group", target: "id", details: ["userIds"] },
+  [`${ROLES}/CreateRole`]: { action: "role.create", targetType: "role", target: "name", details: ["description", "permissions"] },
+  [`${ROLES}/UpdateRole`]: { action: "role.update", targetType: "role", target: "id", details: ["name", "description", "permissions", "setPermissions"] },
+  [`${ROLES}/DeleteRole`]: { action: "role.delete", targetType: "role", target: "id", details: ["moveMembersToUser"] },
   [`${DIRECTORY}/SetScimSettings`]: { action: "scim.settings", targetType: "scim", extra: (r) => ({ role_mappings: obj(r.settings).roleMappings }) },
   [`${DIRECTORY}/CreateScimToken`]: { action: "scim.token_create", targetType: "scim_token", target: "name" },
   [`${DIRECTORY}/RevokeScimToken`]: { action: "scim.token_revoke", targetType: "scim_token", target: "id" },
 
   [`${BILLING}/SetUserQuota`]: { action: "quota.set_user", targetType: "user", target: "userId", details: ["limits"] },
   [`${BILLING}/SetGroupQuota`]: { action: "quota.set_group", targetType: "group", target: "groupId", details: ["limits"] },
-  [`${BILLING}/SetRoleQuota`]: { action: "quota.set_role", targetType: "role", target: "role", details: ["limits"] },
+  [`${BILLING}/SetRoleQuota`]: { action: "quota.set_role", targetType: "role", target: "role", details: ["roleId", "limits"] },
   [`${BILLING}/SetSessionBudget`]: { action: "quota.set_session_budget", targetType: "quota", details: ["sessionUsd"] },
 
   [`${POLICY}/SetManagedPolicy`]: { action: "policy.managed_update", targetType: "policy", details: ["policy"] },
@@ -100,7 +104,7 @@ export const AUDITED: Record<string, Audited> = {
   [`${MFA}/ConfirmMfaEnrollment`]: { action: "mfa.enroll_confirm" },
   [`${MFA}/DisableMfa`]: { action: "mfa.disable" },
   [`${MFA}/RegenerateRecoveryCodes`]: { action: "mfa.regenerate_recovery_codes" },
-  [`${MFA}/SetMfaPolicy`]: { action: "policy.mfa", targetType: "policy", extra: (r) => ({ required: obj(r.policy).required, roles: obj(r.policy).roles, exempt_sso: obj(r.policy).exemptSso }) },
+  [`${MFA}/SetMfaPolicy`]: { action: "policy.mfa", targetType: "policy", extra: (r) => ({ required: obj(r.policy).required, roles: obj(r.policy).roles, role_ids: obj(r.policy).roleIds, exempt_sso: obj(r.policy).exemptSso }) },
   [`${MFA}/ResetUserMfa`]: { action: "mfa.reset", targetType: "user", target: "userId" },
 
   [`${PROVIDERS}/CreateProvider`]: { action: "provider.create", targetType: "provider", extra: (r) => providerDetails(r) },

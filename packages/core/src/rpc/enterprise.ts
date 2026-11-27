@@ -7,7 +7,7 @@ import { create } from "@bufbuild/protobuf";
 import type { ConnectRouter, HandlerContext } from "@connectrpc/connect";
 import { auditCsv, listAudit, type AuditRow } from "../audit/log.ts";
 import { confirmEnrollment, disableMfa, getMfaPolicy, mfaStatus, regenerateRecoveryCodes, resetUserMfa, setMfaPolicy, startEnrollment } from "../auth/mfa.ts";
-import { capabilitiesOf, can, need, normalizeRole, type Capability } from "../auth/roles.ts";
+import { assertMayGrant, capabilitiesOf, can, isBuiltin, need, normalizeRole, type Capability } from "../auth/roles.ts";
 import { createScimToken, getScimSettings, listScimTokens, revokeScimToken, scimBaseUrl, setScimSettings } from "../scim/tokens.ts";
 import { deleteSsoProvider, getSsoSettings, listSsoProviders, resolveSso, saveSsoProvider, setSsoSettings, ssoUrls, type SsoInput, type SsoProviderView } from "../auth/sso-config.ts";
 import { testSsoConfig } from "../auth/sso-test.ts";
@@ -30,7 +30,8 @@ import { getManagedPolicy, setManagedPolicy, type ManagedPolicy } from "../servi
 import { listProviders } from "../services/providers.ts";
 import { effectiveLimits, getQuotaConfig, limitSource, patchQuotaConfig, spendStatus, type SpendLimits } from "../services/quotas.ts";
 import { usageCsv } from "../services/usage-export.ts";
-import { roleFromProto, roleToProto } from "./admin.ts";
+import { mappingFromProto, mappingToProto, roleFields, roleFromProto, roleToProto } from "./roles.ts";
+import { userRole } from "../services/admin-users.ts";
 import { requirePrincipal } from "./context.ts";
 import { guard } from "./errors.ts";
 
@@ -86,7 +87,7 @@ async function quotaStatus(user: { id: string; role: string; email: string; name
   });
 }
 
-const groupToProto = (g: GroupView) => ({ id: g.id, name: g.name, source: g.source, memberIds: g.member_ids });
+const groupToProto = (g: GroupView) => ({ id: g.id, name: g.name, source: g.source, memberIds: g.member_ids, usage: g.usage ? { hasQuota: g.usage.has_quota, projects: g.usage.projects, hosts: g.usage.hosts } : undefined });
 
 const policyToProto = (p: ManagedPolicy) => ({
   allowRules: p.allow_rules,
@@ -162,7 +163,7 @@ const ssoToProto = (p: SsoProviderView) => ({
   autoCreateUsers: p.auto_create_users,
   allowedDomains: p.allowed_domains,
   allowedGroups: p.allowed_groups,
-  roleMappings: p.role_mappings.map((m) => ({ group: m.group, role: roleToProto(m.role) })),
+  roleMappings: p.role_mappings.map(mappingToProto),
   redirectUri: p.redirect_uri,
   samlAcsUrl: p.saml_acs_url,
   samlEntityId: p.saml_entity_id,
@@ -191,9 +192,17 @@ function ssoFromProto(p: SsoProvider | undefined): SsoInput {
     auto_create_users: p.autoCreateUsers,
     allowed_domains: p.allowedDomains,
     allowed_groups: p.allowedGroups,
-    role_mappings: p.roleMappings.map((m) => ({ group: m.group, role: roleFromProto(m.role) })),
+    role_mappings: p.roleMappings.map(mappingFromProto),
   };
 }
+
+/** roles: the built-ins among them (older readers); role_ids: all of them. */
+const mfaPolicyToProto = (p: { required: boolean; roles: string[]; exempt_sso: boolean }) => ({
+  required: p.required,
+  roles: p.roles.filter(isBuiltin).map(roleToProto),
+  roleIds: p.roles,
+  exemptSso: p.exempt_sso,
+});
 
 export function registerEnterpriseServices(router: ConnectRouter): void {
   router.service(AuditService, {
@@ -242,7 +251,7 @@ export function registerEnterpriseServices(router: ConnectRouter): void {
       return {
         users: Object.entries(q.users).map(([userId, l]) => ({ userId, limits: limitsToProto(l) })),
         groups: Object.entries(q.groups ?? {}).map(([groupId, l]) => ({ groupId, limits: limitsToProto(l) })),
-        roles: Object.entries(q.roles).map(([role, l]) => ({ role: roleToProto(role), limits: limitsToProto(l) })),
+        roles: Object.entries(q.roles).map(([role, l]) => ({ role: roleToProto(role), roleId: role, limits: limitsToProto(l) })),
         sessionUsd: q.session_usd,
       };
     }),
@@ -260,7 +269,7 @@ export function registerEnterpriseServices(router: ConnectRouter): void {
     }),
     setRoleQuota: guard(async (req, ctx: HandlerContext) => {
       await allowed(ctx, "quotas.write");
-      await patchQuotaConfig({ roles: { [roleFromProto(req.role)]: limitsFromProto(req.limits) } });
+      await patchQuotaConfig({ roles: { [roleFromProto(req.role, req.roleId)]: limitsFromProto(req.limits) } });
       return {};
     }),
     setSessionBudget: guard(async (req, ctx: HandlerContext) => {
@@ -291,11 +300,12 @@ export function registerEnterpriseServices(router: ConnectRouter): void {
   router.service(DirectoryService, {
     getMyAccess: guard(async (_req, ctx: HandlerContext) => {
       const { user } = await requirePrincipal(ctx);
-      return { role: roleToProto(user.role), capabilities: [...capabilitiesOf(user.role)] };
+      const f = roleFields(user.role);
+      return { role: f.role, roleId: f.roleId, roleName: f.roleName, capabilities: [...capabilitiesOf(user.role)] };
     }),
     listGroups: guard(async (_req, ctx: HandlerContext) => {
       await allowed(ctx, "directory.read");
-      return { groups: (await listGroups()).map(groupToProto) };
+      return { groups: (await listGroups({ usage: true })).map(groupToProto) };
     }),
     createGroup: guard(async (req, ctx: HandlerContext) => {
       await allowed(ctx, "directory.write");
@@ -318,15 +328,17 @@ export function registerEnterpriseServices(router: ConnectRouter): void {
       await allowed(ctx, "sign_in.read");
       const [settings, tokens] = await Promise.all([getScimSettings(), listScimTokens()]);
       return {
-        settings: { roleMappings: settings.role_mappings.map((m) => ({ group: m.group, role: roleToProto(m.role) })) },
+        settings: { roleMappings: settings.role_mappings.map(mappingToProto) },
         tokens: tokens.map((t) => ({ id: t.id, name: t.name, createdAt: t.created_at, lastUsedAt: t.last_used_at })),
         baseUrl: scimBaseUrl(),
       };
     }),
     setScimSettings: guard(async (req, ctx: HandlerContext) => {
-      await allowed(ctx, "sign_in.write");
-      const s = await setScimSettings({ role_mappings: (req.settings?.roleMappings ?? []).map((m) => ({ group: m.group, role: roleFromProto(m.role) })) });
-      return { settings: { roleMappings: s.role_mappings.map((m) => ({ group: m.group, role: roleToProto(m.role) })) } };
+      const { user } = await allowed(ctx, "sign_in.write");
+      const rules = (req.settings?.roleMappings ?? []).map(mappingFromProto);
+      for (const m of rules) assertMayGrant(user, m.role);
+      const s = await setScimSettings({ role_mappings: rules });
+      return { settings: { roleMappings: s.role_mappings.map(mappingToProto) } };
     }),
     createScimToken: guard(async (req, ctx: HandlerContext) => {
       await allowed(ctx, "sign_in.write");
@@ -367,17 +379,19 @@ export function registerEnterpriseServices(router: ConnectRouter): void {
     getMfaPolicy: guard(async (_req, ctx: HandlerContext) => {
       await allowed(ctx, "sign_in.read");
       const p = await getMfaPolicy();
-      return { policy: { required: p.required, roles: p.roles.map(roleToProto), exemptSso: p.exempt_sso } };
+      return { policy: mfaPolicyToProto(p) };
     }),
     setMfaPolicy: guard(async (req, ctx: HandlerContext) => {
       const { user } = await allowed(ctx, "sign_in.write");
       const input = req.policy;
       if (!input) throw new ApiError("invalid_request", "policy is required");
-      const p = await setMfaPolicy({ required: input.required, roles: input.roles.map(roleFromProto), exempt_sso: input.exemptSso }, user);
-      return { policy: { required: p.required, roles: p.roles.map(roleToProto), exemptSso: p.exempt_sso } };
+      const roles = input.roleIds.length ? input.roleIds.map((id) => roleFromProto(0, id)) : input.roles.map((r) => roleFromProto(r));
+      const p = await setMfaPolicy({ required: input.required, roles, exempt_sso: input.exemptSso }, user);
+      return { policy: mfaPolicyToProto(p) };
     }),
     resetUserMfa: guard(async (req, ctx: HandlerContext) => {
-      await allowed(ctx, "users.write");
+      const { user } = await allowed(ctx, "users.write");
+      assertMayGrant(user, await userRole(req.userId));
       await resetUserMfa(req.userId);
       return {};
     }),
@@ -404,8 +418,10 @@ export function registerEnterpriseServices(router: ConnectRouter): void {
       return { providers: (await listSsoProviders()).map(ssoToProto) };
     }),
     saveSsoProvider: guard(async (req, ctx: HandlerContext) => {
-      await allowed(ctx, "sign_in.write");
-      return { provider: ssoToProto(await saveSsoProvider(ssoFromProto(req.provider))) };
+      const { user } = await allowed(ctx, "sign_in.write");
+      const input = ssoFromProto(req.provider);
+      for (const m of input.role_mappings ?? []) assertMayGrant(user, m.role);
+      return { provider: ssoToProto(await saveSsoProvider(input)) };
     }),
     deleteSsoProvider: guard(async (req, ctx: HandlerContext) => {
       await allowed(ctx, "sign_in.write");

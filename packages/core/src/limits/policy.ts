@@ -9,6 +9,7 @@
  */
 import { eq } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
+import { can } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import type { PublicUser } from "../services/devices.ts";
 import { getProvider, listProviders } from "../services/providers.ts";
@@ -61,7 +62,7 @@ export function policyOf(stored: StoredPolicies, providerId: string): ProviderPo
 
 /** Whether `user` passes one visibility policy of a global provider. */
 export function allowed(v: Visibility, user: PublicUser): boolean {
-  if (user.role === "admin") return true;
+  if (can(user, "providers.write")) return true;
   if (v.audience === "admins") return false;
   if (v.audience === "selected") return v.user_ids.includes(user.id);
   return true;

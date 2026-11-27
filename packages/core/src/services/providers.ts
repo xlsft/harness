@@ -32,6 +32,7 @@ import { and, asc, eq, isNull, ne, or } from "drizzle-orm";
 import { ensureDb, getDb, schema } from "../db/index.ts";
 import type { CloudAuth } from "../gateway/cloud/credentials.ts";
 import { decryptSecret, deriveKey, encryptSecret } from "../lib/crypto.ts";
+import { can } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import { assertResolvesPublic } from "../lib/ssrf.ts";
 import { clearBalanceCache } from "../limits/balance.ts";
@@ -244,7 +245,7 @@ export async function listProvidersForUser(user: PublicUser) {
     .from(schema.provider)
     .where(and(or(isNull(schema.provider.ownerUserId), eq(schema.provider.ownerUserId, user.id)), notSpeech))
     .orderBy(asc(schema.provider.createdAt));
-  const visible = rows.filter((r) => r.ownerUserId || r.enabled || user.role === "admin");
+  const visible = rows.filter((r) => r.ownerUserId || r.enabled || can(user, "providers.write"));
   return [...visible.filter((r) => !r.ownerUserId), ...visible.filter((r) => r.ownerUserId)].map(publicProvider);
 }
 
@@ -268,7 +269,7 @@ export async function providerForUser(id: string, user: PublicUser): Promise<{ r
   await ensureDb();
   const r = await getDb().query.provider.findFirst({ where: and(eq(schema.provider.id, id), notSpeech) });
   if (r && r.ownerUserId === user.id) return { row: r, owner: { userId: user.id }, writable: true };
-  if (r && !r.ownerUserId && (r.enabled || user.role === "admin")) return { row: r, owner: null, writable: user.role === "admin" };
+  if (r && !r.ownerUserId && (r.enabled || can(user, "providers.write"))) return { row: r, owner: null, writable: can(user, "providers.write") };
   throw new ApiError("not_found", `Provider ${id} not found`);
 }
 

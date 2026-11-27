@@ -12,6 +12,7 @@ import {
   type ToolSchema,
 } from "../gen/harness/mcp/v1/mcp_pb.ts";
 import { AsyncQueue } from "../lib/async.ts";
+import { can } from "../auth/roles.ts";
 import { ApiError } from "../lib/errors.ts";
 import { audit, listAudit } from "../mcp/audit.ts";
 import { getToolCatalog } from "../mcp/catalog.ts";
@@ -160,7 +161,7 @@ export function registerMcpService(router: ConnectRouter): void {
     listServers: guard(async (req, ctx: HandlerContext) => {
       const p = await requirePrincipal(ctx);
       const views = await listServers(p, { scopes: req.scopes, includeDisabled: req.includeDisabled, projectKey: req.projectKey });
-      return { servers: await serversToProto(p.user, views), canManageOrg: p.user.role === "admin" };
+      return { servers: await serversToProto(p.user, views), canManageOrg: can(p.user, "mcp.write") };
     }),
 
     getServer: guard(async (req, ctx: HandlerContext) => {
