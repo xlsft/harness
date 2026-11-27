@@ -18,7 +18,6 @@ import (
 	"sync"
 	"time"
 
-	commonv1 "github.com/xlsft/harness/packages/client/gen/harness/common/v1"
 	libraryv1 "github.com/xlsft/harness/packages/client/gen/harness/library/v1"
 )
 
@@ -36,17 +35,23 @@ type ServerAPI interface {
 
 // Service is this device's tracker side: the store, the folder links, the worker and Knowledge's merged view.
 type Service struct {
-	Store  *Store
-	Folder *FolderLinks
-	Server ServerAPI
+	Store *Store
+	// Knowledge is this device's knowledge source connections, which may borrow Store's sign-ins.
+	Knowledge *KnowledgeStore
+	Folder    *FolderLinks
+	Server    ServerAPI
 
 	flowsMu sync.Mutex
 	flows   map[string]*oauthFlow
 }
 
-// New is the service under home.
+// New is the service under home. Tracker connections that still served Knowledge themselves become knowledge source connections
+// borrowing them here (MigrateKnowledge); a failure leaves them as they are, to try again at the next start.
 func New(home string, server ServerAPI) *Service {
-	return &Service{Store: NewStore(home), Folder: &FolderLinks{Path: filepath.Join(home, "tracker-folder-projects.json")}, Server: server, flows: map[string]*oauthFlow{}}
+	store := NewStore(home)
+	s := &Service{Store: store, Knowledge: NewKnowledgeStore(home, store), Folder: &FolderLinks{Path: filepath.Join(home, "tracker-folder-projects.json")}, Server: server, flows: map[string]*oauthFlow{}}
+	_, _ = s.Knowledge.MigrateKnowledge()
+	return s
 }
 
 // CapabilitiesProto is every provider's capabilities.
@@ -59,11 +64,38 @@ func CapabilitiesProto() []*libraryv1.TrackerCapabilities {
 }
 
 func capabilitiesProto(c Capabilities) *libraryv1.TrackerCapabilities {
-	p := &libraryv1.TrackerCapabilities{Provider: c.Provider, DisplayName: c.DisplayName, QueryLanguage: c.QueryLanguage, QueryExample: c.QueryExample, CustomFields: c.CustomFields, Comments: c.Comments, Knowledge: c.Knowledge}
-	for _, m := range c.AuthMethods {
-		p.AuthMethods = append(p.AuthMethods, AuthProto(m))
+	return &libraryv1.TrackerCapabilities{
+		Provider: c.Provider, DisplayName: c.DisplayName, AuthMethods: authMethodsProto(c.AuthMethods), QueryLanguage: c.QueryLanguage, QueryExample: c.QueryExample,
+		CustomFields: c.CustomFields, Comments: c.Comments, OptionFields: optionFieldsProto(c.OptionFields), DocsUrl: c.DocsURL, Logo: c.Logo,
+		BaseUrlPlaceholder: c.BaseURLPlaceholder, DefaultBaseUrl: c.DefaultBaseURL, AuthHints: authHintsProto(c.AuthMethods, c.AuthHints),
 	}
-	return p
+}
+
+func authMethodsProto(list []AuthMethod) []libraryv1.TrackerAuthMethod {
+	out := make([]libraryv1.TrackerAuthMethod, 0, len(list))
+	for _, m := range list {
+		out = append(out, AuthProto(m))
+	}
+	return out
+}
+
+func optionFieldsProto(list []OptionField) []*libraryv1.ProviderOptionField {
+	out := make([]*libraryv1.ProviderOptionField, 0, len(list))
+	for _, f := range list {
+		out = append(out, &libraryv1.ProviderOptionField{Key: f.Key, Label: f.Label, Placeholder: f.Placeholder, Required: f.Required, AllowedValues: f.AllowedValues, Help: f.Help, DefaultValue: f.Default})
+	}
+	return out
+}
+
+// authHintsProto keeps the order of the methods, so the form lists them as the provider does.
+func authHintsProto(methods []AuthMethod, hints map[AuthMethod]AuthHint) []*libraryv1.ProviderAuthHint {
+	var out []*libraryv1.ProviderAuthHint
+	for _, m := range methods {
+		if h, ok := hints[m]; ok {
+			out = append(out, &libraryv1.ProviderAuthHint{Method: AuthProto(m), Help: h.Help, SecretLabel: h.SecretLabel, LoginLabel: h.LoginLabel})
+		}
+	}
+	return out
 }
 
 // AuthProto is the method's enum value.
@@ -75,6 +107,10 @@ func AuthProto(m AuthMethod) libraryv1.TrackerAuthMethod {
 		return libraryv1.TrackerAuthMethod_TRACKER_AUTH_METHOD_PASSWORD
 	case AuthOAuth:
 		return libraryv1.TrackerAuthMethod_TRACKER_AUTH_METHOD_OAUTH
+	case AuthEmailToken:
+		return libraryv1.TrackerAuthMethod_TRACKER_AUTH_METHOD_EMAIL_TOKEN
+	case AuthVCS:
+		return libraryv1.TrackerAuthMethod_TRACKER_AUTH_METHOD_VCS_CONNECTION
 	}
 	return libraryv1.TrackerAuthMethod_TRACKER_AUTH_METHOD_UNSPECIFIED
 }
@@ -88,6 +124,10 @@ func AuthFromProto(m libraryv1.TrackerAuthMethod) AuthMethod {
 		return AuthPassword
 	case libraryv1.TrackerAuthMethod_TRACKER_AUTH_METHOD_OAUTH:
 		return AuthOAuth
+	case libraryv1.TrackerAuthMethod_TRACKER_AUTH_METHOD_EMAIL_TOKEN:
+		return AuthEmailToken
+	case libraryv1.TrackerAuthMethod_TRACKER_AUTH_METHOD_VCS_CONNECTION:
+		return AuthVCS
 	}
 	return ""
 }
@@ -96,7 +136,7 @@ func AuthFromProto(m libraryv1.TrackerAuthMethod) AuthMethod {
 func (s *Service) ConnectionProto(c Connection) *libraryv1.TrackerConnection {
 	p := &libraryv1.TrackerConnection{
 		Id: c.ID, Scope: libraryv1.TrackerConnectionScope_TRACKER_CONNECTION_SCOPE_DEVICE, Provider: c.Provider, Name: c.Name, BaseUrl: c.BaseURL, Auth: AuthProto(c.Auth), Login: c.Login, OauthClientId: c.OAuthClientID,
-		HasSecret: s.Store.HasSecret(c), Enabled: c.Enabled, KnowledgeEnabled: c.KnowledgeEnabled, KnowledgeQuery: c.KnowledgeQuery, Healthy: c.Healthy, LastError: c.LastError, LastCheckedAt: c.LastCheckedAt,
+		HasSecret: s.Store.HasSecret(c), Enabled: c.Enabled, Options: c.Options, Healthy: c.Healthy, LastError: c.LastError, LastCheckedAt: c.LastCheckedAt,
 	}
 	if f, err := factoryOf(c.Provider); err == nil {
 		p.Capabilities = capabilitiesProto(f.Capabilities)
@@ -107,7 +147,7 @@ func (s *Service) ConnectionProto(c Connection) *libraryv1.TrackerConnection {
 // InputFromProto reads a form.
 func InputFromProto(c *libraryv1.TrackerConnectionInput) Input {
 	return Input{
-		Connection: Connection{ID: c.GetId(), Provider: c.GetProvider(), Name: c.GetName(), BaseURL: c.GetBaseUrl(), Auth: AuthFromProto(c.GetAuth()), Login: strings.TrimSpace(c.GetLogin()), OAuthClientID: strings.TrimSpace(c.GetOauthClientId()), Enabled: c.GetEnabled(), KnowledgeEnabled: c.GetKnowledgeEnabled(), KnowledgeQuery: strings.TrimSpace(c.GetKnowledgeQuery())},
+		Connection: Connection{ID: c.GetId(), Provider: c.GetProvider(), Name: c.GetName(), BaseURL: c.GetBaseUrl(), Auth: AuthFromProto(c.GetAuth()), Login: strings.TrimSpace(c.GetLogin()), OAuthClientID: strings.TrimSpace(c.GetOauthClientId()), Enabled: c.GetEnabled(), Options: c.GetOptions()},
 		Secret:     c.Secret, OAuthClientSecret: c.OauthClientSecret,
 	}
 }
@@ -431,252 +471,6 @@ func applyOutput(ctx context.Context, p Provider, out *libraryv1.DeviceOutput) e
 	return nil
 }
 
-// ---- Knowledge's merged view ----
-
-// documentID is how a device source's article is named: the same form the server uses, and the connection's id says where it is.
-func documentID(connectionID, articleID string) string {
-	return "conn:" + connectionID + ":" + articleID
-}
-
-// ParseDocumentID splits a provider document's id. ok is false for an internal one.
-func ParseDocumentID(id string) (connectionID, articleID string, ok bool) {
-	rest, found := strings.CutPrefix(id, "conn:")
-	if !found {
-		return "", "", false
-	}
-	connectionID, articleID, ok = strings.Cut(rest, ":")
-	return connectionID, articleID, ok && connectionID != "" && articleID != ""
-}
-
-func deviceSource(c Connection) *libraryv1.KnowledgeSourceRef {
-	return &libraryv1.KnowledgeSourceRef{Id: c.ID, Kind: libraryv1.KnowledgeSourceKind_KNOWLEDGE_SOURCE_KIND_PROVIDER, Scope: commonv1.Scope_SCOPE_USER, Name: c.Name, Provider: c.Provider}
-}
-
-func (s *Service) deviceSources() []Connection {
-	list, err := s.Store.List()
-	if err != nil {
-		return nil
-	}
-	var out []Connection
-	for _, c := range list {
-		if c.Enabled && c.KnowledgeEnabled {
-			out = append(out, c)
-		}
-	}
-	return out
-}
-
-// Sources lists what this user can read, the server's and this device's. A server that can't be reached still leaves this device's.
-func (s *Service) Sources(ctx context.Context) ([]*libraryv1.KnowledgeSource, error) {
-	var out []*libraryv1.KnowledgeSource
-	var serverErr error
-	if s.Server != nil {
-		res, err := s.Server.ListKnowledgeSources(ctx, &libraryv1.ListKnowledgeSourcesRequest{})
-		serverErr = err
-		out = res.GetSources()
-	}
-	for _, c := range s.deviceSources() {
-		out = append(out, &libraryv1.KnowledgeSource{Ref: deviceSource(c)})
-	}
-	if serverErr != nil && len(out) == 0 {
-		return nil, serverErr
-	}
-	return out, nil
-}
-
-type knowledgeList struct {
-	hits []*libraryv1.KnowledgeHit
-}
-
-// alternate takes each source's list in turn: their scores can't be compared.
-func alternate(lists []knowledgeList, limit int) []*libraryv1.KnowledgeHit {
-	var out []*libraryv1.KnowledgeHit
-	for i := 0; len(out) < limit; i++ {
-		any := false
-		for _, l := range lists {
-			if i < len(l.hits) && len(out) < limit {
-				out = append(out, l.hits[i])
-				any = true
-			}
-		}
-		if !any {
-			break
-		}
-	}
-	return out
-}
-
-// Search searches every source this user can read, concurrently. scope narrows; sourceIDs, when set, picks sources.
-func (s *Service) Search(ctx context.Context, query string, limit int32, scope commonv1.Scope, sourceIDs []string) ([]*libraryv1.KnowledgeHit, []*libraryv1.KnowledgeWarning, error) {
-	if limit <= 0 {
-		limit = 8
-	}
-	limit = min(limit, 30)
-	wanted := func(id string) bool {
-		if len(sourceIDs) == 0 {
-			return true
-		}
-		for _, x := range sourceIDs {
-			if x == id {
-				return true
-			}
-		}
-		return false
-	}
-	var (
-		wg       sync.WaitGroup
-		mu       sync.Mutex
-		lists    []knowledgeList
-		warnings []*libraryv1.KnowledgeWarning
-		fatal    error
-	)
-	if s.Server != nil {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			res, err := s.Server.SearchKnowledge(ctx, &libraryv1.SearchKnowledgeRequest{Query: query, Limit: limit, Scope: scope})
-			mu.Lock()
-			defer mu.Unlock()
-			if err != nil {
-				fatal = err
-				return
-			}
-			var hits []*libraryv1.KnowledgeHit
-			for _, h := range res.GetHits() {
-				if wanted(h.GetSource().GetId()) {
-					hits = append(hits, h)
-				}
-			}
-			lists = append(lists, knowledgeList{hits})
-			warnings = append(warnings, res.GetWarnings()...)
-		}()
-	}
-	if scope != commonv1.Scope_SCOPE_ORG {
-		terms := FreeTextTerms(query)
-		for _, c := range s.deviceSources() {
-			if !wanted(c.ID) {
-				continue
-			}
-			wg.Add(1)
-			go func(c Connection) {
-				defer wg.Done()
-				articles, err := s.searchDevice(ctx, c, query, int(limit))
-				mu.Lock()
-				defer mu.Unlock()
-				if err != nil {
-					warnings = append(warnings, &libraryv1.KnowledgeWarning{Source: deviceSource(c), Message: err.Error()})
-					return
-				}
-				var hits []*libraryv1.KnowledgeHit
-				for _, a := range articles {
-					hits = append(hits, &libraryv1.KnowledgeHit{DocumentId: documentID(c.ID, a.ID), Title: a.Title, Scope: commonv1.Scope_SCOPE_USER, Snippet: Snippet(a.Content, terms), Source: deviceSource(c), Url: a.URL})
-				}
-				lists = append(lists, knowledgeList{hits})
-			}(c)
-		}
-	}
-	wg.Wait()
-	// The server failing is a warning only if a source of this device could still answer.
-	if fatal != nil {
-		if len(lists) == 0 {
-			return nil, nil, fatal
-		}
-		warnings = append(warnings, &libraryv1.KnowledgeWarning{Source: &libraryv1.KnowledgeSourceRef{Id: "server", Name: "the server"}, Message: "The server could not be searched right now."})
-	}
-	return alternate(lists, int(limit)), warnings, nil
-}
-
-func (s *Service) searchDevice(ctx context.Context, c Connection, query string, limit int) ([]Article, error) {
-	kp, err := s.knowledgeProvider(c)
-	if err != nil {
-		return nil, err
-	}
-	return kp.SearchArticles(ctx, query, c.KnowledgeQuery, limit)
-}
-
-func (s *Service) knowledgeProvider(c Connection) (KnowledgeProvider, error) {
-	p, err := s.Store.Open(c)
-	if err != nil {
-		return nil, err
-	}
-	kp, ok := p.(KnowledgeProvider)
-	if !ok || !p.Capabilities().Knowledge {
-		return nil, fmt.Errorf("%s has no documents", c.Name)
-	}
-	return kp, nil
-}
-
-func (s *Service) deviceSource(id string) (Connection, bool) {
-	for _, c := range s.deviceSources() {
-		if c.ID == id {
-			return c, true
-		}
-	}
-	return Connection{}, false
-}
-
-func articleProto(c Connection, a *Article) *libraryv1.KnowledgeDocument {
-	return &libraryv1.KnowledgeDocument{
-		Id: documentID(c.ID, a.ID), Scope: commonv1.Scope_SCOPE_USER, Title: a.Title, SourceName: a.Project, Size: int64(len(a.Content)), CreatedAt: a.UpdatedAt, UpdatedAt: a.UpdatedAt,
-		Source: deviceSource(c), Url: a.URL, HasChildren: a.HasChildren,
-	}
-}
-
-// Browse lists a source's documents.
-func (s *Service) Browse(ctx context.Context, sourceID, parentID string, limit, offset int32) ([]*libraryv1.KnowledgeDocument, bool, error) {
-	if c, ok := s.deviceSource(sourceID); ok {
-		kp, err := s.knowledgeProvider(c)
-		if err != nil {
-			return nil, false, err
-		}
-		if limit <= 0 {
-			limit = 100
-		}
-		list, hasMore, err := kp.ListArticles(ctx, parentID, c.KnowledgeQuery, Page{Limit: int(min(limit, 200)), Offset: int(offset)})
-		if err != nil {
-			return nil, false, err
-		}
-		out := make([]*libraryv1.KnowledgeDocument, 0, len(list))
-		for i := range list {
-			out = append(out, articleProto(c, &list[i]))
-		}
-		return out, hasMore, nil
-	}
-	if s.Server == nil {
-		return nil, false, fmt.Errorf("%w: source %s", ErrNotFound, sourceID)
-	}
-	res, err := s.Server.BrowseKnowledgeSource(ctx, &libraryv1.BrowseKnowledgeSourceRequest{SourceId: sourceID, ParentId: parentID, Limit: limit, Offset: offset})
-	if err != nil {
-		return nil, false, err
-	}
-	return res.GetDocuments(), res.GetHasMore(), nil
-}
-
-// Read reads a document from the right source.
-func (s *Service) Read(ctx context.Context, documentID string) (*libraryv1.KnowledgeDocument, string, error) {
-	if connID, articleID, ok := ParseDocumentID(documentID); ok {
-		if c, local := s.deviceSource(connID); local {
-			kp, err := s.knowledgeProvider(c)
-			if err != nil {
-				return nil, "", err
-			}
-			a, err := kp.GetArticle(ctx, articleID)
-			if err != nil {
-				return nil, "", err
-			}
-			return articleProto(c, a), a.Content, nil
-		}
-	}
-	if s.Server == nil {
-		return nil, "", fmt.Errorf("%w: document %s", ErrNotFound, documentID)
-	}
-	res, err := s.Server.GetKnowledgeDocument(ctx, &libraryv1.GetKnowledgeDocumentRequest{Id: documentID})
-	if err != nil {
-		return nil, "", err
-	}
-	return res.GetDocument(), res.GetContent(), nil
-}
-
 // ---- OAuth through a loopback address ----
 
 const oauthFlowTTL = 10 * time.Minute
@@ -708,6 +502,45 @@ func (s *Service) StartOAuth(ctx context.Context, connectionID string) (flowID, 
 	if err != nil {
 		return "", "", err
 	}
+	creds, err := s.Store.credentials(c.ID)
+	if err != nil {
+		return "", "", err
+	}
+	return s.loopbackOAuth(ctx, ex, c.OAuthClientID, creds.ClientSecret, func(t Credentials) error { return s.Store.SetTokens(c.ID, t) })
+}
+
+// StartKnowledgeOAuth is StartOAuth for a knowledge source connection with its own OAuth sign-in. One that borrows is authorized
+// through the tracker connection it borrows.
+func (s *Service) StartKnowledgeOAuth(ctx context.Context, connectionID string) (flowID, authorizeURL string, err error) {
+	c, err := s.Knowledge.Get(connectionID)
+	if err != nil {
+		return "", "", err
+	}
+	if c.Borrow != "" {
+		return "", "", errors.New("this source uses the sign-in of a tracker connection: authorize that one")
+	}
+	if c.Auth != AuthOAuth {
+		return "", "", errors.New("this connection does not use OAuth")
+	}
+	f, err := knowledgeFactoryOf(c.Provider)
+	if err != nil {
+		return "", "", err
+	}
+	if f.OAuth == nil {
+		return "", "", fmt.Errorf("%s has no OAuth", f.Capabilities.DisplayName)
+	}
+	ex, err := f.OAuth(c.BaseURL)
+	if err != nil {
+		return "", "", err
+	}
+	creds, err := readCredentials(s.Knowledge.Secrets, c.ID)
+	if err != nil {
+		return "", "", err
+	}
+	return s.loopbackOAuth(ctx, ex, c.OAuthClientID, creds.ClientSecret, func(t Credentials) error { return s.Knowledge.SetTokens(c.ID, t) })
+}
+
+func (s *Service) loopbackOAuth(ctx context.Context, ex OAuthExchange, clientID, clientSecret string, store func(Credentials) error) (flowID, authorizeURL string, err error) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return "", "", err
@@ -715,12 +548,7 @@ func (s *Service) StartOAuth(ctx context.Context, connectionID string) (flowID, 
 	redirect := fmt.Sprintf("http://127.0.0.1:%d/callback", ln.Addr().(*net.TCPAddr).Port)
 	state, verifier := randomString(16), randomString(32)
 	sum := sha256.Sum256([]byte(verifier))
-	authURL, err := ex.AuthorizeURL(ctx, c.OAuthClientID, redirect, state, base64.RawURLEncoding.EncodeToString(sum[:]))
-	if err != nil {
-		_ = ln.Close()
-		return "", "", err
-	}
-	creds, err := s.Store.credentials(c.ID)
+	authURL, err := ex.AuthorizeURL(ctx, clientID, redirect, state, base64.RawURLEncoding.EncodeToString(sum[:]))
 	if err != nil {
 		_ = ln.Close()
 		return "", "", err
@@ -763,9 +591,9 @@ func (s *Service) StartOAuth(ctx context.Context, connectionID string) (flowID, 
 		} else {
 			ectx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
-			t, err := ex.Exchange(ectx, c.OAuthClientID, creds.ClientSecret, q.Get("code"), redirect, verifier)
+			t, err := ex.Exchange(ectx, clientID, clientSecret, q.Get("code"), redirect, verifier)
 			if err == nil {
-				err = s.Store.SetTokens(c.ID, t)
+				err = store(t)
 			}
 			if err != nil {
 				msg = err.Error()

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"sort"
@@ -20,19 +19,23 @@ import (
 
 // Connection is a personal connection on this device. It lives in HARNESS_HOME and is never synced; the secret is in the keychain.
 type Connection struct {
-	ID               string     `json:"id"`
-	Provider         string     `json:"provider"`
-	Name             string     `json:"name"`
-	BaseURL          string     `json:"base_url"`
-	Auth             AuthMethod `json:"auth"`
-	Login            string     `json:"login,omitempty"`
-	OAuthClientID    string     `json:"oauth_client_id,omitempty"`
-	Enabled          bool       `json:"enabled"`
-	KnowledgeEnabled bool       `json:"knowledge_enabled,omitempty"`
-	KnowledgeQuery   string     `json:"knowledge_query,omitempty"`
-	Healthy          bool       `json:"healthy,omitempty"`
-	LastError        string     `json:"last_error,omitempty"`
-	LastCheckedAt    string     `json:"last_checked_at,omitempty"`
+	ID            string     `json:"id"`
+	Provider      string     `json:"provider"`
+	Name          string     `json:"name"`
+	BaseURL       string     `json:"base_url"`
+	Auth          AuthMethod `json:"auth"`
+	Login         string     `json:"login,omitempty"`
+	OAuthClientID string     `json:"oauth_client_id,omitempty"`
+	Enabled       bool       `json:"enabled"`
+	// Options are provider-specific settings (Capabilities.OptionFields). Never secrets.
+	Options map[string]string `json:"options,omitempty"`
+	// KnowledgeEnabled and KnowledgeQuery are only read, to migrate a connection that served Knowledge into a knowledge source
+	// connection borrowing it (MigrateKnowledge); nothing sets them any more.
+	KnowledgeEnabled bool   `json:"knowledge_enabled,omitempty"`
+	KnowledgeQuery   string `json:"knowledge_query,omitempty"`
+	Healthy          bool   `json:"healthy,omitempty"`
+	LastError        string `json:"last_error,omitempty"`
+	LastCheckedAt    string `json:"last_checked_at,omitempty"`
 }
 
 // Secrets stores credentials on this machine.
@@ -45,19 +48,26 @@ type Secrets interface {
 
 const keyringService = "harness-client"
 
-func keyringUser(id string) string { return "tracker-connection:" + id }
-
 // KeyringSecrets uses the system keychain, and a 0600 file only where there is none (headless Linux, HARNESS_KEYRING=0).
 type KeyringSecrets struct {
 	FallbackPath string
 	NoKeyring    bool
-	mu           sync.Mutex
+	// Prefix names the kind of connection in the keychain; "tracker-connection:" when empty.
+	Prefix string
+	mu     sync.Mutex
+}
+
+func (k *KeyringSecrets) user(id string) string {
+	if k.Prefix == "" {
+		return "tracker-connection:" + id
+	}
+	return k.Prefix + id
 }
 
 // Get implements Secrets.
 func (k *KeyringSecrets) Get(id string) (string, error) {
 	if !k.NoKeyring {
-		if s, err := keyring.Get(keyringService, keyringUser(id)); err == nil {
+		if s, err := keyring.Get(keyringService, k.user(id)); err == nil {
 			return s, nil
 		}
 	}
@@ -79,7 +89,7 @@ func (k *KeyringSecrets) Set(id, value string) error {
 		return err
 	}
 	if !k.NoKeyring {
-		if err := keyring.Set(keyringService, keyringUser(id), value); err == nil {
+		if err := keyring.Set(keyringService, k.user(id), value); err == nil {
 			if _, stale := m[id]; stale {
 				delete(m, id)
 				return k.write(m)
@@ -94,7 +104,7 @@ func (k *KeyringSecrets) Set(id, value string) error {
 // Delete implements Secrets.
 func (k *KeyringSecrets) Delete(id string) error {
 	if !k.NoKeyring {
-		_ = keyring.Delete(keyringService, keyringUser(id))
+		_ = keyring.Delete(keyringService, k.user(id))
 	}
 	k.mu.Lock()
 	defer k.mu.Unlock()
@@ -227,29 +237,17 @@ func NormalizeURL(raw string) string {
 }
 
 func validate(c *Connection) error {
-	if _, err := factoryOf(c.Provider); err != nil {
+	f, err := factoryOf(c.Provider)
+	if err != nil {
 		return err
 	}
-	c.BaseURL = NormalizeURL(c.BaseURL)
-	u, err := url.Parse(c.BaseURL)
-	if err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") {
-		return errors.New("the address must be an http(s) URL")
+	spec := signInSpec{authMethods: f.Capabilities.AuthMethods, optionFields: f.Capabilities.OptionFields, defaultBaseURL: f.Capabilities.DefaultBaseURL, validate: f.Validate}
+	u, err := checkSignIn(spec, &c.BaseURL, c.Auth, c.Login, c.OAuthClientID, &c.Options)
+	if err != nil {
+		return err
 	}
-	if u.User != nil || u.RawQuery != "" || u.Fragment != "" {
-		return errors.New("the address must not carry credentials, a query or a fragment")
-	}
-	switch c.Auth {
-	case AuthToken:
-	case AuthPassword:
-		if strings.TrimSpace(c.Login) == "" {
-			return errors.New("the login is required for login and password")
-		}
-	case AuthOAuth:
-		if strings.TrimSpace(c.OAuthClientID) == "" {
-			return errors.New("the OAuth client id is required: an admin of the instance creates the client")
-		}
-	default:
-		return errors.New("choose how this connection signs in")
+	if len(c.Options) == 0 {
+		c.Options = nil
 	}
 	if strings.TrimSpace(c.Name) == "" {
 		c.Name = u.Host
@@ -388,8 +386,11 @@ func (s *Store) HasSecret(c Connection) bool {
 	if err != nil {
 		return false
 	}
-	if c.Auth == AuthOAuth {
+	switch c.Auth {
+	case AuthOAuth:
 		return creds.AccessToken != "" || creds.RefreshToken != ""
+	case AuthVCS:
+		return true
 	}
 	return creds.Secret != ""
 }
@@ -417,8 +418,8 @@ func (s *Store) Open(c Connection) (Provider, error) {
 		return nil, err
 	}
 	return f.Open(OpenOptions{
-		BaseURL: c.BaseURL, Auth: c.Auth, Login: c.Login, OAuthClientID: c.OAuthClientID, Credentials: creds,
-		OnTokens: func(t Credentials) { _ = s.SetTokens(c.ID, t) },
+		BaseURL: c.BaseURL, Auth: c.Auth, Login: c.Login, OAuthClientID: c.OAuthClientID, Credentials: creds, Options: c.Options,
+		OnTokens: func(t Credentials) { _ = s.SetTokens(c.ID, t) }, VCSToken: DeviceVCSToken,
 	})
 }
 
@@ -452,7 +453,7 @@ func TestDraft(ctx context.Context, in Input) (Identity, error) {
 	if in.Secret != nil {
 		creds.Secret = *in.Secret
 	}
-	p, err := f.Open(OpenOptions{BaseURL: c.BaseURL, Auth: c.Auth, Login: c.Login, Credentials: creds})
+	p, err := f.Open(OpenOptions{BaseURL: c.BaseURL, Auth: c.Auth, Login: c.Login, Credentials: creds, Options: c.Options, VCSToken: DeviceVCSToken})
 	if err != nil {
 		return Identity{}, err
 	}
