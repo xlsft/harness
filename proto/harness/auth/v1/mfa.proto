@@ -73,8 +73,9 @@ message MfaPolicy {
   // Everybody must have a factor. Those without one enroll at their next sign-in, and their connected devices stop
   // refreshing tokens until they did.
   bool required = 1;
-  // Only these roles (empty: every role).
+  // Only these roles (empty: every role). Built-ins only; role_ids carries every role, custom ones too, and wins when set.
   repeated User.Role roles = 2;
+  repeated string role_ids = 4;
   // People signing in through SSO are not asked again: their identity provider is responsible for the second factor.
   bool exempt_sso = 3;
 }

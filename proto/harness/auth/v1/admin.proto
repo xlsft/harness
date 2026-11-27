@@ -92,6 +92,9 @@ message AdminUser {
   repeated string groups = 14;
   // Avatar as a data URL (see UpdateMeRequest.image); empty when none is set. Lists show it beside the name.
   string image = 15;
+  // The role by id and its display name (see User.role_id). A custom role reads as ROLE_UNSPECIFIED in `role`.
+  string role_id = 16;
+  string role_name = 17;
 }
 
 // One rule of a group to role mapping: members of `group` get `role`. Rules are checked in order and the first match
@@ -100,6 +103,8 @@ message AdminUser {
 message GroupRoleMapping {
   string group = 1;
   User.Role role = 2;
+  // The role by id (roles.proto); when set it wins over `role`, which is how a custom role is mapped.
+  string role_id = 3;
 }
 
 message ListUsersRequest {
@@ -123,6 +128,8 @@ message CreateUserRequest {
   User.Role role = 6;
   // Pre-provisions a directory user (no local password): they sign in through LDAP with `username`.
   bool ldap = 7;
+  // The role by id (roles.proto); when set it wins over `role`. The caller must hold every permission of the role.
+  string role_id = 8;
 }
 
 message CreateUserResponse {
@@ -147,6 +154,9 @@ message ResetPasswordResponse {
 message SetRoleRequest {
   string user_id = 1;
   User.Role role = 2;
+  // The role by id (roles.proto); when set it wins over `role`. The caller must hold every permission of both the
+  // user's current role and the new one.
+  string role_id = 3;
 }
 
 message SetRoleResponse {
@@ -308,6 +318,7 @@ message TestLdapUserResponse {
   string user_id = 10;
   // The role admin_group_dn and role_mappings give them.
   User.Role role = 11;
+  string role_id = 12;
 }
 
 message PermissionModePolicy {

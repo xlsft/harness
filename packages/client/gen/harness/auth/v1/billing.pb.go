@@ -188,9 +188,11 @@ func (x *GroupQuota) GetLimits() *QuotaLimits {
 }
 
 type RoleQuota struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Role          User_Role              `protobuf:"varint,1,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
-	Limits        *QuotaLimits           `protobuf:"bytes,2,opt,name=limits,proto3" json:"limits,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Role   User_Role              `protobuf:"varint,1,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
+	Limits *QuotaLimits           `protobuf:"bytes,2,opt,name=limits,proto3" json:"limits,omitempty"`
+	// The role by id (roles.proto); a custom role reads as ROLE_UNSPECIFIED in `role`.
+	RoleId        string `protobuf:"bytes,3,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -237,6 +239,13 @@ func (x *RoleQuota) GetLimits() *QuotaLimits {
 		return x.Limits
 	}
 	return nil
+}
+
+func (x *RoleQuota) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
 }
 
 type GetQuotasRequest struct {
@@ -520,9 +529,11 @@ func (*SetGroupQuotaResponse) Descriptor() ([]byte, []int) {
 }
 
 type SetRoleQuotaRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Role          User_Role              `protobuf:"varint,1,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
-	Limits        *QuotaLimits           `protobuf:"bytes,2,opt,name=limits,proto3" json:"limits,omitempty"`
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Role   User_Role              `protobuf:"varint,1,opt,name=role,proto3,enum=harness.auth.v1.User_Role" json:"role,omitempty"`
+	Limits *QuotaLimits           `protobuf:"bytes,2,opt,name=limits,proto3" json:"limits,omitempty"`
+	// The role by id (roles.proto); when set it wins over `role`.
+	RoleId        string `protobuf:"bytes,3,opt,name=role_id,json=roleId,proto3" json:"role_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -569,6 +580,13 @@ func (x *SetRoleQuotaRequest) GetLimits() *QuotaLimits {
 		return x.Limits
 	}
 	return nil
+}
+
+func (x *SetRoleQuotaRequest) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
 }
 
 type SetRoleQuotaResponse struct {
@@ -1095,10 +1113,11 @@ const file_harness_auth_v1_billing_proto_rawDesc = "" +
 	"\n" +
 	"GroupQuota\x12\x19\n" +
 	"\bgroup_id\x18\x01 \x01(\tR\agroupId\x124\n" +
-	"\x06limits\x18\x02 \x01(\v2\x1c.harness.auth.v1.QuotaLimitsR\x06limits\"q\n" +
+	"\x06limits\x18\x02 \x01(\v2\x1c.harness.auth.v1.QuotaLimitsR\x06limits\"\x8a\x01\n" +
 	"\tRoleQuota\x12.\n" +
 	"\x04role\x18\x01 \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\x124\n" +
-	"\x06limits\x18\x02 \x01(\v2\x1c.harness.auth.v1.QuotaLimitsR\x06limits\"\x12\n" +
+	"\x06limits\x18\x02 \x01(\v2\x1c.harness.auth.v1.QuotaLimitsR\x06limits\x12\x17\n" +
+	"\arole_id\x18\x03 \x01(\tR\x06roleId\"\x12\n" +
 	"\x10GetQuotasRequest\"\xe2\x01\n" +
 	"\x11GetQuotasResponse\x120\n" +
 	"\x05users\x18\x01 \x03(\v2\x1a.harness.auth.v1.UserQuotaR\x05users\x123\n" +
@@ -1114,10 +1133,11 @@ const file_harness_auth_v1_billing_proto_rawDesc = "" +
 	"\x14SetGroupQuotaRequest\x12\x19\n" +
 	"\bgroup_id\x18\x01 \x01(\tR\agroupId\x124\n" +
 	"\x06limits\x18\x02 \x01(\v2\x1c.harness.auth.v1.QuotaLimitsR\x06limits\"\x17\n" +
-	"\x15SetGroupQuotaResponse\"{\n" +
+	"\x15SetGroupQuotaResponse\"\x94\x01\n" +
 	"\x13SetRoleQuotaRequest\x12.\n" +
 	"\x04role\x18\x01 \x01(\x0e2\x1a.harness.auth.v1.User.RoleR\x04role\x124\n" +
-	"\x06limits\x18\x02 \x01(\v2\x1c.harness.auth.v1.QuotaLimitsR\x06limits\"\x16\n" +
+	"\x06limits\x18\x02 \x01(\v2\x1c.harness.auth.v1.QuotaLimitsR\x06limits\x12\x17\n" +
+	"\arole_id\x18\x03 \x01(\tR\x06roleId\"\x16\n" +
 	"\x14SetRoleQuotaResponse\"O\n" +
 	"\x17SetSessionBudgetRequest\x12$\n" +
 	"\vsession_usd\x18\x01 \x01(\x01H\x00R\n" +
