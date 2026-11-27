@@ -37,49 +37,53 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="body">
-    <div
-      v-if="current"
-      role="dialog"
-      aria-modal="true"
-      :aria-label="tt('Image')"
-      class="fixed inset-0 z-50 flex flex-col bg-black/85"
-      @click.self="close"
+    <Transition
+      name="h-modal"
     >
       <div
-        class="flex min-h-0 flex-1 items-center justify-center p-10"
+        v-if="current"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="tt('Image')"
+        class="fixed inset-0 z-50 flex flex-col bg-black/85"
         @click.self="close"
       >
-        <img
-          :src="current.url"
-          :alt="current.caption"
-          class="max-h-full max-w-full object-contain"
+        <div
+          class="flex min-h-0 flex-1 items-center justify-center p-10"
+          @click.self="close"
         >
-      </div>
-      <div class="flex shrink-0 items-center gap-3 px-4 pb-3 text-[12.5px] text-toned">
-        <span class="min-w-0 flex-1 truncate">{{ current.caption }}</span>
+          <img
+            :src="current.url"
+            :alt="current.caption"
+            class="max-h-full max-w-full object-contain"
+          >
+        </div>
+        <div class="flex shrink-0 items-center gap-3 px-4 pb-3 text-[12.5px] text-toned">
+          <span class="min-w-0 flex-1 truncate">{{ current.caption }}</span>
+          <HIconBtn
+            icon="arrow-left"
+            :label="tt('Previous image')"
+            :size="30"
+            :disabled="at <= 0"
+            @click="go(-1)"
+          />
+          <span class="tabular-nums">{{ tt('{0} of {1}', [at + 1, images.length]) }}</span>
+          <HIconBtn
+            icon="arrow-right"
+            :label="tt('Next image')"
+            :size="30"
+            :disabled="at >= images.length - 1"
+            @click="go(1)"
+          />
+        </div>
         <HIconBtn
-          icon="arrow-left"
-          :label="tt('Previous image')"
+          icon="close"
+          :label="tt('Close')"
           :size="30"
-          :disabled="at <= 0"
-          @click="go(-1)"
-        />
-        <span class="tabular-nums">{{ tt('{0} of {1}', [at + 1, images.length]) }}</span>
-        <HIconBtn
-          icon="arrow-right"
-          :label="tt('Next image')"
-          :size="30"
-          :disabled="at >= images.length - 1"
-          @click="go(1)"
+          class="absolute top-3 right-3"
+          @click="close"
         />
       </div>
-      <HIconBtn
-        icon="close"
-        :label="tt('Close')"
-        :size="30"
-        class="absolute top-3 right-3"
-        @click="close"
-      />
-    </div>
+    </Transition>
   </Teleport>
 </template>

@@ -16,6 +16,9 @@ export type DetailTarget
 
 const props = defineProps<{ target: DetailTarget, cwd: string, canManageOrg: boolean }>()
 const emit = defineEmits<{ 'close': [], 'changed': [], 'open-plugin': [string], 'add-connector': [ConnectorOption], 'target': [DetailTarget] }>()
+// Closing goes through the sheet, which slides out first and then emits close.
+const sheet = ref<{ close: () => void } | null>(null)
+const closeSheet = () => sheet.value ? sheet.value.close() : emit('close')
 const store = useSessionStore()
 const extensions = () => store.transport!.extensions()
 const plugins = () => store.transport!.plugins()
@@ -124,7 +127,7 @@ function removePlugin(row: ExtensionPluginVM) {
   if (!window.confirm(tt('Remove {0} and its data folder?', [row.plugin.id]))) return
   return run(async () => {
     await plugins().remove(row.plugin.id, false)
-    emit('close')
+    closeSheet()
   })
 }
 
@@ -142,7 +145,7 @@ function removeSkill(row: ExtensionSkill) {
   if (!c || !window.confirm(tt('Delete {0} from this device? Its files go too.', [c.name]))) return
   return run(async () => {
     await extensions().removeSkill(c.name, c.path, props.cwd)
-    emit('close')
+    closeSheet()
   })
 }
 
@@ -165,7 +168,7 @@ function removeExternal(e: InstalledExternalSkill) {
   if (!window.confirm(tt('Delete {0} from this device? Its files go too.', [e.name]))) return
   return run(async () => {
     await extensions().removeExternal(e.name)
-    emit('close')
+    closeSheet()
   })
 }
 
@@ -174,7 +177,7 @@ function removeMarket(m: ExtensionMarketplace) {
   if (!window.confirm(tt('Remove the marketplace {0} and the plugins installed from it?', [m.name]))) return
   return run(async () => {
     await plugins().removeMarketplace(m.name)
-    emit('close')
+    closeSheet()
   })
 }
 
@@ -193,6 +196,7 @@ const hasActions = computed(() => {
 
 <template>
   <ExtensionsSheet
+    ref="sheet"
     :label="title"
     :footer="hasActions"
     @close="emit('close')"
@@ -531,7 +535,7 @@ const hasActions = computed(() => {
           :entry="entry"
           :can-manage-org="canManageOrg"
           :api="mcp()"
-          @saved="editing = false; emit('changed'); emit('close')"
+          @saved="editing = false; emit('changed'); closeSheet()"
           @cancel="editing = false"
         />
         <ExtensionsMcpServer
@@ -541,7 +545,7 @@ const hasActions = computed(() => {
           :api="mcp()"
           :inspection="inspection"
           :inspecting="inspecting"
-          @changed="emit('changed'); emit('close')"
+          @changed="emit('changed'); closeSheet()"
           @edit="editing = true"
           @failed="(m: string) => error = m"
         />

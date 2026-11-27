@@ -6,6 +6,9 @@ export type AddMode = 'skill' | 'install' | 'connector' | 'marketplace' | 'folde
 
 const props = defineProps<{ mode: AddMode, cwd: string, trusted: boolean, folders: string[], option: ConnectorOption | null, canManageOrg: boolean }>()
 const emit = defineEmits<{ close: [], done: [string], folder: [string] }>()
+// Closing goes through the sheet, which slides out first and then emits close.
+const sheet = ref<{ close: () => void } | null>(null)
+const closeSheet = () => sheet.value ? sheet.value.close() : emit('close')
 const store = useSessionStore()
 
 const name = ref('')
@@ -58,6 +61,7 @@ const canSubmit = computed(() => {
 
 <template>
   <ExtensionsSheet
+    ref="sheet"
     :label="TITLES[mode]"
     @close="emit('close')"
   >
@@ -74,7 +78,7 @@ const canSubmit = computed(() => {
       :can-manage-org="canManageOrg"
       :api="store.transport!.mcp()"
       @saved="emit('done', 'Added the connector.')"
-      @cancel="emit('close')"
+      @cancel="closeSheet()"
     />
 
     <form
@@ -198,7 +202,7 @@ const canSubmit = computed(() => {
         </HBtn>
         <HBtn
           size="md"
-          @click="emit('close')"
+          @click="closeSheet()"
         >
           {{ tt('Cancel') }}
         </HBtn>

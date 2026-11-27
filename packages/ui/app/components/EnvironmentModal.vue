@@ -135,208 +135,212 @@ const input = 'h-9 w-full border border-accented bg-default px-3 text-[13px] tex
 
 <template>
   <Teleport to="body">
-    <div
-      v-if="open"
-      class="fixed inset-0 z-40 flex items-center justify-center bg-ground/60 p-6"
-      @pointerdown.self="open = false"
+    <Transition
+      name="h-modal"
     >
       <div
-        role="dialog"
-        aria-modal="true"
-        :aria-label="screen === 'env' ? tt('Environment variables') : tt('Edit environment')"
-        class="flex max-h-full w-[min(540px,100%)] flex-col overflow-hidden rounded-panel border border-line-strong bg-default"
+        v-if="open"
+        class="fixed inset-0 z-40 flex items-center justify-center bg-ground/60 p-6"
+        @pointerdown.self="open = false"
       >
-        <div class="flex h-12 shrink-0 items-center gap-2 pr-2 pl-5">
-          <HIconBtn
-            v-if="screen === 'env'"
-            icon="arrow-left"
-            :label="tt('Back')"
-            class="-ml-2"
-            @click="screen = 'main'"
-          />
-          <h2 class="m-0 flex-1 text-[14px] font-semibold text-strong">
-            {{ screen === 'env' ? tt('Environment variables') : tt('Edit environment') }}
-          </h2>
-          <HIconBtn
-            icon="close"
-            :label="tt('Close')"
-            kbd="esc"
-            @click="open = false"
-          />
-        </div>
+        <div
+          role="dialog"
+          aria-modal="true"
+          :aria-label="screen === 'env' ? tt('Environment variables') : tt('Edit environment')"
+          class="flex max-h-full w-[min(540px,100%)] flex-col overflow-hidden rounded-panel border border-line-strong bg-default"
+        >
+          <div class="flex h-12 shrink-0 items-center gap-2 pr-2 pl-5">
+            <HIconBtn
+              v-if="screen === 'env'"
+              icon="arrow-left"
+              :label="tt('Back')"
+              class="-ml-2"
+              @click="screen = 'main'"
+            />
+            <h2 class="m-0 flex-1 text-[14px] font-semibold text-strong">
+              {{ screen === 'env' ? tt('Environment variables') : tt('Edit environment') }}
+            </h2>
+            <HIconBtn
+              icon="close"
+              :label="tt('Close')"
+              kbd="esc"
+              @click="open = false"
+            />
+          </div>
 
-        <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-          <p
-            v-if="loading"
-            class="m-0 py-6 text-center text-[12.5px] text-muted"
-          >
-            {{ tt('Loading…') }}
-          </p>
-          <p
-            v-else-if="view?.readOnly"
-            class="m-0 py-6 text-center text-[12.5px] text-muted"
-          >
-            {{ tt('This session runs on {0}; its environment is edited there.', [session.meta.deviceName || 'another computer']) }}
-          </p>
+          <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
+            <p
+              v-if="loading"
+              class="m-0 py-6 text-center text-[12.5px] text-muted"
+            >
+              {{ tt('Loading…') }}
+            </p>
+            <p
+              v-else-if="view?.readOnly"
+              class="m-0 py-6 text-center text-[12.5px] text-muted"
+            >
+              {{ tt('This session runs on {0}; its environment is edited there.', [session.meta.deviceName || 'another computer']) }}
+            </p>
 
-          <template v-else-if="view && screen === 'main'">
-            <label class="flex flex-col gap-1.5 text-[12.5px] text-strong">
-              {{ tt('Name') }}
-              <input
-                v-model="name"
-                :class="input"
+            <template v-else-if="view && screen === 'main'">
+              <label class="flex flex-col gap-1.5 text-[12.5px] text-strong">
+                {{ tt('Name') }}
+                <input
+                  v-model="name"
+                  :class="input"
+                  autocapitalize="off"
+                  autocorrect="off"
+                  spellcheck="false"
+                  maxlength="80"
+                >
+              </label>
+
+              <div class="mt-4 mb-1.5 flex items-center text-[12.5px] text-strong">
+                <span class="flex-1">{{ tt('Folders') }}</span>
+                <HBtn
+                  size="md"
+                  @click="browse"
+                >
+                  <HIcon
+                    name="plus"
+                    :size="12"
+                  />{{ tt('Add') }}
+                </HBtn>
+              </div>
+              <div class="overflow-hidden border border-line">
+                <div
+                  v-for="f in folders"
+                  :key="f.path"
+                  class="flex items-center gap-2.5 border-b border-line px-3 py-2 text-[12.5px] last:border-b-0"
+                >
+                  <HIcon
+                    name="folder"
+                    class="shrink-0 text-muted"
+                  />
+                  <span
+                    class="min-w-0 flex-1 truncate"
+                    :class="f.exists ? 'text-strong' : 'text-bad'"
+                    :title="f.path"
+                  >{{ base(f.path) }}<span
+                    v-if="!f.exists"
+                    class="ml-1.5 text-[11px]"
+                  >{{ tt('missing') }}</span></span>
+                  <div
+                    v-if="branches[f.path]?.length"
+                    class="w-[150px] shrink-0"
+                  >
+                    <HSelect
+                      v-model="f.baseRef"
+                      :options="branches[f.path]!"
+                      :aria-label="tt('Branch a worktree of {0} starts from', [base(f.path)])"
+                    />
+                  </div>
+                  <label class="flex shrink-0 items-center gap-1.5 text-[12px] text-muted">
+                    <input
+                      v-model="f.worktree"
+                      type="checkbox"
+                    >{{ tt('Worktree') }}
+                  </label>
+                  <HIconBtn
+                    v-if="!f.primary"
+                    icon="close"
+                    :label="tt('Remove {0}', [base(f.path)])"
+                    :size="26"
+                    :icon-size="12"
+                    @click="removeFolder(f.path)"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="mt-4 flex w-full items-center gap-3 border border-line px-4 py-3 text-left hover:bg-hover"
+                @click="screen = 'env'"
+              >
+                <span class="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span class="text-[13px] text-strong">{{ tt('Environment variables') }}</span>
+                  <span
+                    class="truncate text-[12px]"
+                    :class="envErrors.length ? 'text-bad' : 'text-muted'"
+                  >{{ envErrors.length ? `${envErrors.length} ${envErrors.length === 1 ? 'problem' : 'problems'} to fix` : varCount ? `${varCount} set for this environment` : tt('None for this environment') }}</span>
+                </span>
+                <HIcon
+                  name="right"
+                  class="text-muted"
+                />
+              </button>
+            </template>
+
+            <template v-else-if="view && screen === 'env'">
+              <p class="m-0 mb-3 text-[12.5px] text-muted">
+                {{ tt('Set for sessions started in {0}, and for the open ones from their next step.', [name || base(view.folder)]) }}
+              </p>
+              <textarea
+                v-model="env"
+                :placeholder="PLACEHOLDER"
+                :aria-label="tt('Environment variables')"
                 autocapitalize="off"
                 autocorrect="off"
                 spellcheck="false"
-                maxlength="80"
-              >
-            </label>
-
-            <div class="mt-4 mb-1.5 flex items-center text-[12.5px] text-strong">
-              <span class="flex-1">{{ tt('Folders') }}</span>
-              <HBtn
-                size="md"
-                @click="browse"
-              >
-                <HIcon
-                  name="plus"
-                  :size="12"
-                />{{ tt('Add') }}
-              </HBtn>
-            </div>
-            <div class="overflow-hidden border border-line">
-              <div
-                v-for="f in folders"
-                :key="f.path"
-                class="flex items-center gap-2.5 border-b border-line px-3 py-2 text-[12.5px] last:border-b-0"
-              >
-                <HIcon
-                  name="folder"
-                  class="shrink-0 text-muted"
-                />
-                <span
-                  class="min-w-0 flex-1 truncate"
-                  :class="f.exists ? 'text-strong' : 'text-bad'"
-                  :title="f.path"
-                >{{ base(f.path) }}<span
-                  v-if="!f.exists"
-                  class="ml-1.5 text-[11px]"
-                >{{ tt('missing') }}</span></span>
-                <div
-                  v-if="branches[f.path]?.length"
-                  class="w-[150px] shrink-0"
-                >
-                  <HSelect
-                    v-model="f.baseRef"
-                    :options="branches[f.path]!"
-                    :aria-label="tt('Branch a worktree of {0} starts from', [base(f.path)])"
-                  />
-                </div>
-                <label class="flex shrink-0 items-center gap-1.5 text-[12px] text-muted">
-                  <input
-                    v-model="f.worktree"
-                    type="checkbox"
-                  >{{ tt('Worktree') }}
-                </label>
-                <HIconBtn
-                  v-if="!f.primary"
-                  icon="close"
-                  :label="tt('Remove {0}', [base(f.path)])"
-                  :size="26"
-                  :icon-size="12"
-                  @click="removeFolder(f.path)"
-                />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              class="mt-4 flex w-full items-center gap-3 border border-line px-4 py-3 text-left hover:bg-hover"
-              @click="screen = 'env'"
-            >
-              <span class="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span class="text-[13px] text-strong">{{ tt('Environment variables') }}</span>
-                <span
-                  class="truncate text-[12px]"
-                  :class="envErrors.length ? 'text-bad' : 'text-muted'"
-                >{{ envErrors.length ? `${envErrors.length} ${envErrors.length === 1 ? 'problem' : 'problems'} to fix` : varCount ? `${varCount} set for this environment` : tt('None for this environment') }}</span>
-              </span>
-              <HIcon
-                name="right"
-                class="text-muted"
+                rows="9"
+                class="w-full resize-y border border-accented bg-default px-3 py-2.5 font-mono text-[12.5px] leading-[1.6] text-strong outline-none placeholder:text-dimmed focus:border-accent"
               />
-            </button>
-          </template>
-
-          <template v-else-if="view && screen === 'env'">
-            <p class="m-0 mb-3 text-[12.5px] text-muted">
-              {{ tt('Set for sessions started in {0}, and for the open ones from their next step.', [name || base(view.folder)]) }}
-            </p>
-            <textarea
-              v-model="env"
-              :placeholder="PLACEHOLDER"
-              :aria-label="tt('Environment variables')"
-              autocapitalize="off"
-              autocorrect="off"
-              spellcheck="false"
-              rows="9"
-              class="w-full resize-y border border-accented bg-default px-3 py-2.5 font-mono text-[12.5px] leading-[1.6] text-strong outline-none placeholder:text-dimmed focus:border-accent"
-            />
-            <ul
-              v-if="envErrors.length"
-              class="m-0 mt-2 flex list-none flex-col gap-0.5 p-0 text-[12px] text-bad"
-            >
-              <li
-                v-for="e in envErrors"
-                :key="e.line + e.message"
+              <ul
+                v-if="envErrors.length"
+                class="m-0 mt-2 flex list-none flex-col gap-0.5 p-0 text-[12px] text-bad"
               >
-                {{ tt('Line {0}: {1}', [e.line, e.message]) }}
-              </li>
-            </ul>
-            <p class="m-0 mt-2 text-[12px] text-muted">
-              {{ tt('In .env format. Stored encrypted on this computer and passed to sessions\' commands; never sent to the server.') }}
-            </p>
-          </template>
+                <li
+                  v-for="e in envErrors"
+                  :key="e.line + e.message"
+                >
+                  {{ tt('Line {0}: {1}', [e.line, e.message]) }}
+                </li>
+              </ul>
+              <p class="m-0 mt-2 text-[12px] text-muted">
+                {{ tt('In .env format. Stored encrypted on this computer and passed to sessions\' commands; never sent to the server.') }}
+              </p>
+            </template>
 
-          <p
-            v-if="error"
-            class="m-0 mt-3 border border-bad px-3 py-2 text-[12px] text-bad"
-          >
-            {{ error }}
-          </p>
-        </div>
-
-        <div
-          v-if="view && !view.readOnly"
-          class="flex shrink-0 justify-end gap-2 border-t border-line px-5 py-3"
-        >
-          <template v-if="screen === 'main'">
-            <HBtn
-              size="lg"
-              @click="open = false"
+            <p
+              v-if="error"
+              class="m-0 mt-3 border border-bad px-3 py-2 text-[12px] text-bad"
             >
-              {{ tt('Cancel') }}
-            </HBtn>
+              {{ error }}
+            </p>
+          </div>
+
+          <div
+            v-if="view && !view.readOnly"
+            class="flex shrink-0 justify-end gap-2 border-t border-line px-5 py-3"
+          >
+            <template v-if="screen === 'main'">
+              <HBtn
+                size="lg"
+                @click="open = false"
+              >
+                {{ tt('Cancel') }}
+              </HBtn>
+              <HBtn
+                size="lg"
+                variant="primary"
+                :disabled="saving"
+                @click="save"
+              >
+                {{ saving ? tt('Saving…') : tt('Save') }}
+              </HBtn>
+            </template>
             <HBtn
+              v-else
               size="lg"
               variant="primary"
-              :disabled="saving"
-              @click="save"
+              @click="screen = 'main'"
             >
-              {{ saving ? tt('Saving…') : tt('Save') }}
+              {{ tt('Done') }}
             </HBtn>
-          </template>
-          <HBtn
-            v-else
-            size="lg"
-            variant="primary"
-            @click="screen = 'main'"
-          >
-            {{ tt('Done') }}
-          </HBtn>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
     <UModal
       v-model:open="browsing"
       :ui="{ content: 'w-auto max-w-none bg-transparent ring-0' }"

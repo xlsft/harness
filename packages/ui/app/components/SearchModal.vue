@@ -220,115 +220,119 @@ defineShortcuts({ meta_k: () => (open.value = !open.value) })
 
 <template>
   <Teleport to="body">
-    <div
-      v-if="open"
-      class="fixed inset-0 z-40 flex items-start justify-center bg-ground/60 px-6 pt-[12vh]"
-      @pointerdown.self="close"
+    <Transition
+      name="h-modal"
     >
       <div
-        role="dialog"
-        aria-modal="true"
-        :aria-label="tt('Search')"
-        class="flex max-h-[70vh] w-[min(640px,100%)] flex-col overflow-hidden rounded-panel border border-line-strong bg-default"
+        v-if="open"
+        class="fixed inset-0 z-40 flex items-start justify-center bg-ground/60 px-6 pt-[12vh]"
+        @pointerdown.self="close"
       >
-        <div class="flex items-center gap-2 px-5 pt-4">
-          <HIcon
-            name="search"
-            class="text-muted"
-          />
-          <input
-            ref="field"
-            v-model="query"
-            :placeholder="tt('Search')"
-            :aria-label="tt('Search')"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-            class="min-w-0 flex-1 bg-transparent text-[15px] text-strong outline-none placeholder:text-muted"
-          >
-          <HIconBtn
-            icon="close"
-            :label="tt('Close')"
-            kbd="esc"
-            @click="close"
-          />
-        </div>
         <div
-          role="tablist"
-          :aria-label="tt('Type')"
-          class="flex gap-1 border-b border-line px-4 pt-3 pb-3"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="tt('Search')"
+          class="flex max-h-[70vh] w-[min(640px,100%)] flex-col overflow-hidden rounded-panel border border-line-strong bg-default"
         >
-          <button
-            v-for="k in KINDS"
-            :key="k.key"
-            type="button"
-            role="tab"
-            :aria-selected="kind === k.key"
-            class="h-7 px-2.5 text-[12.5px]"
-            :class="kind === k.key ? 'bg-raised text-strong' : 'text-muted hover:text-strong'"
-            @click="kind = k.key; field?.focus()"
-          >
-            {{ k.label }}
-          </button>
-        </div>
-        <div class="min-h-0 flex-1 overflow-y-auto px-2 py-2">
-          <template
-            v-for="g in groups"
-            :key="g.title"
-          >
-            <div class="px-3 pt-2 pb-1 text-[11.5px] text-muted">
-              {{ g.title }}
-            </div>
-            <p
-              v-if="!g.items.length"
-              class="m-0 px-3 py-2 text-[12.5px] text-dimmed"
+          <div class="flex items-center gap-2 px-5 pt-4">
+            <HIcon
+              name="search"
+              class="text-muted"
+            />
+            <input
+              ref="field"
+              v-model="query"
+              :placeholder="tt('Search')"
+              :aria-label="tt('Search')"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              class="min-w-0 flex-1 bg-transparent text-[15px] text-strong outline-none placeholder:text-muted"
             >
-              {{ tt('Type to find files in this session.') }}
-            </p>
+            <HIconBtn
+              icon="close"
+              :label="tt('Close')"
+              kbd="esc"
+              @click="close"
+            />
+          </div>
+          <div
+            role="tablist"
+            :aria-label="tt('Type')"
+            class="flex gap-1 border-b border-line px-4 pt-3 pb-3"
+          >
             <button
-              v-for="it in g.items"
-              :key="it.key"
+              v-for="k in KINDS"
+              :key="k.key"
               type="button"
-              :data-search-active="flat[active]?.key === it.key"
-              class="flex h-9 w-full items-center gap-3 px-3 text-left text-[13px]"
-              :class="flat[active]?.key === it.key ? 'bg-raised text-strong' : 'text-toned hover:bg-hover'"
-              @mousemove="active = flat.indexOf(it)"
-              @click="it.run()"
+              role="tab"
+              :aria-selected="kind === k.key"
+              class="h-7 px-2.5 text-[12.5px]"
+              :class="kind === k.key ? 'bg-raised text-strong' : 'text-muted hover:text-strong'"
+              @click="kind = k.key; field?.focus()"
             >
-              <HIcon
-                :name="it.icon"
-                class="shrink-0 text-muted"
-              />
-              <span class="min-w-0 truncate">{{ it.label }}</span>
-              <span
-                v-if="it.hint"
-                class="min-w-0 flex-1 truncate text-[11.5px] text-dimmed"
-              >{{ it.hint }}</span>
-              <span
-                v-else
-                class="flex-1"
-              />
-              <HIcon
-                v-if="flat[active]?.key === it.key"
-                name="enter"
-                :size="13"
-                class="shrink-0 text-muted"
-              />
+              {{ k.label }}
             </button>
-          </template>
-          <p
-            v-if="!groups.length"
-            class="m-0 px-3 py-6 text-center text-[12.5px] text-muted"
-          >
-            {{ tt('Nothing matches.') }}
-          </p>
-        </div>
-        <div class="flex items-center gap-4 border-t border-line px-5 py-2.5 text-[11.5px] text-muted">
-          <span class="flex items-center gap-1.5">{{ tt('Close') }} <HKeys keys="escape" /></span>
-          <span class="flex items-center gap-1.5">{{ tt('Change type') }} <HKeys keys="arrowleft" /><HKeys keys="arrowright" /></span>
-          <span class="flex items-center gap-1.5">{{ tt('Open') }} <HKeys keys="enter" /></span>
+          </div>
+          <div class="min-h-0 flex-1 overflow-y-auto px-2 py-2">
+            <template
+              v-for="g in groups"
+              :key="g.title"
+            >
+              <div class="px-3 pt-2 pb-1 text-[11.5px] text-muted">
+                {{ g.title }}
+              </div>
+              <p
+                v-if="!g.items.length"
+                class="m-0 px-3 py-2 text-[12.5px] text-dimmed"
+              >
+                {{ tt('Type to find files in this session.') }}
+              </p>
+              <button
+                v-for="it in g.items"
+                :key="it.key"
+                type="button"
+                :data-search-active="flat[active]?.key === it.key"
+                class="flex h-9 w-full items-center gap-3 px-3 text-left text-[13px]"
+                :class="flat[active]?.key === it.key ? 'bg-raised text-strong' : 'text-toned hover:bg-hover'"
+                @mousemove="active = flat.indexOf(it)"
+                @click="it.run()"
+              >
+                <HIcon
+                  :name="it.icon"
+                  class="shrink-0 text-muted"
+                />
+                <span class="min-w-0 truncate">{{ it.label }}</span>
+                <span
+                  v-if="it.hint"
+                  class="min-w-0 flex-1 truncate text-[11.5px] text-dimmed"
+                >{{ it.hint }}</span>
+                <span
+                  v-else
+                  class="flex-1"
+                />
+                <HIcon
+                  v-if="flat[active]?.key === it.key"
+                  name="enter"
+                  :size="13"
+                  class="shrink-0 text-muted"
+                />
+              </button>
+            </template>
+            <p
+              v-if="!groups.length"
+              class="m-0 px-3 py-6 text-center text-[12.5px] text-muted"
+            >
+              {{ tt('Nothing matches.') }}
+            </p>
+          </div>
+          <div class="flex items-center gap-4 border-t border-line px-5 py-2.5 text-[11.5px] text-muted">
+            <span class="flex items-center gap-1.5">{{ tt('Close') }} <HKeys keys="escape" /></span>
+            <span class="flex items-center gap-1.5">{{ tt('Change type') }} <HKeys keys="arrowleft" /><HKeys keys="arrowright" /></span>
+            <span class="flex items-center gap-1.5">{{ tt('Open') }} <HKeys keys="enter" /></span>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>

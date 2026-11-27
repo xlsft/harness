@@ -17,40 +17,44 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
 
 <template>
   <Teleport to="body">
-    <div
-      v-if="modal.isOpen.value"
-      class="fixed inset-0 z-40 flex items-center justify-center bg-ground/60 px-6 pt-[52px] pb-6 max-sm:p-0"
-      @pointerdown.self="modal.close()"
+    <Transition
+      name="h-modal"
     >
       <div
-        data-tauri-drag-region
-        class="absolute inset-x-0 top-0 h-[52px]"
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        :aria-label="tt('Settings')"
-        class="flex h-[min(680px,100%)] w-[min(920px,100%)] flex-col overflow-hidden rounded-panel border border-line-strong bg-default"
+        v-if="modal.isOpen.value"
+        class="fixed inset-0 z-40 flex items-center justify-center bg-ground/60 px-6 pt-[52px] pb-6 max-sm:p-0"
+        @pointerdown.self="modal.close()"
       >
         <div
           data-tauri-drag-region
-          class="flex h-12 shrink-0 items-center border-b border-line pr-2 pl-5"
+          class="absolute inset-x-0 top-0 h-[52px]"
+        />
+        <div
+          role="dialog"
+          aria-modal="true"
+          :aria-label="tt('Settings')"
+          class="flex h-[min(680px,100%)] w-[min(920px,100%)] flex-col overflow-hidden rounded-panel border border-line-strong bg-default"
         >
-          <h1
+          <div
             data-tauri-drag-region
-            class="m-0 flex-1 text-[14px] font-semibold text-strong"
+            class="flex h-12 shrink-0 items-center border-b border-line pr-2 pl-5"
           >
-            {{ tt('Settings') }}
-          </h1>
-          <HIconBtn
-            icon="close"
-            :label="tt('Close')"
-            kbd="esc"
-            @click="modal.close()"
-          />
+            <h1
+              data-tauri-drag-region
+              class="m-0 flex-1 text-[14px] font-semibold text-strong"
+            >
+              {{ tt('Settings') }}
+            </h1>
+            <HIconBtn
+              icon="close"
+              :label="tt('Close')"
+              kbd="esc"
+              @click="modal.close()"
+            />
+          </div>
+          <SettingsPage />
         </div>
-        <SettingsPage />
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>

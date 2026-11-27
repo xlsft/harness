@@ -576,3 +576,51 @@ html[data-screen-reader] :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+
+/* Modals (<Transition name="h-modal">): the backdrop fades and the panel rises into place; closing is quicker than
+   opening. Vue times the transition by the root, so the root's duration is the longest of the two. */
+.h-modal-enter-active {
+  transition: opacity 180ms ease-out;
+}
+.h-modal-leave-active {
+  transition: opacity 140ms ease-in;
+}
+.h-modal-enter-from,
+.h-modal-leave-to {
+  opacity: 0;
+}
+.h-modal-enter-active [role="dialog"] {
+  transition: transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.h-modal-leave-active [role="dialog"] {
+  transition: transform 140ms ease-in;
+}
+.h-modal-enter-from [role="dialog"],
+.h-modal-leave-to [role="dialog"] {
+  transform: translateY(6px) scale(0.98);
+}
+
+/* Side sheets (<Transition name="h-sheet">) slide in from the right over a backdrop that fades (h-modal). */
+.h-sheet-enter-active {
+  transition: transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1), opacity 180ms ease-out;
+}
+.h-sheet-leave-active {
+  transition: transform 140ms ease-in, opacity 140ms ease-in;
+}
+.h-sheet-enter-from,
+.h-sheet-leave-to {
+  transform: translateX(100%);
+}
+
+/* Reduced motion: nothing moves, things only fade. */
+@media (prefers-reduced-motion: reduce) {
+  .h-modal-enter-from [role="dialog"],
+  .h-modal-leave-to [role="dialog"] {
+    transform: none;
+  }
+  .h-sheet-enter-from,
+  .h-sheet-leave-to {
+    transform: none;
+    opacity: 0;
+  }
+}

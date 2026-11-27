@@ -7,6 +7,8 @@ import { COLORS, drawsSomething, flatten, nextStep, savedName, savedType, STROKE
 
 const props = defineProps<{ file: File, url: string }>()
 const emit = defineEmits<{ close: [], save: [file: File] }>()
+// False plays the closing animation; the parent hears close once it has finished.
+const shown = ref(true)
 const toast = useToast()
 
 const SHAPES: { tool: Extract<Tool, ShapeKind | 'step'>, label: string }[] = [
@@ -155,7 +157,7 @@ const textRows = computed(() => (textBox.value?.value ?? '').split('\n'))
 function requestClose() {
   commitText()
   if (dirty.value) asking.value = true
-  else emit('close')
+  else shown.value = false
 }
 
 async function save() {
@@ -197,268 +199,275 @@ const toolLook = (on: boolean) => on ? 'bg-raised text-strong' : 'text-muted'
 
 <template>
   <Teleport to="body">
-    <div
-      ref="root"
-      role="dialog"
-      aria-modal="true"
-      :aria-label="file.name"
-      tabindex="-1"
-      class="fixed inset-0 z-50 flex flex-col bg-black/85 outline-none"
-      @click.self="!editing && emit('close')"
+    <Transition
+      name="h-modal"
+      appear
+      @after-leave="emit('close')"
     >
       <div
-        class="flex min-h-0 flex-1 p-10"
-        @click.self="!editing && emit('close')"
+        v-if="shown"
+        ref="root"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="file.name"
+        tabindex="-1"
+        class="fixed inset-0 z-50 flex flex-col bg-black/85 outline-none"
+        @click.self="!editing && (shown = false)"
       >
         <div
-          ref="stage"
-          class="flex size-full min-h-0 min-w-0 items-center justify-center"
-          @click.self="!editing && emit('close')"
+          class="flex min-h-0 flex-1 p-10"
+          @click.self="!editing && (shown = false)"
         >
           <div
-            v-if="fit"
-            class="relative shrink-0"
-            :style="{ width: `${fit.width}px`, height: `${fit.height}px` }"
+            ref="stage"
+            class="flex size-full min-h-0 min-w-0 items-center justify-center"
+            @click.self="!editing && (shown = false)"
           >
-            <canvas
-              v-if="editing"
-              ref="canvas"
-              :width="size.width"
-              :height="size.height"
-              class="block size-full touch-none"
-              :class="tool ? (tool === 'text' ? 'cursor-text' : 'cursor-crosshair') : ''"
-              @mousedown.prevent
-              @pointerdown="onDown"
-              @pointermove="onMove"
-              @pointerup="onUp"
-              @pointercancel="onUp"
-            />
-            <img
-              v-else
-              :src="url"
-              :alt="file.name"
-              class="block size-full"
+            <div
+              v-if="fit"
+              class="relative shrink-0"
+              :style="{ width: `${fit.width}px`, height: `${fit.height}px` }"
             >
-            <textarea
-              v-if="textBox"
-              ref="textInput"
-              v-model="textBox.value"
-              :aria-label="tt('Text on the image')"
-              :rows="textRows.length"
-              :cols="Math.max(8, ...textRows.map(l => l.length + 1))"
-              class="absolute resize-none overflow-hidden bg-transparent p-0 leading-[1.25] whitespace-pre outline-1 outline-white/60 outline-dashed"
-              :style="{ left: `${textBox.at.x / scale}px`, top: `${textBox.at.y / scale}px`, fontSize: `${textSize / scale}px`, color }"
-              @keydown="onTextKey"
-              @blur="commitText"
-            />
+              <canvas
+                v-if="editing"
+                ref="canvas"
+                :width="size.width"
+                :height="size.height"
+                class="block size-full touch-none"
+                :class="tool ? (tool === 'text' ? 'cursor-text' : 'cursor-crosshair') : ''"
+                @mousedown.prevent
+                @pointerdown="onDown"
+                @pointermove="onMove"
+                @pointerup="onUp"
+                @pointercancel="onUp"
+              />
+              <img
+                v-else
+                :src="url"
+                :alt="file.name"
+                class="block size-full"
+              >
+              <textarea
+                v-if="textBox"
+                ref="textInput"
+                v-model="textBox.value"
+                :aria-label="tt('Text on the image')"
+                :rows="textRows.length"
+                :cols="Math.max(8, ...textRows.map(l => l.length + 1))"
+                class="absolute resize-none overflow-hidden bg-transparent p-0 leading-[1.25] whitespace-pre outline-1 outline-white/60 outline-dashed"
+                :style="{ left: `${textBox.at.x / scale}px`, top: `${textBox.at.y / scale}px`, fontSize: `${textSize / scale}px`, color }"
+                @keydown="onTextKey"
+                @blur="commitText"
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <div
-        v-if="editing"
-        role="toolbar"
-        :aria-label="tt('Edit the image')"
-        class="flex shrink-0 justify-center px-4 pb-3"
-      >
-        <div class="flex items-center gap-1 border border-accented bg-surface p-1">
-          <HIconBtn
-            icon="edit"
-            :label="tt('Pencil')"
-            :size="30"
-            :pressed="tool === 'pen'"
-            @click="tool = tool === 'pen' ? null : 'pen'"
-          />
-
-          <UPopover
-            :open="menu === 'shape'"
-            :portal="false"
-            :content="{ side: 'top', align: 'center', sideOffset: 8 }"
-            @update:open="menu = $event ? 'shape' : ''"
-          >
-            <button
-              type="button"
-              :aria-label="tt('Shapes')"
-              :title="tt('Shapes')"
-              :class="[TOOL_BTN, toolLook(isShape)]"
-            >
-              <AnnotateGlyph :tool="isShape ? tool as typeof lastShape : lastShape" />
-            </button>
-            <template #content>
-              <div
-                role="menu"
-                :aria-label="tt('Shapes')"
-                class="w-[160px] border border-accented bg-hover py-1 text-[12.5px]"
-              >
-                <PaneMenuItem
-                  v-for="s in SHAPES"
-                  :key="s.tool"
-                  role="menuitemradio"
-                  :checked="tool === s.tool"
-                  reserve
-                  @click="tool = s.tool; lastShape = s.tool; menu = ''"
-                >
-                  <AnnotateGlyph :tool="s.tool" />{{ s.label }}
-                </PaneMenuItem>
-              </div>
-            </template>
-          </UPopover>
-
-          <button
-            type="button"
-            :aria-label="tt('Text')"
-            :title="tt('Text')"
-            :aria-pressed="tool === 'text'"
-            :class="[TOOL_BTN, toolLook(tool === 'text')]"
-            @click="tool = 'text'"
-          >
-            <AnnotateGlyph tool="text" />
-          </button>
-
-          <UPopover
-            :open="menu === 'color'"
-            :portal="false"
-            :content="{ side: 'top', align: 'center', sideOffset: 8 }"
-            @update:open="menu = $event ? 'color' : ''"
-          >
-            <button
-              type="button"
-              :aria-label="tt('Colour')"
-              :title="tt('Colour')"
-              :class="[TOOL_BTN, 'text-muted']"
-            >
-              <span
-                class="size-4 rounded-chip outline-1 outline-line-strong"
-                :style="{ background: color }"
-              />
-            </button>
-            <template #content>
-              <div
-                role="menu"
-                :aria-label="tt('Colour')"
-                class="w-[140px] border border-accented bg-hover py-1 text-[12.5px]"
-              >
-                <PaneMenuItem
-                  v-for="c in COLORS"
-                  :key="c.value"
-                  role="menuitemradio"
-                  :checked="color === c.value"
-                  reserve
-                  @click="color = c.value; menu = ''"
-                >
-                  <span
-                    class="size-3.5 rounded-chip outline-1 outline-line-strong"
-                    :style="{ background: c.value }"
-                  />{{ c.name }}
-                </PaneMenuItem>
-              </div>
-            </template>
-          </UPopover>
-
-          <UPopover
-            :open="menu === 'stroke'"
-            :portal="false"
-            :content="{ side: 'top', align: 'center', sideOffset: 8 }"
-            @update:open="menu = $event ? 'stroke' : ''"
-          >
-            <button
-              type="button"
-              :aria-label="tt('Thickness')"
-              :title="tt('Thickness')"
-              :class="[TOOL_BTN, 'text-muted']"
-            >
-              <span
-                class="block w-4 rounded-chip bg-current"
-                :style="{ height: `${Math.min(STROKES[stroke]!, 10)}px` }"
-              />
-            </button>
-            <template #content>
-              <div
-                role="menu"
-                :aria-label="tt('Thickness')"
-                class="w-[120px] border border-accented bg-hover py-1 text-[12.5px]"
-              >
-                <PaneMenuItem
-                  v-for="(w, i) in STROKES"
-                  :key="w"
-                  role="menuitemradio"
-                  :aria-label="`${w} pixels`"
-                  :checked="stroke === i"
-                  reserve
-                  @click="stroke = i; menu = ''"
-                >
-                  <span
-                    class="block w-12 rounded-chip bg-current"
-                    :style="{ height: `${w}px` }"
-                  />
-                </PaneMenuItem>
-              </div>
-            </template>
-          </UPopover>
-
-          <span class="mx-1 h-4 w-px bg-line" />
-          <HBtn
-            variant="primary"
-            size="md"
-            :disabled="!dirty || saving"
-            @click="save"
-          >
-            {{ tt('Save') }}
-          </HBtn>
-          <HBtn
-            size="md"
-            @click="requestClose"
-          >
-            {{ tt('Close') }}
-          </HBtn>
-        </div>
-      </div>
-
-      <HIconBtn
-        icon="close"
-        :label="tt('Close')"
-        :size="30"
-        class="absolute top-3 right-3"
-        @click="requestClose"
-      />
-      <HIconBtn
-        v-if="!editing"
-        icon="edit"
-        :label="tt('Edit')"
-        :size="30"
-        class="absolute top-[50px] right-3"
-        @click="editing = true"
-      />
-
-      <div
-        v-if="asking"
-        class="absolute inset-0 flex items-center justify-center bg-black/50"
-      >
         <div
-          role="alertdialog"
-          :aria-label="tt('Discard your changes?')"
-          class="flex w-[320px] flex-col gap-3 border border-accented bg-surface p-4 text-[12.5px]"
+          v-if="editing"
+          role="toolbar"
+          :aria-label="tt('Edit the image')"
+          class="flex shrink-0 justify-center px-4 pb-3"
         >
-          <p class="m-0 text-strong">
-            {{ tt('Discard your changes to this image?') }}
-          </p>
-          <div class="flex justify-end gap-2">
-            <HBtn
-              size="md"
-              @click="asking = false"
+          <div class="flex items-center gap-1 border border-accented bg-surface p-1">
+            <HIconBtn
+              icon="edit"
+              :label="tt('Pencil')"
+              :size="30"
+              :pressed="tool === 'pen'"
+              @click="tool = tool === 'pen' ? null : 'pen'"
+            />
+
+            <UPopover
+              :open="menu === 'shape'"
+              :portal="false"
+              :content="{ side: 'top', align: 'center', sideOffset: 8 }"
+              @update:open="menu = $event ? 'shape' : ''"
             >
-              {{ tt('Keep editing') }}
+              <button
+                type="button"
+                :aria-label="tt('Shapes')"
+                :title="tt('Shapes')"
+                :class="[TOOL_BTN, toolLook(isShape)]"
+              >
+                <AnnotateGlyph :tool="isShape ? tool as typeof lastShape : lastShape" />
+              </button>
+              <template #content>
+                <div
+                  role="menu"
+                  :aria-label="tt('Shapes')"
+                  class="w-[160px] border border-accented bg-hover py-1 text-[12.5px]"
+                >
+                  <PaneMenuItem
+                    v-for="s in SHAPES"
+                    :key="s.tool"
+                    role="menuitemradio"
+                    :checked="tool === s.tool"
+                    reserve
+                    @click="tool = s.tool; lastShape = s.tool; menu = ''"
+                  >
+                    <AnnotateGlyph :tool="s.tool" />{{ s.label }}
+                  </PaneMenuItem>
+                </div>
+              </template>
+            </UPopover>
+
+            <button
+              type="button"
+              :aria-label="tt('Text')"
+              :title="tt('Text')"
+              :aria-pressed="tool === 'text'"
+              :class="[TOOL_BTN, toolLook(tool === 'text')]"
+              @click="tool = 'text'"
+            >
+              <AnnotateGlyph tool="text" />
+            </button>
+
+            <UPopover
+              :open="menu === 'color'"
+              :portal="false"
+              :content="{ side: 'top', align: 'center', sideOffset: 8 }"
+              @update:open="menu = $event ? 'color' : ''"
+            >
+              <button
+                type="button"
+                :aria-label="tt('Colour')"
+                :title="tt('Colour')"
+                :class="[TOOL_BTN, 'text-muted']"
+              >
+                <span
+                  class="size-4 rounded-chip outline-1 outline-line-strong"
+                  :style="{ background: color }"
+                />
+              </button>
+              <template #content>
+                <div
+                  role="menu"
+                  :aria-label="tt('Colour')"
+                  class="w-[140px] border border-accented bg-hover py-1 text-[12.5px]"
+                >
+                  <PaneMenuItem
+                    v-for="c in COLORS"
+                    :key="c.value"
+                    role="menuitemradio"
+                    :checked="color === c.value"
+                    reserve
+                    @click="color = c.value; menu = ''"
+                  >
+                    <span
+                      class="size-3.5 rounded-chip outline-1 outline-line-strong"
+                      :style="{ background: c.value }"
+                    />{{ c.name }}
+                  </PaneMenuItem>
+                </div>
+              </template>
+            </UPopover>
+
+            <UPopover
+              :open="menu === 'stroke'"
+              :portal="false"
+              :content="{ side: 'top', align: 'center', sideOffset: 8 }"
+              @update:open="menu = $event ? 'stroke' : ''"
+            >
+              <button
+                type="button"
+                :aria-label="tt('Thickness')"
+                :title="tt('Thickness')"
+                :class="[TOOL_BTN, 'text-muted']"
+              >
+                <span
+                  class="block w-4 rounded-chip bg-current"
+                  :style="{ height: `${Math.min(STROKES[stroke]!, 10)}px` }"
+                />
+              </button>
+              <template #content>
+                <div
+                  role="menu"
+                  :aria-label="tt('Thickness')"
+                  class="w-[120px] border border-accented bg-hover py-1 text-[12.5px]"
+                >
+                  <PaneMenuItem
+                    v-for="(w, i) in STROKES"
+                    :key="w"
+                    role="menuitemradio"
+                    :aria-label="`${w} pixels`"
+                    :checked="stroke === i"
+                    reserve
+                    @click="stroke = i; menu = ''"
+                  >
+                    <span
+                      class="block w-12 rounded-chip bg-current"
+                      :style="{ height: `${w}px` }"
+                    />
+                  </PaneMenuItem>
+                </div>
+              </template>
+            </UPopover>
+
+            <span class="mx-1 h-4 w-px bg-line" />
+            <HBtn
+              variant="primary"
+              size="md"
+              :disabled="!dirty || saving"
+              @click="save"
+            >
+              {{ tt('Save') }}
             </HBtn>
             <HBtn
               size="md"
-              tone="danger"
-              @click="emit('close')"
+              @click="requestClose"
             >
-              {{ tt('Discard') }}
+              {{ tt('Close') }}
             </HBtn>
           </div>
         </div>
+
+        <HIconBtn
+          icon="close"
+          :label="tt('Close')"
+          :size="30"
+          class="absolute top-3 right-3"
+          @click="requestClose"
+        />
+        <HIconBtn
+          v-if="!editing"
+          icon="edit"
+          :label="tt('Edit')"
+          :size="30"
+          class="absolute top-[50px] right-3"
+          @click="editing = true"
+        />
+
+        <div
+          v-if="asking"
+          class="absolute inset-0 flex items-center justify-center bg-black/50"
+        >
+          <div
+            role="alertdialog"
+            :aria-label="tt('Discard your changes?')"
+            class="flex w-[320px] flex-col gap-3 border border-accented bg-surface p-4 text-[12.5px]"
+          >
+            <p class="m-0 text-strong">
+              {{ tt('Discard your changes to this image?') }}
+            </p>
+            <div class="flex justify-end gap-2">
+              <HBtn
+                size="md"
+                @click="asking = false"
+              >
+                {{ tt('Keep editing') }}
+              </HBtn>
+              <HBtn
+                size="md"
+                tone="danger"
+                @click="shown = false"
+              >
+                {{ tt('Discard') }}
+              </HBtn>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
