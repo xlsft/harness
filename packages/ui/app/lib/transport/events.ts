@@ -184,7 +184,7 @@ export class EventBuilder {
     })
   }
 
-  computerAccessRequested(requestId: string, toolUseId: string, reason: string, apps: { id: string, name: string, tier: ComputerAccessTier, tierNote: string }[], missingPermissions: { id: string, name: string, granted: boolean, howToGrant: string }[] = []) {
+  computerAccessRequested(requestId: string, toolUseId: string, reason: string, apps: { id: string, name: string, tier: ComputerAccessTier, tierNote: string }[], missingPermissions: { id: string, name: string, granted: boolean, howToGrant: string, description?: string, settingsUrl?: string }[] = []) {
     return this.emit({ case: 'computerAccessRequested', value: { requestId, toolUseId, reason, apps, missingPermissions } as never })
   }
 

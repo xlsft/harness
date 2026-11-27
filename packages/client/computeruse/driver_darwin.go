@@ -250,10 +250,15 @@ func (d *darwinDriver) Permissions(ctx context.Context) (Permissions, error) {
 		return Permissions{}, err
 	}
 	// An app without a Developer ID is a new app to macOS after each update, while its old switch can still look on.
-	const howTo = "Turn it on for the Harness app (or the terminal that started the client) in System Settings > Privacy & Security > %s, then restart Harness. If it already looks on, remove the app from that list and add it again: an update can invalidate the permission."
+	const howTo = "Turn it on for the xlsft`s harness app (or the terminal that started the client) in System Settings > Privacy & Security > %s, then restart the app. If it already looks on, remove the app from that list and add it again: an update can invalidate the permission."
+	const pane = "x-apple.systempreferences:com.apple.preference.security?"
 	return Permissions{Items: []Permission{
-		{ID: PermScreenRecording, Name: "Screen Recording", Granted: r.ScreenRecording, HowToGrant: fmt.Sprintf(howTo, "Screen & System Audio Recording")},
-		{ID: PermAccessibility, Name: "Accessibility", Granted: r.Accessibility, HowToGrant: fmt.Sprintf(howTo, "Accessibility")},
+		{ID: PermScreenRecording, Name: "Screen Recording", Granted: r.ScreenRecording, HowToGrant: fmt.Sprintf(howTo, "Screen & System Audio Recording"),
+			Description: "Lets the agent take screenshots of the screen and of the apps you allow, so it can see what it is doing.",
+			SettingsURL: pane + "Privacy_ScreenCapture"},
+		{ID: PermAccessibility, Name: "Accessibility", Granted: r.Accessibility, HowToGrant: fmt.Sprintf(howTo, "Accessibility"),
+			Description: "Lets the agent click, type, scroll and read the controls of the apps you allow.",
+			SettingsURL: pane + "Privacy_Accessibility"},
 	}}, nil
 }
 

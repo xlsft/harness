@@ -2,6 +2,7 @@
 // ComputerAccess: the model asks to use apps of this machine. Each app comes with the tier the client gave it, and the
 // user approves them one by one. Grants last for the session. Resolved by ComputerAccessResolved; once resolved it
 // collapses to one muted line.
+import { isDesktop, openExternal } from '~/lib/desktop'
 import { TIER_LABELS } from '~/lib/session/computer'
 import type { ComputerAccessItem } from '~/lib/session/types'
 
@@ -40,6 +41,8 @@ const summary = computed(() => {
   const approved = props.item.apps.filter(a => props.item.approved.includes(a.id)).map(a => a.name)
   return approved.length ? `Access granted to ${approved.join(', ')}` : `Access to ${names.value} denied`
 })
+
+const desktop = isDesktop()
 </script>
 
 <template>
@@ -86,6 +89,14 @@ const summary = computed(() => {
         class="border border-l-2 border-default border-l-warn px-2.5 py-1.5 text-[12px] text-toned"
       >
         <span class="text-strong">{{ tt('{0} is not allowed yet.', [p.name]) }}</span> {{ p.howToGrant }}
+        <button
+          v-if="desktop && p.settingsUrl"
+          type="button"
+          class="ml-1 cursor-pointer text-accent hover:underline"
+          @click="openExternal(p.settingsUrl)"
+        >
+          {{ tt('Open System Settings') }}
+        </button>
       </div>
       <span class="text-[11.5px] text-muted">{{ tt('Lasts for this session. You can stop it at any time. Tiers come from your {0} profile, in Settings > Computer use.', [item.profileName || 'security']) }}</span>
       <p

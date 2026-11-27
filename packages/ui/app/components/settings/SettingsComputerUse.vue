@@ -5,6 +5,7 @@
 // system prompt; the user grants permissions in the system's settings.
 import type { HSelectOption } from '~/components/HSelect.vue'
 import { TIER_LABELS } from '~/lib/session/computer'
+import { isDesktop, openExternal } from '~/lib/desktop'
 import type { ComputerProfileVM, ComputerTierName } from '~/lib/session/types'
 import type { ComputerUseAppVM, ComputerUseStatusVM } from '~/lib/transport/types'
 
@@ -118,6 +119,8 @@ watch(addApp, (id) => {
   setAppTier(id, 'read')
   addApp.value = ''
 })
+
+const desktop = isDesktop()
 </script>
 
 <template>
@@ -288,14 +291,25 @@ watch(addApp, (id) => {
       <div class="set-label">
         <span>{{ p.name }}</span>
         <span
-          v-if="!p.granted"
+          v-if="p.description"
           class="set-desc"
+        >{{ p.description }}</span>
+        <span
+          v-if="!p.granted"
+          class="set-desc text-warn"
         >{{ p.howToGrant }}</span>
       </div>
       <span
         class="shrink-0 text-[12px] whitespace-nowrap"
         :class="p.granted ? 'text-ok' : 'text-warn'"
       >{{ p.granted ? tt('Allowed') : tt('Not allowed') }}</span>
+      <HBtn
+        v-if="desktop && p.settingsUrl"
+        size="sm"
+        @click="openExternal(p.settingsUrl)"
+      >
+        {{ tt('Open System Settings') }}
+      </HBtn>
     </div>
     <div
       v-if="status?.permissions?.length"

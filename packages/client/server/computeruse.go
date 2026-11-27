@@ -113,7 +113,7 @@ func computerProfileFromProto(m *agentv1.ComputerUseProfile) *computeruse.Profil
 func computerPermsToProto(items []computeruse.Permission) []*agentv1.ComputerUsePermission {
 	out := make([]*agentv1.ComputerUsePermission, len(items))
 	for i, p := range items {
-		out[i] = &agentv1.ComputerUsePermission{Id: p.ID, Name: p.Name, Granted: p.Granted, HowToGrant: p.HowToGrant}
+		out[i] = &agentv1.ComputerUsePermission{Id: p.ID, Name: p.Name, Granted: p.Granted, HowToGrant: p.HowToGrant, Description: p.Description, SettingsUrl: p.SettingsURL}
 	}
 	return out
 }

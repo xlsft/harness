@@ -88,7 +88,12 @@ type ComputerUsePermission struct {
 	Name    string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Granted bool   `protobuf:"varint,3,opt,name=granted,proto3" json:"granted,omitempty"`
 	// How the user grants it, for when it is missing.
-	HowToGrant    string `protobuf:"bytes,4,opt,name=how_to_grant,json=howToGrant,proto3" json:"how_to_grant,omitempty"`
+	HowToGrant string `protobuf:"bytes,4,opt,name=how_to_grant,json=howToGrant,proto3" json:"how_to_grant,omitempty"`
+	// What the agent needs it for, shown whether or not it is granted.
+	Description string `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	// Opens the system's settings pane where it is turned on (on macOS an x-apple.systempreferences: link); empty when
+	// there is none.
+	SettingsUrl   string `protobuf:"bytes,6,opt,name=settings_url,json=settingsUrl,proto3" json:"settings_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -147,6 +152,20 @@ func (x *ComputerUsePermission) GetGranted() bool {
 func (x *ComputerUsePermission) GetHowToGrant() string {
 	if x != nil {
 		return x.HowToGrant
+	}
+	return ""
+}
+
+func (x *ComputerUsePermission) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *ComputerUsePermission) GetSettingsUrl() string {
+	if x != nil {
+		return x.SettingsUrl
 	}
 	return ""
 }
@@ -1385,13 +1404,15 @@ var File_harness_agent_v1_computer_use_proto protoreflect.FileDescriptor
 
 const file_harness_agent_v1_computer_use_proto_rawDesc = "" +
 	"\n" +
-	"#harness/agent/v1/computer_use.proto\x12\x10harness.agent.v1\"w\n" +
+	"#harness/agent/v1/computer_use.proto\x12\x10harness.agent.v1\"\xbc\x01\n" +
 	"\x15ComputerUsePermission\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
 	"\agranted\x18\x03 \x01(\bR\agranted\x12 \n" +
 	"\fhow_to_grant\x18\x04 \x01(\tR\n" +
-	"howToGrant\"\x9d\x03\n" +
+	"howToGrant\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\x12!\n" +
+	"\fsettings_url\x18\x06 \x01(\tR\vsettingsUrl\"\x9d\x03\n" +
 	"\x11ComputerUseStatus\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x1c\n" +
 	"\tsupported\x18\x02 \x01(\bR\tsupported\x12\x1a\n" +
