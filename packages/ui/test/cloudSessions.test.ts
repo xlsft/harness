@@ -30,6 +30,6 @@ describe('cloud sessions', () => {
     expect(w.cloud).toBe(true)
     expect(w.hostName).toBe('runner-1')
     expect(workStateText(w)).toBe('Starting the cloud machine…')
-    expect(workStateText({ ...w, cloud: false })).toBe('Waiting for the host')
+    expect(workStateText({ ...w, cloud: false })).toBe('Waiting for the machine')
   })
 })
