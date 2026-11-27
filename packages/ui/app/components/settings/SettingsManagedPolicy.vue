@@ -114,10 +114,10 @@ const input = 'h-8 w-full border border-accented bg-default px-2 font-mono text-
 <template>
   <div class="flex flex-col">
     <h2 class="set-h">
-      {{ tt('Managed policy') }}
+      {{ tt('Organization rules') }}
     </h2>
     <p class="set-sub">
-      {{ tt('Set by an administrator for everyone on this server. It comes first: clients obey it and nothing in user, project or local settings can override it. The server itself refuses providers and MCP servers it does not allow.') }}
+      {{ tt('Rules an administrator sets for everyone on this server. They win over anything people set for themselves or in a project, on every device. The server also refuses providers and MCP servers they don\'t allow.') }}
     </p>
     <p
       v-if="error"
@@ -130,7 +130,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 font-mono text-
     <form
       v-if="state"
       class="flex flex-col gap-3"
-      :aria-label="tt('Managed policy')"
+      :aria-label="tt('Organization rules')"
       @submit.prevent="save"
     >
       <h3 class="m-0 mt-2 text-[12.5px] font-semibold text-strong">
@@ -173,7 +173,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 font-mono text-
         <HToggle
           v-model="policy.managedRulesOnly"
           :disabled="!writable"
-          :label="tt('Only managed permission rules')"
+          :label="tt('Only the organization\'s permission rules')"
         />
       </div>
 
@@ -272,7 +272,7 @@ const input = 'h-8 w-full border border-accented bg-default px-2 font-mono text-
       <div class="set-row">
         <div class="set-label">
           <span>{{ tt('No cloud sessions') }}</span>
-          <span class="set-desc">{{ tt('Nobody this policy is for starts a session on a cloud runner.') }}</span>
+          <span class="set-desc">{{ tt('Nobody these rules apply to can start a session in the cloud.') }}</span>
         </div>
         <HToggle
           v-model="policy.cloudDisabled"
@@ -282,19 +282,19 @@ const input = 'h-8 w-full border border-accented bg-default px-2 font-mono text-
       </div>
       <div class="set-row">
         <div class="set-label">
-          <span>{{ tt('Allow bypassPermissions in the cloud') }}</span>
+          <span>{{ tt('Allow skipping permission checks in the cloud') }}</span>
           <span class="set-desc">{{ tt('Off: a cloud session never runs without asking, whatever is chosen when it starts.') }}</span>
         </div>
         <HToggle
           v-model="policy.cloudBypassPermissionsAllowed"
           :disabled="!writable"
-          :label="tt('Allow bypassPermissions in the cloud')"
+          :label="tt('Allow skipping permission checks in the cloud')"
         />
       </div>
       <div class="set-row">
         <div class="set-label">
           <span>{{ tt('Cloud sessions at once') }}</span>
-          <span class="set-desc">{{ tt('Containers that exist at once, per user and per group. 0: no limit.') }}</span>
+          <span class="set-desc">{{ tt('How many cloud sessions can be running at once, per user and per group. 0: no limit.') }}</span>
         </div>
         <div class="flex gap-2">
           <input

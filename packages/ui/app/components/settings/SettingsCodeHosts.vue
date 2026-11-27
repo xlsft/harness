@@ -156,11 +156,11 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
 
 <template>
   <section
-    :aria-label="tt('VCS')"
+    :aria-label="tt('Code hosting')"
     class="flex flex-col"
   >
     <h2 class="set-h">
-      {{ tt('VCS') }}
+      {{ tt('Code hosting') }}
     </h2>
     <p class="set-sub">
       {{ tt('What opens pull requests, reads CI and follows reviews. A server connection goes first; the CLIs on this machine cover the rest.') }}

@@ -7,9 +7,9 @@ const props = defineProps<{ session: SessionState }>()
 
 const notice = computed(() => {
   switch (props.session.meta.cloudEnvironment) {
-    case 'starting': return { text: tt('Starting environment…'), busy: true }
-    case 'removed': return { text: tt('The environment was removed while idle; your next message starts a new one'), busy: false }
-    case 'failed': return { text: tt('The environment did not start; your next message tries again'), busy: false }
+    case 'starting': return { text: tt('Starting the cloud machine…'), busy: true }
+    case 'removed': return { text: tt('The cloud machine was shut down after sitting idle; your next message starts a new one'), busy: false }
+    case 'failed': return { text: tt('The cloud machine did not start; your next message tries again'), busy: false }
     case 'ended': return { text: tt('This cloud session has ended'), busy: false }
   }
   return null

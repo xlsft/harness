@@ -284,7 +284,7 @@ export function isolationText(h: HostView): string {
 }
 
 export function workStateText(w: HostWorkView): string {
-  if (w.cloud && (w.state === 'queued' || w.state === 'preparing')) return tt('Starting environment…')
+  if (w.cloud && (w.state === 'queued' || w.state === 'preparing')) return tt('Starting the cloud machine…')
   switch (w.state) {
     case 'queued': return tt('Waiting for the machine')
     case 'preparing': return tt('Getting the code')

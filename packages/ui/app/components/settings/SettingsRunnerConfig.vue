@@ -106,7 +106,7 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
           :class="FIELD"
         >
           <option value="user">{{ tt('By one user\'s sessions') }}</option>
-          <option value="runner">{{ tt('By everyone on this runner') }}</option>
+          <option value="runner">{{ tt('By everyone on this machine') }}</option>
         </select>
       </label>
     </div>

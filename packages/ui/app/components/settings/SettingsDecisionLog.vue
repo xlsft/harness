@@ -55,7 +55,7 @@ watch(open, (now) => {
     </button>
     <template v-if="open">
       <p class="set-sub mt-2">
-        {{ tt('What the classifier decided about tool calls, what decided it and why. Shows the latest 100.') }}
+        {{ tt('What auto mode let run or stopped, what decided it and why. Shows the latest 100.') }}
       </p>
       <div class="mb-3 flex gap-2 max-md:flex-col">
         <HSelect

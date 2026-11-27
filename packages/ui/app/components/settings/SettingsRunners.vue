@@ -103,10 +103,10 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
   <div class="flex flex-col gap-3">
     <div>
       <h3 class="m-0 text-[13px] font-semibold text-strong">
-        {{ tt('Cloud runners') }}
+        {{ tt('Machines for cloud sessions') }}
       </h3>
       <p class="m-0 mt-1 text-muted">
-        {{ tt('A runner starts a container for each cloud session and removes it when the session has been idle; the next message starts a new one. Run') }} <code>harness-client runner</code> {{ tt('next to Docker or Podman (') }}<code>deploy/compose.runner.yml</code>{{ tt('), with the token you get here.') }}
+        {{ tt('Servers that run your organization\'s cloud sessions. Each cloud session gets a fresh container on one of them, removed once the session sits idle; the next message starts a new one. To add one, run') }} <code>harness-client runner</code> {{ tt('next to Docker or Podman (') }}<code>deploy/compose.runner.yml</code>{{ tt('), with the token you get here.') }}
       </p>
     </div>
 
@@ -121,7 +121,7 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
       v-if="token"
       class="flex flex-col gap-2 border border-accent p-3"
     >
-      <span class="text-strong">{{ tt('The runner\'s token. It is not shown again: put it in a secret file for HARNESS_DEVICE_TOKEN_FILE.') }}</span>
+      <span class="text-strong">{{ tt('The machine\'s token. It is not shown again: put it in a secret file for HARNESS_DEVICE_TOKEN_FILE.') }}</span>
       <code class="break-all text-[11.5px] text-toned">{{ token }}</code>
       <div class="flex gap-2">
         <HBtn
@@ -263,7 +263,7 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
       v-if="!runners.length && !adding"
       class="m-0 text-muted"
     >
-      {{ tt('No cloud runners yet.') }}
+      {{ tt('No machines for cloud sessions yet.') }}
     </p>
 
     <div
@@ -311,7 +311,7 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
           :disabled="!draft.name.trim()"
           @click="create"
         >
-          {{ tt('Add runner') }}
+          {{ tt('Add machine') }}
         </HBtn>
         <HBtn
           size="sm"
@@ -326,7 +326,7 @@ const FIELD = 'h-8 min-w-0 border border-line bg-transparent px-2 text-[12.5px] 
         size="sm"
         @click="adding = true"
       >
-        {{ tt('Add a runner') }}
+        {{ tt('Add a machine for cloud sessions') }}
       </HBtn>
     </div>
 

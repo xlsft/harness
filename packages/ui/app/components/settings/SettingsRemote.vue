@@ -172,11 +172,11 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
 
 <template>
   <section
-    :aria-label="tt('Remote')"
+    :aria-label="tt('Remote starts')"
     class="flex flex-col"
   >
     <h2 class="set-h">
-      {{ tt('Remote') }}
+      {{ tt('Remote starts') }}
     </h2>
     <p class="set-sub">
       {{ tt('Start sessions on this machine from your phone or a chat app. Only you can, and only in folders you have worked in here.') }}

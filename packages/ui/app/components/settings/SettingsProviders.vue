@@ -81,8 +81,8 @@ const PAGES = {
     sub: 'Services whose models you chat with. Connect one with its API key, switch on the models you want, and set each model\'s default effort. Keys are stored encrypted and never shown again; admins can see that a key is set but cannot read or use yours.'
   },
   classifier: {
-    title: tt('Classifiers'),
-    sub: 'Services auto mode asks whether a tool call is safe to run. Admins connect them and choose the default for everyone; you can pick another one for yourself.'
+    title: tt('Auto mode checks'),
+    sub: 'In auto mode, these decide whether a command or edit is safe to run without asking you. Admins connect them and choose the default for everyone; you can pick another one for yourself.'
   }
 } as const
 

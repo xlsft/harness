@@ -82,7 +82,7 @@ const inputClass = 'border border-line bg-transparent px-2 py-1 text-[12.5px] te
       role="status"
       class="m-0 mb-3 border border-line px-3 py-2 text-[12px] text-toned"
     >
-      {{ tt('The managed policy turns chat apps off: nothing starts until it allows them again.') }}
+      {{ tt('Your organization\'s rules turn chat apps off: nothing starts until they allow them again.') }}
     </p>
 
     <template v-if="app">

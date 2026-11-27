@@ -52,7 +52,7 @@ const label = 'w-[110px] shrink-0 text-[11.5px] text-muted max-sm:w-full'
       /></span>
       <span class="flex min-w-0 flex-1 flex-col gap-0.5">
         <span class="text-[12.5px] text-strong">{{ tt('Model as classifier') }}</span>
-        <span class="truncate text-[11.5px] text-muted">{{ tt('Decides when the classifier is unsure.') }}</span>
+        <span class="truncate text-[11.5px] text-muted">{{ tt('Decides when the auto mode check is unsure.') }}</span>
       </span>
       <HBtn
         size="sm"

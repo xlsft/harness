@@ -78,7 +78,7 @@ const when = (iso: string) => iso ? new Date(iso).toLocaleString() : 'never'
 <template>
   <div class="flex flex-col">
     <h2 class="set-h">
-      {{ tt('Provisioning') }}
+      {{ tt('User sync (SCIM)') }}
     </h2>
     <p class="set-sub">
       {{ tt('SCIM 2.0: your identity provider creates and updates users and groups here, and deactivating someone there signs them out here. Provisioned accounts have no password and sign in through SSO.') }}

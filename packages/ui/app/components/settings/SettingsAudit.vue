@@ -15,10 +15,10 @@ const CATEGORIES = [
   { value: 'sign_in', label: tt('Sign-in settings') },
   { value: 'mfa', label: tt('Second factor') },
   { value: 'quota', label: tt('Quotas') },
-  { value: 'scim', label: tt('Provisioning') },
+  { value: 'scim', label: tt('User sync (SCIM)') },
   { value: 'device', label: tt('Devices') },
   { value: 'mcp', label: tt('MCP servers') },
-  { value: 'vcs', label: tt('VCS') }
+  { value: 'vcs', label: tt('Code hosting') }
 ]
 const OUTCOMES = [{ value: '', label: tt('Any result') }, { value: 'success', label: tt('Succeeded') }, { value: 'failure', label: tt('Failed') }]
 

@@ -29,7 +29,7 @@ describe('cloud sessions', () => {
     const w: HostWorkView = await api.start({ hostId: CLOUD_HOST, repositoryKey: 'github.com/a/b', baseRef: '', prompt: 'x', model: '', landing: 'branch', freshClone: false, idempotencyKey: 'k' })
     expect(w.cloud).toBe(true)
     expect(w.hostName).toBe('runner-1')
-    expect(workStateText(w)).toBe('Starting environment…')
+    expect(workStateText(w)).toBe('Starting the cloud machine…')
     expect(workStateText({ ...w, cloud: false })).toBe('Waiting for the host')
   })
 })

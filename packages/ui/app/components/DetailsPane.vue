@@ -18,7 +18,7 @@ const relay = computed({
     try {
       await store.setSessionRelay(props.session.meta.id, on)
     } catch (e) {
-      toast.add({ title: on ? tt('Could not turn on the session relay') : tt('Could not turn off the session relay'), description: e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e), color: 'error' })
+      toast.add({ title: on ? tt('Could not turn on remote control') : tt('Could not turn off remote control'), description: e instanceof Error ? e.message.replace(/^\[\w+\]\s*/, '') : String(e), color: 'error' })
     }
   }
 })
@@ -37,7 +37,7 @@ const autoFix = computed({
 const showAutoFix = computed(() => !props.session.meta.noFolder && !props.session.meta.remote && props.session.meta.engine === 'harness')
 const pr = computed(() => props.session.meta.pullRequest)
 const creatingPr = ref(false)
-const relayLocked = computed(() => props.session.meta.remote ? `Switched on ${props.session.meta.deviceName || 'its own machine'}` : props.session.meta.relayAvailable ? '' : props.session.meta.relayReason || 'Remote control is not available')
+const relayLocked = computed(() => props.session.meta.remote ? tt('Switched on {0}', [props.session.meta.deviceName || 'its own machine']) : props.session.meta.relayAvailable ? '' : props.session.meta.relayReason || 'Remote control is not available')
 
 const tools = computed(() => props.session.items.filter((i): i is ToolItem => i.kind === 'tool'))
 const outputs = computed(() => {
@@ -281,16 +281,19 @@ function taskMeta(command: string, tail: string) {
       >
         <HIcon name="diff" /><span class="min-w-0 truncate">{{ tt('Separate copy') }}</span><span class="min-w-0 truncate text-[11px] text-muted">{{ tt('from {0}', [session.meta.worktree.baseRef]) }}</span>
       </div>
-      <div class="nav-row">
-        <HIcon name="relay" /><span class="min-w-0 truncate">{{ tt('Session relay') }}</span><span class="flex-1" /><RowMenu
+      <div
+        class="nav-row"
+        :title="tt('Follow and answer this session from your phone or the web')"
+      >
+        <HIcon name="relay" /><span class="min-w-0 truncate">{{ tt('Remote control') }}</span><span class="flex-1" /><RowMenu
           v-if="sessionLink && relayMenu.length"
           :items="relayMenu"
-          :label="tt('Session relay')"
+          :label="tt('Remote control')"
           align="end"
         >
           <HIconBtn
             icon="more"
-            :label="tt('Session relay actions')"
+            :label="tt('Remote control actions')"
             :size="26"
             :icon-size="13"
           />
@@ -302,7 +305,7 @@ function taskMeta(command: string, tail: string) {
         >
           <span class="flex"><HToggle
             v-model="relay"
-            :label="tt('Session relay')"
+            :label="tt('Remote control')"
             :disabled="!!relayLocked"
           /></span>
         </UTooltip>
