@@ -33,9 +33,9 @@ const source = ref<ImportSource['id'] | null>(null)
           class="flex items-center gap-3 px-3 py-2.5"
           :class="{ 'border-t border-default': i > 0 }"
         >
-          <!-- The tool's logo (the same as its provider's in Settings > Models); a folder import also shows a folder. -->
+          <!-- The tool's logo; a folder import also shows a folder. -->
           <span class="relative shrink-0">
-            <SettingsMonogram text="anthropic" />
+            <SettingsMonogram text="claude" />
             <span
               v-if="s.icon === 'folder'"
               class="absolute -right-1 -bottom-1 flex size-3.5 items-center justify-center rounded-chip border border-line bg-default text-muted"
