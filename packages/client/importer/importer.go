@@ -1,4 +1,5 @@
-// Package importer is the only reader of Claude Code's files; the rest of the client never looks at them.
+// Package importer is the only reader of other tools' files (Claude Code here, the rest through the engine in source.go and
+// engine.go with readers in importer/sources); the rest of the client never looks at them.
 //
 // `harness-client import claude` is a one-time import of the user-level Claude Code configuration (~/.claude) into the
 // harness server, and optionally of Claude Code session transcripts into ~/.harness/projects with upload to the server.
