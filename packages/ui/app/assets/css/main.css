@@ -181,6 +181,10 @@
     text-decoration: none;
   }
 
+  /* A bordered list with no rows (nothing connected yet) draws nothing rather than a lone double hairline. */
+  .overflow-hidden.border:not(:has(*)) {
+    display: none;
+  }
 
   /* Thin, square scrollbars in the border-strong tone. */
   * {
